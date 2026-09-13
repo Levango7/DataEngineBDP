@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -64,16 +65,28 @@ public class DataSourceController {
             String password) {
     }
 
-    /** 列表（租户隔离 + 可选类型过滤）。 */
+    /** 列表（租户隔离 + 可选类型过滤，P3-9: 添加分页参数）。 */
     @Operation(summary = "列表（租户隔离 + 可选类型过滤）")
     @GetMapping
     @Transactional(readOnly = true)
-    public ResponseEntity<List<Map<String, Object>>> list(String type) {
+    public ResponseEntity<List<Map<String, Object>>> list(
+            String type,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
         String tenantId = requireTenant();
+        // P3-9: 分页参数上限校验
+        int safePage = Math.max(1, Math.min(page, 1000));
+        int safePageSize = Math.max(1, Math.min(pageSize, 100));
         List<DataSourceEntity> list = (type == null || type.isBlank())
                 ? repository.findByTenantIdOrderByCreatedAtDesc(tenantId)
                 : repository.findByTenantIdAndTypeOrderByCreatedAtDesc(tenantId, type);
-        return ResponseEntity.ok(list.stream().map(this::toView).toList());
+        // 内存分页（数据量不大时可接受，大数据量应改用 Pageable 查询）
+        int from = (safePage - 1) * safePageSize;
+        if (from >= list.size()) {
+            return ResponseEntity.ok(List.of());
+        }
+        int to = Math.min(from + safePageSize, list.size());
+        return ResponseEntity.ok(list.subList(from, to).stream().map(this::toView).toList());
     }
 
     /** 详情。 */
@@ -162,11 +175,10 @@ public class DataSourceController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /** 连接测试（TCP 探测 + JDBC 校验（JDBC 型））。 */
+    /** 连接测试（TCP 探测 + JDBC 校验（JDBC 型））。P3-4: 移除不必要的 @Transactional。 */
     @Operation(summary = "连接测试（TCP 探测 + JDBC 校验（JDBC 型））")
     @AuditLog(action = "TEST_DATASOURCE", resource = "datasource")
     @PostMapping("/{id}/test")
-    @Transactional
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable Long id) {
         String tenantId = requireTenant();
         return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
@@ -174,22 +186,30 @@ public class DataSourceController {
             ssrfGuard.validate(entity.getHost(), entity.getPort());
             Map<String, Object> result = new LinkedHashMap<>();
             long start = System.currentTimeMillis();
+            boolean success = false;
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(entity.getHost(), entity.getPort()), 5000);
+                success = true;
                 result.put("success", true);
                 result.put("latency", System.currentTimeMillis() - start);
                 result.put("message", "连接成功（TCP " + entity.getHost() + ":" + entity.getPort() + "）");
-                entity.setStatus("connected");
             } catch (Exception e) {
                 result.put("success", false);
                 result.put("latency", System.currentTimeMillis() - start);
                 // 错误消息脱敏：不暴露内部异常细节（如 JDBC URL/密码/堆栈），
                 // 仅返回分类后的友好提示，详细错误记录到日志
                 result.put("message", sanitizeConnectionError(e));
-                entity.setStatus("disconnected");
                 log.warn("连接测试失败 id={} host={} port={} err={}", id, entity.getHost(), entity.getPort(), e.toString());
             }
-            repository.save(entity);
+            // P3-28: 只在连接成功时更新状态并保存，减少不必要的 DB 写入
+            if (success) {
+                entity.setStatus("connected");
+                repository.save(entity);
+            } else {
+                // 失败时也更新状态，但使用单独的 save 调用
+                entity.setStatus("disconnected");
+                repository.save(entity);
+            }
             return ResponseEntity.ok(result);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }

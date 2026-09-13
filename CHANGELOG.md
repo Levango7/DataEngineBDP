@@ -7,7 +7,7 @@
 ## [Unreleased]
 
 ### Added
-- **AutoBatch 归并**（2026-09-04 落地，commit `03c9129f`）：外部原型仓库 `Levango7/AutoBatch` 的五阶段批处理流水线引擎迁入 `platform/batch-pipeline`，形成平台第 38 个自研组件——python/polars/spark × local_csv/parquet/iceberg 正交引擎矩阵、8 类数据质量规则执行（DQ Score + 坏行隔离）、高水位 / Iceberg snapshot diff 增量、断点续跑、OpenLineage 血缘（经 lineage-analyzer 落平台）、批次台账；FastAPI 提交/查询壳按 `AUTH_MODE=jwt` 与租户上下文接入，工件路径按 `run/<tenant>/<batch>/` 分区。规则管理仍归 rule-engine（新增 `BatchPipelineRuleAdapter` 桥接，本组件保留行级求值执行）；平台 DAG 编排走 stream-batch-scheduler `BATCH_PIPELINE` TaskChannel。CI 加独立 job `batch-pipeline-test`（依赖重、需 MinIO service，不进通用矩阵）。源仓库已归档（readme 横幅 + tag `v-final`）、不再接受功能变更。登记与审计日志见 `docs/MERGE-LOG-autobatch.md`。
+- **AutoBatch 归并**（2026-09-04 落地，commit `03c9129f`）：外部原型仓库 `Levango7/AutoBatch` 的五阶段批处理流水线引擎迁入 `platform/batch-pipeline`，形成平台第 46 个自研组件——python/polars/spark × local_csv/parquet/iceberg 正交引擎矩阵、8 类数据质量规则执行（DQ Score + 坏行隔离）、高水位 / Iceberg snapshot diff 增量、断点续跑、OpenLineage 血缘（经 lineage-analyzer 落平台）、批次台账；FastAPI 提交/查询壳按 `AUTH_MODE=jwt` 与租户上下文接入，工件路径按 `run/<tenant>/<batch>/` 分区。规则管理仍归 rule-engine（新增 `BatchPipelineRuleAdapter` 桥接，本组件保留行级求值执行）；平台 DAG 编排走 stream-batch-scheduler `BATCH_PIPELINE` TaskChannel。CI 加独立 job `batch-pipeline-test`（依赖重、需 MinIO service，不进通用矩阵）。源仓库已归档（readme 横幅 + tag `v-final`）、不再接受功能变更。登记与审计日志见 `docs/MERGE-LOG-autobatch.md`。
 
 ## [2.1.0-RC] - 2026-08-29（遗留项收尾批次）
 
@@ -97,7 +97,7 @@
 - **K8s 安全策略模板全量推广**（P0 等保三级合规）：新建 namespace-security Chart（ResourceQuota + LimitRange 命名空间级配额管控）；81 个应用 Chart 添加 NetworkPolicy（deny-all 入站 + allow-same-namespace + 允许所有出站）+ ServiceMonitor（Prometheus 指标采集）条件模板，默认 enabled: false 向后兼容；批量推广脚本 _apply_security_templates.py 幂等可复用；helm lint 88/88 通过；5 个结构特殊 Chart 中 3 个已补全（argo-rollouts 补 fullname/labels/selectorLabels helper + NP/SM 模板、iceberg-compaction 补 selectorLabels + NP/SM 模板、nacos 适配 service.ports.http + NP/SM 模板），剩余 2 个（chaos-mesh/finance-template）因无 service.port 暂跳过
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）
-- **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、88 Chart HPA autoscaling
+- **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、67 Chart HPA autoscaling
 - **v1.1真实依赖**：封装层真实K8s client（fabric8+k3s IT）、规则引擎真实数据源、元数据采集器Iceberg REST Hook、血缘解析器NebulaGraph、APISIX jwt-auth+keycloak-auth插件链
 - **v1.2 E2E链路**：7条端到端链路全部落地（SeaTunnel/Spark/Kafka-CDC/Trino/治理闭环/Superset/多租户）
 - **前端Monorepo统一**：6个dashboard统一为npm workspace，依赖版本对齐，open-api-dashboard配置格式统一（c3f2468c）
@@ -230,7 +230,7 @@
 - 本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成
 - 所有代码均经过人工审查与验证
 
-[Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.1.0-RC...HEAD
 [2.0.0]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0
 

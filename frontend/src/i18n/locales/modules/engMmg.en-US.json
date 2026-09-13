@@ -13,12 +13,12 @@
       "queryCountMeta": "Today's queries"
     },
     "modelGroups": {
-      "RDBMS": { "label": "Relational", "countFmt": "{count} types" },
-      "DOC": { "label": "Document", "countFmt": "{count} types" },
-      "GRAPH": { "label": "Graph", "countFmt": "{count} types" },
-      "TSDB": { "label": "Time Series", "countFmt": "{count} types" },
-      "VECTOR": { "label": "Vector", "countFmt": "{count} types" },
-      "KV": { "label": "KV", "countFmt": "{count} types" }
+      "relational": { "label": "Relational", "countFmt": "{count} types" },
+      "document": { "label": "Document", "countFmt": "{count} types" },
+      "graph": { "label": "Graph", "countFmt": "{count} types" },
+      "timeseries": { "label": "Time Series", "countFmt": "{count} types" },
+      "vector": { "label": "Vector", "countFmt": "{count} types" },
+      "kv": { "label": "KV", "countFmt": "{count} types" }
     },
     "toolbar": {
       "typeFilterPlaceholder": "Filter by data source type",

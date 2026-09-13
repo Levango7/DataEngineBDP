@@ -11,7 +11,7 @@
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-RC（已发布）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
-- 工程成熟度：综合评分 72/100（B+），6200+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
+- 工程成熟度：综合评分 72/100（B+），6830+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。

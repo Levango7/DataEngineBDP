@@ -13,16 +13,12 @@
       "queryCountMeta": "今日查询次数"
     },
     "modelGroups": {
-      "{key}": {
-        "label": "{name}",
-        "countFmt": "{count} 个类型"
-      },
-      "RDBMS": { "label": "关系型", "countFmt": "{count} 个类型" },
-      "DOC": { "label": "文档型", "countFmt": "{count} 个类型" },
-      "GRAPH": { "label": "图数据库", "countFmt": "{count} 个类型" },
-      "TSDB": { "label": "时序", "countFmt": "{count} 个类型" },
-      "VECTOR": { "label": "向量", "countFmt": "{count} 个类型" },
-      "KV": { "label": "KV", "countFmt": "{count} 个类型" }
+      "relational": { "label": "关系型", "countFmt": "{count} 个类型" },
+      "document": { "label": "文档型", "countFmt": "{count} 个类型" },
+      "graph": { "label": "图数据库", "countFmt": "{count} 个类型" },
+      "timeseries": { "label": "时序", "countFmt": "{count} 个类型" },
+      "vector": { "label": "向量", "countFmt": "{count} 个类型" },
+      "kv": { "label": "KV", "countFmt": "{count} 个类型" }
     },
     "toolbar": {
       "typeFilterPlaceholder": "按数据源类型筛选",

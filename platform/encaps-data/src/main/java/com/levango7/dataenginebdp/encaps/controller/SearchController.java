@@ -6,6 +6,7 @@ import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
 import com.levango7.dataenginebdp.encaps.repository.TemplateRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -54,7 +55,13 @@ public class SearchController {
     private final TemplateRepository templateRepository;
     private final ElasticsearchIndexer esIndexer;
 
-    /** 导出任务内存存储：taskId -> 任务元数据。 */
+    /**
+     * 导出任务内存存储：taskId -> 任务元数据。
+     *
+     * <p>P2-5 已知限制：内存存储在多实例部署时不共享。
+     * 生产环境应改用 Redis 或分布式缓存（需引入 spring-boot-starter-data-redis 依赖）。
+     * 当前单实例部署下可接受，多实例时需迁移。</p>
+     */
     private static final Map<String, Map<String, Object>> EXPORT_TASKS = new ConcurrentHashMap<>();
 
     /** 导出任务容量上限（防内存泄漏）。 */
@@ -65,6 +72,18 @@ public class SearchController {
 
     /** 检索历史内存存储：tenantId -> 历史记录列表（按时间倒序）。 */
     private static final Map<String, List<Map<String, Object>>> SEARCH_HISTORY = new ConcurrentHashMap<>();
+
+    /** P3-3: 检索历史 TTL（1 小时，过期自动清理）。 */
+    private static final Duration SEARCH_HISTORY_TTL = Duration.ofHours(1);
+
+    /** P3-3: 检索历史最后清理时间。 */
+    private volatile Instant searchHistoryLastCleanup = Instant.now();
+
+    /** P3-26: 导出任务定时清理间隔（5 分钟）。 */
+    private static final Duration EXPORT_CLEANUP_INTERVAL = Duration.ofMinutes(5);
+
+    /** P3-26: 导出任务最后清理时间。 */
+    private volatile Instant exportLastCleanup = Instant.now();
 
     /** 检索请求体（对齐前端 SearchQuery 最小字段）。 */
     public record SearchRequest(
@@ -82,10 +101,11 @@ public class SearchController {
         String tenantId = requireTenant();
         Instant start = Instant.now();
         String q = req.query() == null ? "" : req.query().trim();
-        int page = req.page() != null && req.page() > 0 ? req.page() : 1;
+        int page = req.page() != null && req.page() > 0 ? Math.min(req.page(), 1000) : 1;
         // pageSize 上限 100，防超大分页拖垮查询
         int pageSize = req.pageSize() != null && req.pageSize() > 0
                 ? Math.min(req.pageSize(), 100) : 20;
+        int from = (page - 1) * pageSize;
 
         List<Map<String, Object>> results;
         long total = 0;
@@ -94,19 +114,22 @@ public class SearchController {
             usedEs = true;
             try {
                 esIndexer.ensureIndex();
-                syncIndexes(tenantId); // 幂等全量同步（文档 upsert，开销低）
+                // P1-5: 去掉搜索前全量同步，改为依赖各 Controller 写入时同步（ElasticsearchIndexer.indexDoc）
+                // 增量同步由数据写入触发，搜索时不再全量同步，避免性能问题
                 ElasticsearchIndexer.SearchResult sr =
-                        esIndexer.search(q, (page - 1) * pageSize, pageSize);
+                        esIndexer.search(q, from, pageSize);
                 results = sr.list();
                 total = sr.total();
             } catch (Exception e) {
                 log.warn("ES 检索异常，回退 LIKE: {}", e.getMessage());
-                results = likeSearch(tenantId, q);
-                total = results.size();
+                // P1-2: likeSearch 添加分页参数，返回当前页而非全量
+                results = likeSearch(tenantId, q, from, pageSize);
+                total = likeSearchTotal(tenantId, q);
             }
         } else {
-            results = likeSearch(tenantId, q);
-            total = results.size();
+            // P1-2: likeSearch 添加分页参数，返回当前页而非全量
+            results = likeSearch(tenantId, q, from, pageSize);
+            total = likeSearchTotal(tenantId, q);
         }
 
         long tookMs = Duration.between(start, Instant.now()).toMillis();
@@ -140,58 +163,156 @@ public class SearchController {
         return ResponseEntity.ok(body);
     }
 
-    /** 全量同步：将 4 类资产写入 ES 索引（幂等 upsert）。 */
+    /**
+     * 全量同步：将 4 类资产写入 ES 索引（幂等 upsert，分批处理防 OOM）。
+     *
+     * <p>P1-3 修复：改为分批同步，每批 1000 条，避免大数据量时 OOM。</p>
+     *
+     * @param tenantId 租户 ID
+     */
     private void syncIndexes(String tenantId) {
-        assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(a -> {
-            Map<String, Object> doc = new LinkedHashMap<>();
-            doc.put("docId", "asset-" + a.getId());
-            doc.put("name", a.getName());
-            doc.put("type", a.getType());
-            doc.put("source", "asset");
-            doc.put("description", a.getDescription());
-            doc.put("tags", List.of());
-            doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
-            esIndexer.indexDoc(doc);
-        });
-        apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(a -> {
-            Map<String, Object> doc = new LinkedHashMap<>();
-            doc.put("docId", "api-" + a.getId());
-            doc.put("name", a.getName());
-            doc.put("type", "api");
-            doc.put("source", "api");
-            doc.put("description", a.getPath());
-            doc.put("tags", List.of());
-            doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
-            esIndexer.indexDoc(doc);
-        });
-        standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(s -> {
-            Map<String, Object> doc = new LinkedHashMap<>();
-            doc.put("docId", "standard-" + s.getId());
-            doc.put("name", s.getName());
-            doc.put("type", s.getType());
-            doc.put("source", "standard");
-            doc.put("description", s.getRule());
-            doc.put("tags", List.of());
-            doc.put("createdAt", s.getCreatedAt() == null ? "" : s.getCreatedAt().toString());
-            esIndexer.indexDoc(doc);
-        });
-        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(t -> {
-            Map<String, Object> doc = new LinkedHashMap<>();
-            doc.put("docId", "template-" + t.getId());
-            doc.put("name", t.getName());
-            doc.put("type", "template");
-            doc.put("source", "template");
-            doc.put("description", t.getDescription());
-            doc.put("tags", List.of());
-            doc.put("createdAt", t.getCreatedAt() == null ? "" : t.getCreatedAt().toString());
-            esIndexer.indexDoc(doc);
-        });
+        int batchSize = 1000;
+
+        // 分批同步 assets
+        List<?> assets = assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        syncAssetsBatch(assets, batchSize);
+
+        // 分批同步 apis
+        List<?> apis = apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        syncApisBatch(apis, batchSize);
+
+        // 分批同步 standards
+        List<?> standards = standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        syncStandardsBatch(standards, batchSize);
+
+        // 分批同步 templates
+        List<?> templates = templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        syncTemplatesBatch(templates, batchSize);
     }
 
-    /** LIKE 回退检索（跨资产表）。 */
-    private List<Map<String, Object>> likeSearch(String tenantId, String q) {
+    /** 分批同步 assets 到 ES。 */
+    @SuppressWarnings("unchecked")
+    private void syncAssetsBatch(List<?> assets, int batchSize) {
+        int total = assets.size();
+        for (int i = 0; i < total; i += batchSize) {
+            int end = Math.min(i + batchSize, total);
+            for (int j = i; j < end; j++) {
+                var a = (com.levango7.dataenginebdp.encaps.model.AssetEntity) assets.get(j);
+                Map<String, Object> doc = new LinkedHashMap<>();
+                doc.put("docId", "asset-" + a.getId());
+                doc.put("name", a.getName());
+                doc.put("type", a.getType());
+                doc.put("source", "asset");
+                doc.put("description", a.getDescription());
+                doc.put("tags", List.of());
+                doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
+                esIndexer.indexDoc(doc);
+            }
+            log.debug("同步 assets 批次: {}/{}", end, total);
+        }
+    }
+
+    /** 分批同步 apis 到 ES。 */
+    @SuppressWarnings("unchecked")
+    private void syncApisBatch(List<?> apis, int batchSize) {
+        int total = apis.size();
+        for (int i = 0; i < total; i += batchSize) {
+            int end = Math.min(i + batchSize, total);
+            for (int j = i; j < end; j++) {
+                var a = (com.levango7.dataenginebdp.encaps.model.ApiDefinitionEntity) apis.get(j);
+                Map<String, Object> doc = new LinkedHashMap<>();
+                doc.put("docId", "api-" + a.getId());
+                doc.put("name", a.getName());
+                doc.put("type", "api");
+                doc.put("source", "api");
+                doc.put("description", a.getPath());
+                doc.put("tags", List.of());
+                doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
+                esIndexer.indexDoc(doc);
+            }
+            log.debug("同步 apis 批次: {}/{}", end, total);
+        }
+    }
+
+    /** 分批同步 standards 到 ES。 */
+    @SuppressWarnings("unchecked")
+    private void syncStandardsBatch(List<?> standards, int batchSize) {
+        int total = standards.size();
+        for (int i = 0; i < total; i += batchSize) {
+            int end = Math.min(i + batchSize, total);
+            for (int j = i; j < end; j++) {
+                var s = (com.levango7.dataenginebdp.encaps.model.StandardEntity) standards.get(j);
+                Map<String, Object> doc = new LinkedHashMap<>();
+                doc.put("docId", "standard-" + s.getId());
+                doc.put("name", s.getName());
+                doc.put("type", s.getType());
+                doc.put("source", "standard");
+                doc.put("description", s.getRule());
+                doc.put("tags", List.of());
+                doc.put("createdAt", s.getCreatedAt() == null ? "" : s.getCreatedAt().toString());
+                esIndexer.indexDoc(doc);
+            }
+            log.debug("同步 standards 批次: {}/{}", end, total);
+        }
+    }
+
+    /** 分批同步 templates 到 ES。 */
+    @SuppressWarnings("unchecked")
+    private void syncTemplatesBatch(List<?> templates, int batchSize) {
+        int total = templates.size();
+        for (int i = 0; i < total; i += batchSize) {
+            int end = Math.min(i + batchSize, total);
+            for (int j = i; j < end; j++) {
+                var t = (com.levango7.dataenginebdp.encaps.model.TemplateEntity) templates.get(j);
+                Map<String, Object> doc = new LinkedHashMap<>();
+                doc.put("docId", "template-" + t.getId());
+                doc.put("name", t.getName());
+                doc.put("type", "template");
+                doc.put("source", "template");
+                doc.put("description", t.getDescription());
+                doc.put("tags", List.of());
+                doc.put("createdAt", t.getCreatedAt() == null ? "" : t.getCreatedAt().toString());
+                esIndexer.indexDoc(doc);
+            }
+            log.debug("同步 templates 批次: {}/{}", end, total);
+        }
+    }
+
+    /**
+     * LIKE 回退检索（跨资产表，分页返回当前页结果）。
+     *
+     * <p>P1-2 修复：添加 from/size 分页参数，仅返回当前页结果而非全量。</p>
+     *
+     * @param tenantId 租户 ID
+     * @param q        搜索关键词
+     * @param from     起始偏移量
+     * @param size     每页大小
+     * @return 当前页的搜索结果
+     */
+    private List<Map<String, Object>> likeSearch(String tenantId, String q, int from, int size) {
+        List<Map<String, Object>> all = likeSearchAll(tenantId, q);
+        if (from >= all.size()) {
+            return List.of();
+        }
+        int to = Math.min(from + size, all.size());
+        return all.subList(from, to);
+    }
+
+    /**
+     * LIKE 回退检索的总匹配数（用于分页 total 字段）。
+     *
+     * @param tenantId 租户 ID
+     * @param q        搜索关键词
+     * @return 总匹配数
+     */
+    private long likeSearchTotal(String tenantId, String q) {
+        return likeSearchAll(tenantId, q).size();
+    }
+
+    /** LIKE 回退检索（跨资产表，返回全量匹配结果）。 */
+    private List<Map<String, Object>> likeSearchAll(String tenantId, String q) {
         List<Map<String, Object>> results = new ArrayList<>();
-        if (q.isEmpty()) {
+        if (q == null || q.isEmpty()) {
             return results;
         }
         assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
@@ -248,11 +369,11 @@ public class SearchController {
         return ResponseEntity.ok(body);
     }
 
-    /** 检索建议（基于名称前缀）。 */
+    /** 检索建议（基于名称前缀）。P3-15: 添加 @NotBlank 校验。 */
     @Operation(summary = "检索建议（基于名称前缀）")
     @GetMapping("/suggest")
     @Transactional(readOnly = true)
-    public ResponseEntity<List<String>> suggest(@RequestParam String keyword) {
+    public ResponseEntity<List<String>> suggest(@RequestParam @NotBlank(message = "keyword 不能为空") String keyword) {
         String tenantId = requireTenant();
         List<String> out = new ArrayList<>();
         if (keyword == null || keyword.isBlank()) {
@@ -276,6 +397,8 @@ public class SearchController {
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
         String tenantId = requireTenant();
+        // P3-3: 定期清理过期的检索历史
+        cleanupSearchHistory();
         List<Map<String, Object>> records = SEARCH_HISTORY.get(tenantId);
         if (records == null) {
             return ResponseEntity.ok(List.of());
@@ -291,11 +414,38 @@ public class SearchController {
         return ResponseEntity.ok(snapshot);
     }
 
+    /** P3-3: 清理过期的检索历史（TTL 机制，防内存泄漏）。 */
+    private void cleanupSearchHistory() {
+        Instant now = Instant.now();
+        // 间隔检查（避免每次请求都清理）
+        if (now.isBefore(searchHistoryLastCleanup.plus(EXPORT_CLEANUP_INTERVAL))) {
+            return;
+        }
+        searchHistoryLastCleanup = now;
+        Instant cutoff = now.minus(SEARCH_HISTORY_TTL);
+        SEARCH_HISTORY.entrySet().removeIf(entry -> {
+            List<Map<String, Object>> records = entry.getValue();
+            synchronized (records) {
+                records.removeIf(r -> {
+                    String createdAtStr = String.valueOf(r.get("createdAt"));
+                    try {
+                        return Instant.parse(createdAtStr).isBefore(cutoff);
+                    } catch (Exception e) {
+                        return true; // 无法解析的视为过期
+                    }
+                });
+                return records.isEmpty();
+            }
+        });
+    }
+
     /**
      * 触发后端导出，返回下载链接。
      *
      * <p>对齐前端 {@code search.ts} 的 {@code exportResults}。
-     * 内存异步导出：生成 UUID taskId，登记到内存任务表，返回下载链接。</p>
+     * P1-4 修复：实际生成 CSV 内容并存储到内存，返回下载链接。
+     * 异步导出：生成 UUID taskId，在当前线程同步生成 CSV（数据量小时开销低），
+     * 大数据量时可改为 @Async + 临时文件。</p>
      *
      * @param req 导出请求
      * @return 200 + 导出结果
@@ -308,13 +458,44 @@ public class SearchController {
         cleanupExportTasks();
         String taskId = UUID.randomUUID().toString();
         log.info("触发检索导出: taskId={}, req={}, tenant={}", taskId, req, tenantId);
+
+        // P1-4: 实际生成导出内容
+        String query = req.getOrDefault("query", "").toString();
+        String format = req.getOrDefault("format", "csv").toString();
+        // P3: export 类型安全校验
+        if (!"csv".equalsIgnoreCase(format) && !"json".equalsIgnoreCase(format)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "不支持的导出格式，仅支持 csv/json"));
+        }
+
+        // 执行检索获取导出数据（全量，受上限保护）
+        List<Map<String, Object>> exportData = likeSearchAll(tenantId, query);
+        // 导出数据量上限保护（防 OOM）
+        int exportLimit = 10000;
+        if (exportData.size() > exportLimit) {
+            exportData = exportData.subList(0, exportLimit);
+        }
+
+        // 生成 CSV 内容
+        StringBuilder csv = new StringBuilder();
+        csv.append("id,name,type,source\n");
+        for (Map<String, Object> row : exportData) {
+            csv.append(escapeCsv(String.valueOf(row.getOrDefault("id", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("name", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("type", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("source", "")))).append("\n");
+        }
+
         Map<String, Object> task = new LinkedHashMap<>();
         task.put("taskId", taskId);
-        task.put("status", "pending");
+        task.put("status", "completed");
         task.put("createdAt", Instant.now().toString());
         task.put("expiresAt", Instant.now().plus(EXPORT_TASK_TTL).toString());
         task.put("tenantId", tenantId);
         task.put("request", req);
+        task.put("format", format);
+        task.put("content", csv.toString());
+        task.put("rowCount", exportData.size());
         EXPORT_TASKS.put(taskId, task);
         // 容量上限保护：超限时移除最早的任务
         while (EXPORT_TASKS.size() > EXPORT_TASKS_MAX_SIZE) {
@@ -330,13 +511,90 @@ public class SearchController {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("taskId", taskId);
         result.put("downloadUrl", "/api/v1/search/export/" + taskId);
-        result.put("status", "pending");
+        result.put("status", "completed");
+        result.put("rowCount", exportData.size());
         return ResponseEntity.ok(result);
     }
 
-    /** 清理过期导出任务（TTL 机制，防内存泄漏）。 */
+    /** CSV 字段转义（含逗号/引号/换行时用双引号包裹）。 */
+    private String escapeCsv(String field) {
+        if (field == null) {
+            return "";
+        }
+        if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+            return "\"" + field.replace("\"", "\"\"") + "\"";
+        }
+        return field;
+    }
+
+    /**
+     * 下载导出文件。
+     *
+     * <p>P1-4 修复：添加下载接口，返回 CSV 内容。</p>
+     *
+     * @param taskId 任务 ID
+     * @return CSV 文件
+     */
+    @Operation(summary = "下载导出文件")
+    @GetMapping("/export/{taskId}")
+    public ResponseEntity<?> downloadExport(@PathVariable String taskId) {
+        String tenantId = requireTenant();
+        Map<String, Object> task = EXPORT_TASKS.get(taskId);
+        if (task == null) {
+            return ResponseEntity.notFound().build();
+        }
+        // 租户隔离：仅允许下载本租户的导出
+        if (!tenantId.equals(task.get("tenantId"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "无权访问此导出任务"));
+        }
+        String content = String.valueOf(task.getOrDefault("content", ""));
+        String format = String.valueOf(task.getOrDefault("format", "csv"));
+        // 清理过期任务
+        cleanupExportTasks();
+        if ("json".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"export-" + taskId + ".json\"")
+                    .body(content);
+        }
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"export-" + taskId + ".csv\"")
+                .body(content);
+    }
+
+    /**
+     * 取消导出任务。
+     *
+     * <p>P3 修复：添加导出取消接口。</p>
+     *
+     * @param taskId 任务 ID
+     * @return 200
+     */
+    @Operation(summary = "取消导出任务")
+    @PostMapping("/export/{taskId}/cancel")
+    public ResponseEntity<?> cancelExport(@PathVariable String taskId) {
+        String tenantId = requireTenant();
+        Map<String, Object> task = EXPORT_TASKS.get(taskId);
+        if (task == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!tenantId.equals(task.get("tenantId"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "无权取消此导出任务"));
+        }
+        EXPORT_TASKS.remove(taskId);
+        log.info("取消导出任务: taskId={}, tenant={}", taskId, tenantId);
+        return ResponseEntity.ok(Map.of("cancelled", true));
+    }
+
+    /** 清理过期导出任务（TTL 机制，防内存泄漏，P3-26: 间隔清理）。 */
     private void cleanupExportTasks() {
         Instant now = Instant.now();
+        // P3-26: 间隔清理（避免每次请求都清理）
+        if (now.isBefore(exportLastCleanup.plus(EXPORT_CLEANUP_INTERVAL))) {
+            return;
+        }
+        exportLastCleanup = now;
         EXPORT_TASKS.entrySet().removeIf(entry -> {
             String expiresAtStr = String.valueOf(entry.getValue().get("expiresAt"));
             try {

@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Elasticsearch 全文检索索引器（真实 ES 链路）。
@@ -33,6 +36,9 @@ public class ElasticsearchIndexer {
 
     /** 统一索引名。 */
     public static final String INDEX = "shuqing_catalog";
+
+    /** P3: query_string 最大长度限制（防 DoS，超长查询拒绝）。 */
+    private static final int MAX_QUERY_LENGTH = 500;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -53,7 +59,7 @@ public class ElasticsearchIndexer {
     }
 
     /** ES 是否可用（探测 / 端点，缓存 10s 内结果）。 */
-    public boolean isAvailable() {
+    public synchronized boolean isAvailable() {
         long now = System.currentTimeMillis();
         // 10s 缓存：缓存有效直接返回，避免每次请求都探测 ES
         if (availableCache != null && now - availableCheckedAt < 10_000) {
@@ -118,7 +124,10 @@ public class ElasticsearchIndexer {
             body.put("createdAt", String.valueOf(doc.getOrDefault("createdAt", "")));
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            restTemplate.put(esUrl + "/" + INDEX + "/_doc/" + docId,
+            // P3-19: 使用 URI builder 防 URL 注入（docId URL 编码）
+            String encodedDocId = URLEncoder.encode(docId, StandardCharsets.UTF_8);
+            URI uri = URI.create(esUrl + "/" + INDEX + "/_doc/" + encodedDocId);
+            restTemplate.put(uri,
                     new HttpEntity<>(body.toString(), headers));
         } catch (RestClientException e) {
             log.warn("ES 写入失败 docId={}: {}", docId, e.getMessage());
@@ -133,6 +142,14 @@ public class ElasticsearchIndexer {
 
     /** 全文检索（query_string），返回命中文档列表 + 总数。 */
     public SearchResult search(String keyword, int from, int size) {
+        // P3-1: query_string 长度限制，防 DoS
+        if (keyword == null || keyword.length() > MAX_QUERY_LENGTH) {
+            log.warn("ES 检索关键词过长 ({}), 拒绝查询", keyword == null ? 0 : keyword.length());
+            return new SearchResult(new ArrayList<>(), 0);
+        }
+        // P3-18: from/size 上限校验
+        int safeFrom = Math.max(0, Math.min(from, 10000));
+        int safeSize = Math.max(0, Math.min(size, 100));
         List<Map<String, Object>> out = new ArrayList<>();
         long total = 0;
         try {
@@ -140,8 +157,8 @@ public class ElasticsearchIndexer {
             ObjectNode qs = query.putObject("query").putObject("query_string");
             qs.put("query", keyword);
             qs.set("fields", objectMapper.valueToTree(new String[]{"name^3", "description^1", "tags^2"}));
-            query.put("from", from);
-            query.put("size", size);
+            query.put("from", safeFrom);
+            query.put("size", safeSize);
             query.putObject("highlight").putObject("fields")
                     .putObject("name").put("number_of_fragments", 0);
 

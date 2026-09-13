@@ -181,16 +181,17 @@ public class IoTDBController {
     /** 根据 id 解析 IoTDB 连接参数 */
     private IoTDBClient.ConnParams resolveConn(String id) {
         String tenantId = requireTenant();
+        // P3-11: id 白名单校验（仅允许数字，防路径注入）
         Long pk;
         try {
             pk = Long.parseLong(id);
         } catch (NumberFormatException e) {
-            throw new EngineUnavailableException("无效的实例 ID: " + id);
+            throw new EngineUnavailableException("无效的实例 ID");
         }
         DataSourceEntity ds = dataSourceRepository.findByIdAndTenantId(pk, tenantId)
-                .orElseThrow(() -> new EngineUnavailableException("IoTDB 实例不存在: " + id));
+                .orElseThrow(() -> new EngineUnavailableException("IoTDB 实例不存在"));
         if (!"iotdb".equalsIgnoreCase(ds.getType())) {
-            throw new EngineUnavailableException("数据源 " + id + " 不是 IoTDB 类型");
+            throw new EngineUnavailableException("数据源不是 IoTDB 类型");
         }
         String jdbcUrl = "jdbc:iotdb://" + ds.getHost() + ":" + ds.getPort() + "/";
         String user = ds.getUsername() != null ? ds.getUsername() : "root";

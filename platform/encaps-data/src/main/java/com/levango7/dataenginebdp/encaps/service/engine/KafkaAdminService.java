@@ -114,6 +114,8 @@ public class KafkaAdminService {
     /**
      * 创建 Topic。
      *
+     * <p>P3-21: 创建前检查 Topic 是否已存在，已存在则返回幂等结果。</p>
+     *
      * @param bootstrapServers Kafka bootstrap servers
      * @param name             Topic 名
      * @param partitions       分区数
@@ -123,6 +125,20 @@ public class KafkaAdminService {
     public Map<String, Object> createTopic(String bootstrapServers, String name,
                                            int partitions, int replicationFactor) {
         try (AdminClient admin = createAdmin(bootstrapServers)) {
+            // P3-21: 检查 Topic 是否已存在（幂等创建）
+            try {
+                boolean exists = admin.listTopics().names()
+                        .get(OP_TIMEOUT_SECONDS, TimeUnit.SECONDS).contains(name);
+                if (exists) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    result.put("name", name);
+                    result.put("status", "ALREADY_EXISTS");
+                    result.put("message", "Topic 已存在");
+                    return result;
+                }
+            } catch (Exception ignored) {
+                // 检查失败时继续尝试创建
+            }
             NewTopic newTopic = new NewTopic(name, partitions, (short) replicationFactor);
             admin.createTopics(Collections.singleton(newTopic))
                     .all().get(OP_TIMEOUT_SECONDS, TimeUnit.SECONDS);

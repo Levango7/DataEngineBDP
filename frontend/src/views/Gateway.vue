@@ -109,11 +109,11 @@
         <el-option :label="t('gateway.editModal.routeModelOptions.qiong7B')" value="qiong-7B" />
         <el-option
           :label="t('gateway.editModal.routeModelOptions.riskDomain13B')"
-          value="风控-领域-1.3B"
+          value="risk-domain-1.3B"
         />
         <el-option
           :label="t('gateway.editModal.routeModelOptions.marketingDomain3B')"
-          value="营销-领域-3B"
+          value="marketing-domain-3B"
         />
       </el-select>
       <label>{{ t('gateway.editModal.rateLimit') }}</label>

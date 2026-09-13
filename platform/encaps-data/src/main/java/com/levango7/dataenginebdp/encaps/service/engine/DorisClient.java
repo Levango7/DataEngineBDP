@@ -65,6 +65,9 @@ public class DorisClient {
     /** JDBC 驱动是否已加载标志 */
     private volatile boolean driverLoaded = false;
 
+    /** P3: JDBC 查询超时（秒）。 */
+    private static final int JDBC_QUERY_TIMEOUT_SECONDS = 30;
+
     /**
      * 列出 Doris 节点（FE + BE）。
      *
@@ -167,9 +170,14 @@ public class DorisClient {
     /**
      * 执行 SQL 查询并返回结构化结果。
      *
+     * <p>P2-9: 此重载不传递 tenantId，无法实现租户隔离。
+     * 已标记为 {@code @Deprecated}，请使用 {@link #executeQuery(String, String)} 代替。</p>
+     *
      * @param sql SQL 文本
      * @return 含 columns/rows/rowCount/durationMs 的结果
+     * @deprecated 使用 {@link #executeQuery(String, String)} 传递 tenantId 实现租户隔离
      */
+    @Deprecated(since = "R17", forRemoval = true)
     public Map<String, Object> executeQuery(String sql) {
         return executeQuery(sql, null);
     }
@@ -195,8 +203,10 @@ public class DorisClient {
                     setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
                 }
             }
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
+            try (Statement stmt = conn.createStatement()) {
+                // P3: 设置查询超时
+                stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+                try (ResultSet rs = stmt.executeQuery(sql)) {
                 ResultSetMetaData meta = rs.getMetaData();
                 int colCount = meta.getColumnCount();
                 List<String> columns = new ArrayList<>();
@@ -216,17 +226,18 @@ public class DorisClient {
                 result.put("rowCount", rows.size());
                 result.put("durationMs", System.currentTimeMillis() - start);
                 result.put("status", "SUCCESS");
-                if (tenantId != null) {
-                    result.put("tenantId", tenantId);
-                }
+                // P2-8: 不在结果中返回 tenantId，防信息泄露（tenantId 仅用于审计日志）
                 return result;
+                }
             }
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {
+            // P3-5: 异常消息泛化，不暴露 DB 结构
             result.put("status", "FAILED");
-            result.put("error", e.getMessage());
+            result.put("error", "查询执行失败");
             result.put("durationMs", System.currentTimeMillis() - start);
+            log.warn("Doris 查询失败（详情已隐藏）: {}", e.getMessage());
             return result;
         }
     }
@@ -250,12 +261,15 @@ public class DorisClient {
                     setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
                 }
             }
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(sql)) {
-                while (rs.next()) {
-                    result.add(rs.getString(colIndex));
+            try (Statement stmt = conn.createStatement()) {
+                // P3: 设置查询超时
+                stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+                try (ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        result.add(rs.getString(colIndex));
+                    }
+                    return result;
                 }
-                return result;
             }
         } catch (EngineUnavailableException e) {
             throw e;
@@ -270,15 +284,19 @@ public class DorisClient {
         return DriverManager.getConnection(feJdbcUrl, username, password);
     }
 
-    /** 确保 JDBC 驱动已加载（运行时可选） */
+    /** 确保 JDBC 驱动已加载（运行时可选，P3-23: 双重检查锁定） */
     private void ensureDriver() throws ClassNotFoundException {
         if (!driverLoaded) {
-            try {
-                Class.forName(driverClass);
-                driverLoaded = true;
-            } catch (ClassNotFoundException e) {
-                throw new EngineUnavailableException(
-                        "Doris JDBC 驱动缺失: " + driverClass + "，请将 mysql-connector-j 加入 classpath", e);
+            synchronized (this) {
+                if (!driverLoaded) {
+                    try {
+                        Class.forName(driverClass);
+                        driverLoaded = true;
+                    } catch (ClassNotFoundException e) {
+                        throw new EngineUnavailableException(
+                                "Doris JDBC 驱动缺失: " + driverClass + "，请将 mysql-connector-j 加入 classpath", e);
+                    }
+                }
             }
         }
     }

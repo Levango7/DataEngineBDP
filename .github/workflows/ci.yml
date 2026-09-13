@@ -945,8 +945,12 @@ jobs:
           python3 << 'PYEOF'
           import json, glob, re
           summary = {}
-          for xml in glob.glob('platform/*/target/site/jacoco/jacoco.xml'):
-              mod = xml.split('/')[1]
+          # 使用 recursive glob 匹配任意深度的子目录（含二层模块如 platform/encaps-data/encaps-data-controller）
+          for xml in glob.glob('platform/**/target/site/jacoco/jacoco.xml', recursive=True):
+              # 提取 target 之前的目录名作为模块名，与趋势检查的 basename(mod_dir) 保持一致
+              parts = xml.split('/')
+              idx = parts.index('target')
+              mod = parts[idx - 1]
               content = open(xml).read()
               m_missed = re.findall(r'<counter type="LINE"[^>]*missed="(\d+)"', content)
               m_covered = re.findall(r'<counter type="LINE"[^>]*covered="(\d+)"', content)
@@ -1030,6 +1034,7 @@ jobs:
             echo "============================================"
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
+            mkdir -p "$(dirname "go-build-reports/${mod_name}-test.log")"
             (cd "$mod_dir" && go test ./... 2>&1) | tee "go-build-reports/${mod_name}-test.log"
             if [ ${PIPESTATUS[0]} -eq 0 ]; then
               echo "✓ $mod_name go test 通过"
@@ -1301,6 +1306,7 @@ jobs:
             if [ "$mod_name" = "nl2sql" ]; then
               pip install sqlparse==0.5.0 2>&1 || true
             fi
+            mkdir -p "$(dirname "python-syntax-reports/${mod_name}-test.log")"
             if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
               echo "✓ $mod_name pytest 通过"
             else

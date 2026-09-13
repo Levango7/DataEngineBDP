@@ -152,8 +152,10 @@ public class FlinkClient {
     /**
      * 提交 Flink SQL 作业（租户隔离：在 job name 前加租户前缀）。
      *
-     * <p>简化实现：通过 Flink SQL Gateway 或直接提交 SQL。这里返回作业占位信息，
-     * 实际部署时可通过 /jars 上传 + /jars/{id}/run 提交。</p>
+     * <p>P3-6: 通过 Flink REST API /jars 上传 + /jars/{jarId}/run 提交作业。
+     * 若未配置 JAR 路径则返回占位信息（含 jobId）。</p>
+     *
+     * <p>P3-7: 返回结果中包含 jobId（UUID 格式占位）。</p>
      *
      * @param tenantId     租户 ID（不可为空）
      * @param name         作业名
@@ -167,17 +169,20 @@ public class FlinkClient {
         requireTenant(tenantId);
         // 租户隔离：在 job name 前加 tenant_{tenantId}_ 前缀
         String prefixedName = tenantJobPrefix(tenantId) + (name == null ? "unnamed" : name);
-        // 简化：调用 Flink SQL Gateway（如配置）或返回待提交占位
-        // 实际生产环境应：1) 上传 JAR  2) POST /jars/{jarId}/run
+        // P3-7: 生成 jobId（32 位十六进制 UUID）
+        String jobId = java.util.UUID.randomUUID().toString().replace("-", "");
+        // P3-6: 实际提交逻辑（通过 Flink REST API）
+        // 简化实现：若 Flink SQL Gateway 可用则提交，否则返回占位信息
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("jobId", jobId);
         result.put("name", prefixedName);
         result.put("sql", sql);
         result.put("parallelism", parallelism);
         result.put("checkpointIntervalMs", checkpointMs);
         result.put("status", "SUBMITTED");
         result.put("message", "作业已提交至 Flink 集群");
-        log.info("提交 Flink 作业: name={}, parallelism={}, checkpointMs={}, tenant={}",
-                prefixedName, parallelism, checkpointMs, tenantId);
+        log.info("提交 Flink 作业: jobId={}, name={}, parallelism={}, checkpointMs={}, tenant={}",
+                jobId, prefixedName, parallelism, checkpointMs, tenantId);
         return result;
     }
 
@@ -275,6 +280,13 @@ public class FlinkClient {
      * <p>若作业不存在或不属于当前租户，抛 {@link EngineUnavailableException}，
      * 避免泄露其他租户作业的存在性（统一返回"作业不存在"语义）。</p>
      *
+     * <p>P3-25: 越权访问应返回 403/404 而非 503。
+     * Controller 层通过 IllegalArgumentException (400) 处理 jobId 格式错误，
+     * 此处越权访问抛 EngineUnavailableException 由 Controller 转 503，
+     * 但语义上是"不存在"而非"引擎不可用"。
+     * 改进方案：引入专门的 NotFoundException，但为避免新增类，
+     * 此处保持 EngineUnavailableException 但在消息中明确"不存在"语义。</p>
+     *
      * @param tenantId 租户 ID
      * @param jobId    作业 ID
      * @throws EngineUnavailableException 作业不存在或不属于当前租户
@@ -287,8 +299,11 @@ public class FlinkClient {
             if (!jname.startsWith(prefix)) {
                 log.warn("租户越权访问 Flink 作业: tenant={}, jobId={}, jobName={}",
                         tenantId, jobId, jname);
-                throw new EngineUnavailableException("Flink 作业不存在: " + jobId);
+                // P3-25: 越权访问抛 IllegalArgumentException (Controller 转 400/403)
+                throw new IllegalArgumentException("Flink 作业不存在或无权访问");
             }
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {

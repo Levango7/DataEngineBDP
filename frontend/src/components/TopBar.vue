@@ -499,7 +499,7 @@ function handleLogout() {
   min-width: 180px;
   z-index: 30;
   overflow: hidden;
-  animation: springIn 0.32s var(--ease-spring);
+  animation: springIn var(--ds-transition-spring);
   transform-origin: top left;
 }
 .ws-item {
@@ -542,7 +542,7 @@ function handleLogout() {
   min-width: 200px;
   z-index: 30;
   overflow: hidden;
-  animation: springIn 0.32s var(--ease-spring);
+  animation: springIn var(--ds-transition-spring);
   transform-origin: top right;
 }
 .user-info {
@@ -596,7 +596,7 @@ function handleLogout() {
   user-select: none;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
   transition:
-    transform 0.2s var(--ease-spring),
+    transform var(--ds-transition-quick),
     box-shadow var(--ds-transition-quick);
 }
 .avatar:hover {

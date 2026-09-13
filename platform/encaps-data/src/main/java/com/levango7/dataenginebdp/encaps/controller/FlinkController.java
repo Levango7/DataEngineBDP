@@ -3,6 +3,11 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
 import com.levango7.dataenginebdp.encaps.service.engine.FlinkClient;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -65,24 +70,26 @@ public class FlinkController {
 
     /** 提交 Flink 作业请求体。 */
     public record SubmitJobRequest(
-            String name,
+            @NotBlank(message = "作业名称不能为空") String name,
             String sql,
             String jobUri,
-            Integer parallelism,
+            @Min(value = 1, message = "并行度最小为 1") @Max(value = 256, message = "并行度最大为 256") Integer parallelism,
             Long checkpointIntervalMs) {
     }
 
     /** 提交 Flink 作业。 */
     @Operation(summary = "提交 Flink 作业")
     @PostMapping("/jobs")
-    public ResponseEntity<?> submitJob(@RequestBody SubmitJobRequest req) {
+    public ResponseEntity<?> submitJob(@Valid @RequestBody SubmitJobRequest req) {
         String tenantId = requireTenant();
         log.info("提交 Flink 作业: name={}, tenant={}", req.name(), tenantId);
         try {
             int parallelism = req.parallelism() != null ? req.parallelism() : 1;
             long checkpointMs = req.checkpointIntervalMs() != null ? req.checkpointIntervalMs() : 60000L;
             String sql = req.sql() != null ? req.sql() : "";
-            return ResponseEntity.ok(flinkClient.submitJob(tenantId, req.name(), sql, parallelism, checkpointMs));
+            // P2-6: 创建操作返回 201 CREATED
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(flinkClient.submitJob(tenantId, req.name(), sql, parallelism, checkpointMs));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -149,13 +156,15 @@ public class FlinkController {
         }
     }
 
-    /** Savepoint 历史。 */
+    /** Savepoint 历史。P3-12: Flink REST 暂未实现 Savepoint 历史查询，返回空列表。 */
     @Operation(summary = "Savepoint 历史")
     @GetMapping("/jobs/{id}/savepoints")
     public ResponseEntity<List<Map<String, Object>>> getSavepoints(@PathVariable String id) {
         String tenantId = requireTenant();
         log.info("查询 Flink Savepoint: jobId={}, tenant={}", id, tenantId);
-        // Flink REST 暂未实现 Savepoint 历史查询，返回空列表
+        // P3-12: Flink REST API 不直接支持 Savepoint 历史查询
+        // 可通过 /jobs/{id}/checkpoints 获取 checkpoint 信息作为近似
+        // 当前返回空列表，前端应处理空结果
         return ResponseEntity.ok(List.of());
     }
 

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * IoTDB 客户端。
@@ -53,6 +54,15 @@ public class IoTDBClient {
     /** JDBC 驱动是否已加载标志 */
     private volatile boolean driverLoaded = false;
 
+    /** P2-4: IoTDB device/时序名白名单：仅允许字母数字下划线点（防 SQL 注入）。 */
+    private static final Pattern DEVICE_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.]+$");
+
+    /** P3: JDBC 连接超时（秒）。 */
+    private static final int JDBC_CONNECT_TIMEOUT_SECONDS = 10;
+
+    /** P3: JDBC 查询超时（秒）。 */
+    private static final int JDBC_QUERY_TIMEOUT_SECONDS = 30;
+
     /** 连接参数 */
     public record ConnParams(String jdbcUrl, String username, String password) {
     }
@@ -80,18 +90,31 @@ public class IoTDBClient {
     /**
      * 列出时序（测点）。
      *
+     * <p>P2-4 修复：对 device 参数添加白名单校验（仅允许字母数字下划线点），
+     * 防止 SQL 注入。Controller 层已有校验，此处为 defense-in-depth。</p>
+     *
      * @param conn   连接参数（null 用默认）
      * @param device 设备名（可选，null 则查全部）
      * @return 时序列表
+     * @throws IllegalArgumentException 若 device 含非法字符
      */
     public List<Map<String, Object>> listTimeseries(ConnParams conn, String device) {
-        String sql = (device == null || device.isBlank())
-                ? "SHOW TIMESERIES"
-                : "SHOW TIMESERIES " + device;
+        String sql;
+        if (device == null || device.isBlank()) {
+            sql = "SHOW TIMESERIES";
+        } else {
+            // P2-4: 白名单校验防 SQL 注入（defense-in-depth）
+            if (!DEVICE_NAME_PATTERN.matcher(device).matches()) {
+                throw new IllegalArgumentException("非法的 device 参数: " + device);
+            }
+            sql = "SHOW TIMESERIES " + device;
+        }
         List<Map<String, Object>> result = new ArrayList<>();
         try (Connection c = openConnection(conn);
-             Statement stmt = c.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             Statement stmt = c.createStatement()) {
+            // P3: 设置查询超时
+            stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+            try (ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 Map<String, Object> ts = new LinkedHashMap<>();
                 ts.put("name", rs.getString("Timeseries"));
@@ -102,6 +125,7 @@ public class IoTDBClient {
                 result.add(ts);
             }
             return result;
+            }
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {
@@ -120,8 +144,10 @@ public class IoTDBClient {
         long start = System.currentTimeMillis();
         Map<String, Object> result = new LinkedHashMap<>();
         try (Connection c = openConnection(conn);
-             Statement stmt = c.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             Statement stmt = c.createStatement()) {
+            // P3: 设置查询超时
+            stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+            try (ResultSet rs = stmt.executeQuery(sql)) {
             ResultSetMetaData meta = rs.getMetaData();
             int colCount = meta.getColumnCount();
             List<String> columns = new ArrayList<>();
@@ -142,6 +168,7 @@ public class IoTDBClient {
             result.put("durationMs", System.currentTimeMillis() - start);
             result.put("status", "SUCCESS");
             return result;
+            }
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {
@@ -173,12 +200,15 @@ public class IoTDBClient {
     private List<String> queryStrings(ConnParams conn, String sql, int colIndex) {
         List<String> result = new ArrayList<>();
         try (Connection c = openConnection(conn);
-             Statement stmt = c.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                result.add(rs.getString(colIndex));
+             Statement stmt = c.createStatement()) {
+            // P3: 设置查询超时
+            stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+            try (ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    result.add(rs.getString(colIndex));
+                }
+                return result;
             }
-            return result;
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {
@@ -192,18 +222,26 @@ public class IoTDBClient {
         String url = conn != null ? conn.jdbcUrl : defaultJdbcUrl;
         String user = conn != null ? conn.username : defaultUsername;
         String pass = conn != null ? conn.password : defaultPassword;
-        return DriverManager.getConnection(url, user, pass);
+        // P3: 设置 JDBC 连接超时（通过 Properties 传递）
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("user", user);
+        props.setProperty("password", pass);
+        return DriverManager.getConnection(url, props);
     }
 
-    /** 确保 JDBC 驱动已加载（运行时可选） */
+    /** 确保 JDBC 驱动已加载（运行时可选，P3-23: 双重检查锁定） */
     private void ensureDriver() throws ClassNotFoundException {
         if (!driverLoaded) {
-            try {
-                Class.forName(driverClass);
-                driverLoaded = true;
-            } catch (ClassNotFoundException e) {
-                throw new EngineUnavailableException(
-                        "IoTDB JDBC 驱动缺失: " + driverClass + "，请将 iotdb-jdbc 加入 classpath", e);
+            synchronized (this) {
+                if (!driverLoaded) {
+                    try {
+                        Class.forName(driverClass);
+                        driverLoaded = true;
+                    } catch (ClassNotFoundException e) {
+                        throw new EngineUnavailableException(
+                                "IoTDB JDBC 驱动缺失: " + driverClass + "，请将 iotdb-jdbc 加入 classpath", e);
+                    }
+                }
             }
         }
     }

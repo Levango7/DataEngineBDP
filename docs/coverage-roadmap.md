@@ -14,7 +14,7 @@
 >
 > **v1.2 变更说明**：2026-08-23 将 CI 门禁阈值从过高水平（Java 80%/70%、Go 70%、Python 75%）
 > 调整为略低于实际覆盖率的保守值（Java 35%/15%、Go 35%、Python 55%），解决 CI 持续阻断问题。
-> 2026-09-01 再次实化提升：Java 阈值提升至 40%/18%（Boot 4.1.1 升级后实测）、Go 阈值调至 30%（实测最低 query-api=31.5%）。
+> 2026-09-01 再次实化提升：Java 阈值提升至 40%/18%（Boot 4.1.1 升级后实测）、Go 阈值调至 30%（实测最低 observability/query-api=31.5%）。
 >
 > **v1.1 变更说明**：2026-08-13 完成 P0 模块测试补充，覆盖率数据已同步更新（详见 §5）。
 
@@ -62,7 +62,7 @@
 | 维度 | 调整前 | 调整后（2026-08-23） |
 |------|--------|--------|
 | Java 门禁覆盖范围 | 仅 encaps-layer（1 个模块） | 全量 24 个模块 |
-| Go 门禁覆盖范围 | 5 个模块（catalog/vector-engine/llm-gateway/query-api/dqctl） | 全量 10 个模块 |
+| Go 门禁覆盖范围 | 5 个模块（catalog/vector-engine/llm-gateway/observability/query-api/dqctl） | 全量 10 个模块 |
 | Python 门禁覆盖范围 | 仅 asset-exchange（1 个模块） | 全量 12 个模块 |
 | Java 阈值 | 行 80% / 分支 70%（warning 模式） | 行 40% / 分支 18%（**阻断**模式） |
 | Go 阈值 | 70%（warning 模式） | 30%（**阻断**模式） |
@@ -73,7 +73,7 @@
 > （Java ~44%/28%、Go ~45%、Python ~66%），导致 CI 持续阻断。现将阈值设为略低于实际覆盖率
 > （留约 10% 缓冲空间），确保 CI 可通过同时保留趋势阻断机制防止覆盖率倒退。
 > **2026-09-01 实化提升**：Java 阈值从 35%/15% 提升至 40%/18%（Boot 4.1.1 升级后 24 模块实测，
-> 最低 common-security 49%/33%，门禁留缓冲）；Go 阈值从 35% 调至 30%（实测最低 query-api=31.5%）。
+> 最低 common-security 49%/33%，门禁留缓冲）；Go 阈值从 35% 调至 30%（实测最低 observability/query-api=31.5%）。
 > 后续随 Phase 2/3 测试补充逐步提升阈值（见 §3 Phase 4）。
 
 ## 2. 模块覆盖率明细与优先级
@@ -191,7 +191,7 @@
 
 **范围**：
 - Java：sql-gateway、lineage-analyzer、metadata-collector、storage-io、tag-engine、rule-engine、federated-query、dashboard、cost-model
-- Go：catalog、dqctl、llm-gateway、query-api、karmada/api、karmada/failover/api
+- Go：catalog、dqctl、llm-gateway、observability/query-api、karmada/api、karmada/failover/api
 - Python：nl2sql、chunker、business-portal、knowledge-engine、llmops
 
 **预期结果**：

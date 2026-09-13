@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.DorisClient;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -91,7 +92,7 @@ public class DorisController {
     /** 表列表（query 参数指定数据库，任务要求）。 */
     @Operation(summary = "表列表（query 参数指定数据库，任务要求）")
     @GetMapping("/tables")
-    public ResponseEntity<?> listTables(@RequestParam String database) {
+    public ResponseEntity<?> listTables(@RequestParam @NotBlank(message = "database 不能为空") String database) {
         String tenantId = requireTenant();
         log.info("列出 Doris 表: db={}, tenant={}", database, tenantId);
         try {
@@ -100,6 +101,11 @@ public class DorisController {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Doris 引擎不可用", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            // P2-8: 异常消息不暴露 tenantId（validateIdentifier 不含 tenantId，安全）
+            log.warn("非法标识符: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid identifier", "message", e.getMessage()));
         }
     }
 

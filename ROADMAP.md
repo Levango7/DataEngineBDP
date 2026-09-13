@@ -248,7 +248,7 @@ graph LR
 - 冻结期内禁止对 `frozen-until-mvp` 组件做大规模重构（仅允许安全 / 兼容性修复）。
 - v2.2 验收时逐项复审：优先激活项须切真实实现，降级为规划项须确认无激活需求方可长期搁置。
 
-> 逐组件处置决策详见 [组件成熟度矩阵 - 骨架/Mock 默认](docs/component-maturity.md#三骨架--mock-默认15-个)。
+> 逐组件处置决策详见 [组件成熟度矩阵 - 骨架/Mock 默认](docs/component-maturity.md)。
 
 ## 长期愿景
 
