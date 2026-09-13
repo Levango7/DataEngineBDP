@@ -73,7 +73,7 @@ jobs:
         run: npm run build
 
       - name: 上传前端构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-frontend-dist
           path: frontend/dist/
@@ -126,7 +126,7 @@ jobs:
           echo "platform/bootstrap.sh 验证通过"
 
       - name: 打包 SKE 脚本为 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-ske-scripts
           path: |
@@ -179,7 +179,7 @@ jobs:
           fi
 
       - name: 上传 Chart tgz 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-helm-charts
           path: release-charts/*.tgz
@@ -254,7 +254,7 @@ jobs:
 
       - name: 上传 Java 制品 artifact
         if: env.java_skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-java-artifacts
           path: release-java-artifacts/
@@ -322,7 +322,7 @@ jobs:
 
       - name: 上传 Go 二进制 artifact
         if: env.go_skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-go-binaries
           path: release-go-binaries/
@@ -404,7 +404,7 @@ jobs:
 
       - name: 上传 Python 包 artifact
         if: env.py_skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-python-packages
           path: release-python-packages/
@@ -449,7 +449,7 @@ jobs:
           ls -la release-sbom/ || echo "::warning::release-sbom/ 目录为空或不存在"
 
       - name: 上传 SBOM artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-sbom
           path: release-sbom/
