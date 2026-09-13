@@ -165,8 +165,8 @@ function toggleGroup(idx: number): void {
   min-width: 16px;
   text-align: center;
   transition:
-    color 0.2s var(--ease-smooth),
-    background 0.2s var(--ease-smooth);
+    color var(--ds-transition-quick),
+    background var(--ds-transition-quick);
 }
 
 /* === 分组容器：平滑高度过渡 === */

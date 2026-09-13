@@ -58,6 +58,7 @@ public class DorisOlapClient {
      * @throws DorisOlapException 查询失败（HTTP 非 200 / 解析异常 / 网络异常）
      */
     public DorisQueryResult query(String database, String sql) throws DorisOlapException {
+        validateIdentifier(database);
         long startMs = System.currentTimeMillis();
         String feRest = config.getDorisFeRest();
         String url = String.format("%s/api/%s", feRest, database);
@@ -111,6 +112,8 @@ public class DorisOlapClient {
      * @throws DorisOlapException 刷新请求失败
      */
     public boolean refreshMaterializedView(String database, String materializedView) throws DorisOlapException {
+        validateIdentifier(database);
+        validateIdentifier(materializedView);
         String url = String.format("%s/api/%s/%s/_refresh",
                 config.getDorisFeRest(), database, materializedView);
         log.info("触发 Doris 物化视图刷新: url={}", url);
@@ -157,13 +160,15 @@ public class DorisOlapClient {
     public boolean createIcebergExternalCatalog(
             String catalogName, String icebergWarehouse, String icebergCatalogType) throws DorisOlapException {
         validateIdentifier(catalogName);
+        String safeWarehouse = icebergWarehouse.replace("\"", "\\\"");
+        String safeCatalogType = icebergCatalogType.replace("\"", "\\\"");
         String sql = String.format(
                 "CREATE EXTERNAL CATALOG IF NOT EXISTS %s PROPERTIES ("
                         + "\"type\" = \"iceberg\", "
                         + "\"iceberg.catalog.type\" = \"%s\", "
                         + "\"warehouse\" = \"%s\""
                         + ")",
-                catalogName, icebergCatalogType, icebergWarehouse);
+                catalogName, safeCatalogType, safeWarehouse);
         log.info("创建 Doris Iceberg External Catalog: catalogName={}, warehouse={}",
                 catalogName, icebergWarehouse);
         // 通过 query 走默认数据库（Doris 支持 CREATE CATALOG 不依赖具体 db）

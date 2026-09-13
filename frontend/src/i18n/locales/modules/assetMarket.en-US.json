@@ -187,6 +187,9 @@
       "by_time_unit": "Per time (monthly)",
       "one_time": "One-time"
     },
+    "billingUnit": {
+      "call": "call"
+    },
     "deliveryMethod": {
       "api": "API",
       "file": "File",

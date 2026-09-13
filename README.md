@@ -111,7 +111,7 @@ DataEngineBDP/
 │   ├── profiles/               # 四环境 Profile
 │   ├── tuning/                 # 内核与系统调优
 │   └── wsl2/                   # WSL2 部署支持
-├── tests/integration/          # 集成测试（43 个）
+├── tests/integration/          # 集成测试（61 个）
 ├── scripts/poc/                # 端到端 PoC 验证脚本
 ├── docs/                       # 项目文档
 ├── CONVENTIONS.md              # 统一命名与约定
@@ -185,7 +185,7 @@ bash scripts/poc/run-poc.sh
 ## 组件清单
 
 平台共包含 46 个自研组件（Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
-（注：其中约 1/3 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
+（注：其中约 1/2 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
 ### Java 组件（24 个）
 

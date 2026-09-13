@@ -557,7 +557,7 @@ const newAsset = ref<{
   type: 'table',
   securityLevel: 'internal',
   description: '',
-  pricing: { mode: 'by_call', price: 0.01, unit: '次' },
+  pricing: { mode: 'by_call', price: 0.01, unit: t('assetMarket.billingUnit.call') },
   deliveryMethod: 'api'
 })
 
@@ -754,7 +754,7 @@ async function submitListAsset() {
       type: 'table',
       securityLevel: 'internal',
       description: '',
-      pricing: { mode: 'by_call', price: 0.01, unit: '次' },
+      pricing: { mode: 'by_call', price: 0.01, unit: t('assetMarket.billingUnit.call') },
       deliveryMethod: 'api'
     }
   } catch (e) {

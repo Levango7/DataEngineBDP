@@ -237,7 +237,7 @@
                       </template>
                     </el-table-column>
                     <el-table-column label="">
-                      <template #default="{ row }">
+                      <template #default>
                         <el-button
                           size="small"
                           @click="store.showToast(t('businessPortal.workbench.todos.approveDone'))"

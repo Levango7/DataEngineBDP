@@ -12,7 +12,7 @@
   "llmops": 94,
   "open-api-catalog": 87,
   "industry-templates": 92,
-  "evaluation": 80,
+  "llm-gateway/evaluation": 80,
   "operations-api": 45,
   "batch-pipeline": 40
 }

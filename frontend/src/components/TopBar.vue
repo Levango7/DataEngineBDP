@@ -268,8 +268,8 @@ function handleLogout() {
   user-select: none;
   white-space: nowrap;
   transition:
-    transform 0.2s var(--ease-smooth),
-    box-shadow 0.2s var(--ease-smooth);
+    transform var(--ds-transition-quick),
+    box-shadow var(--ds-transition-quick);
 }
 .ws-switch:hover {
   transform: translateY(-1px);
@@ -436,9 +436,9 @@ function handleLogout() {
   font-size: var(--ds-font-size-sm);
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
-    border-color 0.2s var(--ease-smooth),
-    box-shadow 0.2s var(--ease-smooth),
-    background 0.2s var(--ease-smooth);
+    border-color var(--ds-transition-quick),
+    box-shadow var(--ds-transition-quick),
+    background var(--ds-transition-quick);
 }
 .gs-input:hover {
   border-color: var(--ds-color-gray-400);
@@ -597,7 +597,7 @@ function handleLogout() {
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
   transition:
     transform 0.2s var(--ease-spring),
-    box-shadow 0.2s var(--ease-smooth);
+    box-shadow var(--ds-transition-quick);
 }
 .avatar:hover {
   transform: scale(1.06);

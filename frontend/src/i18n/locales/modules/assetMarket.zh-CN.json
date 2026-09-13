@@ -187,6 +187,9 @@
       "by_time_unit": "按时间（月）",
       "one_time": "一次性买断"
     },
+    "billingUnit": {
+      "call": "次"
+    },
     "deliveryMethod": {
       "api": "API 交付",
       "file": "文件交付",

@@ -136,7 +136,13 @@ check_python_coverage() {
         return 0
     fi
     while IFS= read -r cov; do
-        mod_name=$(basename "$cov" -coverage.xml)
+        # R15 修复：原用 basename "$cov" -coverage.xml 提取模块名，得到的是 basename（如 evaluation），
+        # 但 python.json 基线 key 为相对 platform/ 的模块路径（如 llm-gateway/evaluation），
+        # 导致门禁检查模块名与基线 key 不匹配，趋势阻断形同虚设。
+        # 改为从 coverage.xml 文件路径去掉 python-coverage-reports/ 前缀和 -coverage.xml 后缀，
+        # 得到相对路径（如 llm-gateway/evaluation），与 python.json key 及 ci.yml 趋势检查口径一致。
+        mod_name=${cov#*python-coverage-reports/}
+        mod_name=${mod_name%-coverage.xml}
         if command -v python3 &>/dev/null; then
             coverage=$(python3 -c "
 import xml.etree.ElementTree as ET
