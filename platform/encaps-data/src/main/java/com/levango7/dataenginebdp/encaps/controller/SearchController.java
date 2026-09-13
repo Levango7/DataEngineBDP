@@ -9,8 +9,8 @@ import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -481,10 +481,6 @@ public class SearchController {
      * @param size     每页大小
      * @return 当前页的搜索结果
      */
-    private List<Map<String, Object>> likeSearch(String tenantId, String q, int from, int size) {
-        List<Map<String, Object>> all = likeSearchAll(tenantId, q);
-        return likeSearchPage(all, from, size);
-    }
 
     /**
      * 从已加载的全量结果中截取当前页（P2-3: 提取公共分页逻辑，避免重复全量加载）。
@@ -503,17 +499,7 @@ public class SearchController {
     }
 
     /**
-     * LIKE 回退检索的总匹配数（用于分页 total 字段）。
-     *
-     * @param tenantId 租户 ID
-     * @param q        搜索关键词
-     * @return 总匹配数
-     */
-    private long likeSearchTotal(String tenantId, String q) {
-        return likeSearchAll(tenantId, q).size();
-    }
 
-    /**
      * 下载导出文件。
      *
      * <p>P1-4 修复：添加下载接口，返回 CSV 内容。</p>

@@ -11,6 +11,7 @@
 
 ### Fixed
 - **R19 审查修复**（commit `199dff42`）：修复22个问题——① 文档版本号一致性（HEAD记录/§16.4.2版本号/文档版本标注）；② 13个动画时长token化 + 全局@keyframes dotBreath补充；③ 后端export防OOM重构 + IoTDB/Flink状态码修正 + escapeCsv/escapeJson转义补全
+- **R20 审查修复**（commit `42e07959`）：修复14个问题——① 产品原型版本号一致性（第5行逻辑矛盾+14处v0.5标注→v0.4+§16.2 v0.6→v0.5）；② CHANGELOG补充R19记录+ROADMAP HEAD更新；③ main.css品牌点颜色跳变修复（@keyframes dotBreathGreen）+Login.vue/Register.vue暗色硬编码token化；④ SearchController export防OOM分页查询+search方法合并+exportLimit可配置化+IoTDBClient连接超时应用+FlinkController死代码注释
 
 ## [2.1.0-RC] - 2026-08-29（遗留项收尾批次）
 
