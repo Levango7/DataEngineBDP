@@ -87,9 +87,11 @@
 
 ## Helm Chart 统计
 
+> **口径说明**：自研组件 Chart 数 37 指有独立 Helm Chart 的自研组件数；自研组件总数 46（含子模块拆分，部分组件共享 Chart 或无独立 Chart，如 governance 3 子模块共享 1 Chart、karmada 多子模块共享 Chart）。第三方引擎 Chart + 基础设施 Chart + Umbrella Chart 合计 51。
+
 | 类别 | V2.0.0-RC | V2.1.0-RC | 变更 |
 |------|-----------|-----------|------|
-| 自研组件 Chart | 37 | 37 | 全部具备 HPA/PDB/Ingress/资源配额 |
+| 自研组件 Chart | 37 | 37 | 全部具备 HPA/PDB/Ingress/资源配额（口径：37 个独立 Chart，对应 46 个自研组件，部分组件共享 Chart） |
 | 第三方引擎 Chart | 35 | 35 | 版本对齐上表 |
 | 基础设施 Chart | 15 | 15 | Keycloak/APISIX/ArgoCD/监控栈等 |
 | Umbrella Chart | 1 | 1 | dataenginebdp-umbrella 依赖管理 |

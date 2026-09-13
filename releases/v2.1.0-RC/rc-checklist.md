@@ -61,8 +61,8 @@
 
 | 编号 | 检查项 | 标准 | 结果 | 备注 |
 |------|--------|------|------|------|
-| 6.1 | README 版本标 | 顶部显示 v2.1.0-RC + experimental 标注 | ✅ | 本地验证：README.md 第 14 行含"v2.1.0-RC 发布就绪：21 组件 RC 就绪 + 10 组件 Experimental"（顶部第 8 行仍为 2.1.0-SNAPSHOT 开发中标注） |
-| 6.2 | ROADMAP 状态 | v2.1 进展项标记完成，v2.2+ 规划清晰 | ✅ | 本地验证：ROADMAP.md 第 30 行 v2.1 标记"已发布 RC（2026-08-27，21组件 GA 就绪 + 10 组件 Experimental）"，v1.1/v1.2 进展项已标记完成 |
+| 6.1 | README 版本标 | 顶部显示 v2.1.0-RC + experimental 标注 | ✅ | 本地验证：README.md 第 14 行含"v2.1.0-RC 发布就绪：22 组件 RC 就绪 + 10 组件 Experimental"（顶部第 8 行仍为 2.1.0-SNAPSHOT 开发中标注） |
+| 6.2 | ROADMAP 状态 | v2.1 进展项标记完成，v2.2+ 规划清晰 | ✅ | 本地验证：ROADMAP.md 第 33 行 v2.1 标记"已发布 RC（2026-08-27，22组件 GA 就绪 + 10 组件 Experimental）"，v1.1/v1.2 进展项已标记完成 |
 | 6.3 | API 参考文档 | docs/user-guide/api-reference.md V2.2 勘误实况化 | ✅ | 本地验证：文件存在 1689 行，版本 V2.2，更新日期 2026-08-25 |
 | 6.4 | 升级指南 | docs/user-guide/upgrade-guide.md 覆盖 V2.0→V2.1 | ✅ | 已修复：追加 V2.0→V2.1.0-RC 升级章节（388 行），覆盖关键变更/前置条件/升级步骤（含 Apollo→Nacos 迁移、安全策略启用）/回滚方案/已知限制 |
 | 6.5 | 发布物料完整 | RELEASE-NOTES/helm-values/upgrade-script/rc-checklist/component-matrix 全部存在 | ✅ | 本地验证：5 个物料文件全部存在（RELEASE-NOTES.md/helm-values.yaml/upgrade-script.sh/rc-checklist.md/component-matrix.md） |

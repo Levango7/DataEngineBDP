@@ -297,10 +297,14 @@ public class VirtualTableService {
     /**
      * 获取元数据缓存统计信息。
      *
+     * <p>R14 安全修复：添加 tenantId 参数，按租户过滤缓存统计，
+     * 避免租户间缓存信息泄露。</p>
+     *
+     * @param tenantId 租户 ID
      * @return 统计信息 Map
      */
-    public java.util.Map<String, Object> getCacheStats() {
-        return metadataCache.getStats();
+    public java.util.Map<String, Object> getCacheStats(String tenantId) {
+        return metadataCache.getStatsByTenant(tenantId);
     }
 
     /**

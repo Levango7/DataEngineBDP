@@ -864,6 +864,12 @@ onMounted(async () => {
 }
 
 /* 响应式断点（规范三档：640 / 1440） */
+@media (min-width: 641px) and (max-width: 1440px) {
+  /* 平板：侧栏收窄为 160px，主区获得更多空间 */
+  .bp-layout {
+    grid-template-columns: 160px 1fr;
+  }
+}
 @media (max-width: 640px) {
   /* 单列：侧栏 → 主区纵向堆叠 */
   .bp-layout {

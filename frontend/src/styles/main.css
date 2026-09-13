@@ -410,7 +410,7 @@ body {
 .side.collapsed .grp-items {
   /* 分组内边距归零，菜单项全宽 */
   max-height: none !important;
-  opacity: 1 !important;
+  opacity: var(--ds-opacity-10) !important;
   overflow: visible;
 }
 .side.collapsed .nav-item {
@@ -560,13 +560,13 @@ body {
    * 文字体系 Token（2026-09-07 统一规范）
    * 所有页面只准用这 7 个，禁止内联 color/font-size/font-weight
    * ============================================================ */
-  --typo-h1: var(--ds-font-weight-extrabold) 24px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-h2: var(--ds-font-weight-bold) 16px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-body: 500 14px/1.6 var(--typo-color-body, var(--ds-color-gray-800));
-  --typo-caption: 500 14px/1.55 var(--typo-color-caption, var(--ds-color-gray-700));
-  --typo-micro: 500 12px/1.5 var(--typo-color-micro, var(--ds-color-gray-600));
-  --typo-table-th: var(--ds-font-weight-bold) 12px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
-  --typo-table-td: 500 14px/1.6 var(--typo-color-td, var(--ds-color-gray-800));
+  --typo-h1: var(--ds-font-weight-extrabold) 24px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-h2: var(--ds-font-weight-bold) 16px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-body: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose) var(--typo-color-body, var(--ds-color-gray-800));
+  --typo-caption: var(--ds-font-weight-medium) 14px/var(--ds-line-height-relaxed) var(--typo-color-caption, var(--ds-color-gray-700));
+  --typo-micro: var(--ds-font-weight-medium) 12px/var(--ds-line-height-normal) var(--typo-color-micro, var(--ds-color-gray-600));
+  --typo-table-th: var(--ds-font-weight-bold) 12px/var(--ds-line-height-snug) var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-td: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose) var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
    * 间距体系 Token（2026-09-07 统一规范）

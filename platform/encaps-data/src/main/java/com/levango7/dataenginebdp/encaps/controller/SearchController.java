@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.http.HttpStatus;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -75,7 +77,7 @@ public class SearchController {
     @PostMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> search(@RequestBody SearchRequest req) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         Instant start = Instant.now();
         String q = req.query() == null ? "" : req.query().trim();
         int page = req.page() != null && req.page() > 0 ? req.page() : 1;
@@ -226,7 +228,7 @@ public class SearchController {
     @GetMapping("/facets")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> facets() {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         List<String> types = new ArrayList<>();
         assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
                 .forEach(a -> types.add("asset:" + a.getType()));
@@ -249,7 +251,7 @@ public class SearchController {
     @GetMapping("/suggest")
     @Transactional(readOnly = true)
     public ResponseEntity<List<String>> suggest(@RequestParam String keyword) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         List<String> out = new ArrayList<>();
         if (keyword == null || keyword.isBlank()) {
             return ResponseEntity.ok(out);
@@ -271,7 +273,7 @@ public class SearchController {
     @Operation(summary = "检索历史（内存存储，按租户隔离，倒序返回最近 limit 条）")
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         List<Map<String, Object>> records = SEARCH_HISTORY.getOrDefault(tenantId, List.of());
         int safeLimit = limit > 0 ? limit : 20;
         int n = Math.min(safeLimit, records.size());
@@ -290,7 +292,7 @@ public class SearchController {
     @Operation(summary = "触发后端导出，返回下载链接")
     @PostMapping("/export")
     public ResponseEntity<Map<String, Object>> export(@RequestBody Map<String, Object> req) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         // 清理过期导出任务（TTL + 容量上限）
         cleanupExportTasks();
         String taskId = UUID.randomUUID().toString();
@@ -346,7 +348,7 @@ public class SearchController {
     @Operation(summary = "清空检索历史")
     @PostMapping("/history/clear")
     public ResponseEntity<Void> clearHistory() {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         SEARCH_HISTORY.remove(tenantId);
         log.info("清空检索历史: tenant={}", tenantId);
         return ResponseEntity.ok().build();
@@ -364,7 +366,7 @@ public class SearchController {
     @Operation(summary = "删除单条检索历史")
     @PostMapping("/history/{id}/delete")
     public ResponseEntity<Void> deleteHistory(@PathVariable String id) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         List<Map<String, Object>> records = SEARCH_HISTORY.get(tenantId);
         if (records != null) {
             synchronized (records) {
@@ -377,5 +379,32 @@ public class SearchController {
 
     private boolean contains(String value, String keyword) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(keyword.toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * 解析租户 ID：fail-closed 租户校验（R14 安全修复）。
+     *
+     * <p>仅信任 TenantContext（来自 JWT），若未设置则拒绝请求（返回 403），
+     * 不回退到默认值，避免未认证请求绕过租户隔离。</p>
+     *
+     * @return 租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 异常处理：缺少租户上下文返回 403（R14 安全修复）。
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.warn("检索操作被拒绝: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "forbidden", "message", e.getMessage()));
     }
 }

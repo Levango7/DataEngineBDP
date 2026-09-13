@@ -308,10 +308,10 @@ function handleLogout() {
   color: var(--ds-text-secondary);
   position: relative;
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth),
-    border-color 0.18s var(--ease-smooth),
-    transform 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast),
+    border-color var(--ds-transition-fast),
+    transform var(--ds-transition-fast);
 }
 .tb-icon-btn:hover {
   background: var(--ds-color-primary-50);
@@ -371,11 +371,11 @@ function handleLogout() {
   align-items: center;
   justify-content: center;
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth),
-    border-color 0.18s var(--ease-smooth),
-    box-shadow 0.18s var(--ease-smooth),
-    transform 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast),
+    border-color var(--ds-transition-fast),
+    box-shadow var(--ds-transition-fast),
+    transform var(--ds-transition-fast);
 }
 .tb-locale:hover {
   background: var(--ds-color-primary-50);
@@ -509,8 +509,8 @@ function handleLogout() {
   color: var(--ds-text-primary);
   cursor: pointer;
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast);
 }
 .ws-item:hover {
   background: var(--ds-color-primary-50);
@@ -574,8 +574,8 @@ function handleLogout() {
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast);
 }
 .user-action:hover {
   background: var(--ds-color-primary-50);

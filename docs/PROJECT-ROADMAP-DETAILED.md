@@ -1,7 +1,7 @@
 # 数据引擎大数据平台（DataEngineBDP）ROADMAP
 
 > 版本：2026-09-04
-> 状态：V2.0 已发布 RC（Release Candidate，GA 勘误见 releases/v2.0.0/ERRATUM.md），进入 V2.1 持续硬化期
+> 状态：V2.0 已发布 RC（Release Candidate，GA 勘误见 releases/v2.0.0/ERRATUM.md）；V2.1.0-RC 已发布（2026-08-27，22 组件 GA 就绪 + 10 组件 Experimental，见 releases/v2.1.0-RC/RELEASE-NOTES.md）；进入 V2.1 GA 加固期
 > **完成度口径**（三维度统一表述，全仓文档共用）：
 > - **80% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`）

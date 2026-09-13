@@ -139,6 +139,34 @@ public class VirtualTableMetadataCache {
     }
 
     /**
+     * 获取指定租户的缓存统计信息（R14 安全修复：按租户过滤）。
+     *
+     * <p>从全局缓存统计中提取属于指定租户的缓存条目数，
+     * 避免租户间缓存信息泄露。全局命中率/驱逐数等指标保留（集群级聚合），
+     * 但条目数按租户过滤。</p>
+     *
+     * @param tenantId 租户 ID
+     * @return 统计信息 Map（含 tenantId、tenantSize、全局聚合指标）
+     */
+    public java.util.Map<String, Object> getStatsByTenant(String tenantId) {
+        com.github.benmanes.caffeine.cache.stats.CacheStats stats = cache.stats();
+        // 按租户过滤缓存条目数
+        long tenantSize = cache.asMap().values().stream()
+                .filter(def -> tenantId.equals(def.getTenantId()))
+                .count();
+        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put("tenantId", tenantId);
+        result.put("tenantSize", tenantSize);
+        // 全局聚合指标（集群级，不含租户隐私数据）
+        result.put("hitCount", stats.hitCount());
+        result.put("missCount", stats.missCount());
+        result.put("hitRate", stats.hitRate());
+        result.put("evictionCount", stats.evictionCount());
+        result.put("estimatedSize", cache.estimatedSize());
+        return result;
+    }
+
+    /**
      * 列出缓存中指定租户的全部虚拟表（用于调试）。
      *
      * @param tenantId 租户 ID

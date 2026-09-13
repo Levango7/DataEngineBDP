@@ -241,14 +241,17 @@ public class VirtualTableController {
     /**
      * 获取元数据缓存统计信息。
      *
+     * <p>R14 安全修复：按租户过滤缓存统计，避免租户间缓存信息泄露。</p>
+     *
      * @return 缓存统计
      */
     @Operation(summary = "获取元数据缓存统计信息")
     @GetMapping("/cache/stats")
     public ResponseEntity<Map<String, Object>> cacheStats() {
         // R13 安全修复：fail-closed 租户校验，确保只有认证用户才能访问缓存统计
-        resolveTenantId(null);
-        return ResponseEntity.ok(virtualTableService.getCacheStats());
+        String tenantId = resolveTenantId(null);
+        // R14 安全修复：按租户过滤缓存统计
+        return ResponseEntity.ok(virtualTableService.getCacheStats(tenantId));
     }
 
     /**

@@ -24,7 +24,7 @@ defineProps<{
 
 <style scoped>
 .page-card {
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md);
 }
 
@@ -39,13 +39,13 @@ defineProps<{
   margin: 0;
   font-size: var(--ds-font-size-lg);
   font-weight: var(--ds-font-weight-semibold);
-  color: var(--el-text-color-primary);
+  color: var(--ds-text-primary);
 }
 
 .page-card__subtitle {
   margin: 2px 0 0;
   font-size: var(--ds-font-size-sm);
-  color: var(--el-text-color-secondary);
+  color: var(--ds-text-secondary);
 }
 
 .page-card__header-actions {

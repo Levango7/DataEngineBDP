@@ -30,13 +30,13 @@ defineProps<{
   margin: 0;
   font-size: var(--ds-font-size-3xl);
   font-weight: var(--ds-font-weight-extrabold);
-  color: var(--el-text-color-primary);
+  color: var(--ds-text-primary);
 }
 
 .page-header__subtitle {
   margin: 4px 0 0;
   font-size: var(--ds-font-size-sm);
-  color: var(--el-text-color-secondary);
+  color: var(--ds-text-secondary);
 }
 
 .page-header__actions {

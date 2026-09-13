@@ -143,16 +143,20 @@ public class DorisOlapClient {
      * 创建 Doris External Catalog（直读 Iceberg，湖仓集联动）。
      *
      * <p>通过 Doris FE SQL API 执行 {@code CREATE EXTERNAL CATALOG} 语句，
-     * 使 Doris 可直接查询 Iceberg 表（无需数据导入）。
+     * 使 Doris 可直接查询 Iceberg 表（无需数据导入）。</p>
+     *
+     * <p>R14 安全修复：对 catalogName 参数添加标识符白名单校验，防止 SQL 注入。</p>
      *
      * @param catalogName  Catalog 名称
      * @param icebergWarehouse Iceberg warehouse 路径
      * @param icebergCatalogType Iceberg catalog 类型（hive / rest / hadoop）
      * @return {@code true} 创建成功
      * @throws DorisOlapException 创建失败
+     * @throws IllegalArgumentException 若 catalogName 不是合法标识符
      */
     public boolean createIcebergExternalCatalog(
             String catalogName, String icebergWarehouse, String icebergCatalogType) throws DorisOlapException {
+        validateIdentifier(catalogName);
         String sql = String.format(
                 "CREATE EXTERNAL CATALOG IF NOT EXISTS %s PROPERTIES ("
                         + "\"type\" = \"iceberg\", "
@@ -264,11 +268,16 @@ public class DorisOlapClient {
     /**
      * 批量查询统计信息（用于 BI 看板延迟验证）。
      *
+     * <p>R14 安全修复：对 database 和 table 参数添加标识符白名单校验，防止 SQL 注入。</p>
+     *
      * @param database 数据库
      * @param table    表名
      * @return 统计信息（rowCount / sizeMB 等）
+     * @throws IllegalArgumentException 若 database 或 table 不是合法标识符
      */
     public Map<String, Object> queryTableStats(String database, String table) throws DorisOlapException {
+        validateIdentifier(database);
+        validateIdentifier(table);
         String sql = String.format(
                 "SELECT COUNT(*) AS row_count FROM `%s`.`%s`", database, table);
         DorisQueryResult result = query(database, sql);
@@ -280,5 +289,20 @@ public class DorisOlapClient {
             stats.put("rowCount", result.getRows().get(0).getOrDefault("row_count", 0));
         }
         return stats;
+    }
+
+    /**
+     * 校验标识符合法性（R14 安全修复）。
+     *
+     * <p>仅允许字母、数字、下划线，防止 SQL 注入。
+     * 标识符包括数据库名、表名、Catalog 名等。</p>
+     *
+     * @param name 待校验的标识符
+     * @throws IllegalArgumentException 若标识符非法（含空、null 或非法字符）
+     */
+    private void validateIdentifier(String name) {
+        if (name == null || !name.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("非法标识符: " + name);
+        }
     }
 }

@@ -313,6 +313,6 @@
 | --- | --- | --- |
 | Java 17 | 24 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
 | Go 1.22+ | 10 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、infra-provider-baremetal、karmada-api、karmada-failover-api、karmada-failover-engine |
-| Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates |
+| Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates、open-api-catalog、asset-exchange、business-portal、chunker、llm-gateway/evaluation |
 
 > 组件计数口径见 [模块数口径定义](docs/模块数口径定义.md)。

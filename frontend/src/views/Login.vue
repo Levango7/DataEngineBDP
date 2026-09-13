@@ -400,10 +400,10 @@ async function handleLogin() {
   cursor: pointer;
   box-shadow: var(--ds-shadow-sm);
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth),
-    border-color 0.18s var(--ease-smooth),
-    transform 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast),
+    border-color var(--ds-transition-fast),
+    transform var(--ds-transition-fast);
 }
 .tb-tool:hover {
   background: var(--ds-color-primary-50);
@@ -469,9 +469,9 @@ async function handleLogin() {
     0 4px 14px rgba(99, 102, 241, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition:
-    transform 0.2s var(--ease-smooth),
-    box-shadow 0.2s var(--ease-smooth),
-    filter 0.2s var(--ease-smooth);
+    transform var(--ds-transition-quick),
+    box-shadow var(--ds-transition-quick),
+    filter var(--ds-transition-quick);
 }
 .login-btn:hover,
 .login-btn:focus {
@@ -603,9 +603,9 @@ async function handleLogin() {
   -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
   transition:
-    background 0.2s var(--ease-smooth),
-    border-color 0.2s var(--ease-smooth),
-    box-shadow 0.2s var(--ease-smooth);
+    background var(--ds-transition-quick),
+    border-color var(--ds-transition-quick),
+    box-shadow var(--ds-transition-quick);
 }
 .tb-pill {
   display: inline-flex;
@@ -622,8 +622,8 @@ async function handleLogin() {
   cursor: pointer;
   border: none;
   transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth);
+    background var(--ds-transition-fast),
+    color var(--ds-transition-fast);
 }
 .tb-pill:hover {
   background: rgba(59, 130, 246, 0.1);

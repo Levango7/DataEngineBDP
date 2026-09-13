@@ -250,7 +250,7 @@ update_python() {
 
     while IFS= read -r mod_dir; do
         local mod_name cov
-        mod_name=$(basename "$mod_dir")
+        mod_name=${mod_dir#"$PROJECT_ROOT/platform/"}
         cov=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "0")
         if [ -z "$cov" ]; then
             cov="0"

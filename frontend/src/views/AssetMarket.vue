@@ -673,7 +673,7 @@ function assetOwner(id: string): string {
 
 function formatDate(d?: string): string {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US')
+  return new Date(d).toLocaleDateString(locale.value)
 }
 
 // 操作函数

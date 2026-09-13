@@ -39,12 +39,12 @@ defineEmits<{
   width: 48px;
   height: 48px;
   margin-bottom: var(--ds-spacing-3);
-  color: var(--el-text-color-placeholder);
+  color: var(--ds-text-tertiary);
 }
 
 .empty-state__message {
   margin: 0 0 16px;
   font-size: var(--ds-font-size-base);
-  color: var(--el-text-color-secondary);
+  color: var(--ds-text-secondary);
 }
 </style>

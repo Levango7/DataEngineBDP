@@ -100,13 +100,13 @@ function iconOf(type?: string): Component {
 /* TransitionGroup 进入动画 */
 .ds-toast-enter-active {
   transition:
-    transform 0.3s ease,
-    opacity 0.3s ease;
+    transform var(--ds-transition-moderate),
+    opacity var(--ds-transition-moderate);
 }
 .ds-toast-leave-active {
   transition:
-    transform 0.25s ease,
-    opacity 0.25s ease;
+    transform var(--ds-transition-normal),
+    opacity var(--ds-transition-normal);
 }
 .ds-toast-enter-from {
   transform: translateY(20px) scale(0.9);

@@ -29,7 +29,7 @@
 import { computed, type Ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 
-export function useFormValidation<T extends Record<string, any>>(
+export function useFormValidation<T extends Record<string, unknown>>(
   formRef: Ref<FormInstance | undefined>,
   rulesFactory: (form: T) => FormRules,
   formData: Ref<T>

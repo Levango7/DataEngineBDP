@@ -150,8 +150,8 @@ const tabs = computed(() => [
 .panel-slide-enter-active,
 .panel-slide-leave-active {
   transition:
-    transform 0.32s var(--ease-drawer),
-    opacity 0.28s var(--ease-smooth);
+    transform var(--ds-transition-moderate),
+    opacity var(--ds-transition-normal);
 }
 .panel-slide-enter-from,
 .panel-slide-leave-to {
@@ -184,8 +184,8 @@ const tabs = computed(() => [
   align-items: center;
   gap: 5px;
   transition:
-    color 0.18s var(--ease-smooth),
-    background 0.18s var(--ease-smooth);
+    color var(--ds-transition-fast),
+    background var(--ds-transition-fast);
 }
 .rp-tab:hover {
   color: var(--ds-text-primary);
@@ -217,9 +217,9 @@ const tabs = computed(() => [
   border-radius: var(--ds-radius-md);
   cursor: pointer;
   transition:
-    color 0.18s var(--ease-smooth),
-    background 0.18s var(--ease-smooth),
-    transform 0.18s var(--ease-smooth);
+    color var(--ds-transition-fast),
+    background var(--ds-transition-fast),
+    transform var(--ds-transition-fast);
 }
 .rp-close:hover {
   color: var(--ds-color-error-500);

@@ -231,8 +231,8 @@ function openUrl(): void {
   box-shadow: var(--ds-shadow-sm);
   cursor: pointer;
   transition:
-    box-shadow 0.2s,
-    transform 0.2s;
+    box-shadow var(--ds-transition-quick),
+    transform var(--ds-transition-quick);
   display: flex;
   flex-direction: column;
   gap: var(--ds-spacing-2);

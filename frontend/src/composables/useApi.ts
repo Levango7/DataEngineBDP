@@ -100,6 +100,9 @@ export function useApi<T, Args extends unknown[] = []>(
 
   // 立即执行
   if (immediate) {
+    // 双重断言安全说明：Args 是 useApi 泛型参数（默认 never[]），
+    // 当 immediate=true 时调用方应通过 execute() 显式传参而非依赖此分支；
+    // 此处仅用于无参场景（Args = []），空数组经 unknown 中转后满足 Args 约束。
     void execute(...([] as unknown as Args))
   }
 

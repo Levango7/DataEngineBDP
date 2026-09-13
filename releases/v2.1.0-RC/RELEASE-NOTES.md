@@ -69,7 +69,7 @@ eleases/v2.0.0/ERRATUM.md\） |
 | **四环境部署验证进行中** | Profile 配置就绪，ARM64/onprem/公有云/私有云真实集群验证尚未全部完成 | v2.1.0-RC 期间持续补齐，GA 前力争 4/4 通过 |
 | **性能基线为实验室参考值** | 未经四环境实测确认，V2.0 性能表中"V2.0 实测"列为空 | v2.1 引入 nightly k6 压测，GA 前产出实测基线 |
 | **覆盖率未达 85% GA 标准** | 当前：Java~44%/Go~45%/Python~66%，CI 门禁设为实测值下方 | 系统性提升列入 v2.2+，不阻塞 RC |
-| **部分组件默认 H2/SQLite** | 21 个 GA 组件中多数默认文件数据库，生产需切 PostgreSQL | Helm values 中 \DB_URL\/\CATALOG_DB\ 等环境变量一键切换，文档已标注 |
+| **部分组件默认 H2/SQLite** | 22 个 GA 组件中多数默认文件数据库，生产需切 PostgreSQL | Helm values 中 \DB_URL\/\CATALOG_DB\ 等环境变量一键切换，文档已标注 |
 | **行业模板需目标引擎真实可用** | 模板安装落地依赖 Doris/Trino/Flink 等真实引擎 | 部署文档明确前置依赖 |
 
 ---

@@ -69,7 +69,7 @@ function onCancel() {
 .confirm-dialog__message {
   margin: 0;
   font-size: var(--ds-font-size-base);
-  color: var(--el-text-color-regular);
+  color: var(--ds-text-secondary);
   line-height: var(--ds-line-height-loose);
 }
 </style>

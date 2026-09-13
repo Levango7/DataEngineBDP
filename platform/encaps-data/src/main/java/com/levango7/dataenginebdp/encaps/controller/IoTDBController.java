@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.List;
 import java.util.Map;
@@ -134,7 +135,7 @@ public class IoTDBController {
 
     /** 根据 id 解析 IoTDB 连接参数 */
     private IoTDBClient.ConnParams resolveConn(String id) {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         Long pk;
         try {
             pk = Long.parseLong(id);
@@ -150,5 +151,32 @@ public class IoTDBController {
         String user = ds.getUsername() != null ? ds.getUsername() : "root";
         String pass = ds.getPassword() != null ? ds.getPassword() : "root";
         return ioTdbClient.connParams(jdbcUrl, user, pass);
+    }
+
+    /**
+     * 解析租户 ID：fail-closed 租户校验（R14 安全修复）。
+     *
+     * <p>仅信任 TenantContext（来自 JWT），若未设置则拒绝请求（返回 403），
+     * 不回退到默认值，避免未认证请求绕过租户隔离。</p>
+     *
+     * @return 租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 异常处理：缺少租户上下文返回 403（R14 安全修复）。
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.warn("IoTDB 操作被拒绝: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "forbidden", "message", e.getMessage()));
     }
 }

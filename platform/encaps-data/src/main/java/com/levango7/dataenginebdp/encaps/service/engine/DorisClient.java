@@ -71,6 +71,11 @@ public class DorisClient {
      * <p>R13 安全修复：添加 tenantId 参数用于审计日志，HTTP API 本身不支持租户隔离，
      * 但记录 tenantId 便于追踪。</p>
      *
+     * <p><b>多租户共享说明（R14 文档标注）</b>：Doris 节点为基础设施级共享资源，
+     * 多租户共享为设计行为。节点列表用于集群运维监控，不暴露租户数据，
+     * 因此无需按租户隔离。租户隔离在数据层（数据库/表级）通过 SET @tenant_id
+     * 与行级安全策略实现，节点层不涉及租户数据访问。</p>
+     *
      * @param tenantId 租户 ID（来自 JWT，用于审计）
      * @return 节点列表，含 host/port/role/status 等
      */
@@ -131,12 +136,32 @@ public class DorisClient {
      * <p>R13 安全修复：添加 tenantId 参数，通过 SET @tenant_id 设置会话变量，
      * 供 Doris 视图/行级安全策略实现租户隔离。</p>
      *
+     * <p>R14 安全修复：对 db 参数添加标识符白名单校验（仅允许字母数字下划线），
+     * 并用反引号包裹标识符，防止 SQL 注入。</p>
+     *
      * @param db       数据库名
      * @param tenantId 租户 ID（来自 JWT）
      * @return 表名列表
+     * @throws IllegalArgumentException 若 db 不是合法标识符
      */
     public List<String> listTables(String db, String tenantId) {
-        return queryStrings("SHOW TABLES FROM " + db, 1, tenantId);
+        validateIdentifier(db);
+        return queryStrings("SHOW TABLES FROM `" + db + "`", 1, tenantId);
+    }
+
+    /**
+     * 校验标识符合法性（R14 安全修复）。
+     *
+     * <p>仅允许字母、数字、下划线，防止 SQL 注入。
+     * 标识符包括数据库名、表名、Catalog 名等。</p>
+     *
+     * @param name 待校验的标识符
+     * @throws IllegalArgumentException 若标识符非法（含空、null 或非法字符）
+     */
+    private void validateIdentifier(String name) {
+        if (name == null || !name.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("非法标识符: " + name);
+        }
     }
 
     /**

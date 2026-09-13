@@ -97,9 +97,9 @@ watch(
 <style>
 /* 路由切换过渡：淡入滑动入场 + 淡出离场（非 scoped 以确保 transition 类名作用于子组件根元素） */
 .page-enter-active {
-  animation: fadeInSlide 0.25s var(--ease-smooth);
+  animation: fadeInSlide var(--ds-transition-normal);
 }
 .page-leave-active {
-  animation: fadeInSlide 0.15s var(--ease-smooth) reverse;
+  animation: fadeInSlide var(--ds-transition-fast) reverse;
 }
 </style>

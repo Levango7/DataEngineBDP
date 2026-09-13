@@ -96,6 +96,9 @@ const appVersion = __APP_VERSION__ || 'dev'
 const appEnv = __APP_ENV__ || 'dev'
 
 /** EP 图标名 → 组件（@element-plus/icons-vue 全量导出表） */
+// 双重断言安全说明：EPIcons 来自 @element-plus/icons-vue 的全量导出，
+// 其运行时结构为 { [iconName: string]: Component }，但库类型声明为具名导出联合；
+// 经 unknown 中转后断言为 Record<string, Component> 以支持动态按名查找图标。
 const iconTable = EPIcons as unknown as Record<string, Component>
 
 function iconOf(name: string): Component {
@@ -143,8 +146,8 @@ function toggleGroup(idx: number): void {
   line-height: var(--ds-line-height-none);
   color: var(--sidebar-muted);
   transition:
-    transform 0.25s var(--ease-smooth),
-    color 0.2s var(--ease-smooth);
+    transform var(--ds-transition-normal),
+    color var(--ds-transition-quick);
   transform: rotate(0deg);
 }
 .grp-arrow.open {
@@ -172,8 +175,8 @@ function toggleGroup(idx: number): void {
   max-height: 1200px;
   opacity: var(--ds-opacity-10);
   transition:
-    max-height 0.32s var(--ease-drawer),
-    opacity 0.24s var(--ease-smooth);
+    max-height var(--ds-transition-moderate),
+    opacity var(--ds-transition-normal);
 }
 .grp-items.collapsed {
   max-height: 0;
