@@ -612,7 +612,7 @@ async function submitForm() {
 :root[data-theme='dark'] .reg-page {
   background:
     radial-gradient(ellipse 1100px 700px at 0% 0%, var(--ds-bg-surface) 0%, transparent 60%),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-950) 0%, transparent 55%),
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 暗色模式 .reg-card 透明覆写：亮色用 rgba(255,255,255,0.92)，

@@ -302,19 +302,7 @@ async function handleLogin() {
     0 0 0 4px rgba(99, 102, 241, 0.15);
   animation: dotBreath var(--ds-animation-breath) var(--ease-smooth) infinite;
 }
-@keyframes dotBreath {
-  0%,
-  100% {
-    box-shadow:
-      0 0 12px rgba(99, 102, 241, 0.7),
-      0 0 0 4px rgba(99, 102, 241, 0.15);
-  }
-  50% {
-    box-shadow:
-      0 0 18px rgba(99, 102, 241, 0.95),
-      0 0 0 6px rgba(99, 102, 241, 0.1);
-  }
-}
+
 .slogan {
   font-size: var(--ds-font-size-5xl);
   font-weight: var(--ds-font-weight-extrabold);
@@ -660,7 +648,7 @@ async function handleLogin() {
       var(--ds-bg-surface) 0%,
       transparent 60%
     ),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%), /* indigo-950 深紫装饰色，暂无精确 token，保留 */
+    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-950) 0%, transparent 55%), /* indigo-950 深紫装饰色，引用 design-tokens.css token (2026-09-14 P3-2) */
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 左侧品牌区整块深色 */

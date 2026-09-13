@@ -92,7 +92,9 @@ public class FlinkController {
             if ("NOT_IMPLEMENTED".equals(result.get("status"))) {
                 return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(result);
             }
-            // P2-6: 创建操作返回 201 CREATED
+            // P3-2: 此分支当前为死代码（FlinkClient.submitJob 永远返回 NOT_IMPLEMENTED），
+            // 预留给未来 FlinkClient.submitJob 真正实现提交逻辑后返回 201 CREATED。
+            // 届时移除上方 NOT_IMPLEMENTED 分支即可启用此分支。
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());

@@ -9,6 +9,8 @@ import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,6 +87,13 @@ public class SearchController {
     /** P3-26: 导出任务最后清理时间。 */
     private volatile Instant exportLastCleanup = Instant.now();
 
+    /** P2-1: LIKE 回退检索单表分页大小（每个表最多加载条数，4 表共 10000 条，防 OOM）。 */
+    private static final int LIKE_SEARCH_PAGE_SIZE = 2500;
+
+    /** P3-1: 导出条数上限（可配置，默认 10000）。 */
+    @Value("${app.search.export-limit:10000}")
+    private int exportLimit;
+
     /** 检索请求体（对齐前端 SearchQuery 最小字段）。 */
     public record SearchRequest(
             String query,
@@ -122,14 +131,16 @@ public class SearchController {
                 total = sr.total();
             } catch (Exception e) {
                 log.warn("ES 检索异常，回退 LIKE: {}", e.getMessage());
-                // P1-2: likeSearch 添加分页参数，返回当前页而非全量
-                results = likeSearch(tenantId, q, from, pageSize);
-                total = likeSearchTotal(tenantId, q);
+                // P2-3: 合并为单次 likeSearchAll 调用，避免重复全量加载
+                List<Map<String, Object>> all = likeSearchAll(tenantId, q);
+                total = all.size();
+                results = likeSearchPage(all, from, pageSize);
             }
         } else {
-            // P1-2: likeSearch 添加分页参数，返回当前页而非全量
-            results = likeSearch(tenantId, q, from, pageSize);
-            total = likeSearchTotal(tenantId, q);
+            // P2-3: 合并为单次 likeSearchAll 调用，避免重复全量加载
+            List<Map<String, Object>> all = likeSearchAll(tenantId, q);
+            total = all.size();
+            results = likeSearchPage(all, from, pageSize);
         }
 
         long tookMs = Duration.between(start, Instant.now()).toMillis();
@@ -165,64 +176,41 @@ public class SearchController {
 
     /**
 
-     * LIKE 回退检索（跨资产表，分页返回当前页结果）。
+     * LIKE 回退检索（跨资产表，返回全量匹配结果）。
      *
-     * <p>P1-2 修复：添加 from/size 分页参数，仅返回当前页结果而非全量。</p>
-     *
-     * @param tenantId 租户 ID
-     * @param q        搜索关键词
-     * @param from     起始偏移量
-     * @param size     每页大小
-     * @return 当前页的搜索结果
+     * <p>P2-1 修复：使用 Spring Data 分页查询，限制每个表最多加载 {@link #LIKE_SEARCH_PAGE_SIZE}
+     * 条记录（4 个表共 10000 条），在数据库层面防 OOM。旧实现一次性全量加载 4 个表，
+     * 租户数据量极大时可能导致内存溢出。</p>
      */
-    private List<Map<String, Object>> likeSearch(String tenantId, String q, int from, int size) {
-        List<Map<String, Object>> all = likeSearchAll(tenantId, q);
-        if (from >= all.size()) {
-            return List.of();
-        }
-        int to = Math.min(from + size, all.size());
-        return all.subList(from, to);
-    }
-
-    /**
-     * LIKE 回退检索的总匹配数（用于分页 total 字段）。
-     *
-     * @param tenantId 租户 ID
-     * @param q        搜索关键词
-     * @return 总匹配数
-     */
-    private long likeSearchTotal(String tenantId, String q) {
-        return likeSearchAll(tenantId, q).size();
-    }
-
-    /** LIKE 回退检索（跨资产表，返回全量匹配结果）。 */
     private List<Map<String, Object>> likeSearchAll(String tenantId, String q) {
         List<Map<String, Object>> results = new ArrayList<>();
         if (q == null || q.isEmpty()) {
             return results;
         }
-        assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        // P2-1: 分页查询，每个表最多加载 LIKE_SEARCH_PAGE_SIZE 条，数据库层面防 OOM
+        PageRequest pageRequest = PageRequest.of(0, LIKE_SEARCH_PAGE_SIZE);
+        assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest).getContent().stream()
                 .filter(a -> contains(a.getName(), q) || contains(a.getDescription(), q))
                 .forEach(a -> results.add(Map.of(
                         "id", String.valueOf(a.getId()),
                         "name", a.getName(),
                         "type", a.getType(),
                         "source", "asset")));
-        apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest).getContent().stream()
                 .filter(a -> contains(a.getName(), q) || contains(a.getPath(), q))
                 .forEach(a -> results.add(Map.of(
                         "id", String.valueOf(a.getId()),
                         "name", a.getName(),
                         "type", "api",
                         "source", "api")));
-        standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest).getContent().stream()
                 .filter(s -> contains(s.getName(), q) || contains(s.getRule(), q))
                 .forEach(s -> results.add(Map.of(
                         "id", String.valueOf(s.getId()),
                         "name", s.getName(),
                         "type", s.getType(),
                         "source", "standard")));
-        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest).getContent().stream()
                 .filter(t -> contains(t.getName(), q) || contains(t.getDescription(), q))
                 .forEach(t -> results.add(Map.of(
                         "id", String.valueOf(t.getId()),
@@ -358,7 +346,7 @@ public class SearchController {
         // 旧实现循环调用 likeSearch（内部每次全量加载 likeSearchAll 再 subList），
         // 10 次循环反而加剧 OOM 且存在分页间数据一致性风险（P3-2）。
         // 改为单次调用 likeSearchAll，仅加载一次全量数据，再 subList 截断到上限。
-        int exportLimit = 10000;
+        // P3-1: exportLimit 改为可配置（@Value("${app.search.export-limit:10000}")）
         List<Map<String, Object>> exportData = likeSearchAll(tenantId, query);
         if (exportData.size() > exportLimit) {
             exportData = new ArrayList<>(exportData.subList(0, exportLimit));
@@ -480,6 +468,49 @@ public class SearchController {
             return "\"" + field.replace("\"", "\"\"") + "\"";
         }
         return field;
+    }
+
+    /**
+     * LIKE 回退检索（跨资产表，分页返回当前页结果）。
+     *
+     * <p>P1-2 修复：添加 from/size 分页参数，仅返回当前页结果而非全量。</p>
+     *
+     * @param tenantId 租户 ID
+     * @param q        搜索关键词
+     * @param from     起始偏移量
+     * @param size     每页大小
+     * @return 当前页的搜索结果
+     */
+    private List<Map<String, Object>> likeSearch(String tenantId, String q, int from, int size) {
+        List<Map<String, Object>> all = likeSearchAll(tenantId, q);
+        return likeSearchPage(all, from, size);
+    }
+
+    /**
+     * 从已加载的全量结果中截取当前页（P2-3: 提取公共分页逻辑，避免重复全量加载）。
+     *
+     * @param all  全量匹配结果
+     * @param from 起始偏移量
+     * @param size 每页大小
+     * @return 当前页的搜索结果
+     */
+    private List<Map<String, Object>> likeSearchPage(List<Map<String, Object>> all, int from, int size) {
+        if (from >= all.size()) {
+            return List.of();
+        }
+        int to = Math.min(from + size, all.size());
+        return all.subList(from, to);
+    }
+
+    /**
+     * LIKE 回退检索的总匹配数（用于分页 total 字段）。
+     *
+     * @param tenantId 租户 ID
+     * @param q        搜索关键词
+     * @return 总匹配数
+     */
+    private long likeSearchTotal(String tenantId, String q) {
+        return likeSearchAll(tenantId, q).size();
     }
 
     /**

@@ -168,7 +168,7 @@ body {
   box-shadow:
     0 0 6px rgba(16, 185, 129, 0.7),
     0 0 0 3px rgba(16, 185, 129, 0.18);
-  animation: dotBreath var(--ds-animation-breath) var(--ease-smooth) infinite;
+  animation: dotBreathGreen var(--ds-animation-breath) var(--ease-smooth) infinite;
 }
 .side-collapse {
   margin-left: auto;
@@ -1786,6 +1786,25 @@ label {
     box-shadow:
       0 0 18px rgba(99, 102, 241, 0.95),
       0 0 0 6px rgba(99, 102, 241, 0.1);
+  }
+}
+
+/* 11a. 品牌点呼吸灯 - 绿色版 (2026-09-14 修复 P2-1)
+   main.css .brand .dot 初始 box-shadow 为绿色 rgba(16,185,129)，
+   原引用蓝紫色 dotBreath 导致动画播放瞬间颜色跳变。
+   此处新增绿色版 keyframes，起始帧与 .brand .dot 初始 box-shadow 一致，
+   消除跳变。全局 dotBreath (蓝紫色) 保留供 Login.vue 等蓝紫色品牌点引用。 */
+@keyframes dotBreathGreen {
+  0%,
+  100% {
+    box-shadow:
+      0 0 6px rgba(16, 185, 129, 0.7),
+      0 0 0 3px rgba(16, 185, 129, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(16, 185, 129, 0.95),
+      0 0 0 5px rgba(16, 185, 129, 0.12);
   }
 }
 

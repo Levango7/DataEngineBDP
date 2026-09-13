@@ -71,6 +71,7 @@
   --ds-color-info-700: #4338ca;
   --ds-color-info-800: #3730a3;
   --ds-color-info-900: #312e81;
+  --ds-color-info-950: #1e1b4b; /* indigo-950 深紫装饰色 (2026-09-14 修复 P3-2)，供 Login/Register 暗色背景渐变引用 */
 
   /* accent - violet (紫色强调色，用于渐变末端) */
   --ds-color-accent-400: #a78bfa;

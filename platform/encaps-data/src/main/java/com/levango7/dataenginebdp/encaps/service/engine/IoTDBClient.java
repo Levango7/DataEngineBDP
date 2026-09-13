@@ -115,16 +115,16 @@ public class IoTDBClient {
             // P3: 设置查询超时
             stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
             try (ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                Map<String, Object> ts = new LinkedHashMap<>();
-                ts.put("name", rs.getString("Timeseries"));
-                ts.put("device", rs.getString("Device"));
-                ts.put("dataType", rs.getString("dataType"));
-                ts.put("encoding", rs.getString("encoding"));
-                ts.put("compression", rs.getString("compression"));
-                result.add(ts);
-            }
-            return result;
+                while (rs.next()) {
+                    Map<String, Object> ts = new LinkedHashMap<>();
+                    ts.put("name", rs.getString("Timeseries"));
+                    ts.put("device", rs.getString("Device"));
+                    ts.put("dataType", rs.getString("dataType"));
+                    ts.put("encoding", rs.getString("encoding"));
+                    ts.put("compression", rs.getString("compression"));
+                    result.add(ts);
+                }
+                return result;
             }
         } catch (EngineUnavailableException e) {
             throw e;
@@ -148,26 +148,26 @@ public class IoTDBClient {
             // P3: 设置查询超时
             stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
             try (ResultSet rs = stmt.executeQuery(sql)) {
-            ResultSetMetaData meta = rs.getMetaData();
-            int colCount = meta.getColumnCount();
-            List<String> columns = new ArrayList<>();
-            for (int i = 1; i <= colCount; i++) {
-                columns.add(meta.getColumnLabel(i));
-            }
-            List<List<Object>> rows = new ArrayList<>();
-            while (rs.next()) {
-                List<Object> row = new ArrayList<>();
+                ResultSetMetaData meta = rs.getMetaData();
+                int colCount = meta.getColumnCount();
+                List<String> columns = new ArrayList<>();
                 for (int i = 1; i <= colCount; i++) {
-                    row.add(rs.getObject(i));
+                    columns.add(meta.getColumnLabel(i));
                 }
-                rows.add(row);
-            }
-            result.put("columns", columns);
-            result.put("rows", rows);
-            result.put("rowCount", rows.size());
-            result.put("durationMs", System.currentTimeMillis() - start);
-            result.put("status", "SUCCESS");
-            return result;
+                List<List<Object>> rows = new ArrayList<>();
+                while (rs.next()) {
+                    List<Object> row = new ArrayList<>();
+                    for (int i = 1; i <= colCount; i++) {
+                        row.add(rs.getObject(i));
+                    }
+                    rows.add(row);
+                }
+                result.put("columns", columns);
+                result.put("rows", rows);
+                result.put("rowCount", rows.size());
+                result.put("durationMs", System.currentTimeMillis() - start);
+                result.put("status", "SUCCESS");
+                return result;
             }
         } catch (EngineUnavailableException e) {
             throw e;
@@ -225,10 +225,11 @@ public class IoTDBClient {
     /** 打开 JDBC 连接 */
     private Connection openConnection(ConnParams conn) throws Exception {
         ensureDriver();
+        // P2-2: 实际应用 JDBC 连接超时（旧实现仅定义常量未设置，注释声称"通过 Properties 传递"但实际未设置）
+        DriverManager.setLoginTimeout(JDBC_CONNECT_TIMEOUT_SECONDS);
         String url = conn != null ? conn.jdbcUrl : defaultJdbcUrl;
         String user = conn != null ? conn.username : defaultUsername;
         String pass = conn != null ? conn.password : defaultPassword;
-        // P3: 设置 JDBC 连接超时（通过 Properties 传递）
         java.util.Properties props = new java.util.Properties();
         props.setProperty("user", user);
         props.setProperty("password", pass);
