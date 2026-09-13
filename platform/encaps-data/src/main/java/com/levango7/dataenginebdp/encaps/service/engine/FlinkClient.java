@@ -115,9 +115,8 @@ public class FlinkClient {
     public Map<String, Object> getJobStatus(String tenantId, String jobId) {
         requireTenant(tenantId);
         validateJobId(jobId);
-        // 越权校验：先确认作业归属当前租户
-        ensureJobOwnedByTenant(tenantId, jobId);
-        JsonNode root = getJson("/jobs/" + jobId);
+        // P3-3: 越权校验并复用查询结果，避免重复查询作业详情
+        JsonNode root = ensureJobOwnedByTenant(tenantId, jobId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", root.path("jid").asText());
         result.put("name", root.path("name").asText());
@@ -179,8 +178,9 @@ public class FlinkClient {
         result.put("sql", sql);
         result.put("parallelism", parallelism);
         result.put("checkpointIntervalMs", checkpointMs);
-        result.put("status", "SUBMITTED");
-        result.put("message", "作业已提交至 Flink 集群");
+        // P3-6: 标注占位实现，实际未提交至 Flink 集群
+        result.put("status", "NOT_IMPLEMENTED");
+        result.put("message", "作业提交功能尚未实现（占位返回，未实际提交至 Flink 集群）");
         log.info("提交 Flink 作业: jobId={}, name={}, parallelism={}, checkpointMs={}, tenant={}",
                 jobId, prefixedName, parallelism, checkpointMs, tenantId);
         return result;
@@ -289,9 +289,10 @@ public class FlinkClient {
      *
      * @param tenantId 租户 ID
      * @param jobId    作业 ID
+     * @return 作业详情 JSON（调用方可复用，避免重复查询）
      * @throws EngineUnavailableException 作业不存在或不属于当前租户
      */
-    private void ensureJobOwnedByTenant(String tenantId, String jobId) {
+    private JsonNode ensureJobOwnedByTenant(String tenantId, String jobId) {
         String prefix = tenantJobPrefix(tenantId);
         try {
             JsonNode root = getJson("/jobs/" + jobId);
@@ -302,6 +303,7 @@ public class FlinkClient {
                 // P3-25: 越权访问抛 IllegalArgumentException (Controller 转 400/403)
                 throw new IllegalArgumentException("Flink 作业不存在或无权访问");
             }
+            return root;
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (EngineUnavailableException e) {

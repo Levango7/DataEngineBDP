@@ -54,9 +54,9 @@ public class DorisController {
             "\\b(DROP|ALTER|DELETE|INSERT|UPDATE|TRUNCATE|CREATE|GRANT|REVOKE)\\b",
             Pattern.CASE_INSENSITIVE);
 
-    /** 只读查询起始关键词正则（大小写不敏感）。 */
+    /** 只读查询起始关键词正则（大小写不敏感，P3-5: 允许前导注释）。 */
     private static final Pattern READONLY_SQL_PATTERN = Pattern.compile(
-            "^\\s*(SELECT|SHOW|DESCRIBE|EXPLAIN)\\b",
+            "^\\s*(?:/\\*[\\s\\S]*?\\*/\\s*|--[^\\n]*\\n?\\s*)*(SELECT|SHOW|DESCRIBE|EXPLAIN)\\b",
             Pattern.CASE_INSENSITIVE);
 
     /** Doris 节点列表。 */

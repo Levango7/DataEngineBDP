@@ -1,7 +1,7 @@
 {
   "_comment": "Go 模块覆盖率基线（2026-08-26 实测快照，coverprofile+go tool cover 口径）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。key 为相对 platform/ 的模块路径（避免 basename 冲突，如 karmada/api 与 karmada/failover/api）。",
   "_source": "Phase E 覆盖率实测（go test -coverprofile + go tool cover -func）",
-  "_threshold_note": "当前阈值：≥30%（2026-08-26 实测最低 query-api=31.5%；历史35%因 go test -cover 无 total 行而空转）。目标 85% GA标准。",
+  "_threshold_note": "当前阈值：≥30%（2026-08-26 实测最低 observability/query-api=31.5%；历史35%因 go test -cover 无 total 行而空转）。目标 85% GA标准。",
   "catalog": 73,
   "dqctl": 65,
   "vector-engine": 73,

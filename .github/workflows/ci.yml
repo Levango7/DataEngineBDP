@@ -1610,6 +1610,44 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: 生成 batch-pipeline 覆盖率摘要（供 baseline-consistency-check 使用）
+        # P3-2: batch-pipeline 独立 job 需生成覆盖率摘要并上传 artifact，
+        # 供 baseline-consistency-check 检查 3（基线上限）对 batch-pipeline 生效。
+        # python-test job 排除了 batch-pipeline，其 python-coverage-summary.json 不含本模块，
+        # 因此 baseline-consistency-check 需单独下载本摘要并合并到 Python 摘要中。
+        if: always()
+        shell: bash
+        run: |
+          python3 << 'PYEOF'
+          import json, os
+          summary = {}
+          try:
+              with open('/tmp/pytest-batch-pipeline.log') as f:
+                  for line in f:
+                      if line.startswith('TOTAL'):
+                          cov = line.split()[-1].rstrip('%')
+                          try:
+                              summary['batch-pipeline'] = float(cov) if cov else 0
+                          except ValueError:
+                              pass
+                          break
+          except Exception as e:
+              print(f'::warning::读取 batch-pipeline 覆盖率日志失败: {e}')
+          out_path = os.path.join(os.environ.get('GITHUB_WORKSPACE', '.'), 'batch-pipeline-coverage-summary.json')
+          with open(out_path, 'w') as f:
+              json.dump(summary, f, indent=2)
+          print(f'batch-pipeline 覆盖率摘要: {summary} -> {out_path}')
+          PYEOF
+
+      - name: 上传 batch-pipeline 覆盖率摘要
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch-pipeline-coverage-summary
+          path: batch-pipeline-coverage-summary.json
+          retention-days: 1
+          if-no-files-found: warn
+
   # ============================================================
   # Docker 镜像构建验证：遍历 platform/ 下所有含 Dockerfile 的组件
   # 仅执行 docker build 验证（不 push），确保 Dockerfile 可正常构建
@@ -2181,6 +2219,7 @@ jobs:
       - java-build-test
       - go-build-test
       - python-test
+      - batch-pipeline-test
     if: always()
     steps:
       - name: 检出代码
@@ -2207,6 +2246,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: python-coverage-summary
+        continue-on-error: true
+
+      - name: 下载 batch-pipeline 覆盖率摘要
+        # P3-2: batch-pipeline 独立 job 生成的覆盖率摘要，合并到 Python 摘要后供检查 3 使用
+        uses: actions/download-artifact@v4
+        with:
+          name: batch-pipeline-coverage-summary
         continue-on-error: true
 
       - name: 校验基线一致性
@@ -2277,6 +2323,19 @@ jobs:
                   print(f'::warning::{lang} 基线文件 {baseline_path} 不存在，跳过')
                   continue
               summary = load_json(summary_path)
+              # P3-2: 合并 batch-pipeline 覆盖率摘要（batch-pipeline 独立 job 生成）
+              # python-test job 排除了 batch-pipeline，其摘要不含该模块，
+              # 需将 batch-pipeline-coverage-summary.json 合并到 Python 摘要中，
+              # 使检查 3（基线上限）对 batch-pipeline 生效。
+              if lang == 'Python':
+                  bp_summary = load_json('batch-pipeline-coverage-summary.json')
+                  if bp_summary:
+                      if summary is None:
+                          summary = {}
+                      summary.update(bp_summary)
+                      print(f'已合并 batch-pipeline 覆盖率摘要: {bp_summary}')
+                  else:
+                      print(f'::warning::batch-pipeline 覆盖率摘要不存在或为空，Python 摘要中 batch-pipeline 将缺失')
               actual_modules = get_modules()
 
               # 提取基线中的模块名（排除 _ 开头的元数据字段）

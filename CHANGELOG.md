@@ -127,7 +127,7 @@
 
 ## [2.0.0] - 2026-08-08
 
-数据引擎大数据平台 v2.0.0 正式发布 GA（General Availability）。在 v1.0.0 基础上新增云原生与 AI 方向模块，53 个开发任务（估算工作量 755 人天）的骨架与文档交付。**v2.0 具备生产可用性：886 后端测试 + 155 前端测试全通过（注：四环境部署验证与性能基线未实测，详见 ERRATUM.md），7 条端到端链路落地，安全合规达标，镜像签名 + SBOM 就绪。v2.1 生产化加固进行中。**
+数据引擎大数据平台 v2.0.0 正式发布 GA（General Availability）（⚠️ GA定级已修订为RC，详见 releases/v2.0.0/ERRATUM.md）。在 v1.0.0 基础上新增云原生与 AI 方向模块，53 个开发任务（估算工作量 755 人天）的骨架与文档交付。**v2.0 具备生产可用性：886 后端测试 + 155 前端测试通过（含已知失败用例，详见ERRATUM.md）（注：四环境部署验证与性能基线未实测，详见 ERRATUM.md），7 条端到端链路落地，安全合规达标，镜像签名 + SBOM 就绪。v2.1 生产化加固进行中。**
 
 ### Added
 
@@ -230,6 +230,7 @@
 - 本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成
 - 所有代码均经过人工审查与验证
 
+[2.1.0-RC]: https://github.com/Levango7/DataEngineBDP/releases/tag/v2.1.0-RC
 [Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.1.0-RC...HEAD
 [2.0.0]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0

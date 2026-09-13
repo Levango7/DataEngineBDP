@@ -186,11 +186,12 @@ public class DorisClient {
      * 执行 SQL 查询并返回结构化结果（带租户隔离，R12 安全修复）。
      *
      * <p>当 tenantId 非空时，在执行查询前通过 {@code SET @tenant_id = ?} 设置会话变量，
-     * 供 Doris 视图/行级安全策略实现租户隔离。同时在结果中记录 tenantId 便于审计。</p>
+     * 供 Doris 视图/行级安全策略实现租户隔离。P2-8: 不在结果中返回 tenantId，防信息泄露
+     * （tenantId 仅用于审计日志）。</p>
      *
      * @param sql      SQL 文本
      * @param tenantId 租户 ID（来自 JWT，可为 null 表示不强制租户隔离）
-     * @return 含 columns/rows/rowCount/durationMs/tenantId 的结果
+     * @return 含 columns/rows/rowCount/durationMs 的结果
      */
     public Map<String, Object> executeQuery(String sql, String tenantId) {
         long start = System.currentTimeMillis();

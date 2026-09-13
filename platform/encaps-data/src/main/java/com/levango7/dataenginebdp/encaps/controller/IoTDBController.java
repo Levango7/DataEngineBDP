@@ -55,9 +55,9 @@ public class IoTDBController {
             "\\b(DROP|ALTER|DELETE|INSERT|UPDATE|TRUNCATE|CREATE|GRANT|REVOKE)\\b",
             Pattern.CASE_INSENSITIVE);
 
-    /** 只读查询起始关键词正则（大小写不敏感）。 */
+    /** 只读查询起始关键词正则（大小写不敏感，P3-5: 允许前导注释）。 */
     private static final Pattern READONLY_SQL_PATTERN = Pattern.compile(
-            "^\\s*(SELECT|SHOW|DESCRIBE|EXPLAIN)\\b",
+            "^\\s*(?:/\\*[\\s\\S]*?\\*/\\s*|--[^\\n]*\\n?\\s*)*(SELECT|SHOW|DESCRIBE|EXPLAIN)\\b",
             Pattern.CASE_INSENSITIVE);
 
     /** IoTDB device/时序名白名单：仅允许字母数字下划线点（防 SQL 注入）。 */

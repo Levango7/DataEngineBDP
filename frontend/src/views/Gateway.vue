@@ -44,7 +44,7 @@
       </h3>
       <div v-if="keysLoading" style="color: var(--ds-text-tertiary)">{{ t('common.loading') }}</div>
       <div v-else-if="keysError" style="color: var(--ds-color-error-600)">
-        {{ keysError.message }}，
+        {{ keysError.message }},
         <a href="javascript:void(0)" @click="loadApiKeys">{{ t('common.retry') }}</a>
       </div>
       <el-table

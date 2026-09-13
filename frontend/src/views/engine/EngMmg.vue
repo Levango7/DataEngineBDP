@@ -16,7 +16,7 @@
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--ds-text-tertiary)">
-            {{ kpiError.message }}，
+            {{ kpiError.message }},
             <a href="javascript:void(0)" @click="reloadKpi">
               {{ t('engines.kpi.loadFailedRetry') }}
             </a>
@@ -343,7 +343,7 @@ function modelTypeCount(types: readonly string[]): number {
 function modelLabel(type: string): string {
   for (const g of MODEL_GROUPS) {
     if (g.types.some((t) => t === type)) {
-      return g.label
+      return t(`engMmg.modelGroups.${g.key}.label`)
     }
   }
   return t('engMmg.uncategorized')

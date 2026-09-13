@@ -172,9 +172,11 @@ public class IoTDBClient {
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {
+            // P2-1: 异常消息泛化，不暴露 DB 结构（参照 DorisClient.executeQuery）
             result.put("status", "FAILED");
-            result.put("error", e.getMessage());
+            result.put("error", "查询执行失败");
             result.put("durationMs", System.currentTimeMillis() - start);
+            log.warn("IoTDB 查询失败（详情已隐藏）: {}", e.getMessage());
             return result;
         }
     }

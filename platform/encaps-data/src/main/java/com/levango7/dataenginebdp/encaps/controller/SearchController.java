@@ -164,121 +164,7 @@ public class SearchController {
     }
 
     /**
-     * 全量同步：将 4 类资产写入 ES 索引（幂等 upsert，分批处理防 OOM）。
-     *
-     * <p>P1-3 修复：改为分批同步，每批 1000 条，避免大数据量时 OOM。</p>
-     *
-     * @param tenantId 租户 ID
-     */
-    private void syncIndexes(String tenantId) {
-        int batchSize = 1000;
 
-        // 分批同步 assets
-        List<?> assets = assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
-        syncAssetsBatch(assets, batchSize);
-
-        // 分批同步 apis
-        List<?> apis = apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
-        syncApisBatch(apis, batchSize);
-
-        // 分批同步 standards
-        List<?> standards = standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
-        syncStandardsBatch(standards, batchSize);
-
-        // 分批同步 templates
-        List<?> templates = templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
-        syncTemplatesBatch(templates, batchSize);
-    }
-
-    /** 分批同步 assets 到 ES。 */
-    @SuppressWarnings("unchecked")
-    private void syncAssetsBatch(List<?> assets, int batchSize) {
-        int total = assets.size();
-        for (int i = 0; i < total; i += batchSize) {
-            int end = Math.min(i + batchSize, total);
-            for (int j = i; j < end; j++) {
-                var a = (com.levango7.dataenginebdp.encaps.model.AssetEntity) assets.get(j);
-                Map<String, Object> doc = new LinkedHashMap<>();
-                doc.put("docId", "asset-" + a.getId());
-                doc.put("name", a.getName());
-                doc.put("type", a.getType());
-                doc.put("source", "asset");
-                doc.put("description", a.getDescription());
-                doc.put("tags", List.of());
-                doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
-                esIndexer.indexDoc(doc);
-            }
-            log.debug("同步 assets 批次: {}/{}", end, total);
-        }
-    }
-
-    /** 分批同步 apis 到 ES。 */
-    @SuppressWarnings("unchecked")
-    private void syncApisBatch(List<?> apis, int batchSize) {
-        int total = apis.size();
-        for (int i = 0; i < total; i += batchSize) {
-            int end = Math.min(i + batchSize, total);
-            for (int j = i; j < end; j++) {
-                var a = (com.levango7.dataenginebdp.encaps.model.ApiDefinitionEntity) apis.get(j);
-                Map<String, Object> doc = new LinkedHashMap<>();
-                doc.put("docId", "api-" + a.getId());
-                doc.put("name", a.getName());
-                doc.put("type", "api");
-                doc.put("source", "api");
-                doc.put("description", a.getPath());
-                doc.put("tags", List.of());
-                doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
-                esIndexer.indexDoc(doc);
-            }
-            log.debug("同步 apis 批次: {}/{}", end, total);
-        }
-    }
-
-    /** 分批同步 standards 到 ES。 */
-    @SuppressWarnings("unchecked")
-    private void syncStandardsBatch(List<?> standards, int batchSize) {
-        int total = standards.size();
-        for (int i = 0; i < total; i += batchSize) {
-            int end = Math.min(i + batchSize, total);
-            for (int j = i; j < end; j++) {
-                var s = (com.levango7.dataenginebdp.encaps.model.StandardEntity) standards.get(j);
-                Map<String, Object> doc = new LinkedHashMap<>();
-                doc.put("docId", "standard-" + s.getId());
-                doc.put("name", s.getName());
-                doc.put("type", s.getType());
-                doc.put("source", "standard");
-                doc.put("description", s.getRule());
-                doc.put("tags", List.of());
-                doc.put("createdAt", s.getCreatedAt() == null ? "" : s.getCreatedAt().toString());
-                esIndexer.indexDoc(doc);
-            }
-            log.debug("同步 standards 批次: {}/{}", end, total);
-        }
-    }
-
-    /** 分批同步 templates 到 ES。 */
-    @SuppressWarnings("unchecked")
-    private void syncTemplatesBatch(List<?> templates, int batchSize) {
-        int total = templates.size();
-        for (int i = 0; i < total; i += batchSize) {
-            int end = Math.min(i + batchSize, total);
-            for (int j = i; j < end; j++) {
-                var t = (com.levango7.dataenginebdp.encaps.model.TemplateEntity) templates.get(j);
-                Map<String, Object> doc = new LinkedHashMap<>();
-                doc.put("docId", "template-" + t.getId());
-                doc.put("name", t.getName());
-                doc.put("type", "template");
-                doc.put("source", "template");
-                doc.put("description", t.getDescription());
-                doc.put("tags", List.of());
-                doc.put("createdAt", t.getCreatedAt() == null ? "" : t.getCreatedAt().toString());
-                esIndexer.indexDoc(doc);
-            }
-            log.debug("同步 templates 批次: {}/{}", end, total);
-        }
-    }
-
-    /**
      * LIKE 回退检索（跨资产表，分页返回当前页结果）。
      *
      * <p>P1-2 修复：添加 from/size 分页参数，仅返回当前页结果而非全量。</p>
@@ -468,22 +354,27 @@ public class SearchController {
                     .body(Map.of("error", "不支持的导出格式，仅支持 csv/json"));
         }
 
-        // 执行检索获取导出数据（全量，受上限保护）
-        List<Map<String, Object>> exportData = likeSearchAll(tenantId, query);
-        // 导出数据量上限保护（防 OOM）
+        // P2-3: 改用分页查询，每批 1000 条，累计到 10000 条停止（防 OOM）
         int exportLimit = 10000;
-        if (exportData.size() > exportLimit) {
-            exportData = exportData.subList(0, exportLimit);
+        int batchSize = 1000;
+        List<Map<String, Object>> exportData = new ArrayList<>();
+        for (int from = 0; from < exportLimit; from += batchSize) {
+            List<Map<String, Object>> batch = likeSearch(tenantId, query, from, batchSize);
+            if (batch.isEmpty()) {
+                break;
+            }
+            exportData.addAll(batch);
+            if (batch.size() < batchSize) {
+                break;
+            }
         }
 
-        // 生成 CSV 内容
-        StringBuilder csv = new StringBuilder();
-        csv.append("id,name,type,source\n");
-        for (Map<String, Object> row : exportData) {
-            csv.append(escapeCsv(String.valueOf(row.getOrDefault("id", "")))).append(",")
-                    .append(escapeCsv(String.valueOf(row.getOrDefault("name", "")))).append(",")
-                    .append(escapeCsv(String.valueOf(row.getOrDefault("type", "")))).append(",")
-                    .append(escapeCsv(String.valueOf(row.getOrDefault("source", "")))).append("\n");
+        // P2-2: 根据 format 分别生成 CSV 或 JSON 内容
+        String content;
+        if ("json".equalsIgnoreCase(format)) {
+            content = buildExportJson(exportData);
+        } else {
+            content = buildExportCsv(exportData);
         }
 
         Map<String, Object> task = new LinkedHashMap<>();
@@ -494,7 +385,7 @@ public class SearchController {
         task.put("tenantId", tenantId);
         task.put("request", req);
         task.put("format", format);
-        task.put("content", csv.toString());
+        task.put("content", content);
         task.put("rowCount", exportData.size());
         EXPORT_TASKS.put(taskId, task);
         // 容量上限保护：超限时移除最早的任务
@@ -514,6 +405,51 @@ public class SearchController {
         result.put("status", "completed");
         result.put("rowCount", exportData.size());
         return ResponseEntity.ok(result);
+    }
+
+    /** P2-2: 生成 CSV 导出内容。 */
+    private String buildExportCsv(List<Map<String, Object>> data) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("id,name,type,source\n");
+        for (Map<String, Object> row : data) {
+            csv.append(escapeCsv(String.valueOf(row.getOrDefault("id", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("name", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("type", "")))).append(",")
+                    .append(escapeCsv(String.valueOf(row.getOrDefault("source", "")))).append("\n");
+        }
+        return csv.toString();
+    }
+
+    /** P2-2: 生成 JSON 导出内容。 */
+    private String buildExportJson(List<Map<String, Object>> data) {
+        StringBuilder json = new StringBuilder();
+        json.append("[");
+        for (int i = 0; i < data.size(); i++) {
+            Map<String, Object> row = data.get(i);
+            if (i > 0) {
+                json.append(",");
+            }
+            json.append("{");
+            json.append("\"id\":\"").append(escapeJson(String.valueOf(row.getOrDefault("id", "")))).append("\"");
+            json.append(",\"name\":\"").append(escapeJson(String.valueOf(row.getOrDefault("name", "")))).append("\"");
+            json.append(",\"type\":\"").append(escapeJson(String.valueOf(row.getOrDefault("type", "")))).append("\"");
+            json.append(",\"source\":\"").append(escapeJson(String.valueOf(row.getOrDefault("source", "")))).append("\"");
+            json.append("}");
+        }
+        json.append("]");
+        return json.toString();
+    }
+
+    /** JSON 字符串转义（转义引号、反斜杠、换行等）。 */
+    private String escapeJson(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     /** CSV 字段转义（含逗号/引号/换行时用双引号包裹）。 */

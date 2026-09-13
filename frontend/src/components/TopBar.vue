@@ -351,7 +351,7 @@ function handleLogout() {
   line-height: var(--ds-line-height-none);
   text-align: center;
   box-shadow: 0 0 0 2px var(--ds-bg-surface);
-  animation: bellPulse 2.4s var(--ease-smooth) infinite;
+  animation: bellPulse var(--ds-animation-pulse) var(--ease-smooth) infinite;
 }
 
 /* 顶栏语言切换（中文态显 EN / 英文态显 中，醒目胶囊） */

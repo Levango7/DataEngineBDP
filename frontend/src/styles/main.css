@@ -80,10 +80,10 @@
   --c-primary: var(--ds-color-primary-500); /* 兼容引用 */
 
   /* === 动效曲线 (新增) ===
-   * 非标准曲线已替换为 ease（design-tokens.css 未定义 --ds-ease-* 标准变量，
-   * 按 U-03 规范：无对应标准变量时用 ease 替代） */
+   * --ease-smooth 已引用 design-tokens.css 的 --ds-ease-smooth 标准变量；
+   * --ease-spring / --ease-drawer 暂用 ease（无对应标准变量，按 U-03 规范替代） */
   --ease-spring: ease;
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-smooth: var(--ds-ease-smooth);
   --ease-drawer: ease;
 }
 
@@ -168,7 +168,7 @@ body {
   box-shadow:
     0 0 6px rgba(16, 185, 129, 0.7),
     0 0 0 3px rgba(16, 185, 129, 0.18);
-  animation: dotBreath 2.8s var(--ease-smooth) infinite;
+  animation: dotBreath var(--ds-animation-breath) var(--ease-smooth) infinite;
 }
 .side-collapse {
   margin-left: auto;
@@ -1822,7 +1822,7 @@ label {
     var(--c-surface-alt) 63%
   );
   background-size: 936px 100%;
-  animation: shimmer 1.4s infinite linear;
+  animation: shimmer var(--ds-animation-shimmer) infinite linear;
   border-radius: var(--ds-radius-md);
   display: inline-block;
 }
@@ -1859,7 +1859,7 @@ label {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
   transform: scale(0);
-  animation: ripple 0.6s var(--ease-smooth);
+  animation: ripple var(--ds-animation-ripple) var(--ease-smooth);
   pointer-events: none;
 }
 
@@ -1895,12 +1895,12 @@ label {
     linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
   background-size: 32px 32px;
-  animation: gridPulse 4s ease-in-out infinite;
+  animation: gridPulse var(--ds-animation-grid-pulse) var(--ease-smooth) infinite;
 }
 
 /* 数字滚动容器 */
 .count-up {
-  animation: countUp 0.5s var(--ease-smooth);
+  animation: countUp var(--ds-animation-count-up) var(--ease-smooth);
 }
 
 /* ============================================================

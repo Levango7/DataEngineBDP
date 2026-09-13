@@ -95,11 +95,12 @@ watch(
 </script>
 
 <style>
-/* 路由切换过渡：淡入滑动入场 + 淡出离场（非 scoped 以确保 transition 类名作用于子组件根元素） */
+/* 路由切换过渡：淡入滑动入场 + 淡出离场（非 scoped 以确保 transition 类名作用于子组件根元素）
+ * 入场/离场时长对称统一为 normal (250ms)，保证过渡节奏一致可预测 */
 .page-enter-active {
   animation: fadeInSlide var(--ds-transition-normal);
 }
 .page-leave-active {
-  animation: fadeInSlide var(--ds-transition-fast) reverse;
+  animation: fadeInSlide var(--ds-transition-normal) reverse;
 }
 </style>

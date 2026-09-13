@@ -65,7 +65,7 @@ public class KafkaController {
         String tenantId = requireTenant();
         log.info("列出 Kafka Broker: cluster={}, tenant={}", clusterId, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             return ResponseEntity.ok(kafkaAdminService.listBrokers(bootstrap));
         } catch (EngineUnavailableException e) {
             log.warn("Kafka 引擎不可用: {}", e.getMessage());
@@ -81,7 +81,7 @@ public class KafkaController {
         String tenantId = requireTenant();
         log.info("列出 Kafka Topic: cluster={}, tenant={}", clusterId, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             String prefix = tenantTopicPrefix(tenantId);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> allTopics = (List<Map<String, Object>>) kafkaAdminService.listTopics(bootstrap);
@@ -122,7 +122,7 @@ public class KafkaController {
         log.info("创建 Kafka Topic: cluster={}, name={}, tenant={}",
                 clusterId, req.name(), tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             int partitions = req.partitions() != null ? req.partitions() : 1;
             int rf = req.replicationFactor() != null ? req.replicationFactor() : 1;
             // 租户隔离：在 Topic 名前加 tenant_{tenantId}_ 前缀
@@ -145,7 +145,7 @@ public class KafkaController {
         log.info("删除 Kafka Topic: cluster={}, name={}, tenant={}",
                 clusterId, name, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             // 租户隔离：在 Topic 名前加 tenant_{tenantId}_ 前缀
             String fullTopicName = tenantTopicPrefix(tenantId) + name;
             kafkaAdminService.deleteTopic(bootstrap, fullTopicName);
@@ -157,15 +157,31 @@ public class KafkaController {
         }
     }
 
-    /** 消费组列表。 */
+    /** 消费组列表（租户隔离：仅返回当前租户前缀的消费组）。 */
     @Operation(summary = "查询Kafka列表")
     @GetMapping("/{clusterId}/consumer-groups")
     public ResponseEntity<?> listConsumerGroups(@PathVariable String clusterId) {
         String tenantId = requireTenant();
         log.info("列出 Kafka 消费组: cluster={}, tenant={}", clusterId, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
-            return ResponseEntity.ok(kafkaAdminService.listConsumerGroups(bootstrap));
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
+            String prefix = tenantTopicPrefix(tenantId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> allGroups = (List<Map<String, Object>>) kafkaAdminService.listConsumerGroups(bootstrap);
+            // 租户隔离：仅返回当前租户前缀的消费组
+            List<Map<String, Object>> filtered = allGroups.stream()
+                    .filter(g -> {
+                        Object groupId = g.get("groupId");
+                        return groupId != null && String.valueOf(groupId).startsWith(prefix);
+                    })
+                    .map(g -> {
+                        // 剥离租户前缀后返回原始消费组名
+                        Map<String, Object> copy = new java.util.LinkedHashMap<>(g);
+                        copy.put("groupId", String.valueOf(g.get("groupId")).substring(prefix.length()));
+                        return copy;
+                    })
+                    .toList();
+            return ResponseEntity.ok(filtered);
         } catch (EngineUnavailableException e) {
             log.warn("Kafka 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -185,7 +201,7 @@ public class KafkaController {
         log.info("查询 Kafka 消息: cluster={}, topic={}, max={}, tenant={}",
                 clusterId, topic, safeMax, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             // 租户隔离：在 Topic 名前加 tenant_{tenantId}_ 前缀
             String fullTopicName = tenantTopicPrefix(tenantId) + topic;
             return ResponseEntity.ok(kafkaAdminService.sampleMessages(bootstrap, fullTopicName, safeMax));
@@ -210,7 +226,7 @@ public class KafkaController {
         log.info("采样 Kafka 消息: cluster={}, topic={}, tenant={}",
                 clusterId, topic, tenantId);
         try {
-            String bootstrap = resolveBootstrap(clusterId);
+            String bootstrap = resolveBootstrap(clusterId, tenantId);
             // P3: sampleMessages max 上限校验（max≤1000）
             int max = (req != null && req.max() != null) ? Math.min(req.max(), 1000) : 100;
             max = Math.max(max, 1);
@@ -224,11 +240,10 @@ public class KafkaController {
         }
     }
 
-    /** 根据 clusterId 解析 bootstrap servers */
-    private String resolveBootstrap(String clusterId) {
+    /** 根据 clusterId 解析 bootstrap servers（tenantId 由调用方传入，避免重复调用 requireTenant） */
+    private String resolveBootstrap(String clusterId, String tenantId) {
         // R12 安全修复：显式 fail-closed，不依赖 findByIdAndTenantId 返回 empty 的隐式行为
         // P3-10: clusterId 白名单校验（仅允许数字，防路径注入）
-        String tenantId = requireTenant();
         Long id;
         try {
             id = Long.parseLong(clusterId);
