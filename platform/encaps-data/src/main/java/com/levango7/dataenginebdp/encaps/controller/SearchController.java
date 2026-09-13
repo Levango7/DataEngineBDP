@@ -471,18 +471,7 @@ public class SearchController {
     }
 
     /**
-     * LIKE 回退检索（跨资产表，分页返回当前页结果）。
-     *
-     * <p>P1-2 修复：添加 from/size 分页参数，仅返回当前页结果而非全量。</p>
-     *
-     * @param tenantId 租户 ID
-     * @param q        搜索关键词
-     * @param from     起始偏移量
-     * @param size     每页大小
-     * @return 当前页的搜索结果
-     */
 
-    /**
      * 从已加载的全量结果中截取当前页（P2-3: 提取公共分页逻辑，避免重复全量加载）。
      *
      * @param all  全量匹配结果
