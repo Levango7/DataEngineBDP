@@ -173,6 +173,10 @@ public class IoTDBClient {
             throw e;
         } catch (Exception e) {
             // P2-1: 异常消息泛化，不暴露 DB 结构（参照 DorisClient.executeQuery）
+            // P3-1: 异常可能发生在结果集遍历过程中，result Map 可能已包含部分数据
+            // （如 columns 但无 rows），直接 put 会导致返回结构混乱。
+            // 先 clear 再 put 失败信息，保证返回结构干净一致。
+            result.clear();
             result.put("status", "FAILED");
             result.put("error", "查询执行失败");
             result.put("durationMs", System.currentTimeMillis() - start);

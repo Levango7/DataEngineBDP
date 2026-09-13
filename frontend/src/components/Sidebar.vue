@@ -207,7 +207,7 @@ function toggleGroup(idx: number): void {
 }
 .nav-item:hover::after {
   opacity: var(--ds-opacity-10);
-  animation: flowLight 0.8s var(--ease-smooth);
+  animation: flowLight var(--ds-animation-flow-light) var(--ease-smooth);
 }
 /* 文字与图标置于流光之上 */
 .nav-item > * {

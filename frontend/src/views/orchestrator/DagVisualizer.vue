@@ -709,7 +709,7 @@ onBeforeUnmount(() => {
 }
 .node-g.running .node-dot {
   fill: var(--ds-color-warning-500);
-  animation: pulse 1.2s infinite;
+  animation: pulse var(--ds-animation-dag-pulse) var(--ease-smooth) infinite;
 }
 
 .node-g.success .node-rect {
@@ -745,7 +745,7 @@ onBeforeUnmount(() => {
 }
 .node-g.waiting_human .node-dot {
   fill: var(--c-violet);
-  animation: pulse 1.5s infinite;
+  animation: pulse var(--ds-animation-dag-pulse-slow) var(--ease-smooth) infinite;
 }
 
 @keyframes pulse {

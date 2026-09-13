@@ -1774,6 +1774,21 @@ label {
   }
 }
 
+/* 11. 品牌点呼吸灯 (全局定义，供 main.css .brand .dot 及各页面引用) */
+@keyframes dotBreath {
+  0%,
+  100% {
+    box-shadow:
+      0 0 12px rgba(99, 102, 241, 0.7),
+      0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 18px rgba(99, 102, 241, 0.95),
+      0 0 0 6px rgba(99, 102, 241, 0.1);
+  }
+}
+
 /* 兼容旧 toast fade 动画名 */
 @keyframes fade {
   from {
@@ -1886,7 +1901,7 @@ label {
 }
 .flow-light:hover::after {
   opacity: var(--ds-opacity-10);
-  animation: flowLight 0.8s var(--ease-smooth);
+  animation: flowLight var(--ds-animation-flow-light) var(--ease-smooth);
 }
 
 /* 网格背景 (登录页) */

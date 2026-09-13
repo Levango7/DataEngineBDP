@@ -304,7 +304,7 @@ async function submitForm() {
   border-radius: 50%;
   filter: blur(110px);
   pointer-events: none;
-  animation: regFloat 4s ease-in-out infinite alternate;
+  animation: regFloat var(--ds-animation-reg-float) var(--ease-smooth) infinite alternate;
 }
 .reg-bg-glow--1 {
   width: 460px;
@@ -536,7 +536,7 @@ async function submitForm() {
   line-height: var(--ds-line-height-none);
   margin: 0 auto 16px;
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
-  animation: regSuccess 0.45s var(--ease-spring);
+  animation: regSuccess var(--ds-animation-reg-success) var(--ease-spring);
 }
 @keyframes regSuccess {
   0% {

@@ -87,9 +87,13 @@ public class FlinkController {
             int parallelism = req.parallelism() != null ? req.parallelism() : 1;
             long checkpointMs = req.checkpointIntervalMs() != null ? req.checkpointIntervalMs() : 60000L;
             String sql = req.sql() != null ? req.sql() : "";
+            // P2-2: 检查返回 Map 的 status 字段，占位实现（NOT_IMPLEMENTED）返回 501 而非 201
+            Map<String, Object> result = flinkClient.submitJob(tenantId, req.name(), sql, parallelism, checkpointMs);
+            if ("NOT_IMPLEMENTED".equals(result.get("status"))) {
+                return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(result);
+            }
             // P2-6: 创建操作返回 201 CREATED
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(flinkClient.submitJob(tenantId, req.name(), sql, parallelism, checkpointMs));
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

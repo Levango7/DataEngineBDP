@@ -472,7 +472,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   background: var(--ds-color-primary-500);
   margin-left: 2px;
   vertical-align: -2px;
-  animation: blink 1s infinite;
+  animation: blink var(--ds-animation-blink) infinite;
 }
 @keyframes blink {
   50% {
@@ -530,7 +530,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   height: 6px;
   border-radius: 50%;
   background: var(--ds-color-primary-500);
-  animation: bounce 1.2s infinite ease-in-out;
+  animation: bounce var(--ds-animation-bounce) var(--ease-smooth) infinite;
 }
 .content-pending .dot:nth-child(2) {
   animation-delay: 0.2s;

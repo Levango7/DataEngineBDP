@@ -154,7 +154,12 @@ public class IoTDBController {
         }
         try {
             var conn = resolveConn(id);
-            return ResponseEntity.ok(ioTdbClient.executeQuery(conn, req.sql()));
+            // P2-1: 检查返回 Map 的 status 字段，查询失败时返回 500 而非 200 OK
+            Map<String, Object> result = ioTdbClient.executeQuery(conn, req.sql());
+            if ("FAILED".equals(result.get("status"))) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+            }
+            return ResponseEntity.ok(result);
         } catch (EngineUnavailableException e) {
             log.warn("IoTDB 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

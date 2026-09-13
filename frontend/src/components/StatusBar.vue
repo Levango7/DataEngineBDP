@@ -193,7 +193,7 @@ onUnmounted(() => {
 .sb-dot.up {
   background: var(--ds-color-success-500);
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-  animation: sbBreath 2.6s var(--ease-smooth) infinite;
+  animation: sbBreath var(--ds-animation-status-breath) var(--ease-smooth) infinite;
 }
 .sb-dot.warn {
   background: var(--ds-color-warning-500);

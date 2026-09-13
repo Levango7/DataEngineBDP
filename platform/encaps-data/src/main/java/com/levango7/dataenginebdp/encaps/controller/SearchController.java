@@ -354,19 +354,14 @@ public class SearchController {
                     .body(Map.of("error", "不支持的导出格式，仅支持 csv/json"));
         }
 
-        // P2-3: 改用分页查询，每批 1000 条，累计到 10000 条停止（防 OOM）
+        // P1+P3-2: 一次性获取全量结果，内存中截断到上限（防 OOM + 数据一致性）
+        // 旧实现循环调用 likeSearch（内部每次全量加载 likeSearchAll 再 subList），
+        // 10 次循环反而加剧 OOM 且存在分页间数据一致性风险（P3-2）。
+        // 改为单次调用 likeSearchAll，仅加载一次全量数据，再 subList 截断到上限。
         int exportLimit = 10000;
-        int batchSize = 1000;
-        List<Map<String, Object>> exportData = new ArrayList<>();
-        for (int from = 0; from < exportLimit; from += batchSize) {
-            List<Map<String, Object>> batch = likeSearch(tenantId, query, from, batchSize);
-            if (batch.isEmpty()) {
-                break;
-            }
-            exportData.addAll(batch);
-            if (batch.size() < batchSize) {
-                break;
-            }
+        List<Map<String, Object>> exportData = likeSearchAll(tenantId, query);
+        if (exportData.size() > exportLimit) {
+            exportData = new ArrayList<>(exportData.subList(0, exportLimit));
         }
 
         // P2-2: 根据 format 分别生成 CSV 或 JSON 内容
@@ -440,24 +435,48 @@ public class SearchController {
         return json.toString();
     }
 
-    /** JSON 字符串转义（转义引号、反斜杠、换行等）。 */
+    /**
+     * JSON 字符串转义（转义引号、反斜杠、换行及 U+0000~U+001F 控制字符）。
+     *
+     * <p>P3-3 修复：旧实现仅转义 {@code \" \\ \n \r \t}，遗漏 U+0000~U+001F 中
+     * 其余控制字符（如 U+0000~U+0008、U+000B、U+000E~U+001F），这些字符在
+     * JSON 规范（RFC 8259）中必须转义，否则生成的 JSON 非法，前端解析会失败。
+     * 改为逐字符遍历，对全部控制字符（&lt; 0x20）按规范转义。</p>
+     */
     private String escapeJson(String value) {
         if (value == null) {
             return "";
         }
-        return value.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        StringBuilder sb = new StringBuilder(value.length() + 16);
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            switch (ch) {
+                case '\\' -> sb.append("\\\\");
+                case '"' -> sb.append("\\\"");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                case '\b' -> sb.append("\\b");
+                case '\f' -> sb.append("\\f");
+                default -> {
+                    if (ch < 0x20) {
+                        // P3-3: 转义 U+0000~U+001F 中除已命名转义外的控制字符
+                        sb.append(String.format("\\u%04x", (int) ch));
+                    } else {
+                        sb.append(ch);
+                    }
+                }
+            }
+        }
+        return sb.toString();
     }
-
-    /** CSV 字段转义（含逗号/引号/换行时用双引号包裹）。 */
+    /** CSV 字段转义（含逗号/引号/换行/回车时用双引号包裹）。 */
     private String escapeCsv(String field) {
         if (field == null) {
             return "";
         }
-        if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+        // P3-3: 添加 \r 检查（RFC 4180 要求含换行符的字段加引号）
+        if (field.contains(",") || field.contains("\"") || field.contains("\n") || field.contains("\r")) {
             return "\"" + field.replace("\"", "\"\"") + "\"";
         }
         return field;

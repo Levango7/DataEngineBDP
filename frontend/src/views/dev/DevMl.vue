@@ -861,7 +861,7 @@ watch(
   color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: var(--ds-line-height-heading);
   padding: 4px 0;
-  animation: kpi-pulse 1.4s ease-in-out infinite;
+  animation: kpi-pulse var(--ds-animation-kpi-pulse) var(--ease-smooth) infinite;
 }
 .kpi-error {
   font-size: var(--ds-font-size-base);

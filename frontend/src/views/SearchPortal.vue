@@ -514,7 +514,7 @@ onMounted(() => {
     var(--ds-bg-muted) 63%
   );
   background-size: 400% 100%;
-  animation: sk-loading 1.4s ease infinite;
+  animation: sk-loading var(--ds-animation-sk-loading) var(--ease-smooth) infinite;
   border-radius: var(--ds-radius-sm);
 }
 .sk-title {

@@ -242,7 +242,7 @@ async function handleLogin() {
   border-radius: 50%;
   filter: blur(100px);
   pointer-events: none;
-  animation: orbFloat 0.6s ease-out forwards;
+  animation: orbFloat var(--ds-animation-orb-float) ease-out forwards;
 }
 .left-bg-glow--1 {
   width: 480px;
@@ -300,7 +300,7 @@ async function handleLogin() {
   box-shadow:
     0 0 12px rgba(99, 102, 241, 0.7),
     0 0 0 4px rgba(99, 102, 241, 0.15);
-  animation: dotBreath 2.8s var(--ease-smooth) infinite;
+  animation: dotBreath var(--ds-animation-breath) var(--ease-smooth) infinite;
 }
 @keyframes dotBreath {
   0%,

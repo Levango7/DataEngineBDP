@@ -270,6 +270,17 @@
   --ds-animation-breath: 2.8s; /* 呼吸灯 */
   --ds-animation-pulse: 2.4s; /* 脉冲 (铃铛/徽章) */
   --ds-animation-grid-pulse: 4s; /* 网格脉冲 (登录页背景) */
+  --ds-animation-flow-light: 0.8s; /* 流光划过 (侧边栏导航 hover) */
+  --ds-animation-status-breath: 2.6s; /* 状态栏呼吸灯 */
+  --ds-animation-dag-pulse: 1.2s; /* DAG 节点运行中脉冲 */
+  --ds-animation-dag-pulse-slow: 1.5s; /* DAG 节点人工等待脉冲 (慢) */
+  --ds-animation-kpi-pulse: 1.4s; /* KPI 骨架脉冲 */
+  --ds-animation-bounce: 1.2s; /* 加载点跳动 */
+  --ds-animation-reg-float: 4s; /* 注册页光晕浮动 */
+  --ds-animation-sk-loading: 1.4s; /* 搜索骨架屏加载 */
+  --ds-animation-orb-float: 0.6s; /* 登录页光晕入场 */
+  --ds-animation-blink: 1s; /* 光标闪烁 */
+  --ds-animation-reg-success: 0.45s; /* 注册成功图标入场 */
 
   /* ============================================================
    * 10. Z-index 层级
