@@ -20,6 +20,7 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
+import jakarta.annotation.PreDestroy;
 import java.util.List;
 
 /**
@@ -39,7 +40,7 @@ import java.util.List;
 @org.springframework.stereotype.Service
 public class K8sClientService {
 
-    private final KubernetesClient client;
+    private KubernetesClient client;
     private final boolean mockEnabled;
 
     /**
@@ -139,5 +140,25 @@ public class K8sClientService {
     /** 是否启用 mock 模式。 */
     public boolean isMockEnabled() {
         return mockEnabled;
+    }
+
+    /**
+     * 优雅停机：关闭 KubernetesClient 并释放底层连接池资源。
+     *
+     * <p>多次调用安全：client 已为 null 时无操作。close() 抛异常时捕获并记录警告，
+     * 不向上传播，确保 Spring 容器关闭流程不被中断。</p>
+     */
+    @PreDestroy
+    public void destroy() {
+        if (client != null) {
+            try {
+                client.close();
+                log.info("KubernetesClient closed successfully");
+            } catch (Exception e) {
+                log.warn("Failed to close KubernetesClient: {}", e.getMessage());
+            } finally {
+                client = null;
+            }
+        }
     }
 }
