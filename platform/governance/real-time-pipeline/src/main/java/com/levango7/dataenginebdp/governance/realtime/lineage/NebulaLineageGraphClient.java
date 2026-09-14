@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClient;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,6 +44,23 @@ public class NebulaLineageGraphClient {
 
     private static final Logger log = LoggerFactory.getLogger(NebulaLineageGraphClient.class);
 
+    /** nGQL 保留关键字集合（大小写不敏感比较，存储大写形式） */
+    private static final Set<String> NGQL_RESERVED_KEYWORDS = Set.of(
+            "DROP", "INSERT", "VERTEX", "SPACE", "DELETE", "UPDATE", "SELECT",
+            "FROM", "WHERE", "CREATE", "ALTER", "REMOVE", "DESC", "SHOW",
+            "GO", "OVER", "YIELD", "REBUILD", "SUBGRAPH", "FIND", "PATH",
+            "SHORTEST", "ALL", "ANY", "SOME", "NONE", "NOT", "AND",
+            "OR", "XOR", "UNION", "INTERSECT", "MINUS", "LIMIT", "OFFSET",
+            "ORDER", "BY", "ASC", "GROUP", "HAVING", "JOIN", "ON",
+            "INTO", "VALUES", "SET", "MATCH", "OPTIONAL", "EXPLAIN", "PROFILE",
+            "UNWIND", "RETURN", "CALL", "WITH", "DISTINCT", "CASE", "WHEN",
+            "THEN", "ELSE", "END", "TRUE", "FALSE", "NULL", "IS", "AS",
+            "TAG", "EDGE", "STEP", "UPTO", "REVERSELY", "BIDIRECT"
+    );
+
+    /** 标识符最大长度 */
+    private static final int MAX_IDENTIFIER_LENGTH = 128;
+
     private final RestClient restClient;
     private final String graphdHost;
     private final int graphdPort;
@@ -64,6 +82,11 @@ public class NebulaLineageGraphClient {
             @Value("${governance.nebula.space:lineage}") String space,
             @Value("${governance.nebula.node-tag:TableField}") String nodeTag,
             @Value("${governance.nebula.edge-type:FieldLineage}") String edgeType) {
+        // 安全校验：防止 nGQL 注入
+        validateNebulaIdentifier(space, "governance.nebula.space");
+        validateNebulaIdentifier(nodeTag, "governance.nebula.node-tag");
+        validateNebulaIdentifier(edgeType, "governance.nebula.edge-type");
+
         this.graphdHost = graphdHost;
         this.graphdPort = graphdPort;
         this.space = space;
@@ -237,6 +260,42 @@ public class NebulaLineageGraphClient {
     }
 
     // Getter for testing
+    /**
+     * 校验 Nebula 标识符安全性，防止 nGQL 注入。
+     *
+     * <p>校验规则：
+     * <ul>
+     *   <li>非空且长度 ≤ 128</li>
+     *   <li>仅允许字母、数字、下划线、连字符</li>
+     *   <li>不能以连字符开头（防止 SQL 注释 --）</li>
+     *   <li>不能是 nGQL 保留关键字（大小写不敏感）</li>
+     * </ul></p>
+     *
+     * @param identifier 待校验的标识符
+     * @param fieldName  字段名（用于错误消息定位）
+     * @throws IllegalArgumentException 如果标识符非法
+     */
+    public void validateNebulaIdentifier(String identifier, String fieldName) {
+        if (identifier == null || identifier.isEmpty()) {
+            throw new IllegalArgumentException(fieldName + " 不能为空");
+        }
+        if (identifier.length() > MAX_IDENTIFIER_LENGTH) {
+            throw new IllegalArgumentException(fieldName + " 长度超过 " + MAX_IDENTIFIER_LENGTH + " 字符");
+        }
+        if (identifier.startsWith("-")) {
+            throw new IllegalArgumentException(fieldName + " 不能以连字符开头");
+        }
+        for (int i = 0; i < identifier.length(); i++) {
+            char c = identifier.charAt(i);
+            if (!Character.isLetterOrDigit(c) && c != '_' && c != '-') {
+                throw new IllegalArgumentException(fieldName + " 含非法字符: '" + c + "'");
+            }
+        }
+        if (NGQL_RESERVED_KEYWORDS.contains(identifier.toUpperCase())) {
+            throw new IllegalArgumentException(fieldName + " 是 nGQL 保留关键字: " + identifier);
+        }
+    }
+
     public String getSpace() {
         return space;
     }

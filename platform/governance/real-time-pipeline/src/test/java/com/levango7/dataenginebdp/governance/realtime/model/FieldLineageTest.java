@@ -79,7 +79,7 @@ class FieldLineageTest {
                             .transformType("DIRECT").build());
 
             FieldLineage lineage = new FieldLineage(
-                    "id-1", "src", "tgt", mappings, "job-1", "sql", now, 10L);
+                    "id-1", null, "src", "tgt", mappings, "job-1", "sql", now, 10L);
 
             assertThat(lineage.getLineageId()).isEqualTo("id-1");
             assertThat(lineage.getSourceTable()).isEqualTo("src");
