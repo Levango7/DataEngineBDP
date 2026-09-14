@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
+import com.levango7.dataenginebdp.encaps.util.CredentialEncryptor;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,8 +39,10 @@ class DataSourceControllerTest {
         TenantContext.clear();
     }
 
+    private static final byte[] TEST_KEY = new byte[32]; // 全零测试密钥（仅用于单元测试）
+
     private DataSourceController controller() {
-        return new DataSourceController(repository);
+        return new DataSourceController(repository, new CredentialEncryptor(TEST_KEY));
     }
 
     private DataSourceEntity seed(String name, String tenantId) {
