@@ -8,6 +8,7 @@ import com.levango7.dataenginebdp.governance.collector.repository.CollectionHist
 import com.levango7.dataenginebdp.governance.collector.repository.MetadataSourceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.annotation.PreDestroy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.support.CronExpression;
@@ -334,6 +335,44 @@ public class CollectionSchedulerService {
             return 86400L; // 每天级
         }
         return 3600L;
+    }
+
+    /**
+     * 优雅停机：关闭动态调度器与采集线程池。
+     *
+     * <p>先关闭 dynamicScheduler（停止接受新调度），再关闭 collectionExecutor
+     * 并等待正在执行的采集任务完成（最多 5s）。多次调用幂等安全。</p>
+     */
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down CollectionSchedulerService...");
+
+        // 先关闭动态调度器（不再接受新任务）
+        dynamicScheduler.shutdown();
+
+        // 关闭采集线程池并等待任务完成
+        collectionExecutor.shutdown();
+        try {
+            if (!collectionExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                log.warn("Collection executor did not terminate gracefully, forcing shutdown");
+                collectionExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            collectionExecutor.shutdownNow();
+        }
+
+        // dynamicScheduler 也等待终止
+        try {
+            if (!dynamicScheduler.awaitTermination(2, TimeUnit.SECONDS)) {
+                dynamicScheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            dynamicScheduler.shutdownNow();
+        }
+
+        log.info("CollectionSchedulerService shutdown complete");
     }
 
     /**
