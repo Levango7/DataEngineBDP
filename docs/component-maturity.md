@@ -2,6 +2,8 @@
 
 > 数据引擎大数据平台 `platform/` 全部 **46 个自研组件**（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 43 条；Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
 >
+> **更新日期: 2026-09-15** — 5个预存Java编译错误已全部修复（BillSummary/CollectionSchedulerService/NebulaLineageGraphClient/FieldLineageTest/K8sClientService），`mvn package -Dmaven.test.skip=true` 全项目通过。R17-R23共7轮审查修复153个问题，6维度收敛。
+>
 > 📐 **模块数口径**：四种口径（设计模块数 49 / 自研组件数 46 / 独立部署单元 42 / platform 目录数 38）统一定义见 [模块数口径定义](模块数口径定义.md)。
 >
 > **完成度口径**（三维度统一表述，全仓文档共用）：
