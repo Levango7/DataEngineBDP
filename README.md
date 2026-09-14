@@ -6,6 +6,17 @@
 >
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
+<!-- 项目徽章 -->
+![Version](https://img.shields.io/badge/version-2.1.0--RC-blue)
+![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![Tests](https://img.shields.io/badge/tests-7%2C636-brightgreen)
+![CI](https://img.shields.io/badge/CI-15%20workflows-blue)
+![Code](https://img.shields.io/badge/code-441K%20lines-orange)
+![Language](https://img.shields.io/badge/lang-Java%20%7C%20Go%20%7C%20Python%20%7C%20Vue-blueviolet)
+
+<!-- 姊妹仓库导航 -->
+> 📌 **作者姊妹项目**：[Levango7/Corps](https://github.com/Levango7/Corps)（团队协作 SaaS）· [Levango7/Interaction](https://github.com/Levango7/Interaction)（本地优先 PWA）· **DataEngineBDP**（本项目 · 大数据平台）
+
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
 > - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **独立部署单元 42**（ADR-001，扣库形态组件）→ **platform/ 目录数 38**（一级子目录）。
 
