@@ -19,6 +19,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class BillSummary {
 
+    /** 账单月份（yyyy-MM） */
+    private String billingMonth;
+
     /** 聚合维度（TENANT / NAMESPACE / WORKSPACE） */
     private String groupBy;
 
