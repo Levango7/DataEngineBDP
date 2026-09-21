@@ -1,12 +1,15 @@
 package com.levango7.dataenginebdp.governance.collector.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.governance.collector.collector.MetadataCollector;
 import com.levango7.dataenginebdp.governance.collector.model.CollectionHistory;
 import com.levango7.dataenginebdp.governance.collector.model.CollectionResult;
 import com.levango7.dataenginebdp.governance.collector.model.MetadataSource;
 import com.levango7.dataenginebdp.governance.collector.repository.MetadataSourceRepository;
 import com.levango7.dataenginebdp.governance.collector.service.CollectionSchedulerService;
+import jakarta.servlet.ServletException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class CollectorControllerTest {
 
+    private static final String TEST_TENANT_ID = "test-tenant";
+
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -49,10 +56,19 @@ class CollectorControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R8/R10 加固后 fail-closed：租户上下文缺失直接拒绝。
+        // 这里用 standaloneSetup（不挂 JwtAuthFilter），因此需由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         lenient().when(mockCollector.getType()).thenReturn("HIVE");
         CollectorController controller = new CollectorController(
                 sourceRepository, schedulerService, List.of(mockCollector));
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test
@@ -94,7 +110,7 @@ class CollectorControllerTest {
         s2.setName("doris-1");
         s2.setType("DORIS");
 
-        when(sourceRepository.findAll()).thenReturn(List.of(s1, s2));
+        when(sourceRepository.findByTenantId(TEST_TENANT_ID)).thenReturn(List.of(s1, s2));
 
         mockMvc.perform(get("/api/v1/metadata/sources"))
                 .andExpect(status().isOk())
@@ -110,7 +126,7 @@ class CollectorControllerTest {
         s.setId(1L);
         s.setName("hive-1");
         s.setType("HIVE");
-        when(sourceRepository.findById(1L)).thenReturn(Optional.of(s));
+        when(sourceRepository.findByIdAndTenantId(1L, TEST_TENANT_ID)).thenReturn(Optional.of(s));
 
         mockMvc.perform(get("/api/v1/metadata/sources/1"))
                 .andExpect(status().isOk())
@@ -120,7 +136,7 @@ class CollectorControllerTest {
     @Test
     @DisplayName("GET /api/v1/metadata/sources/{id} — 不存在返回 404")
     void getSource_notExists() throws Exception {
-        when(sourceRepository.findById(999L)).thenReturn(Optional.empty());
+        when(sourceRepository.findByIdAndTenantId(999L, TEST_TENANT_ID)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/v1/metadata/sources/999"))
                 .andExpect(status().isNotFound());
@@ -132,6 +148,7 @@ class CollectorControllerTest {
         CollectionResult result = CollectionResult.success(1L, "hive-1", "HIVE");
         result.setTables(List.of());
         result.markFinished();
+        when(sourceRepository.findByIdAndTenantId(1L, TEST_TENANT_ID)).thenReturn(Optional.of(new MetadataSource()));
         when(schedulerService.triggerCollection(anyLong(), anyString())).thenReturn(Optional.of(result));
 
         mockMvc.perform(post("/api/v1/metadata/collect/1"))
@@ -143,7 +160,8 @@ class CollectorControllerTest {
     @Test
     @DisplayName("POST /api/v1/metadata/collect/{sourceId} — 数据源不存在返回 404")
     void triggerCollection_notFound() throws Exception {
-        when(schedulerService.triggerCollection(anyLong(), anyString())).thenReturn(Optional.empty());
+        // 生产先按 (sourceId, tenantId) 校验归属，不存在直接 404，不再走到调度器
+        when(sourceRepository.findByIdAndTenantId(999L, TEST_TENANT_ID)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/v1/metadata/collect/999"))
                 .andExpect(status().isNotFound());
@@ -157,6 +175,7 @@ class CollectorControllerTest {
         history.setSourceId(1L);
         history.setStatus("SUCCESS");
         history.setStartedAt(LocalDateTime.now());
+        when(sourceRepository.findByIdAndTenantId(1L, TEST_TENANT_ID)).thenReturn(Optional.of(new MetadataSource()));
         when(schedulerService.getCollectionStatus(1L)).thenReturn(Optional.of(history));
 
         mockMvc.perform(get("/api/v1/metadata/collect/status/1"))
@@ -171,7 +190,7 @@ class CollectorControllerTest {
         s.setId(1L);
         s.setName("hive-1");
         s.setType("HIVE");
-        when(sourceRepository.findById(1L)).thenReturn(Optional.of(s));
+        when(sourceRepository.findByIdAndTenantId(1L, TEST_TENANT_ID)).thenReturn(Optional.of(s));
         when(mockCollector.testConnection(any(MetadataSource.class))).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/metadata/collect/test/1"))
@@ -186,7 +205,7 @@ class CollectorControllerTest {
         s.setId(1L);
         s.setName("hive-1");
         s.setType("HIVE");
-        when(sourceRepository.findById(1L)).thenReturn(Optional.of(s));
+        when(sourceRepository.findByIdAndTenantId(1L, TEST_TENANT_ID)).thenReturn(Optional.of(s));
         when(mockCollector.testConnection(any(MetadataSource.class))).thenReturn(false);
 
         mockMvc.perform(post("/api/v1/metadata/collect/test/1"))
@@ -203,5 +222,19 @@ class CollectorControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(4))
                 .andExpect(jsonPath("$[0]").value("HIVE"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/metadata/sources — 缺租户上下文时 fail-closed（R10 安全语义）")
+    void listSources_withoutTenantContext_shouldFailClosed() {
+        // 清除上下文，模拟未认证请求绕过 JwtAuthFilter 的极端情况
+        TenantContext.clear();
+
+        ServletException ex = assertThrows(ServletException.class, () ->
+                mockMvc.perform(get("/api/v1/metadata/sources")));
+
+        assertTrue(ex.getMessage().contains("缺少租户上下文")
+                        || ex.getCause() instanceof IllegalStateException,
+                "缺租户上下文时应 fail-closed 抛 IllegalStateException，实际: " + ex);
     }
 }

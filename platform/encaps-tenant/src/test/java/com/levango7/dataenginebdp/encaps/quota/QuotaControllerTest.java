@@ -1,6 +1,8 @@
 package com.levango7.dataenginebdp.encaps.quota;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class QuotaControllerTest {
 
+    /** 与 {@code sampleQuota} 中的 tenantId 保持一致（控制器从 TenantContext 取租户并校验归属）。 */
+    private static final String TEST_TENANT_ID = "100";
+
     private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -43,7 +48,16 @@ class QuotaControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R8 加固后 tenantId 一律取自 TenantContext，缺失返回 401。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(quotaController).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     private Quota sampleQuota(Long id) {
@@ -127,7 +141,7 @@ class QuotaControllerTest {
         Quota q2 = sampleQuota(2L);
         q2.setWorkspaceId(11L);
 
-        when(quotaService.listQuotas(null, null)).thenReturn(List.of(q1, q2));
+        when(quotaService.listQuotas(100L, null)).thenReturn(List.of(q1, q2));
 
         mockMvc.perform(get("/api/v1/quotas"))
                 .andExpect(status().isOk())
@@ -152,7 +166,7 @@ class QuotaControllerTest {
     void list_withWorkspaceId_shouldReturn200() throws Exception {
         Quota q1 = sampleQuota(1L);
 
-        when(quotaService.listQuotas(null, 10L)).thenReturn(List.of(q1));
+        when(quotaService.listQuotas(100L, 10L)).thenReturn(List.of(q1));
 
         mockMvc.perform(get("/api/v1/quotas").param("workspaceId", "10"))
                 .andExpect(status().isOk())
@@ -201,6 +215,7 @@ class QuotaControllerTest {
         Quota updated = sampleQuota(1L);
         updated.setCpuLimit("20");
 
+        when(quotaService.getQuota(1L)).thenReturn(Optional.of(sampleQuota(1L)));
         when(quotaService.updateQuota(anyLong(), any(Quota.class)))
                 .thenReturn(Optional.of(updated));
 
@@ -224,8 +239,8 @@ class QuotaControllerTest {
         input.setPvcLimit("100");
         input.setServiceLimit("40");
 
-        when(quotaService.updateQuota(anyLong(), any(Quota.class)))
-                .thenReturn(Optional.empty());
+        // 生产先按 (id, tenantId) 校验归属，不存在直接 404，不再走到 update
+        when(quotaService.getQuota(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/v1/quotas/999")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -238,6 +253,7 @@ class QuotaControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/quotas/{id} — 存在时返回 204")
     void delete_existingId_shouldReturn204() throws Exception {
+        when(quotaService.getQuota(1L)).thenReturn(Optional.of(sampleQuota(1L)));
         when(quotaService.deleteQuota(1L)).thenReturn(true);
 
         mockMvc.perform(delete("/api/v1/quotas/1"))
@@ -247,7 +263,8 @@ class QuotaControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/quotas/{id} — 不存在时返回 404")
     void delete_nonExistingId_shouldReturn404() throws Exception {
-        when(quotaService.deleteQuota(999L)).thenReturn(false);
+        // 生产先按 (id, tenantId) 校验归属，不存在直接 404，不再走到 delete
+        when(quotaService.getQuota(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/api/v1/quotas/999"))
                 .andExpect(status().isNotFound());
@@ -262,11 +279,33 @@ class QuotaControllerTest {
                 "used", Map.of("pods", "5", "requests.cpu", "2"),
                 "hard", Map.of("pods", "100", "requests.cpu", "10")
         );
+        when(quotaService.getQuotaByWorkspace(10L)).thenReturn(Optional.of(sampleQuota(1L)));
         when(quotaService.getUsage(10L)).thenReturn(usage);
 
         mockMvc.perform(get("/api/v1/quotas/workspace/10/usage"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.used.pods").value("5"))
                 .andExpect(jsonPath("$.hard.pods").value("100"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/quotas — 缺租户上下文时 fail-closed 返回 401（R8 安全语义）")
+    void list_withoutTenantContext_shouldReturn401() throws Exception {
+        TenantContext.clear();
+
+        mockMvc.perform(get("/api/v1/quotas"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/quotas/{id} — 跨租户访问返回 404（R8 租户隔离）")
+    void get_otherTenantQuota_shouldReturn404() throws Exception {
+        Quota other = sampleQuota(1L);
+        other.setTenantId(999L);
+
+        when(quotaService.getQuota(1L)).thenReturn(Optional.of(other));
+
+        mockMvc.perform(get("/api/v1/quotas/1"))
+                .andExpect(status().isNotFound());
     }
 }

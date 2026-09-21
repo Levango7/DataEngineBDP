@@ -1,8 +1,11 @@
 package com.levango7.dataenginebdp.finops.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.model.QueryMeteringRecord;
 import com.levango7.dataenginebdp.finops.model.QueryMeteringRequest;
 import com.levango7.dataenginebdp.finops.repository.QueryMeteringRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -19,8 +22,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 class MeteringControllerTest {
 
+    private static final String TEST_TENANT_ID = "tenant_a";
+
     @Autowired
     private QueryMeteringRepository repository;
+
+    /**
+     * 生产控制器在 R8 加固后从 {@link TenantContext} 取 tenantId（忽略请求体），
+     * 缺失返回 401。测试直接调用控制器方法（不过滤器链），需由测试侧写入上下文。
+     */
+    @BeforeEach
+    void setUp() {
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
+    }
 
     private MeteringController controller() {
         return new MeteringController(repository);
@@ -69,5 +89,16 @@ class MeteringControllerTest {
         controller().recordQuery(sampleRequest("req-2"));
 
         assertThat(repository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void recordQuery_withoutTenantContext_returns401() {
+        // 清除上下文，验证 R8 的 fail-closed 语义未被测试改动削弱
+        TenantContext.clear();
+
+        ResponseEntity<Map<String, Object>> resp = controller().recordQuery(sampleRequest("req-no-tenant"));
+
+        assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(repository.count()).isEqualTo(0L);
     }
 }

@@ -3,16 +3,17 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.repository.ApiKeyRepository;
 import com.levango7.dataenginebdp.encaps.service.GatewayStatsService;
+import com.levango7.dataenginebdp.encaps.util.CredentialEncryptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,12 +35,21 @@ class GatewayControllerIdempotencyTest {
     @Mock
     private GatewayStatsService statsService;
 
-    @InjectMocks
     private GatewayController controller;
+
+    /**
+     * 测试用 AES-256 密钥（32 字节，仅用于单元测试，非生产密钥）。
+     * GatewayController 依赖 CredentialEncryptor 对 apiKey 做加密落库，
+     * 这里用真实加密器（纯 POJO，无需 Spring 容器），避免 mock final 类。
+     */
+    private static final byte[] TEST_AES_KEY =
+            "0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.US_ASCII);
 
     @BeforeEach
     void setUpTenant() {
         TenantContext.setTenantId("tenant_a");
+        controller = new GatewayController(repository, statsService,
+                new CredentialEncryptor(TEST_AES_KEY));
     }
 
     @AfterEach

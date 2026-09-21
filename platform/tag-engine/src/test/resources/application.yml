@@ -33,3 +33,11 @@ app:
     batch-max-size: 50
   audience:
     max-result-size: 1000
+  # common-security 的 SecurityConfig 自动装配 JwtAuthFilter，
+  # 这两个占位符在测试上下文里必须可解析（与 sql-gateway/lineage-analyzer 的测试配置同型）
+  security:
+    jwt:
+      secret: test-secret-key-for-tag-engine-unit-tests-256bits
+      issuer: shuqing-bigdata
+    cors:
+      allowed-origins: http://localhost:5173
