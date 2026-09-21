@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -8,6 +10,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+)
+
+const (
+	// jwtMinKeyLen JWT HMAC 签名密钥最小长度（字节）。
+	// 密钥短于 32 字节（256 位）时抗离线暴力破解能力显著下降。
+	jwtMinKeyLen = 32
+
+	// jwtSigningKeyEnv JWT 签名密钥环境变量名。
+	jwtSigningKeyEnv = "JWT_SIGNING_KEY"
+
+	// jwtDevModeEnv 开发模式开关环境变量名。
+	// 仅允许本地联调开启；生产环境切勿开启 JWT_DEV_MODE，
+	// 否则 AuthMiddleware 将整体跳过 JWT 校验。
+	jwtDevModeEnv = "JWT_DEV_MODE"
 )
 
 // mustGetenv 读取必需的环境变量，缺失则 fail-fast 退出。
@@ -19,6 +35,53 @@ func mustGetenv(key string) string {
 		log.Fatalf("FATAL: environment variable %s is required", key)
 	}
 	return v
+}
+
+// checkJWTSigningKey 校验 JWT 签名密钥强度，dev 模式下放宽但必须告警。
+//
+// 校验规则：
+//   - dev 模式（devMode=true）：恒放行并返回 nil，同时通过 warn 输出且仅输出一条告警，
+//     提醒当前处于 JWT_DEV_MODE 开发模式、生产环境切勿开启。
+//   - 空密钥：返回错误（消息含 "required"）。
+//   - 长度 < jwtMinKeyLen：返回错误（消息含 "too short" 与最小长度）。
+//   - 长度 >= jwtMinKeyLen：返回 nil，不产生告警。
+//
+// warn 的首个参数为完整告警消息（非格式串）；传 nil 表示不告警。
+func checkJWTSigningKey(secret string, devMode bool, warn func(string, ...any)) error {
+	if devMode {
+		if warn != nil {
+			warn("SECURITY WARNING: JWT_DEV_MODE 开发模式已开启，弱签名密钥同样允许启动；" +
+				"生产环境切勿开启 JWT_DEV_MODE，否则将整体跳过 JWT 校验")
+		}
+		return nil
+	}
+	if secret == "" {
+		return errors.New("JWT signing key is required: set " + jwtSigningKeyEnv +
+			" to at least " + fmt.Sprintf("%d", jwtMinKeyLen) + " bytes")
+	}
+	if len(secret) < jwtMinKeyLen {
+		return fmt.Errorf("JWT signing key too short: got %d bytes, must be at least %d bytes",
+			len(secret), jwtMinKeyLen)
+	}
+	return nil
+}
+
+// ValidateJWTSigningKey 启动时校验 JWT 签名密钥强度，弱密钥直接 log.Fatal 拒绝启动。
+//
+// 环境变量：
+//   - JWT_SIGNING_KEY: 待校验的 HMAC 签名密钥
+//   - JWT_DEV_MODE:    true 时放宽校验，仅告警不退出
+//
+// 由于 log.Fatal 会以退出码 1 终止进程，本函数无返回值；
+// 应在应用启动早期（注册 AuthMiddleware 之前）调用。
+func ValidateJWTSigningKey() {
+	secret := os.Getenv(jwtSigningKeyEnv)
+	devMode := strings.EqualFold(strings.TrimSpace(os.Getenv(jwtDevModeEnv)), "true")
+	if err := checkJWTSigningKey(secret, devMode, func(msg string, _ ...any) {
+		log.Println(msg)
+	}); err != nil {
+		log.Fatalf("FATAL: %v", err)
+	}
 }
 
 // ============ JWT 认证中间件 ============
