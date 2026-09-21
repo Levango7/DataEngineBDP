@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from business_portal.api.jwt_auth import getAuthContext
@@ -20,6 +22,20 @@ from business_portal.api.routers import (
 from business_portal.config.settings import Settings, get_settings
 from business_portal.services.bi_dashboard_store import build_bi_dashboard_store
 from business_portal.services.registry import ServiceRegistry, build_services
+
+# CORS 白名单允许的方法与请求头（与 APISIX cors 插件配置对齐）
+_ALLOWED_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
+_ALLOWED_HEADERS = ["Authorization", "Content-Type", "X-Tenant-Id", "X-Request-Id"]
+
+
+def _corsOrigins() -> list[str]:
+    """读取跨域白名单：CORS_ORIGINS 优先，兼容 CORS_ALLOWED_ORIGINS。
+
+    未配置时返回空列表 → 不挂载 CORS 中间件（fail-closed）；
+    生产环境跨域统一由 APISIX cors 插件处理，服务级 CORS 仅供本地/直连调试。
+    """
+    raw = os.environ.get("CORS_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGINS") or ""
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 def create_app(
@@ -57,6 +73,18 @@ def create_app(
     # 把 registry 挂到 app.state，路由通过依赖获取
     app.state.settings = settings
     app.state.registry = registry
+
+    # CORS：仅当显式配置白名单时挂载（fail-closed，避免与网关 cors 插件双重设置）
+    origins = _corsOrigins()
+    if origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=_ALLOWED_METHODS,
+            allow_headers=_ALLOWED_HEADERS,
+            max_age=3600,
+        )
     # BI 看板仓储（独立于业务线概览；前端 /dashboards 契约）
     registry.biDashboardStore = build_bi_dashboard_store()
 

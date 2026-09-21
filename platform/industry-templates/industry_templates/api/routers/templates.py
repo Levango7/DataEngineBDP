@@ -13,7 +13,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from industry_templates.api.routers.deps import get_registry, status_for_error
+from industry_templates.api.routers.deps import get_registry, require_admin, status_for_error
 from industry_templates.models import DeploymentRequest
 from industry_templates.services.exceptions import TemplateError
 from industry_templates.services.registry import ServiceRegistry
@@ -59,7 +59,12 @@ async def get_template(
 # ---------- 部署 ----------
 
 
-@router.post("/{template_id}/deploy", summary="部署模板", status_code=201)
+@router.post(
+    "/{template_id}/deploy",
+    summary="部署模板",
+    status_code=201,
+    dependencies=[Depends(require_admin)],
+)
 async def deploy_template(
     template_id: str,
     request: DeploymentRequest,
