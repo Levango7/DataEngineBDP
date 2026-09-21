@@ -11,7 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -191,13 +193,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 健康检查、登录与 actuator 端点不走 JWT，直接放行。
+     * 以下三类请求不走 JWT 校验，直接放行：
+     * <ol>
+     *   <li><b>已由前置过滤器完成认证</b>的请求（如 {@code ApiKeyAuthFilter} 通过
+     *       {@code X-API-Key} 建立的认证）——否则本过滤器只看 {@code Authorization} 头，
+     *       会把合法的 API Key 请求全部 401，使 API Key 认证形同虚设（P0-2）。
+     *       <b>匿名 token 不算已认证</b>：{@link AnonymousAuthenticationToken} 必须排除，
+     *       放行它等于关掉鉴权。</li>
+     *   <li>健康检查 {@code /api/v1/health}</li>
+     *   <li>登录 {@code /api/v1/auth/login} 与 actuator {@code /actuator/**}</li>
+     * </ol>
      *
      * <p>注：本方法为 {@code public} 以便跨模块单元测试直接调用验证（OncePerRequestFilter
      * 父类声明为 protected，子类覆盖时放宽访问控制符合 Java 规范）。</p>
      */
     @Override
     public boolean shouldNotFilter(HttpServletRequest request) {
+        if (hasEstablishedAuthentication()) {
+            return true;
+        }
         String path = request.getServletPath();
         if (path == null || path.isEmpty()) {
             path = request.getRequestURI();
@@ -206,6 +220,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 && (path.equals("/api/v1/health")
                     || path.equals("/api/v1/auth/login")   // 登录端点放行（Keycloak 代理）
                     || path.startsWith("/actuator/"));
+    }
+
+    /**
+     * 判断当前请求是否已在过滤链上游完成真实认证。
+     *
+     * <p>判定为真的条件：SecurityContext 中存在认证对象、{@code isAuthenticated()} 为真、
+     * 且<b>不是</b> {@link AnonymousAuthenticationToken}——匿名 token 的
+     * {@code isAuthenticated()} 也返回 true，但放行它会绕过 JWT 鉴权。</p>
+     *
+     * @return 上游已建立可信认证时返回 {@code true}
+     */
+    private boolean hasEstablishedAuthentication() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
     private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {

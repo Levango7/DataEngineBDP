@@ -10,11 +10,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -190,5 +194,64 @@ class JwtAuthFilterTest {
         // 这里执行方法验证无异常且返回布尔
         boolean r = filter.shouldNotFilter(health);
         assertThat(r).isTrue();
+    }
+
+    @Test
+    @DisplayName("P0-2：上游已建立认证（如 ApiKeyAuthFilter）时跳过 JWT，保护路径不再 401")
+    void shouldNotFilter_whenUpstreamAlreadyAuthenticated() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("api-key-client", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_API_KEY"))));
+
+        assertThat(filter.shouldNotFilter(req(null, null))).isTrue();
+
+        // 走真实的 doFilter 路径：无 Bearer 头也必须放行（修复前此处返回 401）
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        filter.doFilter(req(null, null), resp, chain);
+
+        assertThat(resp.getStatus()).isEqualTo(200);
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("P0-2 安全护栏：匿名 token 不算已认证，仍走 JWT 校验并 401")
+    void shouldNotFilter_isFalseForAnonymousAuthenticationToken() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new AnonymousAuthenticationToken("key", "anonymousUser",
+                        List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS"))));
+
+        // 必须仍然过滤：放行匿名 token 等于关掉鉴权
+        assertThat(filter.shouldNotFilter(req(null, null))).isFalse();
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        filter.doFilter(req(null, null), resp, chain);
+
+        assertThat(resp.getStatus()).isEqualTo(401);
+        assertThat(chain.getRequest()).isNull();
+    }
+
+    @Test
+    @DisplayName("P0-2 安全护栏：未认证的 Authentication 对象不触发跳过")
+    void shouldNotFilter_isFalseForNonAuthenticatedToken() throws Exception {
+        // isAuthenticated()==false 的认证对象（如未认证前的 token 占位）不能放行
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("nobody", null));
+
+        assertThat(filter.shouldNotFilter(req(null, null))).isFalse();
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        filter.doFilter(req(null, null), resp, chain);
+
+        assertThat(resp.getStatus()).isEqualTo(401);
+        assertThat(chain.getRequest()).isNull();
+    }
+
+    @Test
+    @DisplayName("既有语义不变：无认证且非白名单路径仍走 JWT 校验")
+    void shouldNotFilter_isFalseForProtectedPathWithoutAuthentication() {
+        assertThat(filter.shouldNotFilter(req(null, null))).isFalse();
     }
 }
