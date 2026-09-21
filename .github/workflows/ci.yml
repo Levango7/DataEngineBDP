@@ -833,7 +833,12 @@ jobs:
           # 这三个模块主源码分别约 863 / 1149 / 1180 行，补足到 40% 属独立工作项，
           # 不应阻塞与本模块无关的改动合并。按既有机制列入排除并记录实测值，
           # 待 docs/coverage-roadmap.md 排期补测后移出本列表。
-          COVERAGE_EXCLUDE="dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang billing master-data data-standard"
+          #
+          # 2026-09-21 补测达标，billing / master-data / data-standard 已移出本列表：
+          # 实测 billing 行 100%/分支 97.2%；master-data 行 100%/分支 98.81%
+          # （7 个类 / 207 条语句全部统计到）；data-standard 行 94%/分支 96.7%。
+          # 三个模块均远高于 40/18 阈值，门禁对其恢复生效。
+          COVERAGE_EXCLUDE="dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang"
           # 遍历所有 Java 模块生成 JaCoCo 报告并执行门禁检查
           # 仅对存在 src/test 目录（有测试）的模块执行门禁；无测试的模块仅生成报告
           fail_count=0

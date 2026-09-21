@@ -30,8 +30,13 @@ import java.util.List;
  * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports} 自动装配。</p>
  *
  * <p>当业务模块已自定义 {@link SecurityFilterChain} Bean 时（例如 encaps-layer 的国密/OIDC 特化
- * {@code SecurityConfig}），本配置自动退让（{@link ConditionalOnMissingBean}），避免过滤链冲突。
- * 同理，{@link JwtAuthFilter} 也在缺失时才由本类提供默认实现，允许模块自行覆盖。</p>
+ * {@code SecurityConfig}），本配置自动退让（{@link ConditionalOnMissingBean}），避免过滤链冲突。</p>
+ *
+ * <p><b>默认 {@link JwtAuthFilter} Bean 不在本类中</b>：它已抽出到
+ * {@link JwtAuthFilterAutoConfiguration}。本类的类级守卫会让"整个类"退让，若默认
+ * JwtAuthFilter 仍定义在此，业务模块自定义过滤链后就会拿不到它——而这些模块的过滤链恰恰要注入
+ * 该 Bean，结果是 {@code No qualifying bean of type 'JwtAuthFilter'}、应用无法启动（P0）。
+ * 默认 Bean 工厂与过滤链必须解耦。</p>
  *
  * <p>配置项：
  * <ul>
@@ -107,22 +112,5 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    /**
-     * 默认 JwtAuthFilter Bean：当容器中不存在 {@link JwtAuthFilter} 类型时提供通用实现。
-     *
-     * <p>需要特化扩展（如 SM2 国密、OIDC）的模块应自行声明 {@link JwtAuthFilter} 子类或
-     * 同类型 Bean，本方法将自动退让。</p>
-     *
-     * @param secret JWT 签名密钥
-     * @param issuer JWT issuer
-     * @return 通用 JwtAuthFilter 实例
-     */
-    @Bean
-    @ConditionalOnMissingBean(JwtAuthFilter.class)
-    public JwtAuthFilter jwtAuthFilter(@Value("${app.security.jwt.secret}") String secret,
-                                       @Value("${app.security.jwt.issuer}") String issuer) {
-        return new JwtAuthFilter(secret, issuer);
     }
 }

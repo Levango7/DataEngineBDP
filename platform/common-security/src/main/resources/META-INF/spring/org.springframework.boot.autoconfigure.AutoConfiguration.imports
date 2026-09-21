@@ -1,3 +1,4 @@
+com.levango7.dataenginebdp.common.security.JwtAuthFilterAutoConfiguration
 com.levango7.dataenginebdp.common.security.SecurityConfig
 com.levango7.dataenginebdp.common.security.ratelimit.RateLimitAutoConfiguration
 com.levango7.dataenginebdp.common.security.audit.jpa.JpaAuditAutoConfiguration
