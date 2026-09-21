@@ -26,6 +26,11 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8080"
+        # jwt_auth.py 在 K8s 内未显式 AUTH_MODE 时会 fail-fast 抛 RuntimeError。
+        # k3s 冒烟路径与集成测试一致走匿名放行，故显式设为 none；
+        # 生产请使用 helm charts（AUTH_MODE=jwt + Secret 注入）。
+        - name: AUTH_MODE
+          value: "none"
         readinessProbe:
           httpGet:
             path: /health
