@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.tagengine.service;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.tagengine.entity.TagDefinitionEntity;
 import com.levango7.dataenginebdp.tagengine.model.BatchComputeResult;
 import com.levango7.dataenginebdp.tagengine.model.ComputeRequest;
@@ -46,15 +47,29 @@ public class ComputeService {
     }
 
     /**
-     * 计算单个标签。
+     * 计算单个标签（租户隔离：只能算当前租户自己的标签）。
+     *
+     * <p>R8 租户隔离补齐：先按当前租户校验标签归属，不属于本租户时返回
+     * {@code FAILED} 结果（而不是抛异常，与批量计算的"跳过计入 failed"语义一致）。</p>
      *
      * @param tagId 标签 ID
      * @param req   计算请求
-     * @return 计算结果
+     * @return 计算结果；标签不属于当前租户时返回 status=FAILED
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public TagComputeResult computeTag(String tagId, ComputeRequest req) {
-        log.info("ComputeService.computeTag: tagId={}, mode={}", tagId, req.getMode());
-        return tagStore.computeTag(tagId, req);
+        String tenantId = requireTenant();
+        if (!isTenantOwnedTag(tagId, tenantId)) {
+            log.warn("ComputeService.computeTag: 标签不存在或不属于当前租户: tagId={}, tenant={}",
+                    tagId, tenantId);
+            return TagComputeResult.builder()
+                    .tagId(tagId)
+                    .status("FAILED")
+                    .errorMessage("标签不存在或不属于当前租户")
+                    .build();
+        }
+        req.setTenantId(tenantId);
+        return computeTag(tagId, req, tenantId);
     }
 
     /**
@@ -83,38 +98,16 @@ public class ComputeService {
      * @param req    计算请求
      * @return 批量计算结果
      */
+    /**
+     * 批量计算多个标签（租户隔离：仅计算当前租户自己的标签，其余计入 failed）。
+     *
+     * @param tagIds 标签 ID 列表
+     * @param req    计算请求
+     * @return 批量计算结果
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
+     */
     public BatchComputeResult batchCompute(List<String> tagIds, ComputeRequest req) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return BatchComputeResult.builder()
-                    .results(List.of())
-                    .successCount(0)
-                    .failedCount(0)
-                    .totalCostMs(0)
-                    .build();
-        }
-        int total = tagIds.size();
-        int batchSize = Math.max(1, batchMaxSize);
-        log.info("ComputeService.batchCompute: total={}, batchSize={}", total, batchSize);
-
-        List<TagComputeResult> allResults = new java.util.ArrayList<>(total);
-        long success = 0;
-        long failed = 0;
-        long start = System.currentTimeMillis();
-
-        for (int i = 0; i < total; i += batchSize) {
-            int end = Math.min(i + batchSize, total);
-            List<String> batch = tagIds.subList(i, end);
-            BatchComputeResult br = tagStore.batchCompute(batch, req);
-            allResults.addAll(br.getResults());
-            success += br.getSuccessCount();
-            failed += br.getFailedCount();
-        }
-        return BatchComputeResult.builder()
-                .results(allResults)
-                .successCount(success)
-                .failedCount(failed)
-                .totalCostMs(System.currentTimeMillis() - start)
-                .build();
+        return batchCompute(tagIds, req, requireTenant());
     }
 
     /**
@@ -145,9 +138,21 @@ public class ComputeService {
         if (skipped > 0) {
             log.warn("ComputeService.batchCompute: skipped {} tags not owned by tenant={}", skipped, tenantId);
         }
+        // 不属于当前租户的标签：计入 failed，并补齐 FAILED 结果条目，
+        // 保证 results 与请求标签一一对应（调用方据此定位被拒绝的标签）。
+        List<TagComputeResult> allResults = new java.util.ArrayList<>(tagIds.size());
+        for (String id : tagIds) {
+            if (!ownedTagIds.contains(id)) {
+                allResults.add(TagComputeResult.builder()
+                        .tagId(id)
+                        .status("FAILED")
+                        .errorMessage("标签不存在或不属于当前租户")
+                        .build());
+            }
+        }
         if (ownedTagIds.isEmpty()) {
             return BatchComputeResult.builder()
-                    .results(List.of())
+                    .results(allResults)
                     .successCount(0)
                     .failedCount(tagIds.size())
                     .totalCostMs(0)
@@ -157,7 +162,6 @@ public class ComputeService {
         int batchSize = Math.max(1, batchMaxSize);
         log.info("ComputeService.batchCompute: total={}, batchSize={}, tenant={}", total, batchSize, tenantId);
 
-        List<TagComputeResult> allResults = new java.util.ArrayList<>(total);
         long success = 0;
         long failed = skipped;
         long start = System.currentTimeMillis();
@@ -204,5 +208,22 @@ public class ComputeService {
         if (!isTenantOwnedTag(tagId, tenantId)) {
             throw new IllegalArgumentException("tag not found or tenant mismatch: " + tagId);
         }
+    }
+
+    /**
+     * 取当前租户 ID；缺失时 fail-closed 抛异常。
+     *
+     * <p>Service 层不信任入参/请求体里的 tenantId，一律以 {@link TenantContext} 为准。</p>
+     *
+     * @return 当前租户 ID
+     * @throws IllegalStateException 租户上下文缺失
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            log.warn("ComputeService: 缺少租户上下文，拒绝计算");
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }
