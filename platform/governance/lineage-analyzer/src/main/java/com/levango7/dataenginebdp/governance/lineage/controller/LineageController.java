@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,6 +59,7 @@ import java.util.Map;
  * 不再统一返回 400（参见 CONVENTIONS §9.3）：
  * <ul>
  *   <li>{@link SqlParseException} → 400（客户端 SQL 语法错误）</li>
+ *   <li>{@link MethodArgumentNotValidException} → 400（Bean Validation 失败，如 sql 为空）</li>
  *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
  *   <li>{@link MethodArgumentTypeMismatchException} → 400（路径/参数类型不匹配）</li>
  *   <li>其他 {@link Exception} → 500（服务端内部错误，消息脱敏）</li>
@@ -184,10 +186,11 @@ public class LineageController {
      * 异常处理细化：按异常类型映射不同 HTTP 状态码。
      *
      * <p>不再统一返回 400：
-     * <ul>
-     *   <li>{@link SqlParseException} → 400（客户端 SQL 语法错误）</li>
-     *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
-     *   <li>{@link MethodArgumentTypeMismatchException} → 400（参数类型不匹配）</li>
+ * <ul>
+ *   <li>{@link SqlParseException} → 400（客户端 SQL 语法错误）</li>
+ *   <li>{@link MethodArgumentNotValidException} → 400（Bean Validation 失败）</li>
+ *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
+ *   <li>{@link MethodArgumentTypeMismatchException} → 400（参数类型不匹配）</li>
      *   <li>其他 → 500（服务端内部错误，消息脱敏不暴露堆栈）</li>
      * </ul>
      */
@@ -197,6 +200,12 @@ public class LineageController {
         if (e instanceof SqlParseException) {
             log.warn("血缘分析 SQL 解析失败: {}", e.getMessage());
             return ResponseEntity.badRequest().body(errorMap("sql_parse_error", e.getMessage()));
+        }
+        // Bean Validation 失败（如 @NotBlank 的 sql 为空）：客户端参数错误 → 400
+        // 原先落到"其他异常 → 500"，把客户端错误误报成服务端错误（见 CONVENTIONS §9.3）
+        if (e instanceof MethodArgumentNotValidException) {
+            log.warn("血缘 API 请求体校验失败: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(errorMap("invalid_request", "请求体参数校验失败"));
         }
         if (e instanceof IllegalArgumentException) {
             log.warn("血缘 API 参数非法: {}", e.getMessage());

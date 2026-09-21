@@ -4,3 +4,8 @@ app:
     jwt:
       secret: test-secret-for-unit-tests-only-32-bytes!
       enabled: false
+    # 开发态（jwt.enabled=false）兜底租户：测试环境必须显式配置。
+    # TenantContextFilter 对 dev 租户不设默认值——未配置即 fail-closed 403，
+    # 因此这里显式写上；生产配置里不应出现这一项。
+    dev:
+      tenant-id: dev-tenant
