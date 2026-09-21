@@ -732,11 +732,20 @@ jobs:
           # 多模块存在内部依赖链：
           #   common-security ← encaps-layer / sql-gateway / finops / infra-* 等
           #   encaps-layer     ← encaps-data / encaps-gateway / encaps-tenant
+          #   encaps-data      ← encaps-gateway / encaps-tenant
           #   sql-gateway      ← lineage-analyzer
           # 必须按依赖序先装库，否则下游模块解析不到 SNAPSHOT 直接失败
+          #
+          # 2026-09-21：补入 encaps-data。此前白名单缺它，而本 job 的测试步骤
+          # 是 `mvn -f "$pom" test`（不做 install），因此 encaps-gateway /
+          # encaps-tenant 在 CI runner 上除非命中 maven 缓存，否则根本解析不到
+          # encaps-data 的 SNAPSHOT，表现为依赖解析失败而非测试失败。
+          # 注意：encaps-data 同时必须产出可被依赖的普通 jar（而非 Spring Boot
+          # fat jar），否则即使装进本地库，下游仍取不到 CredentialEncryptor 等类。
           for lib_pom in \
             "platform/common-security/pom.xml" \
             "platform/encaps-layer/pom.xml" \
+            "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
             if [ -f "$lib_pom" ]; then
               mvn -f "$lib_pom" install -B -DskipTests -U \
