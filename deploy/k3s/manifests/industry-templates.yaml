@@ -26,6 +26,13 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8091"
+        # jwt_auth.py 在 K8s 内未显式 AUTH_MODE 时会 fail-fast 抛 RuntimeError。
+        # k3s 冒烟路径与集成测试一致走匿名放行（tests/integration/conftest.py
+        # 强制 AUTH_MODE=none），故此处显式设为 none，避免业务端点 500。
+        # 注：k3s manifests 内其余服务同样未设置 AUTH_MODE，属既有横向缺口，
+        # 本处仅补齐因本服务接入鉴权依赖而新增的风险。
+        - name: AUTH_MODE
+          value: "none"
         readinessProbe:
           httpGet:
             path: /health
