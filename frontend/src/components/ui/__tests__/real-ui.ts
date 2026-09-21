@@ -4,22 +4,12 @@
  * click/emit 断言全部失效。
  */
 import ElementPlus from 'element-plus'
-import { createI18n } from 'vue-i18n'
+import { createTestI18n } from '@/test-utils/test-i18n'
 
-// 提供 i18n 实例（部分 UI 组件如 Toolbar 使用 useI18n 做 fallback 文案）
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  fallbackLocale: 'zh-CN',
-  messages: {
-    'zh-CN': {
-      common: { create: '新建', cancel: '取消', confirm: '确定', save: '保存' }
-    },
-    'en-US': {
-      common: { create: 'Create', cancel: 'Cancel', confirm: 'Confirm', save: 'Save' }
-    }
-  }
-})
+// 提供 i18n 实例（部分 UI 组件如 Toolbar 使用 useI18n 做 fallback 文案）。
+// 复用测试统一工厂：使用生产 locale 全量框架级词条，避免这里只塞几个 key 导致
+// 组件取不到译文（如 EmptyState 的 common.empty 曾退回原始 key）。
+const i18n = createTestI18n()
 
 export const realElGlobal = {
   plugins: [ElementPlus, i18n],

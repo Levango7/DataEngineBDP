@@ -29,13 +29,9 @@ vi.mock('@/api/develop', () => ({
   getTaskDag: vi.fn()
 }))
 
-// 补充 @element-plus/icons-vue mock（test-setup.ts 仅 mock 了 Refresh）
-vi.mock('@element-plus/icons-vue', () => ({
-  Refresh: { name: 'Refresh', template: '<svg />' },
-  Folder: { name: 'Folder', template: '<svg />' },
-  Document: { name: 'Document', template: '<svg />' },
-  WarningFilled: { name: 'WarningFilled', template: '<svg />' }
-}))
+// 图标不再单独 mock：test-setup.ts 的 @element-plus/icons-vue mock 已对任意
+// PascalCase 图标名按需生成 SVG 占位组件（此前这里只列了 4 个，Develop.vue 用到
+// VideoPlay 时直接抛 "No ... export is defined on the mock"）
 
 import Develop from '../Develop.vue'
 

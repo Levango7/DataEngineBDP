@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { i18n } from '@/i18n'
+import { i18n, loadModuleI18n } from '@/i18n'
 import JobManagement from '../JobManagement.vue'
 
 // Mock job API
@@ -66,10 +66,13 @@ vi.mock('@/api/job', () => ({
 }))
 
 describe('JobManagement.vue', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
     // 组件已接入 i18n 词条（jobmgmt 模块），测试固定中文语言环境
     i18n.global.locale.value = 'zh-CN'
+    // 页面级词条是懒加载的（生产由路由 afterEach 预加载），测试需显式加载，
+    // 否则 jobmgmt.* key 取不到译文，断言拿到的是 'jobmgmt.title' 这类原始 key
+    await loadModuleI18n('jobmgmt')
   })
 
   function mountComponent(): VueWrapper {
@@ -143,12 +146,14 @@ describe('JobManagement.vue', () => {
   it('statusTagType 应返回正确的 tag 类型', async () => {
     const wrapper = mountComponent()
     await flushPromises()
-    const vm = wrapper.vm as any
-    expect(vm.statusTagType('running')).toBe('primary')
-    expect(vm.statusTagType('success')).toBe('success')
-    expect(vm.statusTagType('failed')).toBe('danger')
-    expect(vm.statusTagType('pending')).toBe('info')
-    expect(vm.statusTagType('scheduled')).toBe('warning')
+    // 组件内状态→tag 类型映射以常量 STATUS_TAG_TYPES 提供给共享 StatusTag 组件的
+    // status-map（旧实现的 statusTagType() 方法已不存在，故按现契约断言）
+    const statusTagTypes = (wrapper.vm as any).STATUS_TAG_TYPES
+    expect(statusTagTypes.running).toBe('primary')
+    expect(statusTagTypes.success).toBe('success')
+    expect(statusTagTypes.failed).toBe('danger')
+    expect(statusTagTypes.pending).toBe('info')
+    expect(statusTagTypes.scheduled).toBe('warning')
   })
 
   it('canCancel 应判断是否可取消', async () => {

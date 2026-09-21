@@ -9,12 +9,12 @@
  *
  * 用法：
  * ```ts
- * const { trapRef, activate, deactivate } = useFocusTrap({ onEscape: () => emit('close') })
- * // 模板：<div :ref="trapRef" role="dialog" aria-modal="true">...</div>
+ * const { setTrapRef, activate, deactivate } = useFocusTrap({ onEscape: () => emit('close') })
+ * // 模板：<div :ref="setTrapRef" role="dialog" aria-modal="true">...</div>
  * watch(visible, (v) => (v ? activate() : deactivate()))
  * ```
  */
-import { ref, onScopeDispose, type Ref } from 'vue'
+import { ref, onScopeDispose, type ComponentPublicInstance, type Ref } from 'vue'
 
 /** 焦点陷阱支持的键盘选择器（按 Tab 顺序可聚焦元素） */
 const FOCUSABLE_SELECTOR =
@@ -28,8 +28,20 @@ export interface UseFocusTrapOptions {
 }
 
 export interface UseFocusTrapReturn {
-  /** 绑定到陷阱容器的 ref */
+  /** 陷阱容器元素（由 setTrapRef 写入，供组合式函数内部与调用方读取） */
   trapRef: Ref<HTMLElement | null>
+  /**
+   * 模板 ref 绑定函数，用法：`<div :ref="setTrapRef">`。
+   *
+   * 为什么不直接写 `:ref="trapRef"`：vue-tsc 会对 `<script setup>` 顶层 ref 做
+   * 模板自动解包，`:ref="trapRef"` 的静态类型变成 `HTMLElement | null`，
+   * 与 `VNodeRef`（`string | Ref | (el, refs) => void`）不兼容 → TS2322。
+   * 函数式 ref 是 VNodeRef 明确支持的形态（Vue 3.5 运行时的 setRef 同样接受），
+   * 行为与直接绑定 ref 对象完全一致。
+   *
+   * 注意：应绑定到真实的 DOM 元素，不要绑定到组件。
+   */
+  setTrapRef: (el: Element | ComponentPublicInstance | null) => void
   /** 激活陷阱：锁定滚动、保存焦点、添加监听 */
   activate: () => void
   /** 解除陷阱：恢复滚动、恢复焦点、移除监听 */
@@ -47,6 +59,11 @@ export function useFocusTrap(options: UseFocusTrapOptions = {}): UseFocusTrapRet
 
   const trapRef = ref<HTMLElement | null>(null)
   const isActive = ref(false)
+
+  /** 模板函数式 ref：`<div :ref="setTrapRef">`，把元素写入 trapRef */
+  function setTrapRef(el: Element | ComponentPublicInstance | null): void {
+    trapRef.value = (el as HTMLElement | null) ?? null
+  }
 
   /** 激活前拥有焦点的元素，用于关闭时恢复 */
   let previouslyFocused: HTMLElement | null = null
@@ -171,5 +188,5 @@ export function useFocusTrap(options: UseFocusTrapOptions = {}): UseFocusTrapRet
     })
   }
 
-  return { trapRef, activate, deactivate, isActive }
+  return { trapRef, setTrapRef, activate, deactivate, isActive }
 }

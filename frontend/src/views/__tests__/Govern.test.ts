@@ -33,13 +33,7 @@ vi.mock('@/api/governance', () => ({
   applyAssetPermission: vi.fn()
 }))
 
-// 补充 @element-plus/icons-vue mock
-vi.mock('@element-plus/icons-vue', () => ({
-  Refresh: { name: 'Refresh', template: '<svg />' },
-  Folder: { name: 'Folder', template: '<svg />' },
-  Document: { name: 'Document', template: '<svg />' },
-  WarningFilled: { name: 'WarningFilled', template: '<svg />' }
-}))
+// 图标不再单独 mock：test-setup.ts 的 @element-plus/icons-vue mock 已按需覆盖任意图标
 
 import Govern from '../Govern.vue'
 import type { Asset } from '@/api/governance'

@@ -40,7 +40,10 @@ describe('components/Modal.vue', () => {
     document.body.innerHTML = ''
   })
 
-  function mountModal(props: Record<string, unknown> = {}, slots: Record<string, unknown> = {}) {
+  // slots 声明为 Record<string, string>：`mount` 的 slots 形参是
+  // `{ [K in keyof ComponentSlots<T>]?: WithArray<string | VNode | ...> }`，
+  // 用 Record<string, unknown> 会因 unknown 无法赋给该联合类型而报 TS2322
+  function mountModal(props: Record<string, unknown> = {}, slots: Record<string, string> = {}) {
     return mount(Modal, {
       props: { visible: false, title: '测试标题', ...props },
       slots,

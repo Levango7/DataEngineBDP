@@ -23,6 +23,22 @@ vi.mock('@/api/engine', () => ({
   getSparkJobLogs: vi.fn(() => Promise.resolve([]))
 }))
 
+// 工作空间不再硬编码：app store 的 workspace 初始为空，由 fetchTenantInfo()
+// 从租户 API 拉取填充（生产由 TopBar/App 初始化时调用）。测试按生产链路注入，
+// 否则 appStore.workspace 为空 → 请求参数 workspaceId 为 undefined。
+vi.mock('@/api/tenant', () => ({
+  listAllTenants: vi.fn(() =>
+    Promise.resolve([
+      { id: 'tenant-1', name: '华东生产集群', plan: 'enterprise', resourceUsage: 42 }
+    ])
+  ),
+  listTenants: vi.fn(),
+  getTenant: vi.fn(),
+  createTenant: vi.fn(),
+  updateTenant: vi.fn(),
+  deleteTenant: vi.fn()
+}))
+
 import EngSpark from '../engine/EngSpark.vue'
 import { useAppStore } from '@/stores/app'
 
@@ -36,10 +52,12 @@ const i18n = createI18n({
 })
 
 describe('views/engine/EngSpark.vue 工作空间切换', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
     setActivePinia(createPinia())
     getSparkJobsMock.mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 20 })
+    // 与生产一致：先由租户接口填充当前工作空间，再挂载页面
+    await useAppStore().fetchTenantInfo()
   })
 
   async function mountPage() {
