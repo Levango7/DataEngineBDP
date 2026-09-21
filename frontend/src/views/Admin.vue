@@ -1,7 +1,11 @@
 <template>
   <div>
     <PageHeader :title="t('admin.title')" :subtitle="t('admin.subtitle')" />
-    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)">
+    <div
+      v-if="loading"
+      class="card"
+      style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)"
+    >
       {{ t('admin.loading') }}
     </div>
     <div
@@ -43,7 +47,9 @@
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.revenue') }}</h3>
-          <div class="kpi s">{{ t('common.currency') }} {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}</div>
+          <div class="kpi s">
+            {{ t('common.currency') }} {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}
+          </div>
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.alerts') }}</h3>

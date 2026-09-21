@@ -38,7 +38,9 @@
       <template v-else-if="workspaces.length === 0">
         <div class="card" style="grid-column: span 3">
           <h3>{{ t('workspaces.emptyTitle') }}</h3>
-          <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('workspaces.emptyHint') }}</div>
+          <div class="meta" style="color: var(--ds-text-tertiary)">
+            {{ t('workspaces.emptyHint') }}
+          </div>
         </div>
       </template>
       <template v-else>
@@ -146,12 +148,7 @@
           {{ projectsError.message }}，
           <a href="javascript:void(0)" @click="loadProjects">{{ t('common.retry') }}</a>
         </div>
-        <el-table
-          v-else-if="tenantProjects.length"
-          :data="tenantProjects"
-          size="small"
-          border
-        >
+        <el-table v-else-if="tenantProjects.length" :data="tenantProjects" size="small" border>
           <el-table-column :label="t('workspaces.projects.colProject')" prop="name" />
           <el-table-column :label="t('workspaces.projects.colStatus')">
             <template #default="{ row }">

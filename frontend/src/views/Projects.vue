@@ -48,7 +48,9 @@
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>
         {{ t('projects.drawerTitle', { name: current?.name }) }}
-        <span class="pill" :class="current ? statusPillClass(current.status) : 'g'">{{ current ? statusPillText(current.status) : t('projects.status.running') }}</span>
+        <span class="pill" :class="current ? statusPillClass(current.status) : 'g'">
+          {{ current ? statusPillText(current.status) : t('projects.status.running') }}
+        </span>
       </template>
       <div class="tabbar">
         <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">

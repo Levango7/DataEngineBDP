@@ -4,10 +4,20 @@
     <div
       class="sub"
       :aria-label="
-        t('dashboard.subtitle', { tenant: store.workspace, plan: store.plan, usage: store.resourceUsage })
+        t('dashboard.subtitle', {
+          tenant: store.workspace,
+          plan: store.plan,
+          usage: store.resourceUsage
+        })
       "
     >
-      {{ t('dashboard.subtitle', { tenant: store.workspace, plan: store.plan, usage: store.resourceUsage }) }}
+      {{
+        t('dashboard.subtitle', {
+          tenant: store.workspace,
+          plan: store.plan,
+          usage: store.resourceUsage
+        })
+      }}
       <span class="pill b" :aria-label="t('dashboard.todo.title')">
         {{ t('dashboard.todoBadge', { count: store.todoCount }) }}
       </span>
@@ -151,10 +161,7 @@
               {{ t('dashboard.todo.assetPerm', { asset: row.asset, perm: row.perm }) }}
             </template>
           </el-table-column>
-          <el-table-column
-            prop="applicant"
-            :label="t('dashboard.todo.colOwner')"
-          />
+          <el-table-column prop="applicant" :label="t('dashboard.todo.colOwner')" />
           <el-table-column :label="t('dashboard.todo.colAction')">
             <template #default="{ row }">
               <button

@@ -8,7 +8,9 @@
         <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <el-button class="retry-btn" size="small" @click="loadTrain">{{ t('devMl.kpi.retry') }}</el-button>
+          <el-button class="retry-btn" size="small" @click="loadTrain">
+            {{ t('devMl.kpi.retry') }}
+          </el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ trainKpi.total }}</div>
@@ -20,7 +22,9 @@
         <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <el-button class="retry-btn" size="small" @click="loadTrain">{{ t('devMl.kpi.retry') }}</el-button>
+          <el-button class="retry-btn" size="small" @click="loadTrain">
+            {{ t('devMl.kpi.retry') }}
+          </el-button>
         </div>
         <template v-else>
           <div class="kpi running">{{ trainKpi.running }}</div>
@@ -32,7 +36,9 @@
         <div v-if="modelsLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="modelsError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <el-button class="retry-btn" size="small" @click="loadModels">{{ t('devMl.kpi.retry') }}</el-button>
+          <el-button class="retry-btn" size="small" @click="loadModels">
+            {{ t('devMl.kpi.retry') }}
+          </el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ modelKpi.total }}</div>
@@ -44,7 +50,9 @@
         <div v-if="svcLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="svcError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <el-button class="retry-btn" size="small" @click="loadServices">{{ t('devMl.kpi.retry') }}</el-button>
+          <el-button class="retry-btn" size="small" @click="loadServices">
+            {{ t('devMl.kpi.retry') }}
+          </el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ svcKpi.total }}</div>
@@ -304,7 +312,9 @@
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre ref="logContentRef" class="log-content">{{ logContent || t('devMl.logDialog.empty') }}</pre>
+        <pre ref="logContentRef" class="log-content">{{
+          logContent || t('devMl.logDialog.empty')
+        }}</pre>
       </div>
       <template #footer>
         <el-button @click="logDialogVisible = false">{{ t('devMl.logDialog.close') }}</el-button>

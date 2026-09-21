@@ -21,12 +21,18 @@
       "heading": "填写注册资料",
       "tenant": "租户",
       "inviteRole": "邀请角色",
-      "fieldUsername": "用户名", "usernameHint": "如 zhangsan",
-      "fieldFullName": "姓名", "fullNameHint": "如 张三",
-      "fieldEmail": "邮箱", "emailHint": "如 zhangsan@huadong.com",
-      "fieldDepartment": "部门", "departmentHint": "如 数据科学部",
-      "fieldEmployeeId": "工号", "employeeIdHint": "如 E10023",
-      "prev": "上一步", "submit": "提交注册"
+      "fieldUsername": "用户名",
+      "usernameHint": "如 zhangsan",
+      "fieldFullName": "姓名",
+      "fullNameHint": "如 张三",
+      "fieldEmail": "邮箱",
+      "emailHint": "如 zhangsan@huadong.com",
+      "fieldDepartment": "部门",
+      "departmentHint": "如 数据科学部",
+      "fieldEmployeeId": "工号",
+      "employeeIdHint": "如 E10023",
+      "prev": "上一步",
+      "submit": "提交注册"
     },
     "step3": {
       "aria": "等待审批",
@@ -39,15 +45,24 @@
       "backToLogin": "← 返回登录"
     },
     "rules": {
-      "usernameRequired": "用户名必填", "usernamePattern": "3-31 位小写字母/数字/下划线",
-      "fullNameRequired": "姓名必填", "emailRequired": "邮箱必填", "emailInvalid": "邮箱格式不正确",
-      "departmentRequired": "部门必填", "employeeIdRequired": "工号必填"
+      "usernameRequired": "用户名必填",
+      "usernamePattern": "3-31 位小写字母/数字/下划线",
+      "fullNameRequired": "姓名必填",
+      "emailRequired": "邮箱必填",
+      "emailInvalid": "邮箱格式不正确",
+      "departmentRequired": "部门必填",
+      "employeeIdRequired": "工号必填"
     },
     "labels": {
-      "rolePlatformAdmin": "平台超管", "roleTenantAdmin": "租户管理员", "roleUser": "普通用户"
+      "rolePlatformAdmin": "平台超管",
+      "roleTenantAdmin": "租户管理员",
+      "roleUser": "普通用户"
     },
     "messages": {
-      "codeRequired": "请输入邀请码", "codeInvalid": "邀请码无效", "submitFailed": "注册失败", "invalidInvite": "邀请码状态异常，请重新验证"
+      "codeRequired": "请输入邀请码",
+      "codeInvalid": "邀请码无效",
+      "submitFailed": "注册失败",
+      "invalidInvite": "邀请码状态异常，请重新验证"
     }
   }
 }

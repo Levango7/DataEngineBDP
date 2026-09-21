@@ -454,7 +454,12 @@
       <div v-if="billingLoading" class="state-tip">
         {{ t('assetMarket.billing.loading') }}
       </div>
-      <el-table v-else-if="billingRecords.length" :data="billingRecords" stripe :empty-text="t('common.empty')">
+      <el-table
+        v-else-if="billingRecords.length"
+        :data="billingRecords"
+        stripe
+        :empty-text="t('common.empty')"
+      >
         <el-table-column :label="t('assetMarket.billing.columns.period')" prop="period" />
         <el-table-column :label="t('assetMarket.billing.columns.mode')">
           <template #default="{ row }">{{ billingModeLabel(row.mode) }}</template>

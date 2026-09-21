@@ -29,7 +29,10 @@
         <el-tooltip :content="t('aiAssistant.sql.copy')" placement="top">
           <el-button :icon="CopyDocument" circle text size="small" @click="copySql" />
         </el-tooltip>
-        <el-tooltip :content="collapsed ? t('aiAssistant.sql.expand') : t('aiAssistant.sql.collapse')" placement="top">
+        <el-tooltip
+          :content="collapsed ? t('aiAssistant.sql.expand') : t('aiAssistant.sql.collapse')"
+          placement="top"
+        >
           <el-button
             :icon="collapsed ? ArrowDown : ArrowUp"
             circle

@@ -211,8 +211,16 @@ async function handleLogin() {
   grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.1fr);
   overflow: hidden;
   background:
-    radial-gradient(ellipse 1200px 800px at 0% 50%, var(--ds-color-primary-100) 0%, transparent 60%),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-100) 0%, transparent 55%),
+    radial-gradient(
+      ellipse 1200px 800px at 0% 50%,
+      var(--ds-color-primary-100) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 1000px 700px at 100% 100%,
+      var(--ds-color-info-100) 0%,
+      transparent 55%
+    ),
     linear-gradient(135deg, var(--ds-color-primary-50) 0%, var(--ds-color-gray-100) 100%);
 }
 
@@ -296,7 +304,11 @@ async function handleLogin() {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  );
   box-shadow:
     0 0 12px rgba(99, 102, 241, 0.7),
     0 0 0 4px rgba(99, 102, 241, 0.15);
@@ -312,7 +324,12 @@ async function handleLogin() {
   letter-spacing: 0.5px;
 }
 .slogan-accent {
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 50%,
+    var(--ds-color-accent-500) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -344,7 +361,11 @@ async function handleLogin() {
 }
 .metric-letter {
   font-size: var(--ds-font-size-2xl);
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -451,7 +472,11 @@ async function handleLogin() {
   font-size: var(--ds-font-size-lg);
   font-weight: var(--ds-font-weight-semibold);
   letter-spacing: 2px;
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  ) !important;
   border: none !important;
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.3),
@@ -643,21 +668,30 @@ async function handleLogin() {
  * ============================================================ */
 :root[data-theme='dark'] .login-page {
   background:
+    radial-gradient(ellipse 1100px 700px at 0% 0%, var(--ds-bg-surface) 0%, transparent 60%),
     radial-gradient(
-      ellipse 1100px 700px at 0% 0%,
-      var(--ds-bg-surface) 0%,
-      transparent 60%
+      ellipse 1000px 700px at 100% 100%,
+      var(--ds-color-info-950) 0%,
+      transparent 55%
     ),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-950) 0%, transparent 55%), /* indigo-950 深紫装饰色，引用 design-tokens.css token (2026-09-14 P3-2) */
+    /* indigo-950 深紫装饰色，引用 design-tokens.css token (2026-09-14 P3-2) */
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 左侧品牌区整块深色 */
 :root[data-theme='dark'] .login-left {
-  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%) !important;
+  background: linear-gradient(
+    180deg,
+    var(--ds-color-dark-bg-1) 0%,
+    var(--ds-color-dark-bg-2) 100%
+  ) !important;
 }
 /* 右侧表单区 */
 :root[data-theme='dark'] .login-right {
-  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
+  background: linear-gradient(
+    180deg,
+    var(--ds-color-dark-bg-1) 0%,
+    var(--ds-bg-base) 100%
+  ) !important;
 }
 :root[data-theme='dark'] .left-bg-grid,
 :root[data-theme='dark'] .reg-bg-grid {
@@ -725,7 +759,11 @@ async function handleLogin() {
   color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .login-btn {
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  ) !important;
   color: var(--ds-text-inverse) !important;
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.4),
@@ -737,7 +775,12 @@ async function handleLogin() {
   color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .slogan-accent {
-  background: linear-gradient(135deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, var(--ds-color-accent-400) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-400) 0%,
+    var(--ds-color-info-400) 50%,
+    var(--ds-color-accent-400) 100%
+  ) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -758,7 +801,11 @@ async function handleLogin() {
 }
 :root[data-theme='dark'] .metric-num,
 :root[data-theme='dark'] .metric-letter {
-  background: linear-gradient(135deg, var(--ds-color-primary-400) 0%, var(--ds-color-accent-400) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-400) 0%,
+    var(--ds-color-accent-400) 100%
+  ) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;

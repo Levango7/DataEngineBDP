@@ -73,7 +73,11 @@ describe('resolveTheme', () => {
   })
 
   it('matchMedia 不可用时 system 档回退亮色', () => {
-    Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: undefined })
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: undefined
+    })
     expect(resolveTheme('system')).toBe('light')
   })
 })

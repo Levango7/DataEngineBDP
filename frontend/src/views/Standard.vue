@@ -18,7 +18,9 @@
       <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
       <div v-else-if="error" class="state-tip state-error">
         {{ error.message }}，
-        <button type="button" class="link-btn" @click="loadStandards">{{ t('common.retry') }}</button>
+        <button type="button" class="link-btn" @click="loadStandards">
+          {{ t('common.retry') }}
+        </button>
       </div>
       <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
       <el-table
@@ -60,7 +62,9 @@
       <template #footer>
         <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish') }}
+          {{
+            submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
+          }}
         </el-button>
       </template>
     </Modal>

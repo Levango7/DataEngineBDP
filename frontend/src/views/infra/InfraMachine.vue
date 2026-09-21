@@ -75,7 +75,11 @@
         />
         <el-table-column :label="t('infraMachine.table.columns.status')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -461,7 +465,6 @@ const STATUS_TAG_TYPE_MAP: Record<ClusterStatus, 'success' | 'warning' | 'danger
   DESTROYED: 'info',
   UPDATING: 'warning'
 }
-
 
 /* ------------------------------ 生命周期 ------------------------------ */
 

@@ -62,7 +62,9 @@
         </el-table-column>
         <el-table-column :label="t('orchestrator.replay.colStatus')">
           <template #default="{ row }">
-            <span class="status-tag" :class="`st-${row.status.toLowerCase()}`">{{ row.status }}</span>
+            <span class="status-tag" :class="`st-${row.status.toLowerCase()}`">
+              {{ row.status }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column :label="t('orchestrator.replay.colProgress')">

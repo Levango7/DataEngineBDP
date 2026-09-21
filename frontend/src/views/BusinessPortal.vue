@@ -33,7 +33,9 @@
           </template>
           <template v-else-if="businessLines && businessLines.length === 0">
             <div class="bp-sidebar-item">
-              <span style="color: var(--ds-text-tertiary)">{{ t('businessPortal.sidebar.empty') }}</span>
+              <span style="color: var(--ds-text-tertiary)">
+                {{ t('businessPortal.sidebar.empty') }}
+              </span>
             </div>
           </template>
           <template v-else-if="businessLines">
@@ -124,9 +126,10 @@
                     {{ t('businessPortal.dashboard.kpi.trend') }}
                     <span
                       :style="{
-                        color: kpi.trend >= 0
-                          ? 'var(--ds-color-success-500)'
-                          : 'var(--ds-color-error-500)'
+                        color:
+                          kpi.trend >= 0
+                            ? 'var(--ds-color-success-500)'
+                            : 'var(--ds-color-error-500)'
                       }"
                     >
                       {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend
@@ -163,7 +166,9 @@
                       :label="t('businessPortal.dashboard.realtime.columns.metric')"
                       prop="label"
                     />
-                    <el-table-column :label="t('businessPortal.dashboard.realtime.columns.current')">
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.realtime.columns.current')"
+                    >
                       <template #default="{ row }">{{ row.value }}{{ row.unit }}</template>
                     </el-table-column>
                     <el-table-column
@@ -187,12 +192,17 @@
                       :label="t('businessPortal.dashboard.topProjects.columns.project')"
                       prop="projectName"
                     />
-                    <el-table-column :label="t('businessPortal.dashboard.topProjects.columns.cost')">
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.topProjects.columns.cost')"
+                    >
                       <template #default="{ row }">
-                        {{ row.cost.toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}
+                        {{ row.cost.toFixed(0)
+                        }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}
                       </template>
                     </el-table-column>
-                    <el-table-column :label="t('businessPortal.dashboard.topProjects.columns.usage')">
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.topProjects.columns.usage')"
+                    >
                       <template #default="{ row }">
                         {{ (row.usageRatio * 100).toFixed(0)
                         }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
@@ -282,7 +292,9 @@
                   <el-table-column :label="t('businessPortal.workbench.recentTasks.columns.type')">
                     <template #default="{ row }">{{ kindText(row.kind) }}</template>
                   </el-table-column>
-                  <el-table-column :label="t('businessPortal.workbench.recentTasks.columns.status')">
+                  <el-table-column
+                    :label="t('businessPortal.workbench.recentTasks.columns.status')"
+                  >
                     <template #default="{ row }">
                       <span class="pill" :class="recentStatusClass(row.status)">
                         {{ row.status }}

@@ -105,7 +105,12 @@
           />
           <el-table-column :label="t('engStorage.vt.columns.status')" width="110">
             <template #default="{ row }">
-              <StatusTag :status="row.status ?? ''" :label="vtStatusLabel(row.status)" :status-map="VT_STATUS_TAG_TYPE_MAP" size="small" />
+              <StatusTag
+                :status="row.status ?? ''"
+                :label="vtStatusLabel(row.status)"
+                :status-map="VT_STATUS_TAG_TYPE_MAP"
+                size="small"
+              />
             </template>
           </el-table-column>
           <el-table-column

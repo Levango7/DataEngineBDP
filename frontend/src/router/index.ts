@@ -144,11 +144,26 @@ const routes: RouteRecordRaw[] = [
   },
   // C-2 导航合并：/data-lineage 已合并至 /lineage（血缘页用 tab 切换"任务血缘/数据血缘"）
   { path: '/data-lineage', redirect: '/lineage' },
-  { path: '/sec', name: 'sec', component: Sec, meta: { titleKey: 'nav.items.sec', icon: 'Lock', group: 'governance' } },
-  { path: '/vector', name: 'vector', component: Vector, meta: { titleKey: 'nav.items.vector', icon: 'Box', group: 'intelligent' } },
+  {
+    path: '/sec',
+    name: 'sec',
+    component: Sec,
+    meta: { titleKey: 'nav.items.sec', icon: 'Lock', group: 'governance' }
+  },
+  {
+    path: '/vector',
+    name: 'vector',
+    component: Vector,
+    meta: { titleKey: 'nav.items.vector', icon: 'Box', group: 'intelligent' }
+  },
   // C-2 导航合并：/kb 已合并至 /vector（向量页用 tab 切换"向量检索/知识库"）
   { path: '/kb', redirect: '/vector' },
-  { path: '/llmops', name: 'llmops', component: Llmops, meta: { titleKey: 'nav.items.llmops', icon: 'Cpu', group: 'intelligent' } },
+  {
+    path: '/llmops',
+    name: 'llmops',
+    component: Llmops,
+    meta: { titleKey: 'nav.items.llmops', icon: 'Cpu', group: 'intelligent' }
+  },
   {
     path: '/gateway',
     name: 'gateway',
@@ -161,14 +176,24 @@ const routes: RouteRecordRaw[] = [
     component: Analyze,
     meta: { titleKey: 'nav.items.analyze', icon: 'TrendCharts', group: 'devtools' }
   },
-  { path: '/ops', name: 'ops', component: Ops, meta: { titleKey: 'nav.items.ops', icon: 'Monitor', group: 'operations' } },
+  {
+    path: '/ops',
+    name: 'ops',
+    component: Ops,
+    meta: { titleKey: 'nav.items.ops', icon: 'Monitor', group: 'operations' }
+  },
   {
     path: '/account',
     name: 'account',
     component: Account,
     meta: { titleKey: 'nav.items.account', icon: 'User', group: 'tenant' }
   },
-  { path: '/admin', name: 'admin', component: Admin, meta: { titleKey: 'nav.items.admin', icon: 'Tools', group: 'operations' } },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: Admin,
+    meta: { titleKey: 'nav.items.admin', icon: 'Tools', group: 'operations' }
+  },
 
   // 批次4新增：核心功能页面
   {
@@ -363,7 +388,12 @@ const routes: RouteRecordRaw[] = [
     component: DevTag,
     meta: { titleKey: 'nav.items.dev-tag', icon: 'PriceTag', group: 'devtools' }
   },
-  { path: '/dev-ml', name: 'DevMl', component: DevMl, meta: { titleKey: 'nav.items.dev-ml', icon: 'Cpu', group: 'devtools' } },
+  {
+    path: '/dev-ml',
+    name: 'DevMl',
+    component: DevMl,
+    meta: { titleKey: 'nav.items.dev-ml', icon: 'Cpu', group: 'devtools' }
+  },
   {
     path: '/ops-tpl',
     name: 'TemplateMarket',

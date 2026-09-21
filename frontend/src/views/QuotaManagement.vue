@@ -586,7 +586,6 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'dang
   FAILED: 'danger'
 }
 
-
 /* ------------------------------ 初始化 ------------------------------ */
 
 const appStore = useAppStore()

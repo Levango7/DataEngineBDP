@@ -9,7 +9,10 @@
       :aria-expanded="ui.sidebarOpen"
       @click="ui.toggleSidebarOpen"
     >
-      <el-icon class="tb-ic"><Fold v-if="ui.sidebarOpen" /><Expand v-else /></el-icon>
+      <el-icon class="tb-ic">
+        <Fold v-if="ui.sidebarOpen" />
+        <Expand v-else />
+      </el-icon>
     </button>
 
     <!-- 工作空间切换 -->

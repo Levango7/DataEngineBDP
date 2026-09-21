@@ -99,7 +99,9 @@
         <div class="meta">{{ t('engines.kpi.loading') }}</div>
       </template>
       <template v-else-if="configError">
-        <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('infraNet.config.loadFailed') }}</div>
+        <div class="meta" style="color: var(--ds-text-tertiary)">
+          {{ t('infraNet.config.loadFailed') }}
+        </div>
       </template>
       <template v-else-if="networkConfig">
         <el-descriptions :column="2" border>

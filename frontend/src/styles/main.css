@@ -19,7 +19,11 @@
   --primary: var(--ds-color-primary-500); /* blue-500 */
   --primary-2: var(--ds-color-info-500); /* indigo-500 (蓝蓝渐变协调) */
   --primary-soft: var(--ds-color-primary-50); /* blue-50 */
-  --gradient-primary: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%); /* 蓝蓝渐变 */
+  --gradient-primary: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  ); /* 蓝蓝渐变 */
   --gradient-primary-soft: linear-gradient(
     135deg,
     rgba(59, 130, 246, 0.12) 0%,
@@ -586,13 +590,20 @@ aside.side .nav .grp:hover .grp-count {
    * - 正文 500 → 400：500 让整页发"胖"，与标题拉不开层次；强调交给 600。
    * - 标题 / 表头 700 → 600：v2 的字重上限是 600（650 ≡ 700，没有独立字形）。
    * - 中文 400 与 500 渲染完全相同，所以这次调整主要作用在拉丁文与数字上。 */
-  --typo-h1: var(--ds-font-weight-extrabold) 24px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-h2: var(--ds-font-weight-semibold) 16px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-body: var(--ds-font-weight-normal) 14px/var(--ds-line-height-loose) var(--typo-color-body, var(--ds-color-gray-800));
-  --typo-caption: var(--ds-font-weight-medium) 14px/var(--ds-line-height-relaxed) var(--typo-color-caption, var(--ds-color-gray-700));
-  --typo-micro: var(--ds-font-weight-medium) 12px/var(--ds-line-height-normal) var(--typo-color-micro, var(--ds-color-gray-600));
-  --typo-table-th: var(--ds-font-weight-semibold) 12px/var(--ds-line-height-snug) var(--typo-color-th, var(--ds-color-primary-900));
-  --typo-table-td: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose) var(--typo-color-td, var(--ds-color-gray-800));
+  --typo-h1: var(--ds-font-weight-extrabold) 24px/var(--ds-line-height-snug)
+    var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-h2: var(--ds-font-weight-semibold) 16px/var(--ds-line-height-snug)
+    var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-body: var(--ds-font-weight-normal) 14px/var(--ds-line-height-loose)
+    var(--typo-color-body, var(--ds-color-gray-800));
+  --typo-caption: var(--ds-font-weight-medium) 14px/var(--ds-line-height-relaxed)
+    var(--typo-color-caption, var(--ds-color-gray-700));
+  --typo-micro: var(--ds-font-weight-medium) 12px/var(--ds-line-height-normal)
+    var(--typo-color-micro, var(--ds-color-gray-600));
+  --typo-table-th: var(--ds-font-weight-semibold) 12px/var(--ds-line-height-snug)
+    var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-td: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose)
+    var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
    * 间距体系 Token（2026-09-07 统一规范）
@@ -881,7 +892,11 @@ tr.click {
   font-size: var(--ds-font-size-xs);
 }
 .btn.danger {
-  background: linear-gradient(135deg, var(--ds-color-error-500) 0%, var(--ds-color-orange-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-error-500) 0%,
+    var(--ds-color-orange-500) 100%
+  );
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
 }
 .btn.danger:hover {
@@ -1142,7 +1157,11 @@ label {
   transition: width var(--ds-transition-slow);
 }
 .bar > i.a {
-  background: linear-gradient(90deg, var(--ds-color-warning-500) 0%, var(--ds-color-warning-400) 100%);
+  background: linear-gradient(
+    90deg,
+    var(--ds-color-warning-500) 0%,
+    var(--ds-color-warning-400) 100%
+  );
 }
 .bar > i.r {
   background: linear-gradient(90deg, var(--ds-color-error-500) 0%, var(--ds-color-orange-500) 100%);
@@ -1160,7 +1179,6 @@ label {
   font-weight: var(--ds-font-weight-medium);
   margin-top: var(--ds-spacing-2);
 }
-
 
 .el-input__inner::placeholder,
 .el-textarea__inner::placeholder,
@@ -2012,7 +2030,11 @@ label {
   --glass-border: var(--ds-glass-popover-border);
 
   /* 顶栏 */
-  --topbar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%);
+  --topbar-bg: linear-gradient(
+    180deg,
+    var(--ds-color-dark-bg-1) 0%,
+    var(--ds-color-dark-bg-2) 100%
+  );
 
   /* 主内容底布：深色 */
   --c-surface-hover: var(--ds-color-gray-800);
@@ -2690,7 +2712,11 @@ label {
     --sidebar-line: var(--ds-glass-chrome-border);
     --glass-bg: var(--ds-glass-popover-bg);
     --glass-border: var(--ds-glass-popover-border);
-    --topbar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%);
+    --topbar-bg: linear-gradient(
+      180deg,
+      var(--ds-color-dark-bg-1) 0%,
+      var(--ds-color-dark-bg-2) 100%
+    );
 
     /* EP 文本色 */
     --el-text-color-primary: var(--ds-color-gray-100);
@@ -2838,7 +2864,9 @@ label {
   /* 抽屉贴着屏幕边缘：只要内侧一条发丝线，四边描边会在屏幕边缘留下多余线条 */
   border-left: 1px solid var(--ds-glass-overlay-border);
   /* 方向性阴影保留（表达"从右侧推入"），但基础色改为中性深灰，不再用蓝黑 */
-  box-shadow: var(--ds-glass-edge), -16px 0 40px rgba(16, 24, 40, 0.2);
+  box-shadow:
+    var(--ds-glass-edge),
+    -16px 0 40px rgba(16, 24, 40, 0.2);
   color: var(--ds-glass-text-primary);
 }
 /* 模态内的分区线用玻璃描边色，不用不透明面的 --line */

@@ -187,7 +187,9 @@
         <div class="meta">{{ t('infraSched.events.loading') }}</div>
       </template>
       <template v-else-if="eventsError">
-        <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('infraSched.events.loadFailed') }}</div>
+        <div class="meta" style="color: var(--ds-text-tertiary)">
+          {{ t('infraSched.events.loadFailed') }}
+        </div>
       </template>
       <template v-else-if="events && events.length > 0">
         <el-timeline>

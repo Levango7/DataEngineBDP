@@ -21,12 +21,18 @@
       "heading": "Fill Registration Information",
       "tenant": "Tenant",
       "inviteRole": "Invite Role",
-      "fieldUsername": "Username", "usernameHint": "e.g. zhangsan",
-      "fieldFullName": "Full Name", "fullNameHint": "e.g. John Smith",
-      "fieldEmail": "Email", "emailHint": "e.g. zhangsan@example.com",
-      "fieldDepartment": "Department", "departmentHint": "e.g. Data Science",
-      "fieldEmployeeId": "Employee ID", "employeeIdHint": "e.g. E10023",
-      "prev": "Previous", "submit": "Submit Registration"
+      "fieldUsername": "Username",
+      "usernameHint": "e.g. zhangsan",
+      "fieldFullName": "Full Name",
+      "fullNameHint": "e.g. John Smith",
+      "fieldEmail": "Email",
+      "emailHint": "e.g. zhangsan@example.com",
+      "fieldDepartment": "Department",
+      "departmentHint": "e.g. Data Science",
+      "fieldEmployeeId": "Employee ID",
+      "employeeIdHint": "e.g. E10023",
+      "prev": "Previous",
+      "submit": "Submit Registration"
     },
     "step3": {
       "aria": "Awaiting Approval",
@@ -39,15 +45,24 @@
       "backToLogin": "← Back to Sign In"
     },
     "rules": {
-      "usernameRequired": "Username is required", "usernamePattern": "3-31 chars, lowercase letters/digits/underscore",
-      "fullNameRequired": "Full name is required", "emailRequired": "Email is required", "emailInvalid": "Email format is invalid",
-      "departmentRequired": "Department is required", "employeeIdRequired": "Employee ID is required"
+      "usernameRequired": "Username is required",
+      "usernamePattern": "3-31 chars, lowercase letters/digits/underscore",
+      "fullNameRequired": "Full name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email format is invalid",
+      "departmentRequired": "Department is required",
+      "employeeIdRequired": "Employee ID is required"
     },
     "labels": {
-      "rolePlatformAdmin": "Platform Admin", "roleTenantAdmin": "Tenant Admin", "roleUser": "User"
+      "rolePlatformAdmin": "Platform Admin",
+      "roleTenantAdmin": "Tenant Admin",
+      "roleUser": "User"
     },
     "messages": {
-      "codeRequired": "Please enter invite code", "codeInvalid": "Invalid invite code", "submitFailed": "Registration failed", "invalidInvite": "Invite code state is invalid, please re-validate"
+      "codeRequired": "Please enter invite code",
+      "codeInvalid": "Invalid invite code",
+      "submitFailed": "Registration failed",
+      "invalidInvite": "Invite code state is invalid, please re-validate"
     }
   }
 }

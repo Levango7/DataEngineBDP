@@ -99,7 +99,11 @@
         </el-table-column>
         <el-table-column :label="t('infraK8s.table.columns.status')" width="110">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -154,7 +158,11 @@
             {{ providerLabel(detailCluster.provider) }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.status')">
-            <StatusTag :status="detailCluster.status" :label="statusLabel(detailCluster.status)" :status-map="STATUS_TAG_TYPE_MAP" />
+            <StatusTag
+              :status="detailCluster.status"
+              :label="statusLabel(detailCluster.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.k8sVersion')">
             {{ detailCluster.k8sVersion }}
@@ -632,7 +640,6 @@ const STATUS_TAG_TYPE_MAP: Record<ClusterStatus, 'success' | 'warning' | 'danger
 function statusLabel(status: ClusterStatus): string {
   return t(`infraK8s.status.${status}`)
 }
-
 
 const ENV_TAG_TYPE_MAP: Record<ClusterEnv, 'primary' | 'success' | 'warning'> = {
   private: 'primary',

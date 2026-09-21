@@ -36,7 +36,11 @@
               v-model="step1.code"
               :placeholder="t('register.step1.codePlaceholder')"
               size="large"
-              style="text-align: center; letter-spacing: 6px; font-weight: var(--ds-font-weight-bold)"
+              style="
+                text-align: center;
+                letter-spacing: 6px;
+                font-weight: var(--ds-font-weight-bold);
+              "
               maxlength="8"
               @keyup.enter="validateCode"
             />
@@ -54,7 +58,9 @@
         </el-form>
         <div class="reg-tip">
           {{ t('register.step1.noCode') }}
-          <button type="button" class="reg-link" @click="contactSupport">{{ t('register.step1.contact') }}</button>
+          <button type="button" class="reg-link" @click="contactSupport">
+            {{ t('register.step1.contact') }}
+          </button>
         </div>
       </section>
 
@@ -357,7 +363,11 @@ async function submitForm() {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  );
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
 }
 
@@ -435,7 +445,11 @@ async function submitForm() {
   font-size: var(--ds-font-size-base);
   font-weight: var(--ds-font-weight-semibold);
   letter-spacing: 4px;
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  ) !important;
   border: none !important;
   margin-top: 6px;
 }
@@ -529,7 +543,11 @@ async function submitForm() {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ds-color-success-500) 0%, var(--ds-color-success-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-success-500) 0%,
+    var(--ds-color-success-600) 100%
+  );
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-5xl);
   font-weight: var(--ds-font-weight-extrabold);
@@ -612,7 +630,11 @@ async function submitForm() {
 :root[data-theme='dark'] .reg-page {
   background:
     radial-gradient(ellipse 1100px 700px at 0% 0%, var(--ds-bg-surface) 0%, transparent 60%),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-950) 0%, transparent 55%),
+    radial-gradient(
+      ellipse 1000px 700px at 100% 100%,
+      var(--ds-color-info-950) 0%,
+      transparent 55%
+    ),
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 暗色模式 .reg-card 透明覆写：亮色用 rgba(255,255,255,0.92)，

@@ -85,7 +85,11 @@
         />
         <el-table-column :label="t('engines.spark.table.columns.status')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="owner" :label="t('engines.spark.table.columns.owner')" width="120" />
@@ -256,7 +260,9 @@
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre ref="logContentRef" class="log-content">{{ logContent || t('engines.spark.log.empty') }}</pre>
+        <pre ref="logContentRef" class="log-content">{{
+          logContent || t('engines.spark.log.empty')
+        }}</pre>
       </div>
       <template #footer>
         <el-button @click="logDialogVisible = false">{{ t('engines.spark.log.close') }}</el-button>
@@ -539,7 +545,6 @@ function statusLabel(status: string): string {
   const key = `engines.spark.statuses.${status}`
   return te(key) ? t(key) : status
 }
-
 
 /** Stage 进度百分比 */
 function stagePercent(completed?: number, total?: number): number {

@@ -62,7 +62,11 @@
         :aria-label="t('sec.approvalsTitle')"
         :empty-text="t('sec.approvalsEmpty')"
       >
-        <el-table-column prop="applicant" :label="t('sec.approvalCols.applicant')" min-width="140" />
+        <el-table-column
+          prop="applicant"
+          :label="t('sec.approvalCols.applicant')"
+          min-width="140"
+        />
         <el-table-column prop="asset" :label="t('sec.approvalCols.asset')" min-width="160" />
         <el-table-column
           prop="permission"

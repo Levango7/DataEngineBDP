@@ -139,17 +139,13 @@ describe('Dashboard.vue — 响应式断点', () => {
 
   it('1024px 断点应将四列网格退化为两列', () => {
     // 提取 1024px 媒体查询块内容
-    const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = dashboardSrc.match(/@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')
   })
 
   it('640px 断点应将网格退化为单列', () => {
-    const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*640px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = dashboardSrc.match(/@media\s*\(max-width:\s*640px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('1fr')
   })
@@ -185,9 +181,7 @@ describe('Analyze.vue — emoji 清除与响应式断点', () => {
   })
 
   it('1024px 断点应将三列面板网格退化为两列', () => {
-    const mediaBlock = analyzeSrc.match(
-      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = analyzeSrc.match(/@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')
   })

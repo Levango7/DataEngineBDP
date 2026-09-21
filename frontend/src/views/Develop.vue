@@ -78,7 +78,9 @@
         </div>
       </div>
       <div class="params">
-        <h3 style="font-size: var(--ds-font-size-base); margin-bottom: 8px">{{ t('develop.params') }}</h3>
+        <h3 style="font-size: var(--ds-font-size-base); margin-bottom: 8px">
+          {{ t('develop.params') }}
+        </h3>
         <label>{{ t('develop.engine') }}</label>
         <el-select v-model="runParams.engine" style="width: 100%">
           <el-option label="Spark SQL" value="spark" />

@@ -106,7 +106,12 @@
             </el-table-column>
             <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
-                <StatusTag :status="row.status" :label="t(`engines.kpi.nodeStatus.${row.status}`, row.status)" :status-map="NODE_STATUS_TAG_TYPE_MAP" size="small" />
+                <StatusTag
+                  :status="row.status"
+                  :label="t(`engines.kpi.nodeStatus.${row.status}`, row.status)"
+                  :status-map="NODE_STATUS_TAG_TYPE_MAP"
+                  size="small"
+                />
               </template>
             </el-table-column>
             <el-table-column :label="t('engines.table.cpu')" width="160">
@@ -167,7 +172,12 @@
             </el-table-column>
             <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
-                <StatusTag :status="row.status.toUpperCase()" :label="row.status" :status-map="QUERY_STATUS_TAG_TYPE_MAP" size="small" />
+                <StatusTag
+                  :status="row.status.toUpperCase()"
+                  :label="row.status"
+                  :status-map="QUERY_STATUS_TAG_TYPE_MAP"
+                  size="small"
+                />
               </template>
             </el-table-column>
             <el-table-column prop="startTime" :label="t('engines.table.startTime')" width="180" />
@@ -400,7 +410,10 @@ const NODE_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'danger' | 'warning' 
 }
 
 /** 查询状态 → tag 类型 */
-const QUERY_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'primary'> = {
+const QUERY_STATUS_TAG_TYPE_MAP: Record<
+  string,
+  'success' | 'danger' | 'warning' | 'info' | 'primary'
+> = {
   FINISHED: 'success',
   FAILED: 'danger',
   RUNNING: 'primary',

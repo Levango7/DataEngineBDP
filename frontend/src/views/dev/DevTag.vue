@@ -86,7 +86,9 @@
             <el-table-column prop="name" :label="t('devTag.tagColumns.name')" min-width="160" />
             <el-table-column prop="code" :label="t('devTag.tagColumns.code')" width="160">
               <template #default="{ row }">
-                <span style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)">
+                <span
+                  style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
+                >
                   {{ row.code || t('devTag.tagColumns.codePlaceholder') }}
                 </span>
               </template>
@@ -169,7 +171,11 @@
           <div v-if="profileLoading" class="meta" style="padding: 16px">
             {{ t('devTag.profile.loading') }}
           </div>
-          <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--ds-text-tertiary)">
+          <div
+            v-else-if="profileError"
+            class="meta"
+            style="padding: 16px; color: var(--ds-text-tertiary)"
+          >
             {{ t('devTag.profile.loadFailed') }}
             <a href="javascript:void(0)" @click="handleQueryProfile">
               {{ t('devTag.profile.loadFailedRetry') }}
@@ -299,7 +305,9 @@
               <div v-else>
                 <el-descriptions :column="1" border size="small">
                   <el-descriptions-item :label="t('devTag.audience.countField')">
-                    <span class="kpi" style="font-size: var(--ds-font-size-2xl)">{{ audienceResult.count }}</span>
+                    <span class="kpi" style="font-size: var(--ds-font-size-2xl)">
+                      {{ audienceResult.count }}
+                    </span>
                   </el-descriptions-item>
                   <el-descriptions-item
                     v-if="audienceResult.audienceId"

@@ -275,7 +275,13 @@ const filterTenantId = ref<string | ''>('')
 const filterStatus = ref<string | ''>('')
 
 /** 类型守卫：判断字符串是否为合法的 WorkspaceStatus */
-const WORKSPACE_STATUSES: readonly WorkspaceStatus[] = ['running', 'stopped', 'limited', 'creating', 'failed']
+const WORKSPACE_STATUSES: readonly WorkspaceStatus[] = [
+  'running',
+  'stopped',
+  'limited',
+  'creating',
+  'failed'
+]
 function isWorkspaceStatus(s: string): s is WorkspaceStatus {
   return WORKSPACE_STATUSES.includes(s as WorkspaceStatus)
 }
@@ -290,7 +296,10 @@ const {
   () =>
     workspaceApi.listWorkspaces({
       tenantId: filterTenantId.value || undefined,
-      status: (filterStatus.value && isWorkspaceStatus(filterStatus.value) ? filterStatus.value : undefined),
+      status:
+        filterStatus.value && isWorkspaceStatus(filterStatus.value)
+          ? filterStatus.value
+          : undefined,
       page: currentPage.value,
       pageSize: pageSize.value
     }),
@@ -477,7 +486,6 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'dang
   deleted: 'info',
   failed: 'danger'
 }
-
 
 /** K8s 状态 → tag 类型 */
 const K8S_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'danger'> = {

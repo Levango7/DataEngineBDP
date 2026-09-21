@@ -17,7 +17,11 @@
     <div v-if="boardsLoading" class="meta" style="padding: 24px 4px">
       {{ t('analyze.boardsLoading') }}
     </div>
-    <div v-else-if="boardsError" class="meta" style="color: var(--ds-color-error-500); padding: 24px 4px">
+    <div
+      v-else-if="boardsError"
+      class="meta"
+      style="color: var(--ds-color-error-500); padding: 24px 4px"
+    >
       {{ boardsError.message }}，
       <a href="javascript:void(0)" @click="loadBoards">{{ t('common.retry') }}</a>
     </div>

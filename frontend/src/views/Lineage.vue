@@ -35,7 +35,11 @@
         </div>
         <div class="lvl">
           <div v-for="tbl in downstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
+          <div
+            v-if="downstreamTables.length === 0"
+            class="ln"
+            style="color: var(--ds-text-tertiary)"
+          >
             {{ t('lineage.noDownstream') }}
           </div>
         </div>

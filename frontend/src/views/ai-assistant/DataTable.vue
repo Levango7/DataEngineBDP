@@ -22,7 +22,15 @@
       </span>
     </div>
 
-    <el-table :data="table.rows" border stripe size="small" :max-height="360" style="width: 100%" :empty-text="t('common.empty')">
+    <el-table
+      :data="table.rows"
+      border
+      stripe
+      size="small"
+      :max-height="360"
+      style="width: 100%"
+      :empty-text="t('common.empty')"
+    >
       <el-table-column
         v-for="col in table.columns"
         :key="col.name"
@@ -82,7 +90,6 @@ function formatCell(value: unknown, col: TableColumn): string {
   }
   return String(value)
 }
-
 </script>
 
 <style scoped>

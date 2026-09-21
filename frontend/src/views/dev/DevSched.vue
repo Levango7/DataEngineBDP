@@ -85,7 +85,9 @@
       >
         <el-table-column prop="id" :label="t('devSched.table.columns.id')" width="160">
           <template #default="{ row }">
-            <span style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)">
+            <span
+              style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
+            >
               {{ row.id }}
             </span>
           </template>
@@ -93,7 +95,11 @@
         <el-table-column prop="name" :label="t('devSched.table.columns.name')" min-width="180" />
         <el-table-column :label="t('devSched.table.columns.status')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('devSched.table.columns.schedule')" width="160">
@@ -104,7 +110,9 @@
             >
               {{ row.schedule }}
             </span>
-            <span v-else style="color: var(--ds-text-tertiary)">{{ t('devSched.table.scheduleEmpty') }}</span>
+            <span v-else style="color: var(--ds-text-tertiary)">
+              {{ t('devSched.table.scheduleEmpty') }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column prop="lastRunAt" :label="t('devSched.table.columns.lastRun')" width="180">
@@ -251,7 +259,12 @@
         </el-table-column>
         <el-table-column :label="t('devSched.historyDrawer.columns.status')" width="110">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="runStatusLabel(row.status)" :status-map="RUN_STATUS_TAG_TYPE_MAP" size="small" />
+            <StatusTag
+              :status="row.status"
+              :label="runStatusLabel(row.status)"
+              :status-map="RUN_STATUS_TAG_TYPE_MAP"
+              size="small"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -717,7 +730,6 @@ function statusLabel(status: string): string {
   return t(`devSched.status.${status}`, status)
 }
 
-
 const RUN_STATUS_TAG_TYPE_MAP: Record<
   string,
   'primary' | 'success' | 'danger' | 'info' | 'warning'
@@ -732,7 +744,6 @@ const RUN_STATUS_TAG_TYPE_MAP: Record<
 function runStatusLabel(status: string): string {
   return t(`devSched.status.${status}`, status)
 }
-
 
 function runTypeLabel(runType: string): string {
   return t(`devSched.historyDrawer.runTypes.${runType}`, runType)

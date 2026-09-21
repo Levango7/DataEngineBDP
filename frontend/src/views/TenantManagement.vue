@@ -626,7 +626,11 @@ onMounted(() => loadList())
   font-size: var(--ds-font-size-3xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
