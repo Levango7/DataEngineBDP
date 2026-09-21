@@ -100,23 +100,28 @@
 
   /* ============================================================
  * 4. 颜色系统 - 语义化背景/文字/边框 (亮色默认)
+ *
+ * v2 (Porcelain) —— 本段 token 的**值**已重新指向 v2 取值，全站继承，
+ * 因此不必逐条规则改。旧值写在行尾注释里，便于回退比对。
+ * v2 原始命名（--ds-canvas / --ds-surface-* 等）见本节末尾 "12. v2 设计语言"。
  * ============================================================ */
-  --ds-bg-base: #f8fafc; /* 应用底色 */
-  --ds-bg-surface: #ffffff; /* 卡片/面板表面 */
-  --ds-bg-subtle: #f1f5f9; /* 次级表面 (hover/active) */
-  --ds-bg-muted: #e2e8f0; /* 静音背景 */
-  --ds-bg-code: #1a2027; /* 代码/日志背景 (终端风格，亮暗一致) */
+  --ds-bg-base: #f3f5f9; /* v2 canvas #F3F5F9（原 #f8fafc） */
+  --ds-bg-surface: #ffffff; /* v2 surface-1 #FFFFFF（不变） */
+  --ds-bg-subtle: #f5f7fb; /* v2 surface-sunken #F5F7FB（原 #f1f5f9） */
+  --ds-bg-muted: #edf0f6; /* v2 surface-inset #EDF0F6（原 #e2e8f0） */
+  --ds-bg-code: #141a21; /* v2 surface-code #141A21（原 #1a2027） */
 
-  --ds-text-primary: #0f172a; /* 主文字 */
-  --ds-text-secondary: #475569; /* 次文字 */
-  --ds-text-tertiary: #64748b; /* 三级文字 (muted) */
+  --ds-text-primary: #16181d; /* v2 text-primary #16181D（原 #0f172a） */
+  --ds-text-secondary: #454d5a; /* v2 text-secondary #454D5A（原 #475569） */
+  --ds-text-tertiary: #5f6875; /* v2 text-tertiary #5F6875（原 #64748b） */
   --ds-text-inverse: #ffffff; /* 反白文字 */
-  --ds-text-code: #cbd5e1; /* 代码/日志文字 (终端风格，亮暗一致) */
+  --ds-text-code: #c9d4e0; /* v2 text-code #C9D4E0（原 #cbd5e1） */
 
-  --ds-border-default: #cbd5e1; /* 默认边框 (提升对比度：原 #e2e8f0 → #cbd5e1) */
-  --ds-border-subtle: #e2e8f0; /* 次级边框 (hover/分割线) */
-  --ds-border-strong: #94a3b8; /* 强调边框 (focus/重点卡片) */
-  --ds-border-focus: #3b82f6; /* 聚焦边框 */
+  --ds-border-default: #d9dee6; /* v2 border-default #D9DEE6（原 #cbd5e1，卡片/容器描边，WCAG 1.4.11 豁免） */
+  --ds-border-subtle: #e9ecf1; /* v2 border-subtle #E9ECF1（原 #e2e8f0，分隔线） */
+  --ds-border-strong: #b6bec9; /* v2 border-strong #B6BEC9（原 #94a3b8，强调描边） */
+  --ds-border-control: #7c8695; /* v2 border-control #7C8695 —— **控件边界专用**，实测 3.68:1 满足 WCAG 1.4.11 ≥3:1（新增 token） */
+  --ds-border-focus: #2563eb; /* v2 border-focus #2563EB（原 #3b82f6，实测 5.17:1） */
 
   /* border width */
   --ds-border-width: 1px;
@@ -181,12 +186,15 @@
   --ds-font-size-5xl: 36px;
   --ds-font-size-6xl: 48px;
 
-  /* font-weight (5档：400/500/600/700/800) */
+  /* font-weight (5档：400/500/600/700/800)
+   * v2：`--ds-font-weight-extrabold` 这个**名字保留**（全站仍在引用），
+   * 但值改为 v2 的字重上限 600 —— 于是 700 / 800 在界面上不再实际出现。
+   * 依据：12.8 的光栅实测（650/700 同渲染；中文 600 及以上全部同渲染）。 */
   --ds-font-weight-normal: 400;
   --ds-font-weight-medium: 500;
   --ds-font-weight-semibold: 600;
   --ds-font-weight-bold: 700;
-  --ds-font-weight-extrabold: 800;
+  --ds-font-weight-extrabold: var(--ds-font-weight-max); /* = 600（原 800） */
 
   /* line-height (5档阶梯：none/heading/snug/normal/loose/extra-loose) */
   --ds-line-height-none: 1; /* 单行紧凑（标签/徽章/按钮文字） */
@@ -301,35 +309,148 @@
   --ds-breakpoint-sm: 1024px; /* 平板竖屏 / 组件级次级断点 */
   --ds-breakpoint-md: 1440px; /* 平板横屏 / 桌面切换 */
   --ds-breakpoint-lg: 1920px; /* 大桌面 */
+
+  /* ============================================================
+   * 12. v2 设计语言（亮色 · Porcelain）
+   *
+   * 这一节是 v2 取值的**唯一来源**：上面的语义 token 与 main.css 都指向这里。
+   * 命名：--ds-<语义>-<角色>[-状态]
+   * 暗色（Obsidian）在下方两个暗色块里覆盖同名 token。
+   * 数值来自 2026-09-16 提案的实测样张；对比度由 _build/contrast.py 复算。
+   * ============================================================ */
+
+  /* ---------- 12.1 表面（数值越大越"高"） ---------- */
+  --ds-canvas: #f3f5f9; /* 应用画布 / 内容区底色 */
+  --ds-surface-1: #ffffff; /* 卡片、面板、表格主体 */
+  --ds-surface-2: #fafbfd; /* 表头、次级面板 */
+  --ds-surface-3: #f1f4f9; /* 浮层内嵌块 */
+  --ds-surface-sunken: #f5f7fb; /* 表格行 hover、内嵌区 */
+  --ds-surface-inset: #edf0f6; /* 侧栏 hover、kbd */
+  --ds-surface-code: #141a21; /* 代码 / 日志底（亮暗一致，永不玻璃化） */
+
+  /* ---------- 12.2 文字（不透明表面） ---------- */
+  --ds-text-disabled: #9aa3b0; /* 禁用（WCAG 豁免） */
+
+  /* ---------- 12.3 文字（玻璃层专用；与 12.2 是两套，不可混用） ----------
+   * 原因：两者的"最差背景"不同。玻璃层文字要能扛住被压暗的合成背景。 */
+  --ds-glass-text-primary: #101216;
+  --ds-glass-text-secondary: #3c4452;
+  --ds-glass-text-tertiary: #4a5361;
+
+  /* ---------- 12.4 强调色 ---------- */
+  --ds-accent: #2563eb;
+  --ds-accent-hover: #1d4ed8;
+  --ds-accent-active: #1e40af;
+  --ds-accent-soft: #eef4ff;
+  --ds-accent-on: #ffffff; /* 主按钮上的文字 */
+
+  /* ---------- 12.5 语义状态色 + 徽章底 ---------- */
+  --ds-success: #0e7a4a;
+  --ds-success-soft: #e6f6ee;
+  --ds-warning: #b45309;
+  --ds-warning-soft: #fdf3e3;
+  --ds-danger: #c62828;
+  --ds-danger-soft: #fdecec;
+  --ds-info: #0b6e99;
+  --ds-info-soft: #e7f2f8;
+
+  /* ---------- 12.6 玻璃层（三层 + 遮罩） ----------
+   * alpha 的取值逻辑：blur 越大、层越小、背后内容越不可预测 → alpha 越高。
+   * 对比度由 **alpha 下限** 保证，brightness 只是材质调性（乘法，无法钳位亮度）。 */
+  /* glass-chrome：常驻外壳（侧栏 / 顶栏） */
+  --ds-glass-chrome-bg: rgba(255, 255, 255, 0.72);
+  --ds-glass-chrome-border: rgba(22, 24, 29, 0.08);
+  --ds-glass-chrome-highlight: rgba(255, 255, 255, 0.85);
+  --ds-glass-chrome-blur: 20px;
+  --ds-glass-chrome-sat: 180%;
+  --ds-glass-chrome-brightness: 1.04;
+  --ds-glass-chrome-fallback: #fbfcfe; /* 不支持 backdrop-filter 时的不透明等价色 */
+
+  /* glass-overlay：模态浮层（弹窗 / 抽屉） */
+  --ds-glass-overlay-bg: rgba(255, 255, 255, 0.84);
+  --ds-glass-overlay-border: rgba(22, 24, 29, 0.1);
+  --ds-glass-overlay-highlight: rgba(255, 255, 255, 0.9);
+  --ds-glass-overlay-blur: 32px;
+  --ds-glass-overlay-sat: 180%;
+  --ds-glass-overlay-brightness: 1.03;
+  --ds-glass-overlay-fallback: #ffffff;
+
+  /* glass-popover：瞬态浮层（菜单 / 下拉 / 气泡 / 命令面板） */
+  --ds-glass-popover-bg: rgba(255, 255, 255, 0.88);
+  --ds-glass-popover-border: rgba(22, 24, 29, 0.1);
+  --ds-glass-popover-highlight: rgba(255, 255, 255, 0.95);
+  --ds-glass-popover-blur: 40px;
+  --ds-glass-popover-sat: 190%;
+  --ds-glass-popover-brightness: 1.02;
+  --ds-glass-popover-fallback: #ffffff;
+
+  /* 模态遮罩（是遮罩，不是玻璃层） */
+  --ds-scrim: rgba(12, 16, 22, 0.36);
+  /* 玻璃 1px 内描边高光 —— 让"玻璃有厚度" */
+  --ds-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  /* ---------- 12.7 层级阴影 e1–e4 ----------
+   * 亮色阴影基础色必须是中性深灰 rgba(16,24,40,…)；禁止品牌蓝
+   * （蓝色阴影 = 每张卡片都在发光 = 层级失效）。 */
+  --ds-e1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --ds-e2: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --ds-e3: 0 12px 24px -6px rgba(16, 24, 40, 0.12), 0 4px 8px -4px rgba(16, 24, 40, 0.08);
+  --ds-e4: 0 24px 48px -12px rgba(16, 24, 40, 0.18), 0 8px 16px -8px rgba(16, 24, 40, 0.1);
+
+  /* ---------- 12.8 字重上限 ----------
+   * 实测结论（_build/font-weight-probe.cjs，系统 Chrome + 本项目字体栈，
+   * 以「同一字符串的光栅位图哈希」判定，见 _build/font-weight-probe.txt）：
+   *   拉丁：500 ≡ 600（完全同渲染）；650 ≡ 700（完全同渲染）
+   *   中文：600 ≡ 650 ≡ 700 ≡ 800（完全同渲染）
+   * 即：650 在任何情况下都不比 700 轻，**没有独立字形**；
+   *     中文实际上只有"≤500"与"≥600"两种字面。
+   * 故 v2 不再使用 650，上限取 600（比 700 在拉丁文上更轻，中文无差别）。 */
+  --ds-font-weight-max: 600;
+
+  /* ---------- 12.9 间距语义别名（唯一允许的用法） ---------- */
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
 }
 
 /* ============================================================
  * 暗色主题 - 覆盖背景/文字/边框色
  *
- * 两种生效途径（CSS 变量唯一来源，避免重复维护）：
- *  A. 系统跟随：@media (prefers-color-scheme: dark) 自动应用
- *  B. 用户手动选择：document.documentElement[data-theme="dark"]
- *     —— 与 A 等效但由用户掌控（localStorage 持久化，见 stores/theme.ts）
+ * 两条生效途径（内容必须**逐条一致**，否则同一用户会因"哪条命中"而看到不同取值）：
+ *  A. 首选：document.documentElement[data-theme="dark"]
+ *     —— theme.ts（2026-09-21 起）把 mode + 系统偏好解析成最终主题后**始终**写入
+ *        data-theme（含 system 档，不再移除属性），因此三种模式（light/dark/system）
+ *        都走这一条，匹配路径完全一致。
+ *  B. 兜底：@media (prefers-color-scheme: dark)
+ *     —— 仅服务于 JS 尚未执行的首屏窗口与"脚本不可用"的极端情况；JS 跑起来后
+ *        与 A 同时命中且取值相同（本块在源码中靠后，同特异性下本块胜出）。
+ *  A/B 两份副本的一致性由 scripts/check-dark-token-parity.py 在 CI 断言（diff 为空）。
  * ============================================================ */
 :root[data-theme='dark'] {
   /* 语义化背景/文字/边框 (暗色)
    * C-6 对比度修正 (WCAG AA)：
    * - text-tertiary: #94a3b8 → #a8b8cc（on bg-surface 对比度 3.9:1 → 5.4:1，达 AA 4.5:1）
    * - border-subtle: #1e293b → #334155（原值与 bg-surface 相同导致边框不可见） */
-  --ds-bg-base: #0f172a;
-  --ds-bg-surface: #1e293b;
-  --ds-bg-subtle: #334155;
-  --ds-bg-muted: #475569;
+  /* v2 (Obsidian)：语义 token 指向 v2 暗色取值。旧值见行尾注释。 */
+  --ds-bg-base: #101317; /* v2 canvas #101317（原 #0f172a 蓝黑 → 中性炭灰） */
+  --ds-bg-surface: #171a20; /* v2 surface-1 #171A20（原 #1e293b） */
+  --ds-bg-subtle: #0b0d10; /* v2 surface-sunken #0B0D10（原 #334155） */
+  --ds-bg-muted: #1a1e24; /* v2 surface-inset #1A1E24（原 #475569） */
 
-  --ds-text-primary: #f1f5f9;
-  --ds-text-secondary: #cbd5e1;
-  --ds-text-tertiary: #a8b8cc;
-  --ds-text-inverse: #0f172a;
+  --ds-text-primary: #e7eaf0; /* v2 text-primary #E7EAF0（原 #f1f5f9） */
+  --ds-text-secondary: #adb5c2; /* v2 text-secondary #ADB5C2（原 #cbd5e1） */
+  --ds-text-tertiary: #8a93a2; /* v2 text-tertiary #8A93A2（原 #a8b8cc） */
+  --ds-text-inverse: #0b1220; /* v2：反白文字改为深色（配合"浅底深字"的暗色主按钮） */
 
-  --ds-border-default: #334155;
-  --ds-border-subtle: #293549; /* 次级边框（更暗，与 default #334155 区分） */
-  --ds-border-strong: #475569;
-  --ds-border-focus: #60a5fa;
+  --ds-border-default: #2f353e; /* v2 border-default #2F353E（原 #334155） */
+  --ds-border-subtle: #23272e; /* v2 border-subtle #23272E（原 #293549） */
+  --ds-border-strong: #434b56; /* v2 border-strong #434B56（原 #475569） */
+  --ds-border-control: #616b7a; /* v2 border-control #616B7A —— 控件边界，实测 3.23:1（新增） */
+  --ds-border-focus: #7fb0ff; /* v2 border-focus #7FB0FF（原 #60a5fa，实测 7.93:1） */
 
   /* border width */
   --ds-border-width: 1px;
@@ -346,25 +467,120 @@
   --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.35);
   --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+
+  /* ---------- v2 · 暗色（Obsidian） ---------- */
+
+  /* 表面：暗色的层级**首先**由明度承担，而不是靠阴影 */
+  --ds-canvas: #101317;
+  --ds-surface-1: #171a20;
+  --ds-surface-2: #1d2128;
+  --ds-surface-3: #23282f;
+  --ds-surface-sunken: #0b0d10;
+  --ds-surface-inset: #1a1e24;
+  --ds-surface-code: #0b0d10; /* 代码 / 日志底（永不玻璃化） */
+
+  --ds-text-disabled: #5b6472; /* 禁用（WCAG 豁免） */
+
+  /* 玻璃层专用文字（暗色玻璃被"提亮"，因此文字要能扛住变亮后的合成背景） */
+  --ds-glass-text-primary: #f2f5f9;
+  --ds-glass-text-secondary: #bac3d0;
+  --ds-glass-text-tertiary: #a8b1bf;
+
+  /* 强调色：浅底深字（暗底上"深底白字"过不了 4.5:1，见提案 §3.3） */
+  --ds-accent: #7fb0ff;
+  --ds-accent-hover: #9cc4ff;
+  --ds-accent-active: #6ba3ff;
+  --ds-accent-soft: #16233c;
+  --ds-accent-on: #0b1220; /* 主按钮上的文字 = 深色 */
+
+  --ds-success: #4ade80;
+  --ds-success-soft: #12271c;
+  --ds-warning: #fbbf24;
+  --ds-warning-soft: #2a2110;
+  --ds-danger: #f87171;
+  --ds-danger-soft: #2c1618;
+  --ds-info: #7fb0ff;
+  --ds-info-soft: #12203a;
+
+  /* 玻璃层（暗色 alpha 略低于亮色：暗色玻璃的最差背景是纯白，不是纯黑） */
+  --ds-glass-chrome-bg: rgba(23, 26, 32, 0.68);
+  --ds-glass-chrome-border: rgba(255, 255, 255, 0.07);
+  --ds-glass-chrome-highlight: rgba(255, 255, 255, 0.06);
+  --ds-glass-chrome-blur: 20px;
+  --ds-glass-chrome-sat: 160%;
+  --ds-glass-chrome-brightness: 0.98;
+  --ds-glass-chrome-fallback: #15181d;
+
+  --ds-glass-overlay-bg: rgba(29, 33, 40, 0.84);
+  --ds-glass-overlay-border: rgba(255, 255, 255, 0.08);
+  --ds-glass-overlay-highlight: rgba(255, 255, 255, 0.07);
+  --ds-glass-overlay-blur: 32px;
+  --ds-glass-overlay-sat: 160%;
+  --ds-glass-overlay-brightness: 0.99;
+  --ds-glass-overlay-fallback: #1b1f25;
+
+  --ds-glass-popover-bg: rgba(35, 40, 47, 0.88);
+  --ds-glass-popover-border: rgba(255, 255, 255, 0.09);
+  --ds-glass-popover-highlight: rgba(255, 255, 255, 0.08);
+  --ds-glass-popover-blur: 40px;
+  --ds-glass-popover-sat: 165%;
+  --ds-glass-popover-brightness: 1;
+  --ds-glass-popover-fallback: #1e232a;
+
+  --ds-scrim: rgba(0, 0, 0, 0.42);
+  /* 暗色玻璃的"厚度"靠 border，而不是靠高光 —— 高光在暗色上很弱 */
+  --ds-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  /* 层级：明度分层为主、阴影为辅；阴影必须带 1px 内描边高光，否则暗色下不可见 */
+  --ds-e1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --ds-e2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --ds-e3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --ds-e4: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 16px 40px rgba(0, 0, 0, 0.5);
+
+  /* ---------- 旧 slate 灰的暗色重映射（v2 中性炭灰） ----------
+   * main.css 里有 20+ 处把 --ds-color-gray-800 / -700 与 --ds-color-dark-bg-3/4
+   * 当作「表面 / 边框 / 填充」使用（ElCard、ElDialog、ElSelect 面板、表格 hover、
+   * 以及 `:root[data-theme='dark'] .card` 那一批硬编码反色规则）。
+   * 旧值 #1E293B / #334155 / #263349 / #1B2740 全是**蓝灰**，铺满整屏时偏冷紫，
+   * 与 v2「低饱和中性炭灰分层」直接冲突。
+   *
+   * 处理方式：在**暗色作用域内**把这几个旧 token 重指向 v2 面，一次改动让全部引用点
+   * 跟上，而不是逐条改 20+ 处规则（也更不容易漏改）。
+   *
+   * 只影响暗色：亮色下这几个值主要作「文字色」使用，本段不参与亮色作用域。 */
+  --ds-color-gray-800: var(--ds-surface-1); /* 当作卡片 / 面板 / 浮层底 */
+  --ds-color-gray-700: var(--ds-border-default); /* 当作容器描边 */
+  --ds-color-dark-bg-3: var(--ds-surface-2); /* 当作次级面板 / 填充 */
+  --ds-color-dark-bg-4: var(--ds-surface-3); /* 当作浮层内嵌块 */
+  --ds-color-gray-100: var(--ds-text-primary);
+  --ds-color-gray-200: var(--ds-text-secondary);
+  --ds-color-gray-300: var(--ds-text-tertiary);
+  --ds-color-gray-400: var(--ds-text-tertiary);
+  /* gray-500 在暗色下被多处当"占位符 / 弱文字"用（--el-text-color-7/8、
+   * --el-color-text-quaternary、.el-input__inner::placeholder 等）。
+   * 原值 #64748b 在 surface-1 #171A20 上只有 3.66:1，低于 AA 4.5:1。 */
+  --ds-color-gray-500: var(--ds-text-tertiary);
+  --ds-color-gray-600: var(--ds-text-disabled);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* 语义化背景/文字/边框 (暗色) — 与 :root[data-theme='dark'] 保持一致（C-6 对比度修正） */
-    --ds-bg-base: #0f172a;
-    --ds-bg-surface: #1e293b;
-    --ds-bg-subtle: #334155;
-    --ds-bg-muted: #475569;
+    /* v2 (Obsidian)：与 :root[data-theme='dark'] 保持一致 */
+    --ds-bg-base: #101317; /* v2 canvas #101317（原 #0f172a） */
+    --ds-bg-surface: #171a20; /* v2 surface-1 #171A20（原 #1e293b） */
+    --ds-bg-subtle: #0b0d10; /* v2 surface-sunken #0B0D10（原 #334155） */
+    --ds-bg-muted: #1a1e24; /* v2 surface-inset #1A1E24（原 #475569） */
 
-    --ds-text-primary: #f1f5f9;
-    --ds-text-secondary: #cbd5e1;
-    --ds-text-tertiary: #a8b8cc;
-    --ds-text-inverse: #0f172a;
+    --ds-text-primary: #e7eaf0; /* v2 text-primary #E7EAF0（原 #f1f5f9） */
+    --ds-text-secondary: #adb5c2; /* v2 text-secondary #ADB5C2（原 #cbd5e1） */
+    --ds-text-tertiary: #8a93a2; /* v2 text-tertiary #8A93A2（原 #a8b8cc） */
+    --ds-text-inverse: #0b1220; /* v2：反白文字改为深色 */
 
-    --ds-border-default: #334155;
-    --ds-border-subtle: #293549; /* 次级边框（更暗，与 default #334155 区分） */
-    --ds-border-strong: #475569;
-    --ds-border-focus: #60a5fa;
+    --ds-border-default: #2f353e; /* v2 border-default #2F353E（原 #334155） */
+    --ds-border-subtle: #23272e; /* v2 border-subtle #23272E（原 #293549） */
+    --ds-border-strong: #434b56; /* v2 border-strong #434B56（原 #475569） */
+    --ds-border-control: #616b7a; /* v2 border-control #616B7A（新增） */
+    --ds-border-focus: #7fb0ff; /* v2 border-focus #7FB0FF（原 #60a5fa） */
 
     /* border width */
     --ds-border-width: 1px;
@@ -381,5 +597,83 @@
     --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
     --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.35);
     --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+
+    /* ---------- v2 · 暗色（Obsidian） ---------- */
+    --ds-canvas: #101317;
+    --ds-surface-1: #171a20;
+    --ds-surface-2: #1d2128;
+    --ds-surface-3: #23282f;
+    --ds-surface-sunken: #0b0d10;
+    --ds-surface-inset: #1a1e24;
+    --ds-surface-code: #0b0d10;
+
+    --ds-text-disabled: #5b6472;
+
+    --ds-glass-text-primary: #f2f5f9;
+    --ds-glass-text-secondary: #bac3d0;
+    --ds-glass-text-tertiary: #a8b1bf;
+
+    --ds-accent: #7fb0ff;
+    --ds-accent-hover: #9cc4ff;
+    --ds-accent-active: #6ba3ff;
+    --ds-accent-soft: #16233c;
+    --ds-accent-on: #0b1220;
+
+    --ds-success: #4ade80;
+    --ds-success-soft: #12271c;
+    --ds-warning: #fbbf24;
+    --ds-warning-soft: #2a2110;
+    --ds-danger: #f87171;
+    --ds-danger-soft: #2c1618;
+    --ds-info: #7fb0ff;
+    --ds-info-soft: #12203a;
+
+    --ds-glass-chrome-bg: rgba(23, 26, 32, 0.68);
+    --ds-glass-chrome-border: rgba(255, 255, 255, 0.07);
+    --ds-glass-chrome-highlight: rgba(255, 255, 255, 0.06);
+    --ds-glass-chrome-blur: 20px;
+    --ds-glass-chrome-sat: 160%;
+    --ds-glass-chrome-brightness: 0.98;
+    --ds-glass-chrome-fallback: #15181d;
+
+    --ds-glass-overlay-bg: rgba(29, 33, 40, 0.84);
+    --ds-glass-overlay-border: rgba(255, 255, 255, 0.08);
+    --ds-glass-overlay-highlight: rgba(255, 255, 255, 0.07);
+    --ds-glass-overlay-blur: 32px;
+    --ds-glass-overlay-sat: 160%;
+    --ds-glass-overlay-brightness: 0.99;
+    --ds-glass-overlay-fallback: #1b1f25;
+
+    --ds-glass-popover-bg: rgba(35, 40, 47, 0.88);
+    --ds-glass-popover-border: rgba(255, 255, 255, 0.09);
+    --ds-glass-popover-highlight: rgba(255, 255, 255, 0.08);
+    --ds-glass-popover-blur: 40px;
+    --ds-glass-popover-sat: 165%;
+    --ds-glass-popover-brightness: 1;
+    --ds-glass-popover-fallback: #1e232a;
+
+    --ds-scrim: rgba(0, 0, 0, 0.42);
+    --ds-glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    --ds-e1: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --ds-e2: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --ds-e3: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 20px rgba(0, 0, 0, 0.4);
+    --ds-e4: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 16px 40px rgba(0, 0, 0, 0.5);
+
+    /* ---------- 旧 slate 灰的暗色重映射（v2 中性炭灰） ----------
+     * 必须与上面的 `:root[data-theme='dark']` 逐条一致 —— 本块只服务于
+     * 「JS 尚未执行的首屏窗口 / 无脚本」兜底（见文件内暗色段落头注释）。
+     * 说明与理由见 `:root[data-theme='dark']` 里的同段注释；
+     * 一致性由 scripts/check-dark-token-parity.py 在 CI 断言。 */
+    --ds-color-gray-800: var(--ds-surface-1);
+    --ds-color-gray-700: var(--ds-border-default);
+    --ds-color-dark-bg-3: var(--ds-surface-2);
+    --ds-color-dark-bg-4: var(--ds-surface-3);
+    --ds-color-gray-100: var(--ds-text-primary);
+    --ds-color-gray-200: var(--ds-text-secondary);
+    --ds-color-gray-300: var(--ds-text-tertiary);
+    --ds-color-gray-400: var(--ds-text-tertiary);
+    --ds-color-gray-500: var(--ds-text-tertiary);
+    --ds-color-gray-600: var(--ds-text-disabled);
   }
 }

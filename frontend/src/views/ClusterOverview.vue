@@ -570,12 +570,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useApi } from '@/composables/useApi'
+import { useChartPalette } from '@/composables/useChartTheme'
 import { PageHeader, PageCard, StatusTag } from '@/components/ui'
 import * as clusterApi from '@/api/cluster'
 import * as infraApi from '@/api/infra'
@@ -661,19 +662,28 @@ function nodeMemPercent(node: Node): number {
 const trendChartRef = ref<HTMLElement>()
 let trendChart: echarts.ECharts | null = null
 
+/** ECharts 色板（随亮/暗主题切换的真实色值，canvas 不解析 CSS 变量） */
+const palette = useChartPalette()
+
 /** 渲染趋势图 */
 function renderTrendChart() {
   if (!trendChartRef.value || !overview.value) return
   if (!trendChart) {
     trendChart = echarts.init(trendChartRef.value)
   }
+  const c = palette.value
   const days = [7, 6, 5, 4, 3, 2].map((n) => t('clusterOverview.trend.daysAgo', { n }))
   days.push(t('clusterOverview.trend.yesterday'))
   const cpuLabel = t('clusterOverview.trend.legend.cpu')
   const memLabel = t('clusterOverview.trend.legend.mem')
   trendChart.setOption({
+    // 全局兜底：任何未显式指定颜色的文字都走主题文字色，避免回退到出厂 #333
+    textStyle: { color: c.axisText },
     tooltip: {
       trigger: 'axis',
+      backgroundColor: c.tooltipBg,
+      borderColor: c.tooltipBorder,
+      textStyle: { color: c.tooltipText },
       formatter: (params: unknown[]) => {
         const series = params as Array<Record<string, unknown>>
         let html = `${series[0]?.axisValue as string}<br/>`
@@ -690,21 +700,21 @@ function renderTrendChart() {
     legend: {
       data: [cpuLabel, memLabel],
       right: 10,
-      top: 0
+      top: 0,
+      textStyle: { color: c.legendText }
     },
     grid: { left: 50, right: 30, top: 40, bottom: 30 },
     xAxis: {
       type: 'category',
       data: days,
-      // ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色（对应 --ds-color-gray-300）
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: 'var(--ds-text-secondary)' }
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText }
     },
     yAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { formatter: '{value}%', color: 'var(--ds-text-secondary)' },
-      splitLine: { lineStyle: { color: 'var(--ds-border-default)' } }
+      axisLabel: { formatter: '{value}%', color: c.axisText },
+      splitLine: { lineStyle: { color: c.gridLine } }
     },
     series: [
       {
@@ -712,7 +722,7 @@ function renderTrendChart() {
         type: 'line',
         smooth: true,
         data: overview.value.trendCpu,
-        itemStyle: { color: 'var(--ds-color-success-700)' },
+        itemStyle: { color: c.series.success },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(47, 111, 106, 0.25)' },
@@ -726,7 +736,7 @@ function renderTrendChart() {
         type: 'line',
         smooth: true,
         data: overview.value.trendMem,
-        itemStyle: { color: 'var(--ds-color-warning-600)' },
+        itemStyle: { color: c.series.warning },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(192, 138, 46, 0.25)' },
@@ -738,6 +748,11 @@ function renderTrendChart() {
     ]
   })
 }
+
+// 切主题时重绘：ECharts 颜色是 init 时写入 canvas 的，不重绘不会跟随主题
+watch(palette, () => {
+  if (trendChart) renderTrendChart()
+})
 
 /** 窗口大小变化时重绘图表 */
 function handleResize() {

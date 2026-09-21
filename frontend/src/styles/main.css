@@ -40,21 +40,20 @@
   --shadow-glow: var(--ds-shadow-glow); /* 发光阴影 (减弱) */
   --shadow-glow-strong: var(--ds-shadow-glow-strong);
 
-  /* === 侧边栏天蓝色（办公感/数据湖：饱和但柔和） === */
-  --sidebar-bg: linear-gradient(180deg, var(--ds-color-sidebar-bg-1) 0%, var(--ds-color-sidebar-bg-2) 60%, var(--ds-color-sidebar-bg-3) 100%);
-  --sidebar-ink: var(--ds-color-primary-900); /* 侧边栏主文字 深蓝（蓝底深蓝字协调） */
-  --sidebar-muted: var(--ds-color-sidebar-muted); /* 侧边栏次要文字 深蓝灰 */
-  --sidebar-active-bg: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.7) 0%,
-    rgba(99, 102, 241, 0.22) 100%
-  );
-  --sidebar-hover-bg: rgba(255, 255, 255, 0.4);
-  --sidebar-line: rgba(30, 58, 138, 0.25);
+  /* v2：外壳改用 glass-chrome 材质（亮色玻璃），深色渐变不再被引用。
+   * 变量名全部保留 —— 折叠钮 / 底部工具区 / 导航项等仍在引用它们，
+   * 重新指向 v2 取值即可让这些规则一并跟上，不必逐条改。 */
+  --sidebar-bg: var(--ds-glass-chrome-bg);
+  --sidebar-ink: var(--ds-glass-text-primary);
+  --sidebar-muted: var(--ds-glass-text-tertiary);
+  --sidebar-active-bg: var(--ds-accent-soft);
+  --sidebar-hover-bg: rgba(22, 24, 29, 0.05);
+  --sidebar-line: var(--ds-glass-chrome-border);
 
-  /* === 毛玻璃 (新增) === */
-  --glass-bg: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.5);
+  /* === 毛玻璃（v2：三层定义见 design-tokens.css §12.6）===
+   * 旧的两个单值变量保留为 glass-popover 的别名，兼容仍在引用它们的规则。 */
+  --glass-bg: var(--ds-glass-popover-bg);
+  --glass-border: var(--ds-glass-popover-border);
 
   /* === 兼容旧变量 (保留名称, 改值) === */
   --c-white: var(--ds-text-inverse);
@@ -118,28 +117,34 @@ body {
   grid-template-columns: 64px 1fr auto;
 }
 
-/* ============ sidebar (深蓝黑渐变) ============ */
+/* ============ sidebar（v2：glass-chrome 外壳材质） ============
+ * 架构前提（提案 §2.4）：内容面板是自身滚动的实心层，滚动内容不会跑到侧栏背后，
+ * 因此侧栏的 backdrop 恒等于画布 token，合成背景有界、文字对比度可一次算清。
+ * 若将来把内容区改成半透明或做"吸顶玻璃"，须把 alpha 提到 0.82（暗色是瓶颈）。 */
 .side {
-  background: var(--sidebar-bg);
-  color: var(--sidebar-ink);
+  background: var(--ds-glass-chrome-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
+    brightness(var(--ds-glass-chrome-brightness));
+  backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
+    brightness(var(--ds-glass-chrome-brightness));
+  color: var(--ds-glass-text-primary);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid rgba(30, 58, 138, 0.25);
-  box-shadow:
-    2px 0 16px rgba(30, 58, 138, 0.12),
-    inset -1px 0 0 rgba(255, 255, 255, 0.45);
+  border-right: 1px solid var(--ds-glass-chrome-border);
+  /* 1px 内描边高光 —— 玻璃的"厚度" */
+  box-shadow: var(--ds-glass-edge);
 }
 .side::-webkit-scrollbar {
   width: 5px;
 }
 .side::-webkit-scrollbar-thumb {
-  background: rgba(30, 58, 138, 0.32);
+  background: rgba(148, 163, 184, 0.28);
   border-radius: var(--ds-radius-sm);
 }
 .side::-webkit-scrollbar-thumb:hover {
-  background: rgba(30, 58, 138, 0.5);
+  background: rgba(148, 163, 184, 0.45);
 }
 .brand {
   height: 54px;
@@ -160,15 +165,23 @@ body {
   );
   letter-spacing: 0.3px;
 }
+/* .brand 也用于 Login/ Register；仅修正深色侧边栏，不改变登录页。 */
+.side .brand {
+  color: var(--ds-glass-text-primary);
+  border-bottom-color: var(--ds-glass-chrome-border);
+  /* v2：去掉装饰性白色高光渐变（原为"深色侧栏"设计，浅色玻璃上已无意义） */
+  background: transparent;
+}
 .brand .dot {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--green);
-  box-shadow:
-    0 0 6px rgba(16, 185, 129, 0.7),
-    0 0 0 3px rgba(16, 185, 129, 0.18);
-  animation: dotBreathGreen var(--ds-animation-breath) var(--ease-smooth) infinite;
+  flex: none;
+  /* v2：去掉无限呼吸动画与绿色发光（提案差异表 #27b）。
+   * 两条理由：① 静态绿点会被读成"系统健康"的业务语义，但它不反映任何真实状态；
+   * ② 无限循环动画持续消耗注意力。改用单一强调色的静态圆点。 */
+  background: var(--ds-accent);
+  box-shadow: none;
 }
 .side-collapse {
   margin-left: auto;
@@ -176,9 +189,11 @@ body {
   height: 26px;
   flex: none;
   border-radius: var(--ds-radius-md);
-  border: 1px solid rgba(30, 58, 138, 0.2);
-  background: rgba(255, 255, 255, 0.65);
-  color: var(--ds-color-primary-800);
+  /* 折叠钮是"控件"，其边界受 WCAG 1.4.11 约束（≥3:1）→ 用 border-control，
+   * 不能用只作分隔线的 border-subtle / glass-chrome-border。 */
+  border: 1px solid var(--ds-border-control);
+  background: var(--sidebar-hover-bg);
+  color: var(--ds-glass-text-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -190,11 +205,11 @@ body {
     transform var(--ds-transition-normal);
 }
 .side-collapse:hover {
-  background: var(--ds-bg-surface);
-  color: var(--ds-color-primary-700);
-  border-color: var(--ds-color-primary-500);
+  background: rgba(22, 24, 29, 0.08);
+  color: var(--ds-glass-text-primary);
+  border-color: var(--ds-accent);
   transform: rotate(0deg) scale(1.08);
-  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.2);
+  box-shadow: var(--ds-e1);
 }
 .side-collapse:active {
   transform: scale(0.9);
@@ -203,10 +218,11 @@ body {
   padding: 6px 0 12px;
   flex: 1;
 }
-/* 分组标题：加大字号 + 深蓝色 + 加粗 + 增加上下间距 */
-.nav .grp {
+/* :where 限定侧栏而不抬高特异性，保留 Sidebar.vue scoped 的布局规则。 */
+:where(.side) .nav .grp {
   font-size: var(--ds-font-size-xs);
-  color: var(--ds-color-primary-900);
+  /* v2：原 primary-300 是为"深色侧栏"配的浅蓝；浅色玻璃上对比度不足 2:1 */
+  color: var(--ds-glass-text-tertiary);
   padding: 18px 20px 8px;
   letter-spacing: 1px;
   text-transform: none;
@@ -216,31 +232,39 @@ body {
   align-items: center;
   gap: 6px;
 }
-.nav .grp::before {
+/* 分组标记：v2 去掉蓝色渐变与光晕，改为中性 2px 竖线（只做层次，不带颜色语义） */
+:where(.side) .nav .grp::before {
   content: '';
-  width: 4px;
+  width: 2px;
   height: 14px;
-  background: linear-gradient(180deg, var(--ds-color-primary-800) 0%, var(--ds-color-primary-500) 100%);
+  background: var(--ds-border-strong);
   border-radius: var(--ds-radius-sm);
   flex: none;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
 }
-.nav .grp::after {
+/* scoped 的计数/箭头 hover 色需定点覆盖；不改全局 primary token。
+ * v2：hover 从 glass-text-tertiary 提到 glass-text-primary —— 两档都过 4.5:1，
+ * 因此 hover 反馈不再依赖"蓝色"，也就不会在浅色玻璃上失效。 */
+aside.side .nav .grp:hover .grp-arrow,
+aside.side .nav .grp:hover .grp-count {
+  color: var(--ds-glass-text-primary);
+}
+:where(.side) .nav .grp::after {
   content: '';
   position: absolute;
   left: 20px;
   right: 20px;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.22), transparent);
+  background: var(--ds-border-subtle);
 }
-.nav a {
+:where(.side) .nav a {
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 2px 10px;
   padding: var(--ds-spacing-2) var(--ds-spacing-3);
-  color: var(--ds-color-primary-900);
+  /* v2 层次：常态 = 次文字，hover / active = 主文字（两档都过 4.5:1） */
+  color: var(--ds-glass-text-secondary);
   cursor: pointer;
   border-radius: var(--ds-radius-md);
   border: 1px solid transparent;
@@ -255,23 +279,22 @@ body {
   position: relative;
   overflow: hidden;
 }
-.nav a:hover {
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--ds-color-primary-800);
-  border-color: rgba(30, 58, 138, 0.25);
-  transform: translateX(2px);
-  font-weight: var(--ds-font-weight-extrabold);
+/* v2（提案差异表 #27）：hover 只改颜色 / 背景 / 边框。
+ * 原实现同时改 transform: translateX(2px) + font-weight 跳 extrabold，
+ * 会让文字在鼠标划过时轻微重排（字宽变化），长列表里形成"抖动"。 */
+:where(.side) .nav a:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--ds-glass-text-primary);
+  border-color: var(--ds-glass-chrome-border);
 }
-.nav a.active {
-  background: linear-gradient(90deg, var(--ds-bg-surface) 0%, rgba(99, 102, 241, 0.2) 100%);
-  color: var(--ds-color-primary-800);
-  border-color: rgba(30, 58, 138, 0.5);
-  font-weight: var(--ds-font-weight-extrabold);
-  box-shadow:
-    inset 0 0 14px rgba(99, 102, 241, 0.15),
-    0 2px 8px rgba(30, 58, 138, 0.18);
+:where(.side) .nav a.active {
+  background: var(--sidebar-active-bg);
+  color: var(--ds-glass-text-primary);
+  border-color: var(--ds-accent);
+  font-weight: var(--ds-font-weight-semibold);
+  box-shadow: var(--ds-e1);
 }
-.nav a.active::before {
+:where(.side) .nav a.active::before {
   content: '';
   position: absolute;
   left: -1px;
@@ -279,13 +302,13 @@ body {
   bottom: 18%;
   width: 3px;
   border-radius: var(--ds-radius-sm);
-  background: linear-gradient(180deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.7);
+  /* v2：去掉蓝→靛渐变与光晕，改单一强调色（去掉装饰性发光） */
+  background: var(--ds-accent);
 }
-.nav a .ic,
-.nav a .nav-ic {
+:where(.side) .nav a .ic,
+:where(.side) .nav a .nav-ic {
   flex: none;
-  color: var(--ds-color-primary-800);
+  color: var(--ds-glass-text-secondary);
   stroke-width: 1.5; /* EP 图标默认描边 */
   fill: none;
   stroke: currentColor;
@@ -293,11 +316,11 @@ body {
   stroke-linejoin: round;
   transition: color var(--ds-transition-quick);
 }
-.nav a:hover .ic,
-.nav a:hover .nav-ic,
-.nav a.active .ic,
-.nav a.active .nav-ic {
-  color: var(--ds-color-primary-800);
+:where(.side) .nav a:hover .ic,
+:where(.side) .nav a:hover .nav-ic,
+:where(.side) .nav a.active .ic,
+:where(.side) .nav a.active .nav-ic {
+  color: var(--ds-glass-text-primary);
   stroke-width: 1.8; /* 激活态稍粗，保持层次 */
 }
 .fic {
@@ -317,7 +340,7 @@ body {
   fill: currentColor;
   vertical-align: -1px;
 }
-.nav a .badge {
+:where(.side) .nav a .badge {
   margin-left: auto;
   background: var(--red);
   color: var(--ds-text-inverse);
@@ -325,24 +348,27 @@ body {
   border-radius: var(--ds-radius-md-plus);
   padding: 1px 6px;
 }
-/* 侧边栏底部工具区：浅白磨砂底 + 深蓝文字 */
+/* 侧边栏底部工具区：v2 去掉独立的深色磨砂底与自身的 backdrop-filter。
+ * 原来它硬编码 rgba(11,18,32,0.55)，在亮色主题下也是一块深色 —— 与外壳材质冲突；
+ * 而且在外层已有 backdrop-filter 的元素内部再叠一层 backdrop-filter 代价高、收益低。
+ * 现在它只是 glass-chrome 的一部分，分隔线用 glass-chrome-border。 */
 .side-foot {
   padding: var(--ds-spacing-3) var(--ds-spacing-4);
-  border-top: 1px solid rgba(30, 58, 138, 0.25);
+  border-top: 1px solid var(--ds-glass-chrome-border);
   font-size: var(--ds-font-size-xs);
-  color: var(--ds-color-primary-900);
+  color: var(--ds-glass-text-tertiary);
   line-height: var(--ds-line-height-relaxed);
-  background: rgba(255, 255, 255, 0.55);
+  background: transparent;
   font-weight: var(--ds-font-weight-medium);
   display: flex;
   align-items: center;
   gap: var(--ds-spacing-2);
   flex: none;
-  backdrop-filter: blur(8px);
 }
 .side-foot .side-foot-text {
   flex: 1;
-  opacity: var(--ds-opacity-9);
+  /* v2：去掉 0.9 的不透明度 —— 它会把已经算好的对比度再打九折 */
+  opacity: 1;
 }
 /* 主题切换按钮（2026-09-02 手动亮暗开关） */
 .side-foot .theme-toggle {
@@ -362,8 +388,11 @@ body {
     background var(--ds-transition-quick),
     transform var(--ds-transition-quick);
 }
+/* v2：原为 rgba(255,255,255,0.12) —— 那是从"深色侧栏"时代留下的白色半透明，
+ * 换到浅色玻璃外壳后 hover 反馈**完全消失**（白叠白）。改用 --sidebar-hover-bg，
+ * 该变量在亮色下是 rgba(22,24,29,0.05)、暗色下是 rgba(255,255,255,0.06)。 */
 .side-foot .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--sidebar-hover-bg);
   transform: scale(1.06);
 }
 .side-foot .theme-toggle:active {
@@ -381,8 +410,9 @@ body {
   padding: 0 6px;
   cursor: pointer;
 }
+/* v2：同上 —— 白色半透明在浅色玻璃上没有 hover 反馈 */
 .side-foot .locale-switcher:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--sidebar-hover-bg);
 }
 
 /* ============================================================
@@ -451,11 +481,16 @@ body {
 }
 .topbar {
   height: 54px;
-  background: var(--topbar-bg, linear-gradient(180deg, var(--ds-color-sidebar-bg-1) 0%, var(--ds-color-sidebar-bg-2) 100%));
-  border-bottom: 1px solid rgba(30, 58, 138, 0.28);
-  box-shadow:
-    0 1px 3px rgba(30, 58, 138, 0.1),
-    0 2px 8px rgba(30, 58, 138, 0.05);
+  /* v2：与侧栏同为 glass-chrome 材质；不再引用 --topbar-bg 深色渐变
+   * （该变量仍保留定义以备回退）。 */
+  background: var(--ds-glass-chrome-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
+    brightness(var(--ds-glass-chrome-brightness));
+  backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
+    brightness(var(--ds-glass-chrome-brightness));
+  color: var(--ds-glass-text-primary);
+  border-bottom: 1px solid var(--ds-glass-chrome-border);
+  box-shadow: var(--ds-glass-edge);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -463,40 +498,30 @@ body {
   position: relative;
   z-index: 10;
 }
-/* 顶部品牌渐变饰条（与侧边栏同源，增强层次） */
-.topbar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--ds-color-primary-700) 0%, var(--ds-color-info-500) 45%, var(--ds-color-accent-500) 80%, transparent 100%);
-  opacity: var(--ds-opacity-9);
-  pointer-events: none;
-}
+/* v2：删除原来的 2px 彩虹渐变饰条（`.topbar::before`）。
+ * 装饰性色彩不承载信息，且与"全站单一强调色"的定位冲突；
+ * 顶栏与内容区的分界改由 border-bottom 的发丝线承担。 */
 .ws-switch {
   display: flex;
   align-items: center;
   gap: var(--ds-spacing-2);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14) 0%, rgba(99, 102, 241, 0.14) 100%);
-  color: var(--ds-color-primary-700);
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  /* v2：去掉蓝→靛渐变底与钉死的蓝边框，改用语义强调色的浅底 + 中性描边。
+   * 顶栏的工作区切换是"控件"不是"装饰"，渐变底与状态色语义冲突。 */
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+  border: 1px solid var(--ds-border-default);
   padding: 6px 12px;
   border-radius: var(--ds-radius-md);
   font-weight: var(--ds-font-weight-semibold);
   cursor: pointer;
+  /* v2：去掉 transform 过渡（hover 不再位移） */
   transition:
-    transform var(--ds-transition-quick),
     box-shadow var(--ds-transition-quick),
     border-color var(--ds-transition-quick);
 }
 .ws-switch:hover {
-  transform: translateY(-1px);
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow:
-    0 4px 12px rgba(99, 102, 241, 0.25),
-    var(--shadow-glow);
+  /* v2：去掉 -1px 位移与蓝紫发光阴影，只做边框颜色反馈 */
+  border-color: var(--ds-border-strong);
 }
 .topbar .spacer {
   flex: 1;
@@ -517,28 +542,25 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--gradient-primary);
-  color: var(--ds-text-inverse);
+  /* v2：去掉蓝→靛渐变与蓝色发光阴影，改为单一强调色 */
+  background: var(--ds-accent);
+  color: var(--ds-accent-on);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: var(--ds-font-weight-extrabold);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: none;
 }
 .view {
   overflow-y: auto;
   padding: 22px 26px;
   flex: 1;
   animation: fadeInSlide var(--ds-transition-moderate);
-  /* 浅灰底（让白卡更跳出） + 极淡蓝网格纹理（数据平台质感保留） */
-  background:
-    linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, var(--ds-color-gray-100) 0%, var(--ds-color-gray-200) 100%);
-  background-size:
-    32px 32px,
-    32px 32px,
-    100% 100%;
+  /* v2：去掉蓝色网格纹理与灰→灰渐变，改为单一 canvas 色。
+   * 理由：① 装饰性纹理不承载信息；② 极淡网格线会和表格/图表自身的网格线叠加，
+   * 让数据区的"网格"看起来有两套，干扰判读。
+   * 注意：这里是**不透明的自身滚动层** —— 玻璃外壳的对比度保证依赖这条前提。 */
+  background: var(--ds-canvas);
 }
 .view h1 {
   font: var(--typo-h1);
@@ -547,7 +569,7 @@ body {
 }
 .view .sub {
   font: var(--typo-caption);
-  color: var(--ds-color-gray-600);
+  color: var(--ds-text-secondary);
   margin-bottom: var(--ds-spacing-5);
 }
 .hidden {
@@ -560,12 +582,16 @@ body {
    * 文字体系 Token（2026-09-07 统一规范）
    * 所有页面只准用这 7 个，禁止内联 color/font-size/font-weight
    * ============================================================ */
+  /* v2 字重（依据：_build/font-weight-probe.txt 的光栅实测）
+   * - 正文 500 → 400：500 让整页发"胖"，与标题拉不开层次；强调交给 600。
+   * - 标题 / 表头 700 → 600：v2 的字重上限是 600（650 ≡ 700，没有独立字形）。
+   * - 中文 400 与 500 渲染完全相同，所以这次调整主要作用在拉丁文与数字上。 */
   --typo-h1: var(--ds-font-weight-extrabold) 24px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-h2: var(--ds-font-weight-bold) 16px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-body: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose) var(--typo-color-body, var(--ds-color-gray-800));
+  --typo-h2: var(--ds-font-weight-semibold) 16px/var(--ds-line-height-snug) var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-body: var(--ds-font-weight-normal) 14px/var(--ds-line-height-loose) var(--typo-color-body, var(--ds-color-gray-800));
   --typo-caption: var(--ds-font-weight-medium) 14px/var(--ds-line-height-relaxed) var(--typo-color-caption, var(--ds-color-gray-700));
   --typo-micro: var(--ds-font-weight-medium) 12px/var(--ds-line-height-normal) var(--typo-color-micro, var(--ds-color-gray-600));
-  --typo-table-th: var(--ds-font-weight-bold) 12px/var(--ds-line-height-snug) var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-th: var(--ds-font-weight-semibold) 12px/var(--ds-line-height-snug) var(--typo-color-th, var(--ds-color-primary-900));
   --typo-table-td: var(--ds-font-weight-medium) 14px/var(--ds-line-height-loose) var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
@@ -610,6 +636,11 @@ body {
   --el-border-color-lighter: var(--ds-border-subtle);
   --el-border-color-dark: var(--ds-border-strong);
   --el-border-color-focus: var(--ds-border-focus);
+  /* v2：输入类控件（el-input / el-textarea / el-select）的边界是"控件边界"，
+   * 受 WCAG 1.4.11 约束（≥3:1），因此不能用只作分隔线的 border-default。
+   * 只声明一次即可 —— --ds-border-control 本身在暗色块里已重新定义，
+   * 所以这里在亮/暗两套主题下都会解析成各自的值。 */
+  --el-input-border-color: var(--ds-border-control);
   --el-border-width: var(--ds-border-width);
   --el-border-width-strong: var(--ds-border-width-strong);
   --el-border-radius-base: var(--ds-radius-md);
@@ -619,6 +650,38 @@ body {
   --el-fill-color-light: var(--ds-bg-subtle);
   --el-fill-color-lighter: var(--ds-bg-muted);
   --el-fill-color-blank: var(--ds-bg-surface);
+
+  /* ============================================================
+   * v2：Element Plus 主色 / 语义色映射
+   *
+   * 这一段之前是**缺失**的 —— 全站从没覆盖过 --el-color-primary，
+   * 于是主按钮、链接、选中态、进度条一直是 EP 出厂蓝 #409eff，
+   * 与 v2 的单一强调色（亮 #2563EB / 暗 #7FB0FF）是两套完全不同的蓝。
+   * 这里按提案 §10.1 补齐；light-3/5/7/8/9 用 color-mix 从主色派生，
+   * 避免再维护一组钉死的蓝色。
+   * ============================================================ */
+  --el-color-primary: var(--ds-accent);
+  --el-color-primary-light-3: color-mix(in srgb, var(--ds-accent) 70%, var(--ds-surface-1));
+  --el-color-primary-light-5: color-mix(in srgb, var(--ds-accent) 50%, var(--ds-surface-1));
+  --el-color-primary-light-7: color-mix(in srgb, var(--ds-accent) 30%, var(--ds-surface-1));
+  --el-color-primary-light-8: color-mix(in srgb, var(--ds-accent) 20%, var(--ds-surface-1));
+  --el-color-primary-light-9: var(--ds-accent-soft);
+  --el-color-primary-dark-2: var(--ds-accent-hover);
+
+  --el-color-success: var(--ds-success);
+  --el-color-success-light-9: var(--ds-success-soft);
+  --el-color-warning: var(--ds-warning);
+  --el-color-warning-light-9: var(--ds-warning-soft);
+  --el-color-danger: var(--ds-danger);
+  --el-color-danger-light-9: var(--ds-danger-soft);
+  --el-color-error: var(--ds-danger);
+  --el-color-error-light-9: var(--ds-danger-soft);
+
+  /* 表格：表头用次级面板色，行线用最弱分隔线，hover 用下沉面 */
+  --el-table-bg-color: var(--ds-surface-1);
+  --el-table-tr-bg-color: var(--ds-surface-1);
+  --el-table-header-bg-color: var(--ds-surface-2);
+  --el-table-header-text-color: var(--ds-text-secondary);
 }
 .el-input__inner::placeholder,
 .el-textarea__inner::placeholder,
@@ -662,35 +725,26 @@ body {
 .card {
   position: relative;
   background: var(--ds-bg-surface);
-  /* 统一边框令牌：亮色默认 var(--ds-color-gray-300)，深色由暗色段覆写 */
+  /* 统一边框令牌：容器描边（WCAG 1.4.11 豁免），深色由暗色段覆写 */
   border: var(--ds-border-width) solid var(--ds-border-default);
   border-radius: var(--ds-radius-lg);
   padding: 18px 18px 16px;
-  box-shadow:
-    0 1px 3px rgba(15, 23, 42, 0.06),
-    0 6px 16px rgba(59, 130, 246, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* v2：去掉品牌蓝光晕（原 0 6px 16px rgba(59,130,246,0.16)）。
+   * 蓝色阴影 = 每张卡片都在发光 = 层级失效；改用中性灰 e1。 */
+  box-shadow: var(--ds-e1);
+  /* v2：过渡里去掉 transform —— hover 不再位移（提案 §1 原则 4）。
+   * -4px 位移在长时办公中会让整个卡片网格在鼠标划过时抖动。 */
   transition:
-    transform var(--ds-transition-normal),
     box-shadow var(--ds-transition-normal),
     border-color var(--ds-transition-normal);
   overflow: hidden;
 }
-/* 卡片顶部蓝→紫渐变高光带（数据平台质感） */
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
-  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
-}
+/* v2：删除卡片顶部 4px 蓝→靛渐变高光带（`.card::before`）。
+ * 它在每张卡片上重复同一条装饰，不承载任何状态信息，只是视觉噪音。 */
+/* v2：hover 只做"极短促的颜色反馈" —— 描边加深一档 + 阴影升一档，不位移。 */
 .card:hover {
-  transform: translateY(-4px);
-  border-color: var(--ds-color-primary-700);
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.12),
-    0 6px 20px rgba(59, 130, 246, 0.25);
+  border-color: var(--ds-border-strong);
+  box-shadow: var(--ds-e2);
 }
 .card h3 {
   font-size: var(--ds-font-size-base);
@@ -715,17 +769,17 @@ body {
 .kpi {
   font-size: var(--ds-font-size-3xl);
   font-weight: var(--ds-font-weight-extrabold);
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  /* v2：去掉渐变文字（background: --gradient-primary + background-clip: text）。
+   * 两条理由：① 渐变让同一个数字左右两端颜色不同，破坏"数值可比"的前提；
+   * ② -webkit-text-fill-color: transparent 会让对比度检测与打印都拿不到颜色。
+   * 改为实心 text-primary。 */
+  color: var(--ds-text-primary);
 }
 .kpi.s {
   font-size: var(--ds-font-size-xl);
 }
 .meta {
-  color: var(--ds-color-gray-600);
+  color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-medium);
 }
@@ -799,21 +853,17 @@ tr.click {
   font-weight: var(--ds-font-weight-semibold);
   position: relative;
   overflow: hidden;
+  /* v2：去掉 transform 过渡（hover 不再位移）与蓝紫发光阴影 */
   transition:
-    transform var(--ds-transition-quick),
     box-shadow var(--ds-transition-quick),
     filter var(--ds-transition-quick);
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 .btn:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 6px 16px rgba(99, 102, 241, 0.4),
-    var(--shadow-glow);
+  /* v2：-2px 位移 + 蓝紫发光 → 只保留轻微提亮，位置不变 */
   filter: brightness(1.05);
 }
 .btn:active {
-  transform: translateY(0);
+  filter: brightness(0.97);
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 .btn.ghost {
@@ -867,9 +917,10 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
+  /* v2：焦点环改用语义 focus 色，外圈由强调色派生，不再钉死 indigo-500 */
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--ds-border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent);
 }
 label {
   font-size: var(--ds-font-size-xs);
@@ -961,9 +1012,10 @@ label {
   box-sizing: border-box;
 }
 .code-editor:focus {
+  /* v2：同 input:focus —— 焦点环改语义色（编辑器是数据密集区，但焦点环本身不是玻璃） */
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--ds-border-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent);
 }
 .code .k {
   color: var(--c-violet);
@@ -1104,7 +1156,7 @@ label {
 }
 .note {
   font-size: var(--ds-font-size-xs);
-  color: var(--ds-color-gray-600);
+  color: var(--ds-text-secondary);
   font-weight: var(--ds-font-weight-medium);
   margin-top: var(--ds-spacing-2);
 }
@@ -1139,17 +1191,23 @@ label {
 }
 .el-input__wrapper {
   padding: 1px 10px !important;
-  box-shadow: 0 0 0 1px var(--ds-color-gray-300) inset !important;
+  /* v2：输入框边界是「控件边界」，受 WCAG 1.4.11 约束（≥3:1）。
+   * 旧值 --ds-color-gray-300(#cbd5e1) 在白底上只有约 1.6:1，是等保 / 密评会查的合规缺口；
+   * 改用 --ds-border-control（亮 #7C8695 3.68:1 / 暗 #616B7A 3.23:1），亮暗各自解析。 */
+  box-shadow: 0 0 0 1px var(--ds-border-control) inset !important;
   border-radius: var(--ds-radius-md) !important;
-  background: var(--ds-bg-surface) !important;
+  /* v2：输入区用"下沉面"做底，与所在卡片形成轻微层次（且保持不透明 —— 表单控件本体
+   * 在提案 §2.2 的黑名单里，光标与选区需要稳定的文字背景） */
+  background: var(--ds-bg-subtle) !important;
 }
 .el-input__wrapper:hover {
-  box-shadow: 0 0 0 1px var(--ds-color-gray-400) inset !important;
+  box-shadow: 0 0 0 1px var(--ds-text-tertiary) inset !important;
 }
 .el-input__wrapper.is-focus {
+  /* v2：焦点环用语义 focus 色 + 由强调色派生的外圈，不再钉死 blue-500 */
   box-shadow:
-    0 0 0 1px var(--ds-color-primary-500) inset,
-    0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+    0 0 0 1px var(--ds-border-focus) inset,
+    0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent) !important;
 }
 .el-input__prefix {
   margin-right: 8px !important;
@@ -1167,20 +1225,10 @@ label {
 .el-input--suffix .el-input__wrapper {
   padding-right: 8px !important;
 }
-/* 输入框暗色全局化（2026-09-08）：原规则只在 Login.vue 生效，
- * 主界面各视图输入框在暗色下仍是亮色规则的纯白底——此处全局反色 */
-:root[data-theme='dark'] .el-input__wrapper {
-  background: rgba(15, 23, 42, 0.7) !important;
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.45) inset !important;
-}
-:root[data-theme='dark'] .el-input__wrapper:hover {
-  box-shadow: 0 0 0 1px var(--ds-color-primary-400) inset !important;
-}
-:root[data-theme='dark'] .el-input__wrapper.is-focus {
-  box-shadow:
-    0 0 0 1px var(--ds-color-primary-400) inset,
-    0 0 0 3px rgba(96, 165, 250, 0.18) !important;
-}
+/* 输入框暗色全局化（2026-09-08）
+ * v2：上面 `.el-input__wrapper` 的基础规则已全部改用 token（--ds-border-control /
+ * --ds-bg-subtle / --ds-border-focus），在暗色作用域里会自动解析成暗色值，
+ * 因此这里不再需要"按主题再写一份"—— 重复声明正是旧主题分裂的根源。 */
 :root[data-theme='dark'] .el-input__inner,
 :root[data-theme='dark'] .el-textarea__inner {
   color: var(--ds-color-gray-100) !important;
@@ -1197,22 +1245,25 @@ label {
   padding-bottom: 8px !important;
 }
 .el-table {
-  border: 1.5px solid var(--ds-color-primary-500);
+  /* v2：原「1.5px 纯蓝外框 + 蓝色光晕」→ 1px 中性容器描边。
+   * 数据区应该是"退到内容后面"的载体，外框比内容还抢眼会干扰判读。 */
+  border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
 }
 .el-table__inner-wrapper {
   border-radius: var(--ds-radius-md);
 }
 .el-table th.el-table__cell {
-  color: var(--ds-color-primary-900) !important;
+  color: var(--ds-text-secondary) !important;
   font: var(--typo-table-th) !important;
-  background: var(--ds-color-gray-100) !important;
-  border-bottom: 2px solid var(--ds-color-primary-500) !important;
+  background: var(--ds-surface-2) !important;
+  border-bottom: 1px solid var(--ds-border-default) !important;
 }
 .el-table td.el-table__cell {
-  color: var(--ds-color-gray-800);
+  /* v2：不再钉在 --ds-color-gray-800 —— 该旧 token 在暗色作用域下已被重映射成
+   * "表面色"（见 design-tokens.css 暗色段），继续当文字用会让暗色表格文字变成背景色。 */
+  color: var(--ds-text-primary);
   font: var(--typo-table-td);
 }
 .el-table .el-table__row {
@@ -1233,25 +1284,29 @@ label {
   --el-color-text-quaternary: var(--ds-color-gray-500);
   --el-color-text-placeholder: var(--ds-color-gray-500);
   --el-table-empty-text-color: var(--ds-color-gray-600);
-  --el-table-border-color: var(--ds-color-gray-300);
-  --el-table-row-hover-bg-color: var(--ds-color-primary-50);
-  --el-disabled-bg-color: var(--ds-color-gray-100);
-  --el-disabled-text-color: var(--ds-color-gray-400);
-  --el-disabled-border-color: var(--ds-color-gray-300);
-  --el-border-color: var(--ds-color-gray-300);
-  --el-border-color-light: var(--ds-color-gray-200);
-  --el-border-color-lighter: var(--ds-color-gray-100);
-  --el-fill-color: var(--ds-color-gray-100);
-  --el-fill-color-light: var(--ds-color-gray-50);
+  /* v2：下面这一组原本直接钉在旧 slate 灰（#cbd5e1 / #e2e8f0 / #f1f5f9）上，
+   * 会把上面 601-647 那一段的 v2 映射整段盖掉 —— 这正是"同一语义多层覆盖"造成的
+   * 主题分裂（提案 §10.2 坑 #2）。这里统一改指 v2 语义 token，
+   * 于是亮/暗两套主题只需各自定义 `--ds-*`，EP 侧不再需要第二套值。 */
+  --el-table-border-color: var(--ds-border-subtle);
+  --el-table-row-hover-bg-color: var(--ds-bg-subtle);
+  --el-disabled-bg-color: var(--ds-bg-muted);
+  --el-disabled-text-color: var(--ds-text-disabled);
+  --el-disabled-border-color: var(--ds-border-default);
+  --el-border-color: var(--ds-border-default);
+  --el-border-color-light: var(--ds-border-subtle);
+  --el-border-color-lighter: var(--ds-border-subtle);
+  --el-fill-color: var(--ds-bg-muted);
+  --el-fill-color-light: var(--ds-bg-subtle);
   --el-fill-color-blank: var(--ds-bg-surface);
-  --el-mask-color: rgba(15, 23, 42, 0.5);
-  /* EP 信息/提示/次要等语义色（蓝色信息类） */
-  --el-color-info: var(--ds-color-primary-500);
-  --el-color-info-light-3: var(--ds-color-primary-300);
-  --el-color-info-light-5: var(--ds-color-primary-100);
-  --el-color-info-light-7: var(--ds-color-primary-50);
-  --el-color-info-light-8: var(--ds-color-primary-50);
-  --el-color-info-light-9: var(--ds-color-gray-50);
+  --el-mask-color: var(--ds-scrim);
+  /* EP 信息/提示/次要等语义色：v2 用语义 info，不再借用 primary 蓝 */
+  --el-color-info: var(--ds-info);
+  --el-color-info-light-3: color-mix(in srgb, var(--ds-info) 70%, var(--ds-surface-1));
+  --el-color-info-light-5: color-mix(in srgb, var(--ds-info) 50%, var(--ds-surface-1));
+  --el-color-info-light-7: color-mix(in srgb, var(--ds-info) 30%, var(--ds-surface-1));
+  --el-color-info-light-8: color-mix(in srgb, var(--ds-info) 20%, var(--ds-surface-1));
+  --el-color-info-light-9: var(--ds-info-soft);
   /* EP placeholder 系列（disabled/secondary） */
   --el-input-placeholder-color: var(--ds-color-gray-500);
   --el-text-color-secondary-light-5: var(--ds-color-gray-600);
@@ -1264,7 +1319,7 @@ label {
 .el-input__prefix,
 .el-input__suffix,
 .el-input__count .el-input__count-inner {
-  color: var(--ds-color-gray-600) !important;
+  color: var(--ds-text-secondary) !important;
   font-weight: var(--ds-font-weight-semibold);
 }
 .el-form-item__label {
@@ -1275,7 +1330,9 @@ label {
 .el-form-item__content,
 .el-input__inner,
 .el-textarea__inner {
-  color: var(--ds-color-gray-900) !important;
+  /* v2：旧值 --ds-color-gray-900(#0f172a) 在暗色下是"深蓝黑"，当正文色等于不可见。
+   * 改用语义 --ds-text-primary（亮 #16181D / 暗 #E7EAF0），两套主题各自解析。 */
+  color: var(--ds-text-primary) !important;
 }
 .el-form-item__error {
   color: var(--ds-color-error-700) !important;
@@ -1283,14 +1340,14 @@ label {
 }
 .el-input.is-disabled .el-input__inner,
 .el-textarea.is-disabled .el-textarea__inner {
-  color: var(--ds-color-gray-400) !important;
+  color: var(--ds-text-disabled) !important;
 }
 .el-empty__description p {
-  color: var(--ds-color-gray-600) !important;
+  color: var(--ds-text-secondary) !important;
   font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-table__empty-text {
-  color: var(--ds-color-gray-600) !important;
+  color: var(--ds-text-secondary) !important;
   font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-loading-mask .el-loading-text {
@@ -1299,12 +1356,14 @@ label {
 }
 .el-tooltip__popper,
 .el-popper.is-light {
-  color: var(--ds-color-gray-800) !important;
+  /* v2：气泡 / 浮层上的文字必须用玻璃专用的一套（提案 §4.4），
+   * 不能用 --ds-text-*，也不能用旧 slate 灰（暗色下已被重映射成表面色）。 */
+  color: var(--ds-glass-text-primary) !important;
   font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-pagination__sizes .el-select .el-input__inner,
 .el-pagination__jump {
-  color: var(--ds-color-gray-600) !important;
+  color: var(--ds-text-secondary) !important;
   font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-pagination .el-pager li,
@@ -1317,15 +1376,18 @@ label {
 .el-message-box__title,
 .el-message__content,
 .el-drawer__title {
-  color: var(--ds-color-gray-900) !important;
+  /* v2：这四个都是**玻璃浮层**上的标题 —— 旧值 --ds-color-gray-900 在暗色下不可见，
+   * 且它们是浮层而非不透明表面，必须用玻璃专用的文字 token（提案 §4.4）。 */
+  color: var(--ds-glass-text-primary) !important;
   font-weight: var(--ds-font-weight-extrabold) !important;
 }
 .el-descriptions__label {
-  color: var(--ds-color-gray-600) !important;
+  /* v2：改用语义文字 token（旧 slate 灰在暗色下已被重映射，见本文件其它同改处） */
+  color: var(--ds-text-secondary) !important;
   font-weight: var(--ds-font-weight-semibold) !important;
 }
 .el-descriptions__content {
-  color: var(--ds-color-gray-800) !important;
+  color: var(--ds-text-primary) !important;
   font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-tag {
@@ -1357,9 +1419,9 @@ label {
     border-color var(--ds-transition-quick);
 }
 .conn:hover {
+  /* v2：去掉 -3px 位移与蓝色发光阴影，改为描边 + 中性阴影（同 .card:hover） */
   border-color: var(--primary);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--ds-e2);
 }
 .conn .logo {
   width: 40px;
@@ -1379,9 +1441,9 @@ label {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  /* v2：遮罩改用 --scrim（它是遮罩，不属于玻璃层级），并去掉 blur(2px)。
+   * 大面积 backdrop-filter 代价高，而 2px 的模糊在整屏遮罩上视觉收益几乎为零。 */
+  background: var(--ds-scrim);
   display: none;
   z-index: 50;
   transition: opacity var(--ds-transition-moderate);
@@ -1634,7 +1696,7 @@ label {
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
 }
 .health-dot.st-unknown {
-  background: var(--ds-color-gray-400);
+  background: var(--ds-text-disabled);
 }
 .health-name {
   font-size: var(--ds-font-size-xs);
@@ -1789,24 +1851,10 @@ label {
   }
 }
 
-/* 11a. 品牌点呼吸灯 - 绿色版 (2026-09-14 修复 P2-1)
-   main.css .brand .dot 初始 box-shadow 为绿色 rgba(16,185,129)，
-   原引用蓝紫色 dotBreath 导致动画播放瞬间颜色跳变。
-   此处新增绿色版 keyframes，起始帧与 .brand .dot 初始 box-shadow 一致，
-   消除跳变。全局 dotBreath (蓝紫色) 保留供 Login.vue 等蓝紫色品牌点引用。 */
-@keyframes dotBreathGreen {
-  0%,
-  100% {
-    box-shadow:
-      0 0 6px rgba(16, 185, 129, 0.7),
-      0 0 0 3px rgba(16, 185, 129, 0.18);
-  }
-  50% {
-    box-shadow:
-      0 0 10px rgba(16, 185, 129, 0.95),
-      0 0 0 5px rgba(16, 185, 129, 0.12);
-  }
-}
+/* 11a. 品牌点呼吸灯 - 绿色版（已废弃）
+   v2：`.brand .dot` 不再播放呼吸动画（提案差异表 #27b —— 无限循环动画
+   持续消耗注意力，且静态绿点会被误读成"系统健康"的业务语义）。
+   keyframes 随之删除；若将来确有真实健康状态需要表达，请用真实状态色 + 文字。 */
 
 /* 兼容旧 toast fade 动画名 */
 @keyframes fade {
@@ -1824,12 +1872,15 @@ label {
  * 工具类
  * ============================================================ */
 
-/* 毛玻璃 */
+/* 毛玻璃（v2：`.glass` 保留为 glass-popover 的别名，兼容既有引用） */
 .glass {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--ds-glass-popover-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  border: 1px solid var(--ds-glass-popover-border);
+  box-shadow: var(--ds-glass-edge);
 }
 
 /* 渐变文字 */
@@ -1950,18 +2001,15 @@ label {
   --line: var(--ds-color-gray-700);
   --c-white: var(--ds-color-gray-800);
 
-  --sidebar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 60%, var(--ds-color-gray-900) 100%);
-  --sidebar-ink: var(--ds-color-gray-200);
-  --sidebar-muted: var(--ds-color-gray-400);
-  --sidebar-active-bg: linear-gradient(
-    90deg,
-    rgba(59, 130, 246, 0.3) 0%,
-    rgba(99, 102, 241, 0.2) 100%
-  );
-  --sidebar-hover-bg: rgba(148, 163, 184, 0.14);
-  --sidebar-line: rgba(148, 163, 184, 0.18);
-  --glass-bg: rgba(15, 23, 42, 0.7);
-  --glass-border: rgba(148, 163, 184, 0.2);
+  /* v2：与亮色一致，外壳改用 glass-chrome 材质；深色渐变不再被引用（变量保留）。 */
+  --sidebar-bg: var(--ds-glass-chrome-bg);
+  --sidebar-ink: var(--ds-glass-text-primary);
+  --sidebar-muted: var(--ds-glass-text-tertiary);
+  --sidebar-active-bg: var(--ds-accent-soft);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-line: var(--ds-glass-chrome-border);
+  --glass-bg: var(--ds-glass-popover-bg);
+  --glass-border: var(--ds-glass-popover-border);
 
   /* 顶栏 */
   --topbar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%);
@@ -1982,8 +2030,12 @@ label {
   --el-input-placeholder-color: var(--ds-color-gray-400);
   --el-table-text-color: var(--ds-color-gray-200);
   --el-table-border-color: var(--ds-color-gray-700);
-  --el-table-header-text-color: var(--ds-color-primary-300);
-  --el-table-row-hover-bg-color: var(--ds-color-gray-800);
+  /* v2：表头文字不再用"深蓝/浅蓝"色相，改用中性次级文字（与表格规则一致）。
+   * 表头承担的是"列身份"，不是"强调"，用蓝色会和状态色语义打架。 */
+  --el-table-header-text-color: var(--ds-text-secondary);
+  /* v2：hover 行必须**比行底更暗**（暗色下"下沉"= 变暗），
+   * 旧值 --ds-color-gray-800 经 v2 重映射后等于 surface-1，会和表格同色、没有反馈。 */
+  --el-table-row-hover-bg-color: var(--ds-bg-subtle);
   --el-pagination-text-color: var(--ds-color-gray-300);
   --el-dialog-content-color: var(--ds-color-gray-200);
 
@@ -1992,17 +2044,17 @@ label {
   --typo-color-body: var(--ds-color-gray-200);
   --typo-color-caption: var(--ds-color-gray-300);
   --typo-color-micro: var(--ds-color-gray-400);
-  --typo-color-th: var(--ds-color-primary-300);
+  --typo-color-th: var(--ds-text-secondary);
   --typo-color-td: var(--ds-color-gray-200);
 
-  /* EP el-card 暗色化（卡片白底根治） */
-  --el-card-bg-color: var(--ds-color-gray-800);
-  --el-border-color-light: var(--ds-color-gray-700);
-  --el-border-color-lighter: var(--ds-color-dark-bg-3);
-  --el-fill-color-blank: var(--ds-color-gray-800);
-  --el-fill-color: var(--ds-color-dark-bg-3);
-  --el-fill-color-light: var(--ds-color-dark-bg-3);
-  --el-fill-color-lighter: var(--ds-color-dark-bg-4);
+  /* EP el-card 暗色化（卡片白底根治）
+   * v2：改指 --ds-bg-surface（= #171A20 中性面），不再钉在 --ds-color-gray-800(#1E293B 蓝灰)，
+   * 否则暗色卡片比画布 #101317 明显偏蓝，且 阶段 A 的"全站继承 v2"在这里断链。 */
+  --el-card-bg-color: var(--ds-bg-surface);
+  --el-fill-color: var(--ds-bg-muted);
+  --el-fill-color-light: var(--ds-bg-subtle);
+  --el-fill-color-lighter: var(--ds-bg-muted);
+  --el-fill-color-blank: var(--ds-bg-surface);
 
   /* EP Border tokens (dark mode) */
   --el-border-color: var(--ds-border-default);
@@ -2015,144 +2067,121 @@ label {
   --el-border-radius-base: var(--ds-radius-md);
   --el-border-radius-small: var(--ds-radius-sm);
   --el-border-radius-round: var(--ds-radius-full);
-  --el-fill-color: var(--ds-bg-surface);
-  --el-fill-color-light: var(--ds-bg-subtle);
-  --el-fill-color-lighter: var(--ds-bg-muted);
-  --el-fill-color-blank: var(--ds-bg-surface);
+
+  /* v2：模态遮罩用语义 scrim（暗 rgba(0,0,0,0.42)），不再是旧深蓝 rgba(15,23,42,0.5) */
+  --el-mask-color: var(--ds-scrim);
+  --el-overlay-color-lighter: var(--ds-scrim);
+
+  /* ---------- v2：EP 三级及以下文字（暗色） ----------
+   * 亮色 :root 段有 7 个带 !important 的 --el-text-color-3..9，
+   * 而**自定义属性的级联里 !important 无条件胜出** —— 不在这里用同样的 !important 覆写，
+   * 暗色下这些文字就是 #334155 / #475569 / #64748b，在 surface-1 #171A20 上
+   * 实测只有 1.68 / 2.30 / 3.66:1（与刚修完的侧边栏 1.41:1 是同一类缺陷，只是发生在 EP 层）。 */
+  --el-text-color-3: var(--ds-text-tertiary) !important;
+  --el-text-color-4: var(--ds-text-secondary) !important;
+  --el-text-color-5: var(--ds-text-tertiary) !important;
+  --el-text-color-6: var(--ds-text-tertiary) !important;
+  --el-text-color-7: var(--ds-text-tertiary) !important;
+  --el-text-color-8: var(--ds-text-disabled) !important;
+  --el-text-color-9: var(--ds-text-disabled) !important;
+  --el-color-text-tertiary: var(--ds-text-tertiary);
+  --el-color-text-quaternary: var(--ds-text-disabled);
+  --el-color-text-placeholder: var(--ds-text-tertiary);
+  --el-table-empty-text-color: var(--ds-text-tertiary);
+
+  /* ---------- v2：EP 三大基础底色（此前全项目 0 处覆写） ----------
+   * --el-bg-color / -overlay / -page 没被覆写过 → 暗色下所有 .el-popper、
+   * .el-drawer、.el-table 固定列仍是 EP 出厂白底。这里在根目录一次补齐。
+   * 注意：玻璃浮层在自己的规则里把这三个改回 transparent，不受影响。 */
+  --el-bg-color: var(--ds-surface-1);
+  --el-bg-color-page: var(--ds-canvas);
+  --el-bg-color-overlay: var(--ds-surface-2);
 }
 
-/* === 暗色下 ElSelect / Dropdown 面板可见性修复（2026-09-08）===
- * 暗色模式下 el-select 下拉面板背景透明/白底不可见问题的根治
- * 统一通过 :root[data-theme='dark'] 强制覆写，突破 scoped 限制 */
-:root[data-theme='dark'] .el-select__popper {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-  box-shadow: var(--ds-shadow-md);
-}
-:root[data-theme='dark'] .el-select-dropdown__item {
-  background: transparent;
-  color: var(--ds-color-gray-200);
-}
-:root[data-theme='dark'] .el-select-dropdown__item.hover,
-:root[data-theme='dark'] .el-select-dropdown__item.highlighted {
-  background: var(--ds-color-gray-700);
-  color: var(--ds-color-gray-100);
-}
-:root[data-theme='dark'] .el-select-dropdown__item.selected {
-  background: rgba(59, 130, 246, 0.2);
-  color: var(--ds-color-primary-300);
-}
-:root[data-theme='dark'] .el-select__input.is-focus .el-select__tags,
-:root[data-theme='dark'] .el-input__wrapper.is-focus {
-  border-color: var(--ds-color-primary-400) !important;
-  box-shadow:
-    0 0 0 1px var(--ds-color-primary-400) inset,
-    0 0 0 3px rgba(96, 165, 250, 0.18) !important;
-}
-:root[data-theme='dark'] .el-cascader-panel {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
+/* === 暗色下 ElSelect / Dropdown / Cascader / Picker / Tooltip / Message 面板 ===
+ * v2：这一段原本把每个浮层都钉死在 --ds-color-gray-800(#1E293B 蓝灰) 上，
+ * 与 v2 的「中性炭灰 + 分层玻璃」是两套材质。现改为引用同一批玻璃 token ——
+ * 亮色作用域里的同名规则也引用同一批 token，因此**亮暗只需维护一处**。
+ * 玻璃层上的文字一律换用 --ds-glass-text-*（提案 §4.4：玻璃层与不透明表面的
+ * 「最差背景」不同，两套文字 token 不可混用）。 */
+:root[data-theme='dark'] .el-select__popper,
+:root[data-theme='dark'] .el-cascader-panel,
+:root[data-theme='dark'] .el-picker-panel,
+:root[data-theme='dark'] .el-tooltip__popper,
+:root[data-theme='dark'] .el-popover,
+:root[data-theme='dark'] .el-message {
+  background: var(--ds-glass-popover-bg);
+  border: 1px solid var(--ds-glass-popover-border);
+  box-shadow: var(--ds-glass-edge), var(--ds-e3);
+  color: var(--ds-glass-text-primary);
 }
 :root[data-theme='dark'] .el-cascader-menu {
-  background: var(--ds-color-gray-800);
-  border-right: 1px solid var(--ds-color-gray-700);
+  background: transparent;
+  border-right: 1px solid var(--ds-glass-popover-border);
 }
-:root[data-theme='dark'] .el-cascader-node {
-  color: var(--ds-color-gray-200);
-}
-:root[data-theme='dark'] .el-cascader-node:hover,
-:root[data-theme='dark'] .el-cascader-node.is-active {
-  background: var(--ds-color-gray-700);
-  color: var(--ds-color-gray-100);
-}
-:root[data-theme='dark'] .el-cascader-node__prefix {
-  color: var(--ds-color-gray-400);
-}
-
-/* === 暗色下 ElDatePicker / ElTimePicker 面板修复 === */
-:root[data-theme='dark'] .el-picker-panel {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-  box-shadow: var(--ds-shadow-md);
-}
+:root[data-theme='dark'] .el-select-dropdown__item,
+:root[data-theme='dark'] .el-cascader-node,
 :root[data-theme='dark'] .el-date-table td,
 :root[data-theme='dark'] .el-time-panel__content {
-  color: var(--ds-color-gray-200);
+  background: transparent;
+  color: var(--ds-glass-text-secondary);
 }
+/* 悬停 / 高亮：用「当前文字色 8%」的中性叠层，亮暗都成立，不需要两套值 */
+:root[data-theme='dark'] .el-select-dropdown__item.hover,
+:root[data-theme='dark'] .el-select-dropdown__item.highlighted,
+:root[data-theme='dark'] .el-cascader-node:hover,
+:root[data-theme='dark'] .el-cascader-node.is-active {
+  background: color-mix(in srgb, var(--ds-glass-text-primary) 8%, transparent);
+  color: var(--ds-glass-text-primary);
+}
+:root[data-theme='dark'] .el-select-dropdown__item.selected,
 :root[data-theme='dark'] .el-date-table td.today {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
 }
 :root[data-theme='dark'] .el-date-table td.current:not(.disabled) {
-  background: var(--ds-color-primary-500);
-  color: var(--ds-text-inverse);
+  background: var(--ds-accent);
+  color: var(--ds-accent-on);
+}
+:root[data-theme='dark'] .el-cascader-node__prefix {
+  color: var(--ds-glass-text-tertiary);
 }
 
-/* === 暗色下 ElTooltip / ElPopover 修复 ===
- * color 保留 !important：需覆盖亮色区 .el-tooltip__popper 的 color !important */
-:root[data-theme='dark'] .el-tooltip__popper,
-:root[data-theme='dark'] .el-popover {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-  color: var(--ds-color-gray-200) !important;
-  box-shadow: var(--ds-shadow-md);
-}
-
-/* === 暗色下 ElMessage / ElMessageBox / ElDialog 修复 === */
-:root[data-theme='dark'] .el-message {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-  color: var(--ds-color-gray-100);
-}
-:root[data-theme='dark'] .el-message-box {
-  background: var(--ds-color-gray-800);
-  color: var(--ds-color-gray-100);
-}
-:root[data-theme='dark'] .el-message-box__btns {
-  border-top: 1px solid var(--ds-color-gray-700);
-}
-:root[data-theme='dark'] .el-dialog {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-}
-
-/* === 暗色下 ElInput / ElSelect 组合框 focus 态增强 === */
-:root[data-theme='dark'] .el-input__wrapper.is-focus,
-:root[data-theme='dark'] .el-select .el-input__wrapper.is-focus {
-  border-color: var(--ds-color-primary-400) !important;
-  box-shadow:
-    0 0 0 1px var(--ds-color-primary-400) inset,
-    0 0 0 3px rgba(96, 165, 250, 0.18) !important;
-}
-
-/* === 暗色下 ElMenu 修复 === */
-:root[data-theme='dark'] .el-menu {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
+/* === 暗色下 ElMenu / ElTree（内联表面，不是浮层 → 用不透明面，不用玻璃） ===
+ * v2：不再逐个钉色，底色交给 --ds-bg-surface、文字交给 --ds-text-*，
+ * 这两个变量在暗色作用域里已经指向 v2 的 surface-1 / text-*。 */
+:root[data-theme='dark'] .el-menu,
+:root[data-theme='dark'] .el-tree {
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-default);
 }
 :root[data-theme='dark'] .el-menu-item,
-:root[data-theme='dark'] .el-sub-menu__title {
-  color: var(--ds-color-gray-200);
+:root[data-theme='dark'] .el-sub-menu__title,
+:root[data-theme='dark'] .el-tree-node__content {
+  color: var(--ds-text-secondary);
 }
 :root[data-theme='dark'] .el-menu-item:hover,
 :root[data-theme='dark'] .el-menu-item.is-active,
-:root[data-theme='dark'] .el-sub-menu__title:hover {
-  background: var(--ds-color-gray-700);
-  color: var(--ds-color-gray-100);
-}
-
-/* === 暗色下 ElTree 修复 === */
-:root[data-theme='dark'] .el-tree {
-  background: var(--ds-color-gray-800);
-  border: 1px solid var(--ds-color-gray-700);
-}
-:root[data-theme='dark'] .el-tree-node__content {
-  color: var(--ds-color-gray-200);
-}
+:root[data-theme='dark'] .el-sub-menu__title:hover,
 :root[data-theme='dark'] .el-tree-node__content:hover {
-  background: var(--ds-color-gray-700);
+  background: var(--ds-surface-inset);
+  color: var(--ds-text-primary);
 }
 :root[data-theme='dark'] .el-tree-node__expand-icon {
-  color: var(--ds-color-gray-400);
+  color: var(--ds-text-tertiary);
+}
+
+/* v2：弹窗 / 抽屉 / 对话框 = glass-overlay（与亮色作用域同一批 token） */
+:root[data-theme='dark'] .el-message-box {
+  background: var(--ds-glass-overlay-bg);
+  color: var(--ds-glass-text-primary);
+}
+:root[data-theme='dark'] .el-message-box__btns {
+  border-top: 1px solid var(--ds-glass-overlay-border);
+}
+:root[data-theme='dark'] .el-dialog {
+  background: var(--ds-glass-overlay-bg);
+  border: 1px solid var(--ds-glass-overlay-border);
 }
 
 /* === 暗色下硬编码白底卡片/面板类集中反色（2026-09-08） ===
@@ -2186,19 +2215,14 @@ label {
   border-color: var(--ds-color-gray-700) !important;
   color: var(--ds-color-gray-200) !important;
 }
-/* 顶栏/状态栏白色胶囊与全局搜索输入（scoped 无暗色段） */
-:root[data-theme='dark'] .sb-service,
-:root[data-theme='dark'] .sb-item,
+/* 顶栏胶囊与全局搜索输入（scoped 无暗色段）
+ * 注：.sb-service / .sb-item 已移出本组 —— 尾栏胶囊改为完全跟随 StatusBar.vue 的
+ * --ds-bg-surface / --ds-border-subtle（本就随主题解析），避免尾栏在亮暗下不同源。 */
 :root[data-theme='dark'] .tb-locale,
 :root[data-theme='dark'] .gs-input {
   background: var(--ds-color-dark-bg-4) !important;
   border-color: var(--ds-color-gray-700) !important;
   color: var(--ds-color-gray-300) !important;
-}
-:root[data-theme='dark'] .sb-service:hover,
-:root[data-theme='dark'] .sb-item:hover {
-  background: var(--ds-color-dark-bg-3) !important;
-  border-color: var(--ds-color-primary-400) !important;
 }
 /* 暗色下面板类：抽屉/弹窗/画布节点（白底大面积载体） */
 :root[data-theme='dark'] .drawer,
@@ -2219,101 +2243,69 @@ label {
   border-color: var(--ds-color-gray-600) !important;
   color: var(--ds-color-gray-300) !important;
 }
-/* 侧栏折叠钮（半透明白底在深色侧栏上突兀） */
+/* 侧栏折叠钮（v2：控件边界一律用 border-control，暗色下也保证 ≥3:1） */
 :root[data-theme='dark'] .side-collapse {
-  background: rgba(15, 23, 42, 0.55) !important;
-  border-color: rgba(148, 163, 184, 0.35) !important;
-  color: var(--ds-color-gray-300) !important;
+  background: var(--sidebar-hover-bg) !important;
+  border-color: var(--ds-border-control) !important;
+  color: var(--ds-glass-text-secondary) !important;
 }
 :root[data-theme='dark'] .side-collapse:hover {
-  background: rgba(99, 102, 241, 0.25) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--ds-glass-text-primary) !important;
 }
 
-/* 暗色下正文底布 */
+/* 暗色下正文底布（v2：与亮色一致 —— 单一 canvas 色，去掉蓝网格与渐变） */
 :root[data-theme='dark'] .view {
-  background:
-    linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-gray-900) 100%) !important;
-  background-size:
-    32px 32px,
-    32px 32px,
-    100% 100% !important;
+  background: var(--ds-canvas) !important;
 }
 
-/* 暗色下侧边栏/顶栏/品牌/菜单等用 !important 突破 scoped */
+/* 暗色下侧边栏/顶栏/品牌/菜单等用 !important 突破 scoped（v2：玻璃外壳） */
 :root[data-theme='dark'] body {
   background: var(--ds-bg-base) !important;
-  color: var(--ds-color-gray-200) !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .app {
   background: var(--ds-bg-base) !important;
 }
 :root[data-theme='dark'] .side {
-  background: var(--sidebar-bg) !important;
-  color: var(--sidebar-ink) !important;
-  border-right-color: rgba(148, 163, 184, 0.18) !important;
+  background: var(--ds-glass-chrome-bg) !important;
+  color: var(--ds-glass-text-primary) !important;
+  border-right-color: var(--ds-glass-chrome-border) !important;
 }
 :root[data-theme='dark'] .topbar {
-  background: var(--topbar-bg, linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%)) !important;
-  border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+  background: var(--ds-glass-chrome-bg) !important;
+  border-bottom-color: var(--ds-glass-chrome-border) !important;
 }
 :root[data-theme='dark'] .brand {
-  color: var(--ds-color-gray-200) !important;
-  border-bottom-color: rgba(148, 163, 184, 0.18) !important;
+  color: var(--ds-glass-text-primary) !important;
+  border-bottom-color: var(--ds-glass-chrome-border) !important;
 }
-:root[data-theme='dark'] .nav a {
-  color: var(--ds-color-gray-200) !important;
+:root[data-theme='dark'] :where(.side) .nav a {
+  color: var(--ds-glass-text-secondary) !important;
 }
-:root[data-theme='dark'] .nav a:hover {
-  background: rgba(148, 163, 184, 0.14) !important;
-  color: var(--ds-text-inverse) !important;
+:root[data-theme='dark'] :where(.side) .nav a:hover {
+  background: var(--sidebar-hover-bg) !important;
+  color: var(--ds-glass-text-primary) !important;
 }
-:root[data-theme='dark'] .nav a.active {
-  background: linear-gradient(
-    90deg,
-    rgba(59, 130, 246, 0.3) 0%,
-    rgba(99, 102, 241, 0.2) 100%
-  ) !important;
-  color: var(--ds-text-inverse) !important;
-  border-color: rgba(59, 130, 246, 0.5) !important;
+:root[data-theme='dark'] :where(.side) .nav a.active {
+  background: var(--ds-accent-soft) !important;
+  color: var(--ds-glass-text-primary) !important;
+  border-color: var(--ds-accent) !important;
 }
 :root[data-theme='dark'] .nav .grp {
-  color: var(--ds-color-primary-300) !important;
+  color: var(--ds-glass-text-tertiary) !important;
 }
 :root[data-theme='dark'] .side-foot {
-  background: rgba(11, 18, 32, 0.55) !important;
-  color: var(--ds-color-gray-300) !important;
-  border-top-color: rgba(148, 163, 184, 0.18) !important;
+  background: transparent !important;
+  color: var(--ds-glass-text-tertiary) !important;
+  border-top-color: var(--ds-glass-chrome-border) !important;
 }
 
-/* 暗色下 StatusBar 覆写（scoped 需 !important） */
-:root[data-theme='dark'] .statusbar {
-  background: linear-gradient(90deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 50%, var(--ds-color-gray-900) 100%) !important;
-  color: var(--ds-color-gray-300) !important;
-  border-top-color: rgba(99, 102, 241, 0.5) !important;
-}
-:root[data-theme='dark'] .sb-label,
-:root[data-theme='dark'] .sb-item.sb-ws,
-:root[data-theme='dark'] .sb-clock {
-  color: var(--ds-color-gray-200) !important;
-}
-:root[data-theme='dark'] .sb-service {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border-color: var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-300) !important;
-}
-:root[data-theme='dark'] .sb-item {
-  background: rgba(15, 23, 42, 0.6) !important;
-  border-color: var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-200) !important;
-}
-:root[data-theme='dark'] .sb-clock {
-  background: rgba(99, 102, 241, 0.15) !important;
-  border-color: var(--ds-color-info-500) !important;
-  color: var(--ds-color-primary-300) !important;
-}
+/* 状态栏（尾栏）**不再有暗色覆写**。
+ * 旧写法用 !important 把尾栏盖成蓝黑渐变（--ds-color-dark-bg-1/2 + --ds-color-gray-900）
+ * 并加 rgba(99,102,241,0.5) 靛蓝分割线，导致亮暗两套尾栏**不同源**：亮色走 StatusBar.vue
+ * 的中性 token，暗色走这套蓝黑硬编码。现统一由 StatusBar.vue 的 scoped 样式（全部 v2 语义
+ * token，随主题解析）作为唯一来源。详见 ui-refresh-fix2.md。 */
 
 /* 暗色下 RightPanel 覆写 */
 :root[data-theme='dark'] .rpanel {
@@ -2341,8 +2333,11 @@ label {
   border-top-color: rgba(148, 163, 184, 0.18) !important;
 }
 
-/* 暗色下顶栏与 brand 文案色 */
-:root[data-theme='dark'] .brand {
+/* 暗色下顶栏与 brand 文案色
+ * v2：这条原先是 `.brand` 全局选择器，会连侧栏里的 brand 一起染上蓝色渐变，
+ * 覆盖掉 `.side .brand { background: transparent }`。现在把它限定到登录页，
+ * 既保住 Login 的观感，又让侧栏 brand 真正透明。 */
+:root[data-theme='dark'] .login-page .brand {
   background: linear-gradient(
     135deg,
     rgba(59, 130, 246, 0.28) 0%,
@@ -2389,25 +2384,25 @@ label {
   color: var(--ds-color-gray-100) !important;
 }
 
-/* 暗色下 EP 表格 */
+/* 暗色下 EP 表格（v2：中性描边 + 表面分层，去掉品牌色描边与蓝色表头字） */
 :root[data-theme='dark'] .el-table {
-  background: var(--ds-color-gray-800);
-  border-color: var(--ds-color-primary-500);
+  background: var(--ds-surface-1);
+  border-color: var(--ds-border-default);
 }
 :root[data-theme='dark'] .el-table th.el-table__cell {
-  background: var(--ds-color-gray-700) !important;
-  border-bottom-color: var(--ds-color-primary-400) !important;
-  color: var(--ds-color-primary-300) !important;
+  background: var(--ds-surface-2) !important;
+  border-bottom-color: var(--ds-border-default) !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .el-table td.el-table__cell {
-  background: var(--ds-color-gray-800);
-  color: var(--ds-color-gray-200);
+  background: var(--ds-surface-1);
+  color: var(--ds-text-primary);
 }
 :root[data-theme='dark'] .el-table .el-table__row {
-  background: var(--ds-color-gray-800);
+  background: var(--ds-surface-1);
 }
 :root[data-theme='dark'] .el-table__row:hover > td {
-  background: var(--ds-color-gray-700) !important;
+  background: var(--ds-surface-3) !important;
 }
 
 /* ============================================================
@@ -2459,9 +2454,8 @@ label {
   position: fixed;
   inset: 0;
   z-index: 65;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  /* v2：遮罩统一用 --scrim，去掉 blur（理由同 .overlay） */
+  background: var(--ds-scrim);
   opacity: var(--ds-opacity-0);
   pointer-events: none;
   transition: opacity var(--ds-transition-moderate);
@@ -2495,14 +2489,12 @@ label {
   .app .side.is-open {
     transform: translateX(0);
   }
-  /* 移动端侧边栏抽屉遮罩层 */
+  /* 移动端侧边栏抽屉遮罩层（v2：统一 --scrim，去掉 blur） */
   .side-overlay {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: rgba(15, 23, 42, 0.55);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    background: var(--ds-scrim);
     animation: fadeIn var(--ds-transition-quick);
   }
   @keyframes fadeIn {
@@ -2653,5 +2645,525 @@ label {
   }
   .g3 {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ============================================================
+ * 跟随系统的暗色（theme.ts 的 "system" 档）—— 首屏 / 无脚本兜底
+ *
+ * 为什么需要这一块：
+ *   theme.ts（2026-09-21 修复后）会把 mode + 系统偏好解析成最终主题，并**始终**
+ *   写入 data-theme（system 档也写，不再移除属性）。因此本块在 JS 执行之后是
+ *   **冗余**的 —— 它唯一的职责是 JS 尚未执行的那段窗口（CSS 已解析、模块脚本
+ *   未跑）以及脚本完全不可用的极端情况：此时没有 data-theme，只能靠媒体查询
+ *   给出暗色，避免首屏闪白。
+ *   design-tokens.css 有对应的 @media 块（覆盖 --ds-* token），本块补齐
+ *   main.css 这一层 --el-* 与老变量。
+ *
+ * ⚠️ 本块声明必须与上方 `:root[data-theme='dark']` **逐条一致**（值 + !important）：
+ *   两者特异性相同（均为 0,2,0），而本块在源码中靠后 → 两者同时命中时**本块胜出**
+ *   （system + 系统暗色 时 data-theme='dark' 与媒体查询同时命中）。
+ *   一旦漂移，system 档就会与显式 data-theme='dark' 取到不同取值 ——
+ *   2026-09-21 修复前本块正是漏了 20 条声明、4 处取值不同，导致两者观感不一致。
+ *   守卫：scripts/check-dark-token-parity.py（CI: .github/workflows/ci.yml）。
+ * ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* 老变量别名（main.css 内部仍在用） */
+    --bg: var(--ds-bg-base);
+    --panel: var(--ds-color-gray-800);
+    --ink: var(--ds-color-gray-100);
+    --muted: var(--ds-color-gray-400);
+    --line: var(--ds-color-gray-700);
+    --c-white: var(--ds-color-gray-800);
+    --c-surface-hover: var(--ds-color-gray-800);
+    --c-surface-alt: var(--ds-color-dark-bg-1);
+    --c-surface: var(--ds-color-dark-bg-1);
+    --c-track: var(--ds-color-gray-700);
+
+    /* 外壳：v2 与亮色一致改用 glass-chrome 材质；深色渐变变量保留但不再引用 */
+    --sidebar-bg: var(--ds-glass-chrome-bg);
+    --sidebar-ink: var(--ds-glass-text-primary);
+    --sidebar-muted: var(--ds-glass-text-tertiary);
+    --sidebar-active-bg: var(--ds-accent-soft);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+    --sidebar-line: var(--ds-glass-chrome-border);
+    --glass-bg: var(--ds-glass-popover-bg);
+    --glass-border: var(--ds-glass-popover-border);
+    --topbar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%);
+
+    /* EP 文本色 */
+    --el-text-color-primary: var(--ds-color-gray-100);
+    --el-text-color-regular: var(--ds-color-gray-200);
+    --el-text-color-secondary: var(--ds-color-gray-300);
+    --el-text-color-placeholder: var(--ds-color-gray-400);
+    --el-text-color-disabled: var(--ds-color-gray-600);
+    --el-input-text-color: var(--ds-color-gray-100);
+    --el-input-placeholder-color: var(--ds-color-gray-400);
+
+    /* EP 表格 / 分页 / 弹窗文字 */
+    --el-table-text-color: var(--ds-color-gray-200);
+    --el-table-border-color: var(--ds-color-gray-700);
+    --el-table-header-text-color: var(--ds-text-secondary);
+    --el-table-row-hover-bg-color: var(--ds-bg-subtle);
+    --el-pagination-text-color: var(--ds-color-gray-300);
+    --el-dialog-content-color: var(--ds-color-gray-200);
+
+    /* 文字体系 Token 颜色翻转 */
+    --typo-color-h: var(--ds-color-gray-100);
+    --typo-color-body: var(--ds-color-gray-200);
+    --typo-color-caption: var(--ds-color-gray-300);
+    --typo-color-micro: var(--ds-color-gray-400);
+    --typo-color-th: var(--ds-text-secondary);
+    --typo-color-td: var(--ds-color-gray-200);
+
+    /* EP 底色 / 填充 */
+    --el-card-bg-color: var(--ds-bg-surface);
+    --el-fill-color: var(--ds-bg-muted);
+    --el-fill-color-light: var(--ds-bg-subtle);
+    --el-fill-color-lighter: var(--ds-bg-muted);
+    --el-fill-color-blank: var(--ds-bg-surface);
+
+    /* EP 边框 / 圆角 */
+    --el-border-color: var(--ds-border-default);
+    --el-border-color-light: var(--ds-border-subtle);
+    --el-border-color-lighter: var(--ds-border-subtle);
+    --el-border-color-dark: var(--ds-border-strong);
+    --el-border-color-focus: var(--ds-border-focus);
+    --el-border-width: var(--ds-border-width);
+    --el-border-width-strong: var(--ds-border-width-strong);
+    --el-border-radius-base: var(--ds-radius-md);
+    --el-border-radius-small: var(--ds-radius-sm);
+    --el-border-radius-round: var(--ds-radius-full);
+
+    /* 遮罩 */
+    --el-mask-color: var(--ds-scrim);
+    --el-overlay-color-lighter: var(--ds-scrim);
+
+    /* EP 三级及以下文字：亮色 :root 段有 7 个带 !important 的同名声明，
+     * 而自定义属性的级联里 !important 无条件胜出 —— 这里必须用同样的
+     * !important 覆写，否则暗色下这些文字仍是亮色取值（实测低至 1.68:1）。 */
+    --el-text-color-3: var(--ds-text-tertiary) !important;
+    --el-text-color-4: var(--ds-text-secondary) !important;
+    --el-text-color-5: var(--ds-text-tertiary) !important;
+    --el-text-color-6: var(--ds-text-tertiary) !important;
+    --el-text-color-7: var(--ds-text-tertiary) !important;
+    --el-text-color-8: var(--ds-text-disabled) !important;
+    --el-text-color-9: var(--ds-text-disabled) !important;
+    --el-color-text-tertiary: var(--ds-text-tertiary);
+    --el-color-text-quaternary: var(--ds-text-disabled);
+    --el-color-text-placeholder: var(--ds-text-tertiary);
+    --el-table-empty-text-color: var(--ds-text-tertiary);
+
+    /* EP 三大基础底色（popper / 抽屉 / 表格固定列） */
+    --el-bg-color: var(--ds-surface-1);
+    --el-bg-color-page: var(--ds-canvas);
+    --el-bg-color-overlay: var(--ds-surface-2);
+  }
+}
+
+/* ============================================================
+ * v2 玻璃外壳 · 浮层（glass-overlay / glass-popover）
+ *
+ * 依据提案 §1 原则 1「外壳透，内容实」：玻璃是**外壳材质**，只用于外壳与浮层。
+ * 承载表格 / 图表 / 日志 / 代码的容器一律保持不透明 —— 因此本段**不包含**
+ * .el-table、ECharts 容器、CodeMirror、.log 等任何数据密集选择器（提案 §2.2 黑名单）。
+ *
+ * 两层分工（提案 §5.1）：
+ *   glass-overlay  模态浮层（弹窗 / 抽屉 / 对话框）—— 有 scrim 垫底、面积大、alpha 0.84
+ *   glass-popover  瞬态浮层（菜单 / 下拉 / 气泡 / 提示 / 命令面板）
+ *                  —— 无 scrim 垫底、面积小、文字密度最高、背后内容最不可预测 → alpha 0.88
+ *
+ * 全部用 token 表达、不含任何硬编码颜色，因此亮 / 暗两套主题自动各自生效，
+ * 不需要在暗色段里再写一份。这顺带修掉了一个既有缺口：项目里 `:root[data-theme='dark']`
+ * 的浮层覆写对「跟随系统暗色」（theme.ts 的 system 档不写 data-theme）不生效。
+ *
+ * 玻璃层上的文字必须换用 --ds-glass-text-*（提案 §4.4）：
+ * 玻璃层的背景是**运行时合成结果**，其「最差背景」与不透明表面不同，两套文字 token
+ * 不可混用。实测最差一档：暗色 glass-overlay tertiary 4.91:1、亮色 5.36:1，均过 WCAG AA。
+ *
+ * 降级：本段所有选择器都在文件末尾的「四档降级」里登记了不透明等价色。
+ * ============================================================ */
+
+/* ---------- glass-overlay：模态浮层 ----------
+ * ⚠️ 关键教训（2026-09-16 返工）：**不要**把 --el-bg-color / -overlay / -dialog-bg-color
+ * 设成 transparent 来"防止内部再铺一层"。EP 有若干 (0,2,0) 复合选择器会读到它们：
+ *   .el-drawer { --el-drawer-bg-color: var(--el-dialog-bg-color, var(--el-bg-color)) }
+ *   .el-drawer { background-color: var(--el-drawer-bg-color) }          ← (0,1,0)
+ * 一旦两个源头都是 transparent，抽屉/对话框内部的表单与日志区会失去背景。
+ * 正确做法是**覆盖 EP 的组件级变量，让它等于玻璃色**，而不是清零。 */
+.el-dialog,
+.el-drawer,
+.el-message-box {
+  background: var(--ds-glass-overlay-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  border: 1px solid var(--ds-glass-overlay-border);
+  box-shadow: var(--ds-glass-edge), var(--ds-e4);
+  /* 玻璃层上的文字换用玻璃专用的一套 */
+  --el-text-color-primary: var(--ds-glass-text-primary);
+  --el-text-color-regular: var(--ds-glass-text-secondary);
+  --el-text-color-secondary: var(--ds-glass-text-tertiary);
+  --el-text-color-placeholder: var(--ds-glass-text-tertiary);
+  /* EP 组件级背景变量 → 指向玻璃色（不是 transparent） */
+  --el-dialog-bg-color: var(--ds-glass-overlay-bg);
+  --el-drawer-bg-color: var(--ds-glass-overlay-bg);
+  --el-bg-color-overlay: var(--ds-glass-overlay-bg);
+}
+/* .el-message-box 的背景读的是 --el-bg-color（EP: `.el-message-box{background:var(--el-bg-color)}`）。
+ * 只在这一个组件上把它指向玻璃色，避免污染浮层内部的表格 / 卡片（它们要继续保持不透明）。 */
+.el-message-box {
+  --el-bg-color: var(--ds-glass-overlay-bg);
+}
+
+/* ---------- 项目自带的 Modal / Drawer 组件（Teleport 到 body） ---------- */
+.modal {
+  background: var(--ds-glass-overlay-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  border: 1px solid var(--ds-glass-overlay-border);
+  box-shadow: var(--ds-glass-edge), var(--ds-e4);
+  color: var(--ds-glass-text-primary);
+}
+.drawer {
+  background: var(--ds-glass-overlay-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  backdrop-filter: blur(var(--ds-glass-overlay-blur)) saturate(var(--ds-glass-overlay-sat))
+    brightness(var(--ds-glass-overlay-brightness));
+  /* 抽屉贴着屏幕边缘：只要内侧一条发丝线，四边描边会在屏幕边缘留下多余线条 */
+  border-left: 1px solid var(--ds-glass-overlay-border);
+  /* 方向性阴影保留（表达"从右侧推入"），但基础色改为中性深灰，不再用蓝黑 */
+  box-shadow: var(--ds-glass-edge), -16px 0 40px rgba(16, 24, 40, 0.2);
+  color: var(--ds-glass-text-primary);
+}
+/* 模态内的分区线用玻璃描边色，不用不透明面的 --line */
+.modal .mh,
+.modal .mf,
+.drawer .dh {
+  border-color: var(--ds-glass-overlay-border);
+  /* v2：去掉标题栏的蓝紫渐变底 —— 浮层内部应保持安静，层次交给发丝线 */
+  background: transparent;
+}
+
+/* ---------- glass-popover：瞬态浮层 ----------
+ * ⚠️ 关键教训（2026-09-16 返工，与上面 overlay 同源）：
+ * 之前把 --el-bg-color-overlay 设成 transparent，结果 EP 这几条 **(0,2,0)** 复合选择器
+ * 把 background 解析成 transparent，**压过**了我们 (0,1,0) 的 background 声明：
+ *   .el-popover.el-popper            { background: var(--el-popover-bg-color) }
+ *                                      ← --el-popover-bg-color 在 .el-popover 上
+ *                                        声明为 var(--el-bg-color-overlay)
+ *   .el-select__popper.el-popper     { background: var(--el-bg-color-overlay) }   ← 直接读
+ *   .el-dropdown__popper.el-popper   { background: var(--el-bg-color-overlay) }   ← 直接读
+ *   .el-picker__popper.el-popper     { background: var(--el-bg-color-overlay) }   ← 直接读
+ *   .el-cascader__dropdown.el-popper { background: var(--el-cascader-menu-fill) } ← 间接读
+ *   .el-message.is-plain             { background: var(--el-bg-color-overlay) }   ← 直接读
+ *   .el-popper.is-light / .is-dark   { background: var(--el-popper-bg-color-*) }
+ * 症状：popover 只剩模糊、没有底色（"幽灵面板"）。修法不是堆 !important，
+ * 而是把 EP 的**组件级变量**指向玻璃色；内层容器再单独设为 transparent。 */
+.el-popper,
+.el-select__popper,
+.el-dropdown__popper,
+.el-tooltip__popper,
+.el-popover,
+.el-cascader__dropdown,
+.el-picker__popper,
+.el-picker-panel,
+.el-menu--popup,
+.el-message,
+.el-notification {
+  background: var(--ds-glass-popover-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  border: 1px solid var(--ds-glass-popover-border);
+  box-shadow: var(--ds-glass-edge), var(--ds-e3);
+  --el-text-color-primary: var(--ds-glass-text-primary);
+  --el-text-color-regular: var(--ds-glass-text-secondary);
+  --el-text-color-secondary: var(--ds-glass-text-tertiary);
+  --el-text-color-placeholder: var(--ds-glass-text-tertiary);
+  /* EP 组件级背景变量 → 全部指向玻璃色（各变量的声明位置见注释块） */
+  --el-bg-color-overlay: var(--ds-glass-popover-bg);
+  --el-popover-bg-color: var(--ds-glass-popover-bg);
+  --el-cascader-menu-fill: var(--ds-glass-popover-bg);
+  --el-datepicker-bg-color: var(--ds-glass-popover-bg);
+  --el-message-bg-color: var(--ds-glass-popover-bg);
+  --el-menu-bg-color: var(--ds-glass-popover-bg);
+  --el-popper-bg-color-light: var(--ds-glass-popover-bg);
+  --el-popper-bg-color-dark: var(--ds-glass-popover-bg);
+}
+/* 玻璃 popover 的**内层容器**必须透明：否则 alpha 会叠两层
+ * （0.88 → 1-(0.12²) ≈ 0.986），玻璃感直接消失，只剩一块近实心的板。
+ * 选择器提升到 (0,2,0) / (0,3,0)，压过 EP 的同名单类规则。 */
+.el-dropdown__popper .el-dropdown-menu,
+.el-picker__popper .el-picker-panel,
+.el-cascader__dropdown .el-cascader-panel,
+.el-cascader__dropdown .el-cascader-menu,
+.el-select__popper .el-select-dropdown {
+  background: transparent;
+  --el-bg-color-overlay: transparent;
+  --el-cascader-menu-fill: transparent;
+  --el-datepicker-bg-color: transparent;
+}
+.el-picker__popper .el-picker-panel .el-time-panel,
+.el-picker__popper .el-picker-panel__footer {
+  background: transparent;
+}
+/* 箭头（提案 §10.2 坑 #1）：.el-popper__arrow::before 会继承 --el-bg-color-overlay，
+ * 不显式指定的话箭头会变成一块不透明色块，或直接透明到看不见。 */
+.el-popper__arrow::before {
+  background: var(--ds-glass-popover-bg) !important;
+  border-color: var(--ds-glass-popover-border) !important;
+}
+.el-popper__arrow::after {
+  background: var(--ds-glass-popover-bg);
+}
+/* 菜单项 / 下拉项：常态 = 玻璃次文字，悬停 = 主文字 + 极弱中性叠层。
+ * 用「当前文字色 8%」而不是钉死的灰，亮暗两套主题都能成立。 */
+.el-select-dropdown__item,
+.el-dropdown-menu__item,
+.el-cascader-node,
+.el-menu--popup .el-menu-item {
+  color: var(--ds-glass-text-secondary);
+}
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item.highlighted,
+.el-dropdown-menu__item:not(.is-disabled):hover,
+.el-cascader-node:hover,
+.el-cascader-node.is-active,
+.el-menu--popup .el-menu-item:hover {
+  background: color-mix(in srgb, var(--ds-glass-text-primary) 8%, transparent);
+  color: var(--ds-glass-text-primary);
+}
+.el-select-dropdown__item.selected,
+.el-dropdown-menu__item.is-active {
+  background: var(--ds-accent-soft);
+  color: var(--ds-accent);
+}
+
+/* ============================================================
+ * v2 玻璃降级（四档，缺一不可）
+ *
+ * 玻璃是"外壳材质"。只要浏览器不支持、或环境/用户明确不要，
+ * 就必须退化为**不透明等价色**，且退化后对比度仍然达标
+ * （降级色已在提案 §4.6 复核：亮 18.26 / 9.56 / 7.57:1，暗 16.27 / 10.00 / 8.22:1）。
+ *
+ * 四档：
+ *   ① 不支持 backdrop-filter          → @supports not
+ *   ② 打印                             → @media print
+ *   ③ 显式不透明模式                    → html[data-chrome="opaque"]
+ *   ④ 系统"降低透明度"/"增强对比"偏好   → @media (prefers-reduced-transparency: reduce)
+ *
+ * 覆盖三层玻璃：chrome（侧栏/顶栏）、overlay（弹窗/抽屉/对话框）、
+ * popover（菜单/下拉/气泡/提示）。放在文件末尾：需要压过前面的暗色 !important 覆写。
+ * ============================================================ */
+
+/* ---------- ① 不支持 backdrop-filter ---------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .side,
+  .topbar {
+    background: var(--ds-glass-chrome-fallback) !important;
+    /* 显式关掉：便于测试断言"不支持时确实没有 filter"（行为上无害，但可验证） */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .el-dialog,
+  .el-drawer,
+  .el-message-box,
+  .modal,
+  .drawer {
+    background: var(--ds-glass-overlay-fallback) !important;
+  }
+  .glass,
+  .el-popper,
+  .el-select__popper,
+  .el-dropdown__popper,
+  .el-tooltip__popper,
+  .el-popover,
+  .el-cascader__dropdown,
+  .el-picker-panel,
+  .el-menu--popup,
+  .el-message,
+  .el-notification {
+    background: var(--ds-glass-popover-fallback) !important;
+  }
+}
+
+/* ---------- ② 打印 ---------- */
+@media print {
+  .side,
+  .topbar {
+    background: var(--ds-glass-chrome-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .el-dialog,
+  .el-drawer,
+  .el-message-box,
+  .modal,
+  .drawer {
+    background: var(--ds-glass-overlay-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .glass,
+  .el-popper,
+  .el-select__popper,
+  .el-dropdown__popper,
+  .el-tooltip__popper,
+  .el-popover,
+  .el-cascader__dropdown,
+  .el-picker-panel,
+  .el-menu--popup,
+  .el-message,
+  .el-notification {
+    background: var(--ds-glass-popover-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  /* 遮罩在打印时完全去掉（否则整页会蒙一层灰） */
+  .overlay,
+  .sidebar-overlay,
+  .side-overlay {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ---------- ③ 显式不透明模式：<html data-chrome="opaque"> ---------- */
+[data-chrome='opaque'] .side,
+[data-chrome='opaque'] .topbar {
+  background: var(--ds-glass-chrome-fallback) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-chrome='opaque'] .el-dialog,
+[data-chrome='opaque'] .el-drawer,
+[data-chrome='opaque'] .el-message-box,
+[data-chrome='opaque'] .modal,
+[data-chrome='opaque'] .drawer {
+  background: var(--ds-glass-overlay-fallback) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-chrome='opaque'] .glass,
+[data-chrome='opaque'] .el-popper,
+[data-chrome='opaque'] .el-select__popper,
+[data-chrome='opaque'] .el-dropdown__popper,
+[data-chrome='opaque'] .el-tooltip__popper,
+[data-chrome='opaque'] .el-popover,
+[data-chrome='opaque'] .el-cascader__dropdown,
+[data-chrome='opaque'] .el-picker-panel,
+[data-chrome='opaque'] .el-menu--popup,
+[data-chrome='opaque'] .el-message,
+[data-chrome='opaque'] .el-notification {
+  background: var(--ds-glass-popover-fallback) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ---------- ④ 系统"降低透明度"偏好 ---------- */
+@media (prefers-reduced-transparency: reduce) {
+  .side,
+  .topbar {
+    background: var(--ds-glass-chrome-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .el-dialog,
+  .el-drawer,
+  .el-message-box,
+  .modal,
+  .drawer {
+    background: var(--ds-glass-overlay-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass,
+  .el-popper,
+  .el-select__popper,
+  .el-dropdown__popper,
+  .el-tooltip__popper,
+  .el-popover,
+  .el-cascader__dropdown,
+  .el-picker-panel,
+  .el-menu--popup,
+  .el-message,
+  .el-notification {
+    background: var(--ds-glass-popover-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ---------- 补充：Vue 组件 scoped 样式里的硬编码玻璃 ----------
+ * main.css 管不到 .vue 的 scoped 块，而 TopBar / Login / Register 里有 4 处
+ * 自己写的半透明 + blur：`.ws-menu`、`.user-pop`（TopBar 下拉）、
+ * `.tb-capsule`（登录页导航胶囊）、`.reg-card`（注册页卡片）。
+ * 它们同样要在四档降级里退化为不透明色，否则打印 / 导出 / 低端终端上会塌成灰块。
+ * 用 !important 突破 scoped 选择器（`.ws-menu[data-v-xxx]`）的特异性。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ws-menu,
+  .user-pop {
+    background: var(--ds-glass-popover-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .tb-capsule,
+  .reg-card {
+    background: var(--ds-surface-1) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+@media print {
+  .ws-menu,
+  .user-pop {
+    background: var(--ds-glass-popover-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .tb-capsule,
+  .reg-card {
+    background: var(--ds-surface-1) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+}
+[data-chrome='opaque'] .ws-menu,
+[data-chrome='opaque'] .user-pop {
+  background: var(--ds-glass-popover-fallback) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+[data-chrome='opaque'] .tb-capsule,
+[data-chrome='opaque'] .reg-card {
+  background: var(--ds-surface-1) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ws-menu,
+  .user-pop {
+    background: var(--ds-glass-popover-fallback) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .tb-capsule,
+  .reg-card {
+    background: var(--ds-surface-1) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
