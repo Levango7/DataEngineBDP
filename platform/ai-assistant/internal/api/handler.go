@@ -1,10 +1,7 @@
 package api
 
 import (
-	"errors"
 	"net/http"
-	"regexp"
-	"strings"
 
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/config"
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/service"
@@ -12,34 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 只读 SQL 必须以 SELECT 或 WITH（CTE）开头。
-var readOnlySQLStart = regexp.MustCompile(`(?i)^\s*(SELECT|WITH)\b`)
-
-// 禁止的 DDL/DML/系统关键字（词边界匹配，避免误判列名/表名中包含的子串）。
-var forbiddenSQLPattern = regexp.MustCompile(
-	`(?i)\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|EXEC|EXECUTE|CALL|MERGE|REPLACE|RENAME|ATTACH|DETACH|PRAGMA|LOAD|SHUTDOWN|VACUUM|SET|LOCK|UNLOCK)\b`)
-
-// validateReadOnlySQL 校验 SQL 仅允许只读 SELECT 查询，禁止 DDL/DML 与多语句。
-// 防止用户通过 /execute 端点执行破坏性 SQL（如 DROP TABLE、DELETE、UPDATE 等）。
-func validateReadOnlySQL(sql string) error {
-	s := strings.TrimSpace(sql)
-	if s == "" {
-		return errors.New("SQL 不能为空")
-	}
-	// 禁止多语句（分号分隔），防止语句拼接注入。
-	if strings.Contains(s, ";") {
-		return errors.New("禁止多语句执行")
-	}
-	// 必须以 SELECT 或 WITH 开头（只读查询）。
-	if !readOnlySQLStart.MatchString(s) {
-		return errors.New("仅允许只读 SELECT 查询")
-	}
-	// 禁止任何 DDL/DML/系统关键字。
-	if forbiddenSQLPattern.MatchString(s) {
-		return errors.New("SQL 包含禁止的写操作关键字")
-	}
-	return nil
-}
+// 只读 SQL 校验统一走 service.ValidateReadOnlySQL。
+//
+// 此前本包维护了一份逐字相同的私有副本（readOnlySQLStart / forbiddenSQLPattern /
+// validateReadOnlySQL），注释声称是为「避免 api→service 循环依赖」而复制的。
+// 但本文件第 10 行已经 import 了 internal/service，该循环依赖并不存在，
+// 复制前提已失效。保留两份实现意味着安全规则必须改两次，
+// 漏改一份就会让 /execute 的写操作防线出现缺口，因此删除副本改为复用。
 
 // AssistantHandler AI 助手 HTTP handler。
 type AssistantHandler struct {
@@ -176,7 +152,7 @@ func (h *AssistantHandler) execute(c *gin.Context) {
 		return
 	}
 	// SQL 只读校验：在转发给下游 sql-gateway 前拦截破坏性 SQL。
-	if err := validateReadOnlySQL(req.SQL); err != nil {
+	if err := service.ValidateReadOnlySQL(req.SQL); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
