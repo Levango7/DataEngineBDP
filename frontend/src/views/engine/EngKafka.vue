@@ -112,7 +112,12 @@
           />
           <el-table-column :label="t('engines.kafka.broker.columns.status')" width="120">
             <template #default="{ row }">
-              <StatusTag :status="row.status" :label="t(`engines.kafka.broker.status.${row.status}`, row.status)" :status-map="BROKER_STATUS_TAG_TYPE_MAP" size="small" />
+              <StatusTag
+                :status="row.status"
+                :label="t(`engines.kafka.broker.status.${row.status}`, row.status)"
+                :status-map="BROKER_STATUS_TAG_TYPE_MAP"
+                size="small"
+              />
             </template>
           </el-table-column>
           <el-table-column
@@ -224,7 +229,12 @@
           </el-table-column>
           <el-table-column :label="t('engines.kafka.group.columns.status')" width="160">
             <template #default="{ row }">
-              <StatusTag :status="row.status.toUpperCase()" :label="t(`engines.kafka.group.status.${row.status}`, row.status)" :status-map="GROUP_STATUS_TAG_TYPE_MAP" size="small" />
+              <StatusTag
+                :status="row.status.toUpperCase()"
+                :label="t(`engines.kafka.group.status.${row.status}`, row.status)"
+                :status-map="GROUP_STATUS_TAG_TYPE_MAP"
+                size="small"
+              />
             </template>
           </el-table-column>
           <el-table-column

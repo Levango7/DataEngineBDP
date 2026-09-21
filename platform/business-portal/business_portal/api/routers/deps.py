@@ -77,12 +77,14 @@ def get_current_tenant(
                 detail="缺少租户上下文（X-Tenant-Id）",
             )
         return tenant_id
-    # jwt 模式：fail-closed — 缺少 tenantId 声明时拒绝访问
+    # jwt 模式：fail-closed — 缺少 tenantId 声明时拒绝访问。
+    # 语义：凭据本身缺少必需声明 → 属「未认证」而非「已认证但无权限」，故返回 401。
+    # 403 保留给已通过认证、但被租户隔离/归属校验拒绝的情形（如非成员访问、非 owner 修改）。
     tenant_id = ctx.tenantId or None
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="缺少租户上下文（JWT tenantId）",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少租户上下文（JWT tenantId 声明）",
         )
     return tenant_id
 

@@ -1,10 +1,12 @@
 package com.levango7.dataenginebdp.ruleengine.agent.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.ruleengine.agent.core.Agent;
 import com.levango7.dataenginebdp.ruleengine.agent.core.AgentContext;
 import com.levango7.dataenginebdp.ruleengine.agent.core.AgentResult;
 import com.levango7.dataenginebdp.ruleengine.agent.service.AgentService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,6 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AgentControllerTest {
 
+    private static final String TEST_TENANT_ID = "test-tenant";
+
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -47,7 +51,16 @@ class AgentControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R10/R11 加固后 fail-closed（缺 TenantContext 直接拒绝）。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(agentController).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test

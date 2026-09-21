@@ -1,6 +1,8 @@
 package com.levango7.dataenginebdp.federated.transaction;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,14 +43,25 @@ class TransactionControllerTest {
             "cluster-a", "http://a:8090",
             "cluster-b", "http://b:8090");
 
+    private static final String TEST_TENANT_ID = "test-tenant";
+
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R10 加固后 fail-closed（缺 TenantContext 直接拒绝）。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         client = mock(ClusterTransactionClient.class);
         protocol = new TwoPhaseCommitProtocol(client, 2000, 2000, 3, 50);
         snapshotIsolation = new IcebergSnapshotIsolation();
         coordinator = new TransactionCoordinator(protocol, snapshotIsolation);
         controller = new TransactionController(coordinator);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test

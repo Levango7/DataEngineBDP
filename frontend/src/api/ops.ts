@@ -17,7 +17,7 @@ export type OpsJobStatus = 'running' | 'success' | 'failed' | 'pending'
 export const AlertAction = {
   HANDLE: 'handle',
   ACKNOWLEDGE: 'acknowledge',
-  RESOLVE: 'resolve',
+  RESOLVE: 'resolve'
 } as const
 
 /** 告警级别 */

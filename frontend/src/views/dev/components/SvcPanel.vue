@@ -41,7 +41,11 @@
       />
       <el-table-column :label="t('devMl.svcPanel.columns.status')" width="100">
         <template #default="{ row }">
-          <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusMap" />
+          <StatusTag
+            :status="row.status"
+            :label="statusLabel(row.status)"
+            :status-map="statusMap"
+          />
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.svcPanel.columns.replicas')" width="110" align="center">

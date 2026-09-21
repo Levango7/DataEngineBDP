@@ -209,7 +209,13 @@
           >
             <el-button type="primary">{{ t('kb.docModal.upload') }}</el-button>
           </el-upload>
-          <span style="color: var(--ds-text-secondary); font-size: var(--ds-font-size-xs); margin-left: 8px">
+          <span
+            style="
+              color: var(--ds-text-secondary);
+              font-size: var(--ds-font-size-xs);
+              margin-left: 8px;
+            "
+          >
             {{ t('kb.docModal.uploadHint') }}
           </span>
         </template>

@@ -78,7 +78,8 @@
             <div class="session-info">
               <div class="session-title">{{ s.title }}</div>
               <div class="session-meta">
-                {{ formatDate(s.updatedAt) }} · {{ s.messageCount }} {{ t('aiAssistant.page.msgs') }}
+                {{ formatDate(s.updatedAt) }} · {{ s.messageCount }}
+                {{ t('aiAssistant.page.msgs') }}
               </div>
             </div>
             <el-dropdown trigger="click" @command="(cmd: string) => onSessionCommand(cmd, s.id)">
@@ -105,7 +106,6 @@
       <main class="ai-chat">
         <ChatPanel
           :messages="messages"
-
           :loading="loading"
           :streaming="streaming"
           :example-prompts="examplePrompts"

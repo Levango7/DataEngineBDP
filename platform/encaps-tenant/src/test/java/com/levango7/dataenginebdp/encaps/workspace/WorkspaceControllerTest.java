@@ -1,6 +1,8 @@
 package com.levango7.dataenginebdp.encaps.workspace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class WorkspaceControllerTest {
 
+    /** 与 {@code sampleWorkspace} 中的 tenantId 保持一致（控制器从 TenantContext 取租户并校验归属）。 */
+    private static final String TEST_TENANT_ID = "100";
+
     private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -41,7 +46,16 @@ class WorkspaceControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R8 加固后 tenantId 一律取自 TenantContext，缺失返回 401。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(workspaceController).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     private Workspace sampleWorkspace(Long id, String name) {
@@ -82,7 +96,7 @@ class WorkspaceControllerTest {
         Workspace w1 = sampleWorkspace(1L, "ws-1");
         Workspace w2 = sampleWorkspace(2L, "ws-2");
 
-        when(workspaceService.listWorkspaces(null)).thenReturn(List.of(w1, w2));
+        when(workspaceService.listWorkspaces(100L)).thenReturn(List.of(w1, w2));
 
         // 分页契约：返回 {list,total,page,size}（对齐前端 PagedResult）
         mockMvc.perform(get("/api/v1/workspaces"))
@@ -136,6 +150,7 @@ class WorkspaceControllerTest {
 
         Workspace updated = sampleWorkspace(1L, "updated-name");
 
+        when(workspaceService.getWorkspace(1L)).thenReturn(Optional.of(sampleWorkspace(1L, "old-name")));
         when(workspaceService.updateWorkspace(any(Long.class), any(Workspace.class)))
                 .thenReturn(Optional.of(updated));
 
@@ -153,8 +168,8 @@ class WorkspaceControllerTest {
         input.setName("some-name");
         input.setTenantId(100L);
 
-        when(workspaceService.updateWorkspace(any(Long.class), any(Workspace.class)))
-                .thenReturn(Optional.empty());
+        // 生产先按 (id, tenantId) 校验归属，不存在直接 404，不再走到 update
+        when(workspaceService.getWorkspace(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/v1/workspaces/999")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -165,6 +180,7 @@ class WorkspaceControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/workspaces/{id} — 存在时返回 204")
     void delete_existingId_shouldReturn204() throws Exception {
+        when(workspaceService.getWorkspace(1L)).thenReturn(Optional.of(sampleWorkspace(1L, "ws-1")));
         when(workspaceService.deleteWorkspace(1L)).thenReturn(true);
 
         mockMvc.perform(delete("/api/v1/workspaces/1"))
@@ -174,7 +190,8 @@ class WorkspaceControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/workspaces/{id} — 不存在时返回 404")
     void delete_nonExistingId_shouldReturn404() throws Exception {
-        when(workspaceService.deleteWorkspace(999L)).thenReturn(false);
+        // 生产先按 (id, tenantId) 校验归属，不存在直接 404，不再走到 delete
+        when(workspaceService.getWorkspace(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(delete("/api/v1/workspaces/999"))
                 .andExpect(status().isNotFound());
@@ -183,6 +200,7 @@ class WorkspaceControllerTest {
     @Test
     @DisplayName("GET /api/v1/workspaces/{id}/status — 返回 K8s Namespace 状态")
     void status_shouldReturnK8sStatus() throws Exception {
+        when(workspaceService.getWorkspace(1L)).thenReturn(Optional.of(sampleWorkspace(1L, "ws-1")));
         when(workspaceService.getK8sStatus(1L)).thenReturn("Active");
 
         mockMvc.perform(get("/api/v1/workspaces/1/status"))
@@ -193,10 +211,33 @@ class WorkspaceControllerTest {
     @Test
     @DisplayName("GET /api/v1/workspaces/{id}/status — Workspace 不存在时返回 NotFound")
     void status_nonExisting_shouldReturnNotFound() throws Exception {
+        // Workspace 存在且属于当前租户，但底层 K8s Namespace 已不存在
+        when(workspaceService.getWorkspace(999L)).thenReturn(Optional.of(sampleWorkspace(999L, "gone")));
         when(workspaceService.getK8sStatus(999L)).thenReturn("NotFound");
 
         mockMvc.perform(get("/api/v1/workspaces/999/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("NotFound"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/workspaces/{id} — 缺租户上下文时 fail-closed 返回 401（R8 安全语义）")
+    void get_withoutTenantContext_shouldReturn401() throws Exception {
+        TenantContext.clear();
+
+        mockMvc.perform(get("/api/v1/workspaces/1"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/workspaces/{id} — 跨租户访问返回 404（R8 租户隔离）")
+    void get_otherTenantWorkspace_shouldReturn404() throws Exception {
+        Workspace other = sampleWorkspace(1L, "other-tenant-ws");
+        other.setTenantId(999L);
+
+        when(workspaceService.getWorkspace(1L)).thenReturn(Optional.of(other));
+
+        mockMvc.perform(get("/api/v1/workspaces/1"))
+                .andExpect(status().isNotFound());
     }
 }

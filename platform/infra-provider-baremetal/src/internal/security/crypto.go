@@ -1,4 +1,3 @@
-package main
 // Package security 提供凭据加密/解密与脱敏工具。
 //
 // 使用 AES-256-GCM 对称加密（仅依赖 Go 标准库 crypto/aes + crypto/cipher），

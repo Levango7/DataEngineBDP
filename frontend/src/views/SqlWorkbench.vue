@@ -447,8 +447,6 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'danger' | 'in
   FAILED: 'danger'
 }
 
-
-
 /** 源标签类型 */
 function sourceTagType(source: string): 'primary' | 'success' | 'warning' | 'info' {
   switch (source) {

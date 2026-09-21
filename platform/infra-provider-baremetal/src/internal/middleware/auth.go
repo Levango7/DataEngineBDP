@@ -5,6 +5,7 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -15,6 +16,71 @@ import (
 
 	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
+
+const (
+	// minJWTSigningKeyLen JWT HMAC(HS256) 签名密钥最小长度（字节）。
+	// 密钥短于 32 字节时抗离线暴力破解能力显著下降。
+	// 与 config/config.yaml 中「JWT 签名密钥（≥32 字节）」的约定保持一致。
+	minJWTSigningKeyLen = 32
+
+	// jwtSigningKeyEnv JWT 签名密钥环境变量名。
+	jwtSigningKeyEnv = "JWT_SIGNING_KEY"
+
+	// jwtDevModeEnv 开发模式开关环境变量名。
+	// 仅允许在本地开发/CI 场景置为 true，用于放宽密钥强度校验并打印告警；
+	// 生产环境必须保持未设置或 false。
+	jwtDevModeEnv = "JWT_DEV_MODE"
+)
+
+// checkJWTSigningKey 校验 JWT 签名密钥强度，dev 模式下放宽但必须告警。
+//
+// 校验规则：
+//   - 空密钥：非 dev 模式返回错误（消息含 "required"）；dev 模式放行并告警
+//   - 长度 < minJWTSigningKeyLen：非 dev 模式返回错误（消息含 "too short"）；dev 模式放行并告警
+//   - 长度 >= minJWTSigningKeyLen：通过，且不产生任何告警
+//
+// warn 为 dev 模式放行时的告警回调，其首个参数为完整消息（非格式串）；
+// 传 nil 表示不告警。
+func checkJWTSigningKey(secret string, devMode bool, warn func(string, ...any)) error {
+	// dev 模式放行前统一告警，确保弱密钥不会静默生效。
+	warnIfDev := func(reason string) {
+		if warn == nil {
+			return
+		}
+		warn("SECURITY WARNING: weak JWT signing key (" + reason +
+			"); accepted only because JWT_DEV_MODE=true (never enable this in production)")
+	}
+
+	if secret == "" {
+		if devMode {
+			warnIfDev("empty")
+			return nil
+		}
+		return errors.New("JWT signing key is required: set " + jwtSigningKeyEnv +
+			" to at least " + fmt.Sprintf("%d", minJWTSigningKeyLen) + " bytes")
+	}
+	if len(secret) < minJWTSigningKeyLen {
+		if devMode {
+			warnIfDev(fmt.Sprintf("%d bytes", len(secret)))
+			return nil
+		}
+		return fmt.Errorf("JWT signing key too short: got %d bytes, must be at least %d bytes",
+			len(secret), minJWTSigningKeyLen)
+	}
+	return nil
+}
+
+// ValidateJWTSigningKey 校验 JWT 签名密钥强度，是 checkJWTSigningKey 的环境感知入口。
+//
+// dev 模式由环境变量 JWT_DEV_MODE=true 开启：放宽强度校验，但向 stderr 打印告警。
+// 应在应用启动早期（构造 JWTAuthenticator 之前）调用，
+// 确保生产环境不会带着弱密钥/空密钥启动服务。
+func ValidateJWTSigningKey(secret string) error {
+	devMode := strings.EqualFold(strings.TrimSpace(os.Getenv(jwtDevModeEnv)), "true")
+	return checkJWTSigningKey(secret, devMode, func(msg string, _ ...any) {
+		fmt.Fprintln(os.Stderr, msg)
+	})
+}
 
 // JWTAuthenticator JWT签发与校验器
 type JWTAuthenticator struct {

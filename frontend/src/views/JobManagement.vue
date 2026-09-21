@@ -469,7 +469,6 @@ function statusLabel(status: JobStatus): string {
   return JOB_STATUSES.includes(status) ? t(`jobmgmt.status.${status}`) : status
 }
 
-
 /** 耗时格式化 */
 function formatDuration(seconds?: number): string {
   if (!seconds && seconds !== 0) return '--'

@@ -158,3 +158,6 @@ platform/batch-pipeline/dashboard/data.js
 
 # Storybook 构建产物（不入库）
 storybook-static/
+
+# vite/vitest 临时产物（配置文件热更新生成）
+frontend/vitest.config.ts.timestamp-*.mjs

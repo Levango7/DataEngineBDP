@@ -342,9 +342,12 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
       const upper = code.toUpperCase().trim()
       const invite = this.invites.find((i) => i.code === upper)
       if (!invite) return { ok: false, error: t('tenantAdmin.invite.notFound') }
-      if (invite.status === 'CANCELLED') return { ok: false, invite, error: t('tenantAdmin.invite.cancelled') }
-      if (invite.status === 'ACTIVE') return { ok: false, invite, error: t('tenantAdmin.invite.used') }
-      if (invite.status === 'EXPIRED') return { ok: false, invite, error: t('tenantAdmin.invite.expired') }
+      if (invite.status === 'CANCELLED')
+        return { ok: false, invite, error: t('tenantAdmin.invite.cancelled') }
+      if (invite.status === 'ACTIVE')
+        return { ok: false, invite, error: t('tenantAdmin.invite.used') }
+      if (invite.status === 'EXPIRED')
+        return { ok: false, invite, error: t('tenantAdmin.invite.expired') }
       if (new Date(invite.expiresAt) < new Date()) {
         invite.status = 'EXPIRED'
         this.persist()

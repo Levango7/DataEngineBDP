@@ -1,5 +1,7 @@
 package com.levango7.dataenginebdp.federated.governance;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class GovernanceControllerTest {
 
+    private static final String TEST_TENANT_ID = "test-tenant";
+
     private MockMvc mockMvc;
 
     @Mock
@@ -55,7 +59,16 @@ class GovernanceControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R10 加固后 fail-closed（缺 TenantContext 直接拒绝）。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test
@@ -180,7 +193,8 @@ class GovernanceControllerTest {
                         .content("{\"name\":\"not_null\",\"dimension\":\"COMPLETENESS\","
                                 + "\"expression\":\"id IS NOT NULL\",\"severity\":\"ERROR\","
                                 + "\"enabled\":true,\"template\":false}"))
-                .andExpect(status().isOk())
+                // 生产已按 REST 规范改为 201 CREATED（见 GovernanceController#createQualityRule 注释）
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.ruleId").value("rule-1"));
     }
 

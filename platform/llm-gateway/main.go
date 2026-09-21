@@ -60,6 +60,15 @@ func main() {
 		port = defaultPort
 	}
 
+	// 安全止血：校验 JWT 签名密钥强度，弱密钥 log.Fatal 拒绝启动（退出码 1）。
+	//
+	// 与 catalog / ai-assistant 的启动时 fail-fast 范式对齐（见
+	// platform/catalog/internal/middleware/auth.go 的 32 字节长度校验）：
+	// HS256 密钥过短会显著降低 HMAC 离线暴力破解成本。
+	// JWT_DEV_MODE=true 时放宽校验并打印告警，仅供本地开发，严禁用于生产。
+	// 必须在注册 middleware.AuthMiddleware() 之前完成，避免带着弱密钥放行流量。
+	middleware.ValidateJWTSigningKey()
+
 	// 2. 结构化 JSON 日志。
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)

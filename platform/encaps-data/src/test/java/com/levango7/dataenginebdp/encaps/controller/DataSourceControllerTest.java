@@ -41,6 +41,21 @@ class DataSourceControllerTest {
 
     private static final byte[] TEST_KEY = new byte[32]; // 全零测试密钥（仅用于单元测试）
 
+    /**
+     * 测试用主机地址：RFC 5737 文档保留段（TEST-NET-1/3）的公网 IP 字面量。
+     *
+     * <p>本组用例验证的是 CRUD / 409 幂等 / 租户隔离语义，host 只是 incidental 测试数据。
+     * 原先写的 {@code db.internal}、{@code new-host} 是占位主机名，SsrfGuard 会对其做
+     * DNS 解析，在 CI runner 与本机都无法解析 → 抛 {@code SsrfBlockedException("无法解析主机名")}，
+     * 用例因此以 4 个 Error 失败。改用文档段 IP 字面量后：SsrfGuard 走 IP 字面量分支
+     * （不触发 DNS），且不落入任何内网阻断段，行为在任何环境都可确定复现。
+     * 注意：SSRF 防护本身未被绕过或放宽，SsrfGuard 仍照常执行校验。</p>
+     */
+    private static final String TEST_NET_HOST = "192.0.2.10";
+
+    /** 更新用例用的另一个文档段地址（同上，避免依赖 DNS）。 */
+    private static final String TEST_NET_HOST_UPDATED = "198.51.100.20";
+
     private DataSourceController controller() {
         return new DataSourceController(repository, new CredentialEncryptor(TEST_KEY));
     }
@@ -65,7 +80,7 @@ class DataSourceControllerTest {
     @Test
     void create_persistsAndHidesPassword() {
         var resp = controller().create(new DataSourceController.DataSourceRequest(
-                "订单库", "mysql", "db.internal", 3306, "orders", "root", "p@ss"));
+                "订单库", "mysql", TEST_NET_HOST, 3306, "orders", "root", "p@ss"));
 
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
         Map<String, Object> view = resp.getBody();
@@ -97,12 +112,12 @@ class DataSourceControllerTest {
     void update_keepsPasswordWhenBlank() {
         DataSourceEntity e = seed("keep-pwd", "tenant_a");
         var resp = controller().update(e.getId(), new DataSourceController.DataSourceRequest(
-                "keep-pwd-renamed", "mysql", "new-host", 3306, null, "root", null));
+                "keep-pwd-renamed", "mysql", TEST_NET_HOST_UPDATED, 3306, null, "root", null));
 
         assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
         DataSourceEntity updated = repository.findById(e.getId()).orElseThrow();
         assertThat(updated.getPassword()).isEqualTo("secret-pwd"); // 密码留空不覆盖
-        assertThat(updated.getHost()).isEqualTo("new-host");
+        assertThat(updated.getHost()).isEqualTo(TEST_NET_HOST_UPDATED);
     }
 
     @Test
@@ -110,7 +125,7 @@ class DataSourceControllerTest {
         seed("dup-ds", "tenant_a");
 
         var resp = controller().create(new DataSourceController.DataSourceRequest(
-                "dup-ds", "mysql", "db.internal", 3306, "orders", "root", "p@ss"));
+                "dup-ds", "mysql", TEST_NET_HOST, 3306, "orders", "root", "p@ss"));
 
         // A3 幂等性：同租户同名 → 409 + messageKey（前端 i18n 翻译）
         assertThat(resp.getStatusCode().value()).isEqualTo(409);
@@ -129,7 +144,7 @@ class DataSourceControllerTest {
         // A3 幂等边界：唯一性是"租户内"，跨租户同名合法
         TenantContext.setTenantId("tenant_b");
         var resp = controller().create(new DataSourceController.DataSourceRequest(
-                "shared-name", "mysql", "db.internal", 3306, "orders", "root", "p@ss"));
+                "shared-name", "mysql", TEST_NET_HOST, 3306, "orders", "root", "p@ss"));
 
         assertThat(resp.getStatusCode().value()).isEqualTo(201);
         assertThat(repository.countByTenantId("tenant_b")).isEqualTo(1);

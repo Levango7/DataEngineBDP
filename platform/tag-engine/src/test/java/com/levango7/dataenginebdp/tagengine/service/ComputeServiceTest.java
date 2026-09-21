@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.tagengine.service;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.tagengine.model.ComputeRequest;
 import com.levango7.dataenginebdp.tagengine.model.TagComputeResult;
 import com.levango7.dataenginebdp.tagengine.model.TagDefinition;
@@ -9,6 +10,7 @@ import com.levango7.dataenginebdp.tagengine.model.TagType;
 import com.levango7.dataenginebdp.tagengine.repository.TagDefinitionRepository;
 import com.levango7.dataenginebdp.tagengine.repository.TagRuleRepository;
 import com.levango7.dataenginebdp.tagengine.store.mock.MockTagStore;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @DisplayName("ComputeService 标签计算集成测试")
 class ComputeServiceTest {
 
+    /** 本组用例全部在租户 t1 下进行；Service 层已 fail-closed，缺上下文会抛异常。 */
+    private static final String TEST_TENANT_ID = "t1";
+
     @Autowired private ComputeService computeService;
     @Autowired private TagService tagService;
     @Autowired private MockTagStore mockTagStore;
@@ -39,9 +44,18 @@ class ComputeServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Service 层（R8 租户隔离补齐）一律从 TenantContext 取租户，测试须显式注入
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         tagRuleRepo.deleteAll();
         tagDefRepo.deleteAll();
         mockTagStore.clear();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 必须清理 ThreadLocal，避免线程池复用导致后续测试串号
+        TenantContext.clear();
     }
 
     @Test

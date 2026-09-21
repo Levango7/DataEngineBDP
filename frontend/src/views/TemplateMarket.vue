@@ -289,11 +289,9 @@
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-icon
-                    v-if="row.required"
-                    :style="{ color: 'var(--ds-color-success-500)' }"
-                    ><Check /></el-icon
-                  >
+                  <el-icon v-if="row.required" :style="{ color: 'var(--ds-color-success-500)' }">
+                    <Check />
+                  </el-icon>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
@@ -679,7 +677,6 @@ const TEMPLATE_STATUS_TAG_MAP: Record<TemplateStatus, 'success' | 'warning' | 'i
   catalog: 'success',
   deprecated: 'info'
 }
-
 
 const PARAM_TYPE_TAG_MAP: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
   string: 'info',

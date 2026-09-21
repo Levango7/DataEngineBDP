@@ -34,11 +34,7 @@
         </div>
         <label>{{ t('sql.aiAssist') }}</label>
         <div style="display: flex; gap: 6px">
-          <el-input
-            v-model="aiInput"
-            :placeholder="t('sql.aiPlaceholder')"
-            style="flex: 1"
-          />
+          <el-input v-model="aiInput" :placeholder="t('sql.aiPlaceholder')" style="flex: 1" />
           <button class="btn ghost sm" @click="handleAiGenerate">
             {{ t('sql.aiGenerate') }}
           </button>

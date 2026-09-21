@@ -1,8 +1,11 @@
 package com.levango7.dataenginebdp.tagengine.service;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.tagengine.model.TagQuery;
 import com.levango7.dataenginebdp.tagengine.model.UserProfile;
 import com.levango7.dataenginebdp.tagengine.store.TagStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +18,8 @@ import java.util.List;
  */
 @Service
 public class ProfileService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProfileService.class);
 
     private final TagStore tagStore;
 
@@ -41,22 +46,46 @@ public class ProfileService {
     }
 
     /**
-     * 按标签条件查询用户列表。
+     * 按标签条件查询用户列表（租户隔离：tenantId 强制取当前租户）。
+     *
+     * <p>R8 租户隔离补齐：查询条件里的 {@code tenantId} 一律被当前租户覆盖，
+     * 防止调用方（含非 HTTP 调用方）用别的租户 ID 捞画像。</p>
      *
      * @param query 标签查询条件
-     * @return 命中用户画像列表
+     * @return 命中用户画像列表（仅当前租户）
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public List<UserProfile> queryByTags(TagQuery query) {
+        query.setTenantId(requireTenant());
         return tagStore.queryByTags(query);
     }
 
     /**
-     * 按标签条件统计用户数。
+     * 按标签条件统计用户数（租户隔离：tenantId 强制取当前租户）。
      *
      * @param query 标签查询条件
-     * @return 命中用户数
+     * @return 命中用户数（仅当前租户）
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public long countByTags(TagQuery query) {
+        query.setTenantId(requireTenant());
         return tagStore.countByTags(query);
+    }
+
+    /**
+     * 取当前租户 ID；缺失时 fail-closed 抛异常。
+     *
+     * <p>Service 层不信任入参/请求体里的 tenantId，一律以 {@link TenantContext} 为准。</p>
+     *
+     * @return 当前租户 ID
+     * @throws IllegalStateException 租户上下文缺失
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            log.warn("ProfileService: 缺少租户上下文，拒绝查询");
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

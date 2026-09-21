@@ -86,10 +86,7 @@
 
             <!-- 摘要单独块 -->
             <div v-else-if="content.type === 'summary'" class="content-summary">
-              <DataSummary
-                :summary="content.text ?? ''"
-                :meta="content.summaryMeta"
-              />
+              <DataSummary :summary="content.text ?? ''" :meta="content.summaryMeta" />
             </div>
 
             <!-- 卡片：合并 SQL + 表格 + 图表 + 摘要 -->
@@ -332,9 +329,7 @@ onUnmounted(() => {
 
 /* ------------------------------ 文案 ------------------------------ */
 function roleLabel(role: string): string {
-  return role === 'user'
-    ? t('aiAssistant.chat.roleUser')
-    : t('aiAssistant.chat.roleAssistant')
+  return role === 'user' ? t('aiAssistant.chat.roleUser') : t('aiAssistant.chat.roleAssistant')
 }
 
 /** 从下一条 summary 内容取出文本 */

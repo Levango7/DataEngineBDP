@@ -142,7 +142,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             String userId;
 
-            // 双模式验证：OIDC(Keycloak RS256) 优先；未启用或 OIDC 验证失败时回退 HMAC
+            // 双模式验证：OIDC(Keycloak RS256) 优先；OIDC 未启用时走 HMAC。
+            // 注意：OIDC 已启用但验证失败时不再回退 HMAC（P0 认证降级修复）。
             if (oidcJwtDecoder != null && oidcJwtDecoder.isEnabled()) {
                 try {
                     var jwt = oidcJwtDecoder.decode(token);
@@ -165,7 +166,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     filterChain.doFilter(request, response);
                     return;
                 } catch (org.springframework.security.oauth2.jwt.JwtException e) {
-                    log.debug("OIDC 验证失败，回退 HMAC: {}", e.getMessage());
+                    // P0 安全修复（认证降级）：OIDC 已启用时验证失败必须直接 401，
+                    // 严禁回退 HMAC——否则任何持有有效 HMAC token 的请求都能在 OIDC
+                    // 模式下通过校验，等于把强认证降级为弱认证。
+                    log.debug("OIDC 验证失败，拒绝请求（不回退 HMAC）: {}", e.getMessage());
+                    sendUnauthorized(response, "OIDC token validation failed");
+                    return;
                 }
             }
 

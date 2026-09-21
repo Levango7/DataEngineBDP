@@ -80,7 +80,11 @@
         </el-table-column>
         <el-table-column :label="t('governMeta.table.colStatus')" width="110">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusTagMap" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="statusTagMap"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('governMeta.table.colCron')" prop="cron" width="160">
@@ -91,7 +95,9 @@
             >
               {{ row.cron }}
             </span>
-            <span v-else style="color: var(--ds-text-tertiary)">{{ t('governMeta.table.cronUnset') }}</span>
+            <span v-else style="color: var(--ds-text-tertiary)">
+              {{ t('governMeta.table.cronUnset') }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column
@@ -274,7 +280,9 @@
           <span v-if="currentSource?.cron" style="font-family: var(--ds-font-family-mono)">
             {{ currentSource.cron }}
           </span>
-          <span v-else style="color: var(--ds-text-tertiary)">{{ t('governMeta.table.cronUnset') }}</span>
+          <span v-else style="color: var(--ds-text-tertiary)">
+            {{ t('governMeta.table.cronUnset') }}
+          </span>
         </el-form-item>
         <el-form-item :label="t('governMeta.scheduleDialog.newCron')">
           <el-input
@@ -627,9 +635,10 @@ function statusLabel(status?: string): string {
   return STATUS_MAP.value[status ?? '']?.label ?? status ?? '--'
 }
 
-
 /** StatusTag 组件所需的纯 type 映射（从 STATUS_MAP 派生） */
-const statusTagMap = computed<Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'>>(() => {
+const statusTagMap = computed<
+  Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'>
+>(() => {
   const m: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {}
   for (const [k, v] of Object.entries(STATUS_MAP.value)) m[k] = v.type
   return m

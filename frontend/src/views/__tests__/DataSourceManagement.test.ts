@@ -131,10 +131,12 @@ describe('DataSourceManagement.vue', () => {
   it('statusTagType 应返回正确的 tag 类型', async () => {
     const wrapper = mountComponent()
     await flushPromises()
-    const vm = wrapper.vm as any
-    expect(vm.statusTagType('connected')).toBe('success')
-    expect(vm.statusTagType('disconnected')).toBe('info')
-    expect(vm.statusTagType('testing')).toBe('warning')
+    // 组件内状态→tag 类型映射以常量 STATUS_TAG_TYPE_MAP 提供给共享 StatusTag 组件的
+    // status-map（旧实现的 statusTagType() 方法已不存在，故按现契约断言）
+    const statusTagTypeMap = (wrapper.vm as any).STATUS_TAG_TYPE_MAP
+    expect(statusTagTypeMap.connected).toBe('success')
+    expect(statusTagTypeMap.disconnected).toBe('info')
+    expect(statusTagTypeMap.testing).toBe('warning')
   })
 
   it('handleSearch 应重置页码', async () => {

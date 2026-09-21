@@ -9,6 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,25 @@ public class SecurityConfig {
     private boolean jwtEnabled;
 
     /**
+     * 租户上下文过滤器：把已认证身份映射为 TenantContext。
+     *
+     * <p>本模块自带 SecurityFilterChain，common-security 的 SecurityConfig 会整体退让，
+     * 没有任何组件写 TenantContext，必须在此补上（详见 TenantContextFilter 类注释）。
+     * 注册在 AuthorizationFilter 之前：晚于认证过滤器（能读到 JWT 主体），
+     * 早于授权与 Controller（缺租户即可 fail-closed 返 403，而不是拖到 Controller 里 500）。</p>
+     *
+     * @param jwtEnabled  是否启用 JWT
+     * @param devTenantId 开发态兜底租户（空=未配置，fail-closed）
+     * @return 租户上下文过滤器
+     */
+    @Bean
+    public TenantContextFilter tenantContextFilter(
+            @Value("${app.security.jwt.enabled:true}") boolean jwtEnabled,
+            @Value("${app.security.dev.tenant-id:}") String devTenantId) {
+        return new TenantContextFilter(jwtEnabled, devTenantId);
+    }
+
+    /**
      * 配置过滤链。
      *
      * @param http HttpSecurity
@@ -42,21 +62,24 @@ public class SecurityConfig {
      * @throws Exception 配置异常
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           TenantContextFilter tenantContextFilter) throws Exception {
         if (!jwtEnabled) {
-            // 开发态：全放行
+            // 开发态：全放行（租户由 TenantContextFilter 按 dev 配置兜底；未配置则 403）
             http.csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                    .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                    .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .addFilterBefore(tenantContextFilter, AuthorizationFilter.class);
             return http.build();
         }
-        // 生产态：JWT 校验
+        // 生产态：JWT 校验（租户从已认证 JWT 的 tenantId claim 取）
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}))
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(tenantContextFilter, AuthorizationFilter.class);
         return http.build();
     }
 

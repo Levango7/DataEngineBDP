@@ -97,6 +97,18 @@ env:
   LOG_LEVEL: info
   JAVA_OPTS: ""
 
+# ---- 鉴权（AUTH_MODE fail-fast 配套）----
+# jwt_auth.py 在 K8s 环境未显式 AUTH_MODE 时拒绝启动（RuntimeError）。
+# 本服务业务端点已挂 getAuthContext 鉴权依赖，若此处不显式设置，
+# K8s 内业务端点会全部 500，而 /api/v1/health 无鉴权依赖仍 200，
+# 表现为 Pod Running 但业务全挂。
+# JWT_SECRET 从 existingSecretName 的 jwtSecretKey 键读取，须与签发端一致。
+# 与 asset-exchange / business-portal / data-quality 保持同一范式。
+auth:
+  authMode: jwt
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
+
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |

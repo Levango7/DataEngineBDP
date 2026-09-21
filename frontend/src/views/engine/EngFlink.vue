@@ -87,7 +87,11 @@
         />
         <el-table-column :label="t('engines.flink.table.columns.status')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -195,7 +199,13 @@
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.cpInterval')" prop="checkpointIntervalMs">
           <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
-          <span style="margin-left: 8px; color: var(--ds-text-tertiary); font-size: var(--ds-font-size-xs)">
+          <span
+            style="
+              margin-left: 8px;
+              color: var(--ds-text-tertiary);
+              font-size: var(--ds-font-size-xs);
+            "
+          >
             {{ t('engines.flink.submit.msUnit') }}
           </span>
         </el-form-item>
@@ -229,7 +239,11 @@
             {{ currentMonitorJob.id }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.status')">
-            <StatusTag :status="currentMonitorJob.status" :label="statusLabel(currentMonitorJob.status)" :status-map="STATUS_MAP" />
+            <StatusTag
+              :status="currentMonitorJob.status"
+              :label="statusLabel(currentMonitorJob.status)"
+              :status-map="STATUS_MAP"
+            />
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.parallelism')">
             {{ currentMonitorJob.parallelism }}
@@ -596,14 +610,12 @@ function statusLabel(status: string): string {
   return t(`engFlink.status.${status}`, status)
 }
 
-
 const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
   COMPLETED: 'success',
   IN_PROGRESS: 'warning',
   FAILED: 'danger',
   DISCARDED: 'info'
 }
-
 
 const BACKPRESSURE_MAP: Record<BackpressureLevel, 'success' | 'warning' | 'danger'> = {
   ok: 'success',

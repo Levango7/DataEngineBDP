@@ -35,7 +35,12 @@
       />
       <el-table-column :label="t('devMl.modelPanel.columns.status')" width="110">
         <template #default="{ row }">
-          <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusMap" size="small" />
+          <StatusTag
+            :status="row.status"
+            :label="statusLabel(row.status)"
+            :status-map="statusMap"
+            size="small"
+          />
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.modelPanel.columns.metrics')" min-width="180">

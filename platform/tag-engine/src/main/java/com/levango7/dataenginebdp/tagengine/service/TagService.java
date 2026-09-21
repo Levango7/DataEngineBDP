@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.tagengine.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.tagengine.entity.TagDefinitionEntity;
 import com.levango7.dataenginebdp.tagengine.entity.TagRuleEntity;
 import com.levango7.dataenginebdp.tagengine.model.TagDefinition;
@@ -59,12 +60,18 @@ public class TagService {
     // ==================== 标签定义 ====================
 
     /**
-     * 创建标签定义。
+     * 创建标签定义（租户隔离：tenantId 强制取当前租户）。
+     *
+     * <p>R8 租户隔离补齐：请求体中的 {@code tenantId} 一律被当前租户覆盖，
+     * 防止调用方（含非 HTTP 调用方）通过请求体把标签建到别的租户下。</p>
      *
      * @param req 创建请求
      * @return 已落地的标签定义
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public TagDefinition createTagDefinition(TagDefinitionRequest req) {
+        // 强制覆盖为当前租户，不信任请求体中的 tenantId
+        req.setTenantId(requireTenant());
         // 1. 通过 TagStore 创建（Mock 模式仅内存；Doris 模式会 ALTER ADD COLUMN）
         TagDefinition def = tagStore.createTagDefinition(req);
 
@@ -76,13 +83,14 @@ public class TagService {
     }
 
     /**
-     * 按 ID 获取标签定义。
+     * 按 ID 获取标签定义（租户隔离：仅返回属于当前租户的标签）。
      *
      * @param tagId 标签 ID
-     * @return Optional 包装的标签定义
+     * @return Optional 包装的标签定义；不属于当前租户时返回 empty
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public Optional<TagDefinition> getTagDefinition(String tagId) {
-        return tagDefRepo.findById(tagId).map(this::toModel);
+        return getTagDefinition(tagId, requireTenant());
     }
 
     /**
@@ -102,37 +110,41 @@ public class TagService {
     }
 
     /**
-     * 列出指定租户的全部标签定义。
+     * 列出当前租户的全部标签定义。
+     *
+     * <p>R8 租户隔离补齐：租户一律取自 {@link TenantContext}，
+     * <b>入参 {@code tenantId} 已被忽略</b>（历史遗留签名，保留只为兼容既有调用方），
+     * 任何调用方都无法通过它越权列出其他租户的标签。</p>
+     *
+     * @param tenantId 租户 ID（已忽略，保留仅为兼容旧签名）
+     * @return 标签定义列表
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
+     */
+    public List<TagDefinition> listTagDefinitions(String tenantId) {
+        return listDefinitionsOfTenant(requireTenant());
+    }
+
+    /**
+     * 列出指定租户的全部标签定义（内部实现，供租户感知路径复用）。
      *
      * @param tenantId 租户 ID
      * @return 标签定义列表
      */
-    public List<TagDefinition> listTagDefinitions(String tenantId) {
+    private List<TagDefinition> listDefinitionsOfTenant(String tenantId) {
         return tagDefRepo.findByTenantId(tenantId).stream()
                 .map(this::toModel)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 删除标签定义。
+     * 删除标签定义（租户隔离：只能删当前租户自己的标签）。
      *
      * @param tagId 标签 ID
-     * @return true 表示存在并已删除
+     * @return true 表示存在、属于当前租户且已删除
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public boolean deleteTagDefinition(String tagId) {
-        Optional<TagDefinitionEntity> opt = tagDefRepo.findById(tagId);
-        if (opt.isEmpty()) {
-            return false;
-        }
-        TagDefinitionEntity entity = opt.get();
-        // 1. 删宽表列（Mock 模式级联删画像字段；Doris 模式 ALTER DROP COLUMN）
-        tagStore.deleteTagDefinition(tagId);
-        // 2. 删规则元数据
-        tagRuleRepo.findByTagId(tagId).forEach(r -> tagRuleRepo.deleteById(r.getRuleId()));
-        // 3. 删标签元数据
-        tagDefRepo.deleteById(tagId);
-        log.info("TagService.deleteTagDefinition: tagId={}, column={}", tagId, entity.getColumnName());
-        return true;
+        return deleteTagDefinition(tagId, requireTenant());
     }
 
     /**
@@ -168,43 +180,16 @@ public class TagService {
     // ==================== 标签规则 ====================
 
     /**
-     * 为标签添加规则。
+     * 为标签添加规则（租户隔离：只能给当前租户自己的标签加规则）。
      *
      * @param tagId 标签 ID
      * @param req   规则创建请求
      * @return 已落地的规则
+     * @throws IllegalArgumentException 标签不存在或不属于当前租户
+     * @throws IllegalStateException    缺少租户上下文（fail-closed）
      */
     public TagRule createTagRule(String tagId, TagRuleRequest req) {
-        TagDefinitionEntity def = tagDefRepo.findById(tagId)
-                .orElseThrow(() -> new IllegalArgumentException("tag not found: " + tagId));
-
-        // 1. 通过 TagStore 创建（Mock 模式内存；Doris 模式抛 UnsupportedOperationException 由本服务接管）
-        TagRule rule;
-        try {
-            rule = tagStore.createTagRule(tagId, req);
-        } catch (UnsupportedOperationException e) {
-            // Doris 模式：规则纯元数据，由本服务直接构造
-            String ruleId = "rule-" + UUID.randomUUID();
-            LocalDateTime now = LocalDateTime.now();
-            rule = TagRule.builder()
-                    .ruleId(ruleId)
-                    .tagId(tagId)
-                    .tenantId(def.getTenantId())
-                    .condition(req.getCondition())
-                    .value(req.getValue())
-                    .priority(req.getPriority() != null ? req.getPriority() : 0)
-                    .properties(req.getProperties())
-                    .status("ACTIVE")
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-        }
-
-        // 2. 持久化到 JPA
-        TagRuleEntity entity = toEntity(rule);
-        tagRuleRepo.save(entity);
-        log.info("TagService.createTagRule: ruleId={}, tagId={}", rule.getRuleId(), tagId);
-        return rule;
+        return createTagRule(tagId, req, requireTenant());
     }
 
     /**
@@ -257,18 +242,14 @@ public class TagService {
     }
 
     /**
-     * 列出标签的全部规则（按 priority 降序）。
+     * 列出标签的全部规则（租户隔离：只能列当前租户自己标签的规则）。
      *
      * @param tagId 标签 ID
-     * @return 规则列表
+     * @return 规则列表；标签不属于当前租户时返回空列表
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public List<TagRule> getTagRules(String tagId) {
-        return tagRuleRepo.findByTagId(tagId).stream()
-                .map(this::toModel)
-                .sorted((a, b) -> Integer.compare(
-                        b.getPriority() == null ? 0 : b.getPriority(),
-                        a.getPriority() == null ? 0 : a.getPriority()))
-                .collect(Collectors.toList());
+        return getTagRules(tagId, requireTenant());
     }
 
     /**
@@ -301,13 +282,21 @@ public class TagService {
 
 
     /**
-     * 删除规则。
+     * 删除规则（租户隔离：只能删属于当前租户的规则）。
+     *
+     * <p>规则实体本身记录了 {@code tenantId}，此处按「规则的 tenantId 必须等于当前租户」
+     * 校验，防止跨租户删规则。</p>
      *
      * @param ruleId 规则 ID
-     * @return true 表示存在并已删除
+     * @return true 表示存在、属于当前租户且已删除；不存在或不属于当前租户返回 false
+     * @throws IllegalStateException 缺少租户上下文（fail-closed）
      */
     public boolean deleteTagRule(String ruleId) {
-        if (!tagRuleRepo.existsById(ruleId)) {
+        String tenantId = requireTenant();
+        TagRuleEntity rule = tagRuleRepo.findById(ruleId).orElse(null);
+        if (rule == null || !tenantId.equals(rule.getTenantId())) {
+            log.warn("TagService.deleteTagRule: 规则不存在或不属于当前租户: ruleId={}, tenant={}",
+                    ruleId, tenantId);
             return false;
         }
         tagRuleRepo.deleteById(ruleId);
@@ -318,6 +307,25 @@ public class TagService {
             // Doris 模式：规则纯元数据
         }
         return true;
+    }
+
+    // ==================== 租户上下文 ====================
+
+    /**
+     * 取当前租户 ID；缺失时 fail-closed 抛异常。
+     *
+     * <p>R8 租户隔离补齐：Service 层不再信任任何入参/请求体里的 tenantId，
+     * 一律以 {@link TenantContext}（由 {@code JwtAuthFilter} 从 JWT 写入）为准。</p>
+     *
+     * @return 当前租户 ID
+     * @throws IllegalStateException 租户上下文缺失
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 
     // ==================== Entity <-> Model 转换 ====================

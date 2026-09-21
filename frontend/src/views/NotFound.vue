@@ -12,10 +12,7 @@ function goHome() {
 
 <template>
   <div class="not-found" role="main" :aria-label="t('notFound.pageAria')">
-    <el-icon
-      :size="64"
-      color="var(--ds-text-secondary)"
-    >
+    <el-icon :size="64" color="var(--ds-text-secondary)">
       <WarningFilled />
     </el-icon>
     <h1 class="not-found__code">404</h1>

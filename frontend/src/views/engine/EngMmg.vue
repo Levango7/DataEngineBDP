@@ -159,7 +159,11 @@
         <el-input
           v-model="queryPredicate"
           :placeholder="t('engMmg.query.predicatePlaceholder')"
-          style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs); margin-bottom: 12px"
+          style="
+            font-family: var(--ds-font-family-mono);
+            font-size: var(--ds-font-size-xs);
+            margin-bottom: 12px;
+          "
         />
         <div v-loading="querying" class="query-result">
           <template v-if="queryResult">

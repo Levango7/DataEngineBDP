@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.ruleengine.scheduler.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.ruleengine.scheduler.config.SchedulerProperties;
 import com.levango7.dataenginebdp.ruleengine.scheduler.elastic.LoadMonitor;
 import com.levango7.dataenginebdp.ruleengine.scheduler.elastic.WorkerPool;
@@ -12,6 +13,7 @@ import com.levango7.dataenginebdp.ruleengine.scheduler.service.SchedulerTask;
 import com.levango7.dataenginebdp.ruleengine.scheduler.service.TaskStatus;
 import com.levango7.dataenginebdp.ruleengine.scheduler.tenant.TenantInfo;
 import com.levango7.dataenginebdp.ruleengine.scheduler.tenant.TenantManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class SchedulerControllerTest {
 
+    /** 与 {@code submittedTask} / 列表用例中的 tenantId 保持一致（R11 后任务按租户隔离）。 */
+    private static final String TEST_TENANT_ID = "t1";
+
     private MockMvc mockMvc;
     private SchedulerService schedulerService;
     private TenantManager tenantManager;
@@ -46,6 +51,10 @@ class SchedulerControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 任务相关端点在 R11 加固后 fail-closed（tenantId 一律取自 TenantContext）。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         schedulerService = mock(SchedulerService.class);
         tenantManager = mock(TenantManager.class);
         resourceAllocator = mock(ResourceAllocator.class);
@@ -56,6 +65,11 @@ class SchedulerControllerTest {
         SchedulerController controller = new SchedulerController(
                 schedulerService, tenantManager, resourceAllocator, loadMonitor, workerPool, properties);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     private SchedulerTask submittedTask(TaskStatus status) {
@@ -137,6 +151,8 @@ class SchedulerControllerTest {
     @Test
     @DisplayName("DELETE /tasks/{id} — 取消成功")
     void cancelTask_success() throws Exception {
+        // R11 后取消前先按 (taskId, tenantId) 校验归属
+        when(schedulerService.getTask("task-001")).thenReturn(submittedTask(TaskStatus.QUEUED));
         when(schedulerService.cancel("task-001")).thenReturn(true);
 
         mockMvc.perform(delete("/api/v1/scheduler/tasks/task-001"))
@@ -147,6 +163,8 @@ class SchedulerControllerTest {
     @Test
     @DisplayName("DELETE /tasks/{id} — 不可取消返回 404")
     void cancelTask_notCancellable() throws Exception {
+        // 任务存在且属于当前租户，但已进入终态不可取消
+        when(schedulerService.getTask("task-001")).thenReturn(submittedTask(TaskStatus.SUCCEEDED));
         when(schedulerService.cancel("task-001")).thenReturn(false);
 
         mockMvc.perform(delete("/api/v1/scheduler/tasks/task-001"))

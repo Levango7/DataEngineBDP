@@ -77,7 +77,10 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'istanbul',
-      reporter: ['text', 'json', 'html', 'lcov'],
+      // json-summary：生成 coverage-summary.json，供 CI 覆盖率门禁（ci.yml）与
+      // scripts/coverage-gate.sh 读取 total.lines.pct；仅 'json' 生成的是 coverage-final.json，
+      // 二者文件名不同，缺失会导致门禁因"报告未生成"而阻断（2026-09-17 修复）
+      reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       include: [
         // 核心 API 层
         'src/api/*.ts',

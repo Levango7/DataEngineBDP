@@ -7,7 +7,7 @@
       <div
         v-if="visible"
         :id="drawerId"
-        :ref="trapRef"
+        :ref="setTrapRef"
         class="drawer show"
         role="dialog"
         aria-modal="true"
@@ -44,7 +44,7 @@ function close() {
 }
 
 // 焦点陷阱：ESC 关闭 + Tab 循环 + 滚动锁定 + 焦点恢复
-const { trapRef, activate, deactivate } = useFocusTrap({ onEscape: close })
+const { setTrapRef, activate, deactivate } = useFocusTrap({ onEscape: close })
 
 // visible 变化时激活/解除焦点陷阱
 watch(

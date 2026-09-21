@@ -549,7 +549,6 @@ function statusLabel(status: DataSourceStatus): string {
   return t(`dataSourceManagement.status.${status}`)
 }
 
-
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {

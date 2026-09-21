@@ -163,11 +163,7 @@ export async function chatStream(
     )
   }
   if (!resp.body) {
-    throw createI18nError(
-      'aiAssistant.errors.streamNoBody',
-      undefined,
-      'AI 助手流式请求无响应体'
-    )
+    throw createI18nError('aiAssistant.errors.streamNoBody', undefined, 'AI 助手流式请求无响应体')
   }
 
   const reader = resp.body.getReader()

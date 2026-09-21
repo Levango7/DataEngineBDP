@@ -1,6 +1,8 @@
 package com.levango7.dataenginebdp.federated.scheduling;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class SchedulingControllerTest {
 
+    private static final String TEST_TENANT_ID = "test-tenant";
+
     private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -44,7 +48,16 @@ class SchedulingControllerTest {
 
     @BeforeEach
     void setUp() {
+        // 生产控制器在 R10 加固后 fail-closed（缺 TenantContext 直接拒绝）。
+        // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     @Test
@@ -59,7 +72,8 @@ class SchedulingControllerTest {
         mockMvc.perform(post("/api/v1/federated/scheduling/policies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(policy)))
-                .andExpect(status().isOk())
+                // 生产已按 REST 规范改为 201 CREATED（见 SchedulingController#createPolicy 注释）
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("created"))
                 .andExpect(jsonPath("$.data.name").value("test-policy"));
     }

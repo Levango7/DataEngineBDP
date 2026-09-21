@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +53,11 @@ public class BackendProxyService {
      * 兜底响应超时（秒），与 SqlGatewayConfig 中 WebClient 配置保持一致。
      */
     private static final long RESPONSE_TIMEOUT_SECONDS = 30L;
+
+    /**
+     * Trino 分页拉取最大页数（防御性上限，防止异常响应下无限翻页）。
+     */
+    private static final int TRINO_MAX_PAGES = 1000;
 
     /**
      * 熔断失败阈值：连续失败达到该值后熔断。
@@ -181,6 +187,7 @@ public class BackendProxyService {
         }
 
         long start = System.currentTimeMillis();
+        int rowCap = resolveRowCap(limit);
         return trinoClient.post()
                 .uri("/v1/statement")
                 .header("X-Trino-User", tenantId == null ? "sql-gateway" : tenantId)
@@ -188,7 +195,10 @@ public class BackendProxyService {
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
-                .map(json -> parseTrinoResponse(json, queryId,
+                // Trino Statement API 是异步分页协议：首页可能只是 QUEUED（无 data），
+                // 必须跟随 nextUri 直到 FINISHED，否则小结果集也会返回空行（2026-09-17 缺陷修复）
+                .flatMap(firstPage -> fetchAllTrinoPages(firstPage, new ArrayList<>(), rowCap, 0, start))
+                .map(pages -> parseTrinoPages(pages, queryId,
                         System.currentTimeMillis() - start, limit))
                 .onErrorResume(e -> {
                     recordFailure(trinoFailures, trinoOpenSince, "trino");
@@ -196,6 +206,92 @@ public class BackendProxyService {
                     return Mono.just(errorResponse(queryId, "trino",
                             "Trino 调用失败: " + e.getMessage()));
                 });
+    }
+
+    /**
+     * 递归拉取 Trino 分页结果，直到无 nextUri / 达到行数上限 / 达到页数或时间上限。
+     *
+     * <p>终止条件（任一满足）：</p>
+     * <ul>
+     *   <li>当前页无 nextUri（正常结束）；</li>
+     *   <li>已累计行数达到 rowCap（标记截断）；</li>
+     *   <li>页数达到 {@link #TRINO_MAX_PAGES} 或总耗时超过 {@link #RESPONSE_TIMEOUT_SECONDS}
+     *       （防御性上限，标记截断）。</li>
+     * </ul>
+     *
+     * @param pageJson 当前页原始 JSON
+     * @param acc      已收集的页（含当前页，调用方传入可变列表）
+     * @param rowCap   行数上限（-1 表示仅受页数/时间上限约束）
+     * @param depth    当前递归深度（第 0 页为 POST 返回的首页）
+     * @param start    查询开始时间戳（毫秒），用于总时限判断
+     * @return 全部已拉取页的 JSON 列表
+     */
+    private Mono<List<String>> fetchAllTrinoPages(String pageJson, List<String> acc,
+                                                  int rowCap, int depth, long start) {
+        acc.add(pageJson);
+
+        // 任一页带 error 节点即失败（Trino 在最终页返回 error），无需继续翻页
+        try {
+            JsonNode root = objectMapper.readTree(pageJson);
+            JsonNode errorNode = root.get("error");
+            if (errorNode != null && !errorNode.isNull()) {
+                return Mono.just(acc);
+            }
+        } catch (JsonProcessingException e) {
+            // 让 parseTrinoPages 统一处理解析失败，此处仅按终止处理
+            return Mono.just(acc);
+        }
+
+        if (rowCap >= 0 && countRows(acc) >= rowCap) {
+            return Mono.just(acc);
+        }
+        if (depth >= TRINO_MAX_PAGES
+                || System.currentTimeMillis() - start >= RESPONSE_TIMEOUT_SECONDS * 1000L) {
+            return Mono.just(acc);
+        }
+
+        String nextUri = extractNextUri(pageJson);
+        if (nextUri == null) {
+            return Mono.just(acc);
+        }
+
+        return trinoClient.get()
+                .uri(URI.create(nextUri))
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
+                .flatMap(nextPage -> fetchAllTrinoPages(nextPage, acc, rowCap, depth + 1, start));
+    }
+
+    /** 提取 Trino 分页响应中的 nextUri；无则返回 null。 */
+    private String extractNextUri(String pageJson) {
+        try {
+            JsonNode root = objectMapper.readTree(pageJson);
+            JsonNode next = root.get("nextUri");
+            if (next != null && !next.isNull()) {
+                return next.asText();
+            }
+        } catch (JsonProcessingException ignored) {
+            // 解析失败按无下一页处理
+        }
+        return null;
+    }
+
+    /** 统计已收集页中的数据行数（仅统计 data 数组）。 */
+    private int countRows(List<String> pages) {
+        int total = 0;
+        for (String page : pages) {
+            try {
+                JsonNode root = objectMapper.readTree(page);
+                JsonNode data = root.get("data");
+                if (data != null && data.isArray()) {
+                    total += data.size();
+                }
+            } catch (JsonProcessingException ignored) {
+                // 单页解析失败不计行
+            }
+        }
+        return total;
     }
 
     /**
@@ -299,9 +395,9 @@ public class BackendProxyService {
     }
 
     /**
-     * 解析 Trino Statement API 响应。
+     * 解析 Trino Statement API 分页响应并合并为单一结果集。
      *
-     * <p>Trino 响应结构示例：</p>
+     * <p>Trino 响应结构示例（每页）：</p>
      * <pre>
      * {
      *   "id": "20240101_xxx",
@@ -312,76 +408,102 @@ public class BackendProxyService {
      * }
      * </pre>
      *
-     * @param json       Trino 返回的 JSON 文本
+     * @param pages      Trino 分页响应 JSON 列表（首页 + 跟随 nextUri 拉取的后续页）
      * @param queryId    网关生成的查询 ID
      * @param durationMs 已耗时（毫秒）
      * @return 解析后的 SqlExecuteResponse
      */
-    private SqlExecuteResponse parseTrinoResponse(String json, String queryId,
-                                                  long durationMs, Integer limit) {
+    private SqlExecuteResponse parseTrinoPages(List<String> pages, String queryId,
+                                               long durationMs, Integer limit) {
         try {
-            JsonNode root = objectMapper.readTree(json);
+            int rowCap = resolveRowCap(limit);
+            List<String> columns = new ArrayList<>();
+            List<List<Object>> rows = new ArrayList<>();
+            Long rawInputBytes = null;
+            boolean truncatedByCap = false;
+            boolean stoppedEarly = false;
+            String errorMessage = null;
 
-            // Trino 返回 error 字段时表示执行失败
-            JsonNode errorNode = root.get("error");
-            if (errorNode != null && !errorNode.isNull()) {
-                String msg = errorNode.has("message")
-                        ? errorNode.get("message").asText()
-                        : "Trino 执行错误";
-                log.error("Trino 执行失败 queryId={} msg={}", queryId, msg);
+            for (int i = 0; i < pages.size(); i++) {
+                JsonNode root = objectMapper.readTree(pages.get(i));
+
+                // 任一页带 error 节点即失败（Trino 在最终页返回 error）
+                JsonNode errorNode = root.get("error");
+                if (errorNode != null && !errorNode.isNull()) {
+                    errorMessage = errorNode.has("message")
+                            ? errorNode.get("message").asText()
+                            : "Trino 执行错误";
+                    break;
+                }
+
+                // 列名取首页即有 columns 的页（避免空首页覆盖真实列名）
+                if (columns.isEmpty()) {
+                    JsonNode columnsNode = root.get("columns");
+                    if (columnsNode != null && columnsNode.isArray()) {
+                        for (JsonNode col : columnsNode) {
+                            JsonNode nameNode = col.get("name");
+                            columns.add(nameNode == null ? "" : nameNode.asText());
+                        }
+                    }
+                }
+
+                // 汇总数据行（应用行数上限，达到即停止追加）
+                JsonNode dataNode = root.get("data");
+                if (dataNode != null && dataNode.isArray()) {
+                    for (JsonNode row : dataNode) {
+                        if (rowCap >= 0 && rows.size() >= rowCap) {
+                            truncatedByCap = true;
+                            stoppedEarly = true;
+                            break;
+                        }
+                        List<Object> rowValues = new ArrayList<>();
+                        if (row.isArray()) {
+                            for (JsonNode cell : row) {
+                                rowValues.add(jsonNodeToObject(cell));
+                            }
+                        }
+                        rows.add(rowValues);
+                    }
+                    if (truncatedByCap) {
+                        break;
+                    }
+                }
+
+                if (rawInputBytes == null) {
+                    rawInputBytes = extractRawInputBytes(root);
+                }
+
+                // 已达行数上限／页数上限／总时限：后续页不再拉取（fetchAllTrinoPages 已保证），
+                // 此处对提前终止做截断标记
+                boolean hasMorePages = root.has("nextUri") && !root.get("nextUri").isNull();
+                if (hasMorePages && i == pages.size() - 1) {
+                    stoppedEarly = true;
+                }
+            }
+
+            // 成功时重置熔断计数（error 分支由外层熔断逻辑处理）
+            resetFailures(trinoFailures, trinoOpenSince);
+
+            if (errorMessage != null) {
+                log.error("Trino 执行失败 queryId={} msg={}", queryId, errorMessage);
                 return SqlExecuteResponse.builder()
                         .queryId(queryId)
                         .status("FAILED")
-                        .columns(List.of())
-                        .rows(List.of())
+                        .columns(columns)
+                        .rows(rows)
                         .durationMs(durationMs)
                         .engine("trino")
-                        .message(msg)
+                        .message(errorMessage)
                         .truncated(false)
                         .build();
             }
 
-            // 解析列名
-            List<String> columns = new ArrayList<>();
-            JsonNode columnsNode = root.get("columns");
-            if (columnsNode != null && columnsNode.isArray()) {
-                for (JsonNode col : columnsNode) {
-                    JsonNode nameNode = col.get("name");
-                    columns.add(nameNode == null ? "" : nameNode.asText());
-                }
-            }
-
-            // 解析数据行（应用行数上限）
-            int rowCap = resolveRowCap(limit);
-            boolean truncatedByCap = false;
-            List<List<Object>> rows = new ArrayList<>();
-            JsonNode dataNode = root.get("data");
-            if (dataNode != null && dataNode.isArray()) {
-                for (JsonNode row : dataNode) {
-                    if (rowCap >= 0 && rows.size() >= rowCap) {
-                        truncatedByCap = true;
-                        break;
-                    }
-                    List<Object> rowValues = new ArrayList<>();
-                    if (row.isArray()) {
-                        for (JsonNode cell : row) {
-                            rowValues.add(jsonNodeToObject(cell));
-                        }
-                    }
-                    rows.add(rowValues);
-                }
-            }
-
-            // 成功时重置熔断计数
-            resetFailures(trinoFailures, trinoOpenSince);
-
-            // nextUri 非空表示结果集还有后续分页，首页返回即视为截断
-            boolean hasMorePages = root.has("nextUri") && !root.get("nextUri").isNull();
+            boolean truncated = truncatedByCap || stoppedEarly;
             String message = null;
             if (truncatedByCap) {
                 message = "结果集超过行数上限 " + rowCap + "，已截断";
-            } else if (hasMorePages) {
-                message = "Trino 结果集存在后续分页(nextUri)，当前仅返回首页结果";
+            } else if (stoppedEarly) {
+                message = "Trino 结果集超过防御性拉取上限（页数/时间），已提前截断";
             }
 
             return SqlExecuteResponse.builder()
@@ -391,8 +513,8 @@ public class BackendProxyService {
                     .rows(rows)
                     .durationMs(durationMs)
                     .engine("trino")
-                    .rawInputBytes(extractRawInputBytes(root))
-                    .truncated(truncatedByCap || hasMorePages)
+                    .rawInputBytes(rawInputBytes)
+                    .truncated(truncated)
                     .message(message)
                     .build();
         } catch (JsonProcessingException e) {

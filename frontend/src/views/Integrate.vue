@@ -86,8 +86,7 @@
         </el-table-column>
         <el-table-column :label="t('integrate.cols.lastRun')" width="200">
           <template #default="{ row }">
-            {{ row.lastRunAt || '--'
-            }}{{ row.lastRunDuration ? ' · ' + row.lastRunDuration : '' }}
+            {{ row.lastRunAt || '--' }}{{ row.lastRunDuration ? ' · ' + row.lastRunDuration : '' }}
           </template>
         </el-table-column>
         <el-table-column :label="t('integrate.cols.actions')" width="140" fixed="right">

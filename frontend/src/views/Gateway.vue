@@ -172,12 +172,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { useChartPalette } from '@/composables/useChartTheme'
 import { PageHeader } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
@@ -372,12 +373,16 @@ const chartRef = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
 let refreshTimer: ReturnType<typeof setInterval> | null = null
 
+/** ECharts 色板（随亮/暗主题切换的真实色值，canvas 不解析 CSS 变量） */
+const palette = useChartPalette()
+
 /** 渲染趋势图（基于统计数据生成示例趋势） */
 function renderChart(): void {
   if (!chartRef.value || !stats.value) return
   if (!chart) {
     chart = echarts.init(chartRef.value)
   }
+  const c = palette.value
   // 基于当前统计生成近 7 日趋势（后端 stats 是聚合值，前端做可视化展示）
   const base = stats.value.todayCallCount || 0
   const days = tm('gateway.chart.days') as string[]
@@ -387,27 +392,40 @@ function renderChart(): void {
   const latencyLabel = t('gateway.chart.latency')
 
   chart.setOption({
-    tooltip: { trigger: 'axis' },
-    legend: { data: [callsLabel, latencyLabel], right: 10, top: 0 },
+    // 全局兜底：任何未显式指定颜色的文字都走主题文字色，避免回退到出厂 #333
+    textStyle: { color: c.axisText },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: c.tooltipBg,
+      borderColor: c.tooltipBorder,
+      textStyle: { color: c.tooltipText }
+    },
+    legend: {
+      data: [callsLabel, latencyLabel],
+      right: 10,
+      top: 0,
+      textStyle: { color: c.legendText }
+    },
     grid: { left: 50, right: 50, top: 40, bottom: 30 },
     xAxis: {
       type: 'category',
       data: days,
-      // ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色（对应 --ds-color-gray-300）
-      axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: 'var(--ds-text-secondary)' }
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText }
     },
     yAxis: [
       {
         type: 'value',
         name: callsLabel,
-        axisLabel: { color: 'var(--ds-text-secondary)' },
-        splitLine: { lineStyle: { color: 'var(--ds-border-default)' } }
+        nameTextStyle: { color: c.legendText },
+        axisLabel: { color: c.axisText },
+        splitLine: { lineStyle: { color: c.gridLine } }
       },
       {
         type: 'value',
         name: latencyLabel,
-        axisLabel: { color: 'var(--ds-text-secondary)' },
+        nameTextStyle: { color: c.legendText },
+        axisLabel: { color: c.axisText },
         splitLine: { show: false }
       }
     ],
@@ -416,7 +434,7 @@ function renderChart(): void {
         name: callsLabel,
         type: 'bar',
         data: callTrend,
-        itemStyle: { color: 'var(--ds-color-success-700)' }
+        itemStyle: { color: c.series.success }
       },
       {
         name: latencyLabel,
@@ -424,12 +442,17 @@ function renderChart(): void {
         yAxisIndex: 1,
         smooth: true,
         data: latencyTrend,
-        itemStyle: { color: 'var(--ds-color-warning-600)' },
+        itemStyle: { color: c.series.warning },
         lineStyle: { width: 2 }
       }
     ]
   })
 }
+
+// 切主题时重绘：ECharts 颜色是 init 时写入 canvas 的，不重绘不会跟随主题
+watch(palette, () => {
+  if (chart) renderChart()
+})
 
 /** 窗口大小变化时重绘图表 */
 function handleResize(): void {

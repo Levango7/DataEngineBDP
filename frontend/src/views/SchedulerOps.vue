@@ -247,7 +247,9 @@ async function doRerun(row: DagRunRecord) {
     ElMessage.success(t('scheduler.rerunConfirm.triggered'))
     await loadRuns()
   } catch (e) {
-    ElMessage.error(t('scheduler.rerunConfirm.failed', { msg: e instanceof Error ? e.message : String(e) }))
+    ElMessage.error(
+      t('scheduler.rerunConfirm.failed', { msg: e instanceof Error ? e.message : String(e) })
+    )
   } finally {
     rerunningId.value = null
   }
@@ -276,7 +278,9 @@ async function doBackfill() {
     backfillVisible.value = false
     await loadRuns()
   } catch (e) {
-    ElMessage.error(t('scheduler.backfillModal.failed', { msg: e instanceof Error ? e.message : String(e) }))
+    ElMessage.error(
+      t('scheduler.backfillModal.failed', { msg: e instanceof Error ? e.message : String(e) })
+    )
   } finally {
     backfilling.value = false
   }
@@ -309,7 +313,6 @@ const RUN_STATUS_TAG_MAP: Record<string, 'success' | 'danger' | 'warning' | 'inf
   RUNNING: 'warning',
   PENDING: 'warning'
 }
-
 
 function formatDuration(ms?: number | null): string {
   if (ms == null) return '—'

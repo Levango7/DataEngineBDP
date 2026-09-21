@@ -116,38 +116,19 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: var(--ds-spacing-3);
   padding: 0 18px;
-  background: linear-gradient(
-    90deg,
-    var(--ds-color-gray-50) 0%,
-    var(--ds-color-gray-100) 50%,
-    var(--ds-color-gray-200) 100%
-  );
+  /* v2：状态栏是**状态信息**不是装饰 —— 保持不透明，但去掉横向灰渐变、
+   * 1.5px 主色上边框与蓝色阴影。分界交给一条发丝线。 */
+  background: var(--ds-surface-2);
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-medium);
-  border-top: 1.5px solid var(--ds-color-primary-300);
-  box-shadow:
-    0 -1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 -4px 12px rgba(59, 130, 246, 0.06);
+  border-top: 1px solid var(--ds-border-default);
+  box-shadow: none;
   user-select: none;
   position: relative;
 }
-.statusbar::before {
-  content: '';
-  position: absolute;
-  top: -1.5px;
-  left: 0;
-  right: 0;
-  height: 1.5px;
-  background: linear-gradient(
-    90deg,
-    var(--ds-color-primary-500) 0%,
-    var(--ds-color-info-500) 35%,
-    rgba(99, 102, 241, 0.3) 70%,
-    transparent 100%
-  );
-  pointer-events: none;
-}
+/* v2：删除状态栏顶部的 2px 彩虹渐变饰条（蓝 → 靛 → 紫 → 透明）。
+ * 它不承载任何信息；且"主色边框"会被读成"状态栏处于激活/告警态"，是视觉语义错误。 */
 .sb-left,
 .sb-right {
   display: flex;
@@ -156,7 +137,9 @@ onUnmounted(() => {
   min-width: 0;
 }
 .sb-label {
-  color: var(--ds-color-primary-800);
+  /* v2：收敛为中性 —— 旧 --ds-color-primary-800 是**非主题感知**的深藏蓝
+   * （亮暗都取 #1e40af），暗色下压在 #1d2128 上几乎不可见。改中性次级文字。 */
+  color: var(--ds-text-tertiary);
   font-size: var(--ds-font-size-xs);
   letter-spacing: 1.2px;
   font-weight: var(--ds-font-weight-extrabold);
@@ -180,8 +163,9 @@ onUnmounted(() => {
   transition: all var(--ds-transition-quick);
 }
 .sb-service:hover {
-  border-color: var(--ds-color-primary-300);
-  background: var(--ds-color-primary-50);
+  /* v2：收敛为随主题切换的强调色（旧 primary-300/50 非主题感知） */
+  border-color: var(--ds-accent);
+  background: var(--ds-accent-soft);
   transform: translateY(-1px);
 }
 .sb-dot {
@@ -226,11 +210,14 @@ onUnmounted(() => {
   letter-spacing: 0.4px;
   color: var(--ds-text-primary);
   font-weight: var(--ds-font-weight-extrabold);
-  background: var(--ds-color-primary-100);
-  border-color: var(--ds-color-primary-500);
+  /* v2：强调胶囊改为随主题切换（旧 primary-100/500 非主题感知，
+   * 暗色下会变成亮蓝底 + 浅色文字 → 1.2:1 不可读） */
+  background: var(--ds-accent-soft);
+  border-color: var(--ds-accent);
 }
 .sb-env {
-  color: var(--ds-color-primary-900);
+  /* v2：同 .sb-label，收敛为中性（旧 primary-900 非主题感知） */
+  color: var(--ds-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: var(--ds-font-size-xs);

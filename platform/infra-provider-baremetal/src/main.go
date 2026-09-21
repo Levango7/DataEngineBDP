@@ -101,6 +101,17 @@ func main() {
 		logger.Fatalf("数据库迁移失败: %v", err)
 	}
 
+	// 安全止血：校验 JWT 签名密钥强度，弱密钥拒绝启动。
+	//
+	// 与 catalog / ai-assistant 的启动时 fail-fast 范式对齐（见
+	// platform/catalog/internal/middleware/auth.go 的 32 字节长度校验），
+	// 兑现 config/config.yaml 中「JWT 签名密钥（≥32 字节）」的约定：
+	// HS256 密钥过短会显著降低 HMAC 离线暴力破解成本。
+	// JWT_DEV_MODE=true 时放宽校验并打印告警，仅供本地开发，严禁用于生产。
+	if err := middleware.ValidateJWTSigningKey(cfg.Auth.Secret); err != nil {
+		logger.Fatalf("JWT签名密钥校验失败: %v", err)
+	}
+
 	// 初始化鉴权
 	auth := middleware.NewJWTAuthenticator(cfg.Auth.Secret, cfg.Auth.TokenTTLDuration(), cfg.Auth.Issuer)
 

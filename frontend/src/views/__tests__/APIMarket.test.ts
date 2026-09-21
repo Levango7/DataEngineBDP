@@ -73,8 +73,13 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     setActivePinia(createPinia())
   })
 
+  // 注意：test-setup.ts 把 el-button stub 成 `<div class="el-button">`（不是原生 <button>），
+  // 因此这里按 stub 的 class 查找，并按 i18n 译文匹配，避免硬编码文案
+  const retryLabel = (apiMarketZh as { apiMarket: { list: { retry: string } } }).apiMarket.list
+    .retry
+
   function findRetryButton(wrapper: VueWrapper) {
-    return wrapper.findAll('button').find((b) => b.text() === '重试')
+    return wrapper.findAll('.el-button').find((b) => b.text() === retryLabel)
   }
 
   function mountApiMarket() {

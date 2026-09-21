@@ -11,18 +11,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
 import dashboardEn from '@/i18n/locales/modules/dashboard.en-US.json'
 import Dashboard from '../Dashboard.vue'
-
-// 读取源文件内容（用于静态验证 emoji / 响应式断点 / design tokens）
-const viewsDir = resolve(__dirname, '..')
-const loginSrc = readFileSync(resolve(viewsDir, 'Login.vue'), 'utf-8')
-const registerSrc = readFileSync(resolve(viewsDir, 'Register.vue'), 'utf-8')
-const dashboardSrc = readFileSync(resolve(viewsDir, 'Dashboard.vue'), 'utf-8')
-const analyzeSrc = readFileSync(resolve(viewsDir, 'Analyze.vue'), 'utf-8')
+import Login from '../Login.vue'
+import Analyze from '../Analyze.vue'
+// 读取源文件内容（用于静态验证 emoji / 响应式断点 / design tokens）。
+// 用 Vite 的 `?raw` 导入代替 node:fs + __dirname：tsconfig 未引入 @types/node，
+// `node:fs` / `node:path` / `__dirname` 在 vue-tsc 下没有类型声明（TS2307 / TS2304）
+import loginSrc from '../Login.vue?raw'
+import registerSrc from '../Register.vue?raw'
+import dashboardSrc from '../Dashboard.vue?raw'
+import analyzeSrc from '../Analyze.vue?raw'
 
 // i18n 实例（仅加载 dashboard 词条，足够挂载 Dashboard）
 const i18n = createI18n({
@@ -74,16 +74,38 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {} })
 }))
 
+// Mock analyze API：挂载 Analyze 时用于验证空态图标（无看板数据 → 空态）
+vi.mock('@/api/analyze', () => ({
+  getRealtimeMetrics: vi.fn(() => Promise.resolve([])),
+  listDashboards: vi.fn(() => Promise.resolve({ list: [], total: 0, page: 1, pageSize: 20 })),
+  createDashboard: vi.fn(() => Promise.resolve({ id: 'b1' })),
+  deleteDashboard: vi.fn(() => Promise.resolve())
+}))
+
 describe('Login.vue — emoji 清除与 design tokens', () => {
   it('不应包含 ☀️ / 🌙 emoji', () => {
     expect(loginSrc).not.toContain('☀️')
     expect(loginSrc).not.toContain('🌙')
   })
 
-  it('主题切换按钮应使用内联 SVG 替代 emoji', () => {
-    expect(loginSrc).toContain('<svg')
-    // tb-pill-ic 容器内应有 SVG 图标
+  it('主题切换按钮应使用图标（渲染为 SVG）替代 emoji', async () => {
+    // 静态校验：源码里不得出现 emoji 字符，且切换按钮容器仍在
+    expect(loginSrc).not.toContain('☀️')
+    expect(loginSrc).not.toContain('🌙')
     expect(loginSrc).toContain('tb-pill-ic')
+
+    // 运行时校验：主题切换按钮渲染出真正的 <svg>（Element Plus 图标组件 Sunny / Moon），
+    // 而不是 emoji 字符。比"源码里必须出现字面量 <svg>"更贴近用户可见行为
+    setActivePinia(createPinia())
+    const wrapper = mount(Login)
+    await flushPromises()
+
+    const toggleIcon = wrapper.find('.tb-pill-ic')
+    expect(toggleIcon.exists()).toBe(true)
+    expect(toggleIcon.find('svg').exists()).toBe(true)
+    expect(toggleIcon.text()).not.toContain('☀️')
+    expect(toggleIcon.text()).not.toContain('🌙')
+    wrapper.unmount()
   })
 
   it('亮色 scoped 部分应使用 --ds-* design token 变量', () => {
@@ -117,17 +139,13 @@ describe('Dashboard.vue — 响应式断点', () => {
 
   it('1024px 断点应将四列网格退化为两列', () => {
     // 提取 1024px 媒体查询块内容
-    const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = dashboardSrc.match(/@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')
   })
 
   it('640px 断点应将网格退化为单列', () => {
-    const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*640px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = dashboardSrc.match(/@media\s*\(max-width:\s*640px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('1fr')
   })
@@ -138,8 +156,20 @@ describe('Analyze.vue — emoji 清除与响应式断点', () => {
     expect(analyzeSrc).not.toContain('📊')
   })
 
-  it('空态应使用内联 SVG 替代 emoji', () => {
-    expect(analyzeSrc).toContain('<svg')
+  it('空态应使用图标（渲染为 SVG）替代 emoji', async () => {
+    // 静态校验：源码里不得出现 📊 emoji
+    expect(analyzeSrc).not.toContain('📊')
+
+    // 运行时校验：无看板数据时进入空态，空态卡片渲染出 <svg> 图标（DataAnalysis）
+    setActivePinia(createPinia())
+    const wrapper = mount(Analyze)
+    await flushPromises()
+
+    const emptyCard = wrapper.find('.card')
+    expect(emptyCard.exists()).toBe(true)
+    expect(emptyCard.find('svg').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('📊')
+    wrapper.unmount()
   })
 
   it('应包含 @media (max-width: 1024px) 平板断点', () => {
@@ -151,9 +181,7 @@ describe('Analyze.vue — emoji 清除与响应式断点', () => {
   })
 
   it('1024px 断点应将三列面板网格退化为两列', () => {
-    const mediaBlock = analyzeSrc.match(
-      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
-    )
+    const mediaBlock = analyzeSrc.match(/@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/)
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')
   })

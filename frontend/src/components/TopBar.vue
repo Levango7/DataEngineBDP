@@ -9,7 +9,10 @@
       :aria-expanded="ui.sidebarOpen"
       @click="ui.toggleSidebarOpen"
     >
-      <el-icon class="tb-ic"><Fold v-if="ui.sidebarOpen" /><Expand v-else /></el-icon>
+      <el-icon class="tb-ic">
+        <Fold v-if="ui.sidebarOpen" />
+        <Expand v-else />
+      </el-icon>
     </button>
 
     <!-- 工作空间切换 -->
@@ -488,14 +491,19 @@ function handleLogout() {
   top: 100%;
   left: 0;
   margin-top: 6px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+  background: var(--ds-glass-popover-bg);
+  /* v2：blur 半径不再硬编码 12px，改用 glass-popover 的 token
+   * （--glass-bg / --glass-border 已是同一层的别名，这里只补 filter 三件套） */
+  backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  -webkit-backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  border: 1px solid var(--ds-glass-popover-border);
   border-radius: var(--ds-radius-md-plus);
+  /* v2：去掉蓝色发光 --shadow-glow，阴影基础色改为中性深灰 */
   box-shadow:
-    0 8px 24px rgba(15, 23, 42, 0.18),
-    var(--shadow-glow);
+    var(--ds-glass-edge),
+    0 8px 24px rgba(16, 24, 40, 0.18);
   min-width: 180px;
   z-index: 30;
   overflow: hidden;
@@ -531,14 +539,19 @@ function handleLogout() {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+  background: var(--ds-glass-popover-bg);
+  /* v2：blur 半径不再硬编码 12px，改用 glass-popover 的 token
+   * （--glass-bg / --glass-border 已是同一层的别名，这里只补 filter 三件套） */
+  backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  -webkit-backdrop-filter: blur(var(--ds-glass-popover-blur)) saturate(var(--ds-glass-popover-sat))
+    brightness(var(--ds-glass-popover-brightness));
+  border: 1px solid var(--ds-glass-popover-border);
   border-radius: var(--ds-radius-md-plus);
+  /* v2：去掉蓝色发光 --shadow-glow，阴影基础色改为中性深灰 */
   box-shadow:
-    0 8px 24px rgba(15, 23, 42, 0.18),
-    var(--shadow-glow);
+    var(--ds-glass-edge),
+    0 8px 24px rgba(16, 24, 40, 0.18);
   min-width: 200px;
   z-index: 30;
   overflow: hidden;

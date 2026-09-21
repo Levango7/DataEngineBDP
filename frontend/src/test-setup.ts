@@ -6,6 +6,13 @@
 import { config } from '@vue/test-utils'
 import { vi } from 'vitest'
 import { defineComponent, h } from 'vue'
+import { createTestI18n } from '@/test-utils/test-i18n'
+
+// 全局安装 i18n：组件里普遍使用 useI18n()，未安装会抛
+// "Need to install with `app.use` function"（NOT_INSTALLED）。
+// 这里装的实例位于 config.global.plugins，VTU 会把 mount 级 plugins 追加在后面，
+// 因此测试自带 i18n 时以测试自带者为准，不会互相覆盖。
+config.global.plugins = [createTestI18n()]
 
 // Mock Element Plus 的 ElMessage / ElMessageBox
 vi.mock('element-plus', async (importOriginal) => {
@@ -42,14 +49,38 @@ vi.mock('echarts', () => {
 })
 
 // Mock @element-plus/icons-vue
-vi.mock('@element-plus/icons-vue', () => ({
-  Refresh: { name: 'Refresh', template: '<svg />' },
-  Close: { name: 'Close', template: '<svg />' },
-  CircleCheckFilled: { name: 'CircleCheckFilled', template: '<svg />' },
-  CircleCloseFilled: { name: 'CircleCloseFilled', template: '<svg />' },
-  WarningFilled: { name: 'WarningFilled', template: '<svg />' },
-  InfoFilled: { name: 'InfoFilled', template: '<svg />' }
-}))
+//
+// 只白名单 6 个图标时，任何用到其它图标的组件（如 Develop.vue 的 VideoPlay）都会在
+// 渲染期抛 `[vitest] No "Xxx" export is defined on the mock`。改为对任意 PascalCase
+// 图标名按需生成 SVG 占位组件：既能覆盖现有全部图标，也不必维护一份会过期的名单。
+vi.mock('@element-plus/icons-vue', () => {
+  const knownIcons: Record<string, unknown> = {
+    Refresh: { name: 'Refresh', template: '<svg />' },
+    Close: { name: 'Close', template: '<svg />' },
+    CircleCheckFilled: { name: 'CircleCheckFilled', template: '<svg />' },
+    CircleCloseFilled: { name: 'CircleCloseFilled', template: '<svg />' },
+    WarningFilled: { name: 'WarningFilled', template: '<svg />' },
+    InfoFilled: { name: 'InfoFilled', template: '<svg />' }
+  }
+
+  /** Element Plus 图标导出名均为 PascalCase 组件名 */
+  const isIconName = (prop: string | symbol): boolean =>
+    typeof prop === 'string' && /^[A-Z]/.test(prop)
+
+  return new Proxy(knownIcons, {
+    has(target, prop) {
+      // vitest 的 mock 代理用 `prop in target` 判断导出是否存在，
+      // 图标名一律视为存在，否则会抛 "No ... export is defined on the mock"
+      return isIconName(prop) ? true : Reflect.has(target, prop)
+    },
+    get(target, prop) {
+      if (isIconName(prop) && !Reflect.has(target, prop)) {
+        target[prop as string] = { name: prop as string, template: '<svg />' }
+      }
+      return Reflect.get(target, prop)
+    }
+  })
+})
 
 // 透传 slot 的通用 stub 工厂
 function slotStub(name: string) {

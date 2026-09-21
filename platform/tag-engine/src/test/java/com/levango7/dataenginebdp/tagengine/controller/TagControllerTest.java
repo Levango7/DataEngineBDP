@@ -133,7 +133,7 @@ class TagControllerTest {
     @DisplayName("GET /api/v1/tags/{id} — 存在返回 200")
     void getTag_existing_shouldReturn200() throws Exception {
         TagDefinition d = TagDefinition.builder().tagId("tag-1").name("x").build();
-        when(tagService.getTagDefinition("tag-1")).thenReturn(Optional.of(d));
+        when(tagService.getTagDefinition("tag-1", "t1")).thenReturn(Optional.of(d));
 
         tagMvc.perform(get("/api/v1/tags/tag-1"))
                 .andExpect(status().isOk())
@@ -143,21 +143,21 @@ class TagControllerTest {
     @Test
     @DisplayName("GET /api/v1/tags/{id} — 不存在返回 404")
     void getTag_nonExisting_shouldReturn404() throws Exception {
-        when(tagService.getTagDefinition("nope")).thenReturn(Optional.empty());
+        when(tagService.getTagDefinition("nope", "t1")).thenReturn(Optional.empty());
         tagMvc.perform(get("/api/v1/tags/nope")).andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/tags/{id} — 存在返回 204")
     void deleteTag_existing_shouldReturn204() throws Exception {
-        when(tagService.deleteTagDefinition("tag-1")).thenReturn(true);
+        when(tagService.deleteTagDefinition("tag-1", "t1")).thenReturn(true);
         tagMvc.perform(delete("/api/v1/tags/tag-1")).andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("DELETE /api/v1/tags/{id} — 不存在返回 404")
     void deleteTag_nonExisting_shouldReturn404() throws Exception {
-        when(tagService.deleteTagDefinition("nope")).thenReturn(false);
+        when(tagService.deleteTagDefinition("nope", "t1")).thenReturn(false);
         tagMvc.perform(delete("/api/v1/tags/nope")).andExpect(status().isNotFound());
     }
 
@@ -167,7 +167,7 @@ class TagControllerTest {
         TagRuleRequest req = TagRuleRequest.builder()
                 .condition("amount >= 5000").value("活跃").priority(10).build();
         TagRule rule = TagRule.builder().ruleId("rule-1").tagId("tag-1").value("活跃").priority(10).build();
-        when(tagService.createTagRule(eq("tag-1"), any())).thenReturn(rule);
+        when(tagService.createTagRule(eq("tag-1"), any(), eq("t1"))).thenReturn(rule);
 
         tagMvc.perform(post("/api/v1/tags/tag-1/rules")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -180,7 +180,7 @@ class TagControllerTest {
     @DisplayName("GET /api/v1/tags/{id}/rules — 列出规则返回 200")
     void listRules_shouldReturn200() throws Exception {
         TagRule r = TagRule.builder().ruleId("rule-1").tagId("tag-1").priority(5).build();
-        when(tagService.getTagRules("tag-1")).thenReturn(List.of(r));
+        when(tagService.getTagRules("tag-1", "t1")).thenReturn(List.of(r));
 
         tagMvc.perform(get("/api/v1/tags/tag-1/rules"))
                 .andExpect(status().isOk())
@@ -193,7 +193,7 @@ class TagControllerTest {
         ComputeRequest req = ComputeRequest.builder().tenantId("t1").mode("full").build();
         TagComputeResult result = TagComputeResult.builder()
                 .tagId("tag-1").status("SUCCESS").affectedRows(100).build();
-        when(computeService.computeTag(eq("tag-1"), any())).thenReturn(result);
+        when(computeService.computeTag(eq("tag-1"), any(), eq("t1"))).thenReturn(result);
 
         tagMvc.perform(post("/api/v1/tags/tag-1/compute")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -214,7 +214,7 @@ class TagControllerTest {
                         TagComputeResult.builder().tagId("tag-1").status("SUCCESS").build(),
                         TagComputeResult.builder().tagId("tag-2").status("SUCCESS").build()))
                 .successCount(2).failedCount(0).totalCostMs(50).build();
-        when(computeService.batchCompute(any(), any())).thenReturn(result);
+        when(computeService.batchCompute(any(), any(), eq("t1"))).thenReturn(result);
 
         tagMvc.perform(post("/api/v1/tags/batch-compute")
                         .contentType(MediaType.APPLICATION_JSON)
