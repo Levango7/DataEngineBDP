@@ -112,7 +112,11 @@ public class MaterializedViewService {
      * 初始化服务：创建刷新执行器与触发器（不启动）。
      */
     public void init() {
-        Function<String, MaterializedViewDef> resolver = viewRegistry::get;
+        // R8 租户隔离后 viewRegistry 的 key 是「tenantId|viewName」复合键，
+        // 而 ViewRefresher 只持有视图名，因此必须在此补齐租户前缀，
+        // 否则每次刷新都会解析不到视图定义（表现为刷新失败且不执行 SQL）。
+        Function<String, MaterializedViewDef> resolver =
+                name -> viewRegistry.get(registryKey(currentTenant(), name));
         this.viewRefresher = new ViewRefresher(resolver, config, sqlExecutor);
 
         List<MaterializedViewDef> defs = new ArrayList<>(viewRegistry.values());
