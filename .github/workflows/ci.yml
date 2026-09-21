@@ -435,6 +435,13 @@ jobs:
       - name: MIRRORED FILE 一致性校验（jwt_auth.py 九处副本）
         run: bash scripts/check-mirrored-jwt-auth.sh
 
+      - name: 暗色 token 副本一致性校验（防 system 档 / 显式暗色漂移）
+        # design-tokens.css 与 main.css 各含两份暗色副本：:root[data-theme='dark']
+        # 与 @media (prefers-color-scheme: dark) 内的 :root:not([data-theme='light'])。
+        # 两者特异性相同且媒体块靠后（同命中时媒体块胜出），一旦漂移，
+        # "跟随系统"档就会与手动选暗色取到不同取值。
+        run: python3 scripts/check-dark-token-parity.py
+
       - name: 生产交付物 Mock 烘焙校验（Dockerfile/生产 chart）
         run: bash scripts/check-prod-mock-hygiene.sh
 
