@@ -1,10 +1,13 @@
 package com.levango7.dataenginebdp.sqlgateway.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.sqlgateway.model.RouteRule;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteRequest;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteResponse;
 import com.levango7.dataenginebdp.sqlgateway.service.SqlRoutingService;
+import jakarta.servlet.ServletException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +21,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,6 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @ExtendWith(MockitoExtension.class)
 class SqlGatewayControllerTest {
+
+    /** 测试租户 ID（模拟 JwtAuthFilter 认证后写入的上下文）。 */
+    private static final String TEST_TENANT_ID = "test-tenant";
 
     private MockMvc mockMvc;
 
@@ -41,7 +50,17 @@ class SqlGatewayControllerTest {
 
     @BeforeEach
     void setUp() {
+        // R10 起 requireTenant() 为 fail-closed：standalone MockMvc 未挂 JwtAuthFilter，
+        // 需显式注入租户上下文，否则读写接口抛 IllegalStateException。
+        TenantContext.setTenantId(TEST_TENANT_ID);
+        TenantContext.setUserId("test-user");
         mockMvc = MockMvcBuilders.standaloneSetup(sqlGatewayController).build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 清理 ThreadLocal，避免线程复用串号
+        TenantContext.clear();
     }
 
     @Test
@@ -75,7 +94,7 @@ class SqlGatewayControllerTest {
     @DisplayName("GET /api/v1/sql/routes — 列出路由规则返回200")
     void listRoutes_shouldReturn200() throws Exception {
         RouteRule rule = new RouteRule("SELECT", "trino", 1, true);
-        when(routingService.listRoutes()).thenReturn(List.of(rule));
+        when(routingService.listRoutes(TEST_TENANT_ID)).thenReturn(List.of(rule));
 
         mockMvc.perform(get("/api/v1/sql/routes"))
                 .andExpect(status().isOk())
@@ -91,7 +110,7 @@ class SqlGatewayControllerTest {
         RouteRule saved = new RouteRule("INSERT", "doris", 10, true);
         saved.setId(1L);
 
-        when(routingService.addRoute(any(RouteRule.class))).thenReturn(saved);
+        when(routingService.addRoute(any(RouteRule.class), eq(TEST_TENANT_ID))).thenReturn(saved);
 
         mockMvc.perform(post("/api/v1/sql/routes")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -134,5 +153,25 @@ class SqlGatewayControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DEGRADED"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/sql/execute — 缺租户上下文时 fail-closed（R10 安全语义）")
+    void executeSql_withoutTenantContext_shouldFailClosed() {
+        // 清除上下文，模拟未认证请求绕过 JwtAuthFilter 的极端情况
+        TenantContext.clear();
+
+        SqlExecuteRequest request = new SqlExecuteRequest();
+        request.setSql("SELECT 1");
+        request.setEngine("trino");
+
+        ServletException ex = assertThrows(ServletException.class, () ->
+                mockMvc.perform(post("/api/v1/sql/execute")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))));
+
+        assertTrue(ex.getMessage().contains("缺少租户上下文")
+                        || ex.getCause() instanceof IllegalStateException,
+                "缺租户上下文时应 fail-closed 抛 IllegalStateException，实际: " + ex);
     }
 }
