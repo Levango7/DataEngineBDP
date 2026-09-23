@@ -439,8 +439,15 @@ jobs:
           mkdir -p reports/trivy
           # T-06: 遍历所有 Dockerfile，提取 FROM 基础镜像并扫描
           # 覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）
-          # 排除 mock-cluster（测试用 mock）和 spark-cluster（第三方 Spark 镜像，由供应商维护）
-          EXCLUDE_DIRS="mock-cluster spark-cluster"
+          # 排除：
+          #   mock-cluster（测试用 mock）
+          #   spark-cluster（第三方 Spark 镜像，由供应商维护）
+          #   node-image（2026-09-23 新增）：其 FROM 为 kindest/node:v1.30.0，
+          #     即 kind 官方**测试集群节点镜像**，由 KIND 社区维护、非本项目制品。
+          #     其扫描结果 625 条，占全部结果的 96%，会完全淹没项目自身镜像的
+          #     真实漏洞 —— 门禁因此长期为红且失去信噪比。
+          #     参照既有 mock-cluster / spark-cluster 的排除原则处理。
+          EXCLUDE_DIRS="mock-cluster spark-cluster node-image"
           scan_count=0
           fail_count=0
           declare -a seen_images
