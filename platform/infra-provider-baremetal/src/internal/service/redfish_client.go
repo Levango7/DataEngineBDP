@@ -33,6 +33,12 @@ type RedfishClient struct {
 func NewRedfishClient(timeout time.Duration, insecureSkipVerify bool, defaultUser, defaultPass string) *RedfishClient {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
+			// 2026-09-23 修复（Semgrep: missing-ssl-minversion）：
+			// 未设 MinVersion 时 Go 允许协商到 TLS 1.0/1.1（均已废弃）。
+			// 注意这与下方的 InsecureSkipVerify 是**两个独立问题** ——
+			// #nosec G402 注释只覆盖后者，前者始终未处理。
+			// 显式钉到 TLS 1.2（Redfish/BMC 均支持）。
+			MinVersion: tls.VersionTLS12,
 			// BMC通常使用自签证书，开发环境跳过校验。
 			// #nosec G402 -- InsecureSkipVerify 仅在部署方显式配置
 			// TLS 跳过校验开关时为 true（隔离内网带外网络场景）；

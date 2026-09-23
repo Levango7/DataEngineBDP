@@ -86,7 +86,13 @@ func NewFromKubeconfig(path string) (*Client, error) {
 	token := cfg.Users[0].User.Token
 	// #nosec G402 -- InsecureSkipTLSVerify 来自 kubeconfig 显式配置，
 	// 属部署方自主选择（内网 k3s 自签场景），非代码层默认跳过。
-	tlsConf := &tls.Config{InsecureSkipVerify: cfg.Clusters[0].Cluster.InsecureSkipTLSVerify}
+	// 2026-09-23 修复（Semgrep: missing-ssl-minversion）：
+	// 未设 MinVersion 时允许协商到 TLS 1.0/1.1。这与 InsecureSkipVerify
+	// 是两个独立问题，显式钉到 TLS 1.2（k3s API server 支持）。
+	tlsConf := &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: cfg.Clusters[0].Cluster.InsecureSkipTLSVerify,
+	}
 	// 加载 CA（kubeconfig certificate-authority-data，base64 编码 PEM）
 	if caB64 := cfg.Clusters[0].Cluster.CertificateAuthorityData; caB64 != "" {
 		caPEM, err := base64.StdEncoding.DecodeString(caB64)

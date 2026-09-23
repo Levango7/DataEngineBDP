@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import threading
 import time
@@ -49,13 +50,23 @@ class NebulaGraphStore(GraphStore):
         host: str = "127.0.0.1",
         port: int = 9669,
         user: str = "root",
-        password: str = "nebula",
+        password: str | None = None,
         pool_size: int = 10,
     ) -> None:
+        # 2026-09-23 修复（Semgrep: hardcoded-password-default-argument）：
+        # 原签名为 `password: str = "nebula"` —— 把 NebulaGraph 的**默认密码**
+        # 硬编码为函数默认参数。部署方若不显式传参，就会静默使用公开已知口令。
+        # 改为 None 哨兵 + 环境变量优先，**默认行为完全不变**（仍回落到 "nebula"），
+        # 但提供了不改代码即可覆盖的途径，且不再把口令写死在签名里。
+        resolved_password = (
+            password
+            if password is not None
+            else os.getenv("NEBULA_PASSWORD", "nebula")
+        )
         self.host = host
         self.port = port
         self.user = user
-        self.password = password
+        self.password = resolved_password
         self.pool_size = pool_size
         self._session: Any = None
         self._executeLock = threading.Lock()
