@@ -200,8 +200,16 @@ public class DorisClient {
             // R12 安全修复：设置租户会话变量，供 Doris 视图/行级安全策略使用
             if (tenantId != null && !tenantId.isBlank()) {
                 try (Statement setStmt = conn.createStatement()) {
-                    // 使用字符串拼接设置会话变量（tenantId 已由 JWT 校验，非用户输入）
-                    setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
+                    // 2026-09-23 加固：原先仅做 `'` → `''` 转义，**未处理反斜杠**。
+                    // MySQL/Doris 默认启用反斜杠转义（未设 NO_BACKSLASH_ESCAPES），
+                    // 此时 `\` 可吃掉后续的闭合引号，使 `'` 转义失效：
+                    //   tenantId = `a\` → SQL 片段 `'a\'` → 字符串未闭合。
+                    // 故须**先转义反斜杠、再转义引号**（顺序不可颠倒）。
+                    // 注：tenantId 来自 TenantContext（JWT），非请求体；且
+                    // TenantPathMapper 本就拒绝含 `\` 的租户 ID，故本改动
+                    // 不改变任何合法输入的行为。此为纵深防御。
+                    String safeTenant = tenantId.replace("\\", "\\\\").replace("'", "''");
+                    setStmt.execute("SET @tenant_id = '" + safeTenant + "'");
                 }
             }
             try (Statement stmt = conn.createStatement()) {
@@ -259,7 +267,9 @@ public class DorisClient {
             // R13 安全修复：设置租户会话变量
             if (tenantId != null && !tenantId.isBlank()) {
                 try (Statement setStmt = conn.createStatement()) {
-                    setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
+                    // 2026-09-23 加固：同 executeQuery —— 反斜杠须先于引号转义。
+                    String safeTenant = tenantId.replace("\\", "\\\\").replace("'", "''");
+                    setStmt.execute("SET @tenant_id = '" + safeTenant + "'");
                 }
             }
             try (Statement stmt = conn.createStatement()) {

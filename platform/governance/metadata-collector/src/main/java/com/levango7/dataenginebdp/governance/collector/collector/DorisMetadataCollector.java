@@ -142,7 +142,15 @@ public class DorisMetadataCollector extends AbstractJdbcMetadataCollector {
      * @return 建表 SQL；查询失败返回 null
      */
     private String showCreateTable(Connection conn, String database, String table) {
-        String sql = "SHOW CREATE TABLE " + database + "." + table;
+        // 2026-09-23 加固：原为直接拼接 `database + "." + table`，无任何引用。
+        // 值来自源库目录（enrichTable 传入的既有库/表名），非终端用户输入，
+        // 故实际可利用性低；但若库中存在名称含特殊字符的表，
+        // 拼接仍可能改变语句结构。改用**反引号标识符引用**（MySQL/Doris 标准），
+        // 并对名字中的反引号做加倍转义 —— 这是标识符引用的正确写法，
+        // 对常规库/表名不改变任何行为。
+        String sql = "SHOW CREATE TABLE `"
+                + database.replace("`", "``") + "`.`"
+                + table.replace("`", "``") + "`";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
