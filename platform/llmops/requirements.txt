@@ -14,8 +14,8 @@ mlflow==3.15.1
 httpx==0.28.1
 
 # Testing
-pytest==8.3.4
-pytest-asyncio==0.25.2
+pytest>=9.0.3,<10.0       # 修复 PYSEC-2026-1845（先例见 batch-pipeline/requirements-dev.txt）；下界取 9.0.3 而非 9.0，避免解析到仍含漏洞的 9.0.0
+pytest-asyncio>=1.4.0,<2.0  # 随 pytest 9 同步升级：0.25.2/0.26.0/1.0.0 均要求 pytest<9，仅 1.4.0 起兼容
 
 # Logging
 loguru==0.7.3
