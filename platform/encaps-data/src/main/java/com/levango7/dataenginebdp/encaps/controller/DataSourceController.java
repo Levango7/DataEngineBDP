@@ -188,8 +188,8 @@ public class DataSourceController {
             long start = System.currentTimeMillis();
             boolean success = false;
             try (Socket socket = new Socket()) {
-                // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
                 // 核实依据：误报：此为 TCP 连通性探测，connect() 后立即由 try-with-resources 关闭，不传输任何数据；连接前另有 ssrfGuard.validate()。
+                // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
                 socket.connect(new InetSocketAddress(entity.getHost(), entity.getPort()), 5000);
                 success = true;
                 result.put("success", true);

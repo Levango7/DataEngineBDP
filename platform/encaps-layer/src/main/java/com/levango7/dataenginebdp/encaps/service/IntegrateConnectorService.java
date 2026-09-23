@@ -166,8 +166,8 @@ public class IntegrateConnectorService {
             return false;
         }
         try (Socket socket = new Socket()) {
-            // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
             // 核实依据：误报：此为 TCP 连通性探测（带 PROBE_TIMEOUT_MS 超时），connect() 后立即关闭，不传输任何数据。
+            // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
             socket.connect(new InetSocketAddress(host, port), PROBE_TIMEOUT_MS);
             return true;
         } catch (Exception e) {

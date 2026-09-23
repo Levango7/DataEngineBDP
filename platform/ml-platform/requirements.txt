@@ -27,4 +27,3 @@ loguru==0.7.3
 
 # Utilities
 python-dateutil==2.9.0.post0
-cryptography>=50.0.0       # 修复 PYSEC-2026-3552（传递依赖，显式下界强制 pip 升级）

@@ -198,8 +198,8 @@ class LlamaFactoryAdapter(BaseAdapter):
         try:
             proc = subprocess.Popen(
                 shlex.join(cmd),
-                # nosemgrep: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
                 # 核实依据：位于 design/planned/（规划件，非在产代码）；subprocess 调用 llama-factory 训练命令，参数由配置装配。
+                # nosemgrep: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
                 shell=True,
                 stdout=log_fd,
                 stderr=subprocess.STDOUT,

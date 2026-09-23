@@ -6,8 +6,8 @@ import urllib.request
 
 
 def get(url: str):
-    # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
     # 核实依据：运维查询工具，url 由调用方传入（Spark Master/Worker JSON API），非终端用户输入。
+    # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
     with urllib.request.urlopen(url, timeout=10) as r:  # noqa: S310
         return json.load(r)
 

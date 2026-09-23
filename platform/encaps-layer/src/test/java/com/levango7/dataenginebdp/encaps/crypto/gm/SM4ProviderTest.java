@@ -1,11 +1,15 @@
 package com.levango7.dataenginebdp.encaps.crypto.gm;
 
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
+import org.bouncycastle.crypto.engines.SM4Engine;
+import org.bouncycastle.crypto.params.KeyParameter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Arrays;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * {@link SM4Provider} 单元测试。
  *
  * <p>覆盖 GB/T 32907-2016《信息安全技术 SM4 分组密码算法》附录 A 已知测试向量，
- * ECB/CBC 模式往返、PKCS7 填充、密钥长度校验、吞吐性能（≥100MB/s）。</p>
+ * ECB/CBC 模式往返、PKCS7 填充、密钥长度校验、吞吐性能回归（相对裸 BC 引擎开销）。</p>
  *
  * <h3>标准测试向量（GB/T 32907-2016 附录 A.1）</h3>
  * <pre>
@@ -312,137 +316,166 @@ class SM4ProviderTest {
                 .isInstanceOf(CryptoException.class);
     }
 
-    // ===== 吞吐性能测试（环境自适应阈值） =====
+    // ===== SM4 吞吐性能测试 =====
     //
-    // 注：SM4 加密吞吐取决于运行环境的硬件加速支持。
-    // - 有 SM4 硬件加速的生产环境（如鲲鹏/海光 CPU 的国密指令）：可达 100+ MB/s
-    // - 无硬件加速的开发/CI 环境（纯 Java BC 实现）：单线程约 50-90 MB/s
-    //   （实测 ECB ≈ 50-70 MB/s，CBC ≈ 45-65 MB/s，受 JVM、CPU 核频、BC 版本、
-    //   测试负载影响有较大波动）
-    // 本测试采用环境自适应阈值：先探测是否有 SM4 硬件加速，
-    // 有则要求 100MB/s（满足 GB/T 32907 性能要求），无则放宽至 50MB/s（ECB）/40MB/s（CBC），
-    // 为纯 Java 环境的吞吐波动留足余量。
+    // 设计目标：断言"是否存在工程性吞吐退化"，而不是"这台机器有多快"。
+    //
+    // 实测依据（AMD Ryzen 9 7945HX / Windows 11 / Corretto 17 / BC 纯 Java 实现；
+    // 完整数据见 deliverables/gstack/flaky-aes-throughput-2026-09-23.md 第 6 节）：
+    //   - 原用例测 64MB 数据，阈值 50/40 MB/s，实测空闲 71.7/72.0 MB/s，余量仅 1.4/1.8x；
+    //     16 路 CPU 满载下实测 38.4/36.3 MB/s → 两个用例同时失败（已复现）。
+    //   - 生产路径（SM4Provider.encrypt）best-of-5 @1MB：ECB 空闲 82–91 / 满载 67–70 MB/s；
+    //     CBC 空闲 75–81 / 满载 57–58 MB/s。
+    //   - hasSm4Acceleration() 与 AES 的 hasAesNi() 同型：是吞吐启发式（1MB > 200MB/s）而非
+    //     硬件检测。实测 1MB 仅 50–89 MB/s，永远返回 false → 100MB/s 分支是死代码。
+    //   - 相对指标 provider / 裸 BC SM4Engine（同进程交错采样）实测中位数 0.88–1.04，
+    //     空闲与满载同样稳定 → 才是可用于门禁的判据。
+    //
+    // 另：原用例测的是 BC 的 JCE 路径（Cipher.getInstance("SM4/ECB/NoPadding","BC")），而
+    // SM4Provider 生产代码走的是 BC 轻量级 SM4Engine + Java 分块循环 —— 二者不是同一条代码
+    // 路径，原断言实际没有度量生产代码。本次改为直接测 SM4Provider.encrypt，基线用裸
+    // SM4Engine，回归检测对象从"BC 的 JCE 实现"修正为"SM4Provider 自身代码"。
+    //
+    // 两条断言：
+    //   1) 相对开销（主判据）：SM4Provider 相对裸 BC SM4Engine 的开销 < 1.5x。
+    //      实测中位数 0.88–1.04（余量约 44%，约为实测离散度的 9 倍）。可捕捉 SM4Provider
+    //      自身代码引入的 ≥1.5x 退化（如逐块重建引擎、多余拷贝、无谓同步等）。
+    //   2) 绝对下限（兜底）：best-of-N 吞吐 > 10 MB/s。相对满载实测最低 56.9 MB/s 有 5.7x
+    //      余量，可捕捉 ≥5.7x 的灾难性退化，同时在任何负载下都不会误报。
 
-    /**
-     * 测量 SM4-ECB 单线程加密吞吐（MB/s）。
-     *
-     * <p>使用 JCE NoPadding API 直接处理 16 字节对齐数据，充分 warmup 让 JIT 完成内联优化。
-     * 返回稳定后的平均吞吐。</p>
-     */
-    private double measureEcbThroughput(byte[] key, int size, int warmup, int iterations) {
-        try {
-            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("SM4/ECB/NoPadding", "BC");
-            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(key, "SM4");
-            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, keySpec);
-            byte[] data = new byte[size];
-            byte[] out = new byte[size];
-            for (int i = 0; i < warmup; i++) {
-                cipher.doFinal(data, 0, size, out, 0);
-            }
-            long start = System.nanoTime();
-            for (int i = 0; i < iterations; i++) {
-                cipher.doFinal(data, 0, size, out, 0);
-            }
-            long elapsedNanos = System.nanoTime() - start;
-            double totalBytes = (double) size * iterations;
-            return (totalBytes / (1024 * 1024)) / (elapsedNanos / 1e9);
-        } catch (Exception e) {
-            throw new CryptoException("throughput measurement failed", e);
-        }
-    }
+    /** 单次吞吐采样所用数据块大小。1MB 读数与原 64MB 相当且稳定，耗时低两个数量级。 */
+    private static final int PERF_DATA_SIZE = 1024 * 1024;
 
-    /**
-     * 测量 SM4-CBC 单线程加密吞吐（MB/s）。
-     */
-    private double measureCbcThroughput(byte[] key, byte[] iv, int size, int warmup, int iterations) {
-        try {
-            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("SM4/CBC/NoPadding", "BC");
-            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(key, "SM4");
-            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, keySpec, new javax.crypto.spec.IvParameterSpec(iv));
-            byte[] data = new byte[size];
-            byte[] out = new byte[size];
-            for (int i = 0; i < warmup; i++) {
-                cipher.doFinal(data, 0, size, out, 0);
-            }
-            long start = System.nanoTime();
-            for (int i = 0; i < iterations; i++) {
-                cipher.doFinal(data, 0, size, out, 0);
-            }
-            long elapsedNanos = System.nanoTime() - start;
-            double totalBytes = (double) size * iterations;
-            return (totalBytes / (1024 * 1024)) / (elapsedNanos / 1e9);
-        } catch (Exception e) {
-            throw new CryptoException("throughput measurement failed", e);
-        }
-    }
+    /** 采样次数。取 best-of-N 作为读数，是共享/高负载 CI 上标准的去噪手段。 */
+    private static final int PERF_SAMPLES = 5;
 
-    /**
-     * 检测当前环境是否有 SM4 硬件加速。
-     *
-     * <p>通过测量小数据块 ECB 吞吐来推断：若 1MB 数据吞吐 > 200MB/s，认为有 SM4 硬件加速
-     * （如鲲鹏/海光 CPU 的国密指令集）；否则认为是纯 Java BC 实现。
-     * 此方法与 T022-3 国际算法 AES-GCM 的 {@code hasAesNi()} 检测策略保持一致。</p>
-     *
-     * @return 有 SM4 硬件加速返回 true
-     */
-    private boolean hasSm4Acceleration() {
-        try {
-            BcProviderHolder.ensureRegistered();
-            byte[] key = sm4.generateKey();
-            // 测量 1MB 数据吞吐，足够稳定又能反映硬件加速差异
-            double throughput = measureEcbThroughput(key, 1024 * 1024, 5, 10);
-            return throughput > 200.0;
-        } catch (Exception e) {
-            return false;
-        }
-    }
+    /** 每次采样的加密迭代次数。 */
+    private static final int PERF_ITERATIONS = 5;
 
-    /**
-     * SM4-ECB 加密吞吐性能测试（环境自适应阈值）。
-     *
-     * <p>100MB/s 是在有 SM4 硬件加速的生产环境中可达的目标（GB/T 32907 性能要求）。
-     * 当前开发环境纯 Java 单线程实测约 50-70MB/s（受 JVM/CPU 影响有波动），
-     * 无硬件加速时阈值放宽至 50MB/s（留足余量应对吞吐波动）。</p>
-     */
+    /** 绝对吞吐下限（MB/s）—— 仅用于兜底捕捉灾难性退化。 */
+    private static final double MIN_THROUGHPUT_MBPS = 10.0;
+
+    /** SM4Provider 相对裸 BC SM4Engine 的最大允许开销倍数（主判据）。 */
+    private static final double MAX_OVERHEAD_FACTOR = 1.5;
+
     @Test
-    @DisplayName("SM4-ECB 吞吐 ≥ 环境自适应阈值(100MB/s硬件加速 / 50MB/s纯Java)")
-    void sm4_ecb_throughput_shouldMeetAdaptiveThreshold() {
-        BcProviderHolder.ensureRegistered();
-        byte[] key = sm4.generateKey();
-        int size = 64 * 1024 * 1024; // 64 MB（16 字节对齐）
-        double throughput = measureEcbThroughput(key, size, 20, 20);
-        boolean accelerated = hasSm4Acceleration();
-        // 有 SM4 硬件加速：要求 100MB/s（GB/T 32907 性能要求）
-        // 无 SM4 硬件加速（纯 Java BC）：要求 50MB/s（实测约 50-70MB/s，留足余量应对波动）
-        double threshold = accelerated ? 100.0 : 50.0;
-        assertThat(throughput)
-                .as("SM4-ECB 吞吐 %.1f MB/s，要求 ≥ %.0f MB/s（100MB/s=硬件加速环境，50MB/s=纯Java环境，硬件加速=%s）",
-                        throughput, threshold, accelerated)
-                .isGreaterThanOrEqualTo(threshold);
+    @DisplayName("性能 — SM4-ECB 吞吐无工程性退化（相对裸BC引擎开销 < 1.5x，绝对下限 10 MB/s）")
+    void sm4_ecb_throughput_shouldNotRegress() {
+        assertNoThroughputRegression(false, null);
+    }
+
+    @Test
+    @DisplayName("性能 — SM4-CBC 吞吐无工程性退化（相对裸BC引擎开销 < 1.5x，绝对下限 10 MB/s）")
+    void sm4_cbc_throughput_shouldNotRegress() {
+        assertNoThroughputRegression(true, sm4.generateIv());
     }
 
     /**
-     * SM4-CBC 加密吞吐性能测试（环境自适应阈值）。
+     * 断言指定模式的 SM4 吞吐未出现工程性退化。
      *
-     * <p>100MB/s 是在有 SM4 硬件加速的生产环境中可达的目标。当前开发环境纯 Java 单线程
-     * 实测约 45-65MB/s（CBC 因链式依赖略低于 ECB，且受 JVM 负载影响波动较大），
-     * 无硬件加速时阈值放宽至 40MB/s（留足余量应对吞吐波动）。</p>
+     * <p>生产路径与基线在同一次迭代内背靠背测量（交错采样），因此共同承受当时的机器负载，
+     * 比值不受负载影响；再取 best-of-N 与中位数，进一步压制单次抖动。</p>
      */
-    @Test
-    @DisplayName("SM4-CBC 吞吐 ≥ 环境自适应阈值(100MB/s硬件加速 / 40MB/s纯Java)")
-    void sm4_cbc_throughput_shouldMeetAdaptiveThreshold() {
-        BcProviderHolder.ensureRegistered();
+    private void assertNoThroughputRegression(boolean cbc, byte[] iv) {
         byte[] key = sm4.generateKey();
-        byte[] iv = sm4.generateIv();
-        int size = 64 * 1024 * 1024;
-        double throughput = measureCbcThroughput(key, iv, size, 20, 20);
-        boolean accelerated = hasSm4Acceleration();
-        // 有 SM4 硬件加速：要求 100MB/s
-        // 无 SM4 硬件加速（纯 Java BC）：要求 40MB/s（实测约 45-65MB/s，CBC 链式依赖略低于 ECB，留足余量）
-        double threshold = accelerated ? 100.0 : 40.0;
-        assertThat(throughput)
-                .as("SM4-CBC 吞吐 %.1f MB/s，要求 ≥ %.0f MB/s（100MB/s=硬件加速环境，40MB/s=纯Java环境，硬件加速=%s）",
-                        throughput, threshold, accelerated)
-                .isGreaterThanOrEqualTo(threshold);
+        byte[] data = new byte[PERF_DATA_SIZE];
+        new SecureRandom().nextBytes(data);
+
+        // 预热：确保两侧都经过 JIT 编译后再开始采样
+        sm4.encrypt(data, key, cbc ? "CBC" : "ECB", cbc ? iv : null);
+        if (cbc) {
+            rawBcCbcThroughput(key, iv, data);
+        } else {
+            rawBcEcbThroughput(key, data);
+        }
+
+        double bestProvider = 0.0;
+        double bestBaseline = 0.0;
+        double[] ratios = new double[PERF_SAMPLES];
+
+        for (int i = 0; i < PERF_SAMPLES; i++) {
+            double provider = measureProviderThroughput(data, key, iv, cbc);
+            double baseline = cbc ? rawBcCbcThroughput(key, iv, data) : rawBcEcbThroughput(key, data);
+            bestProvider = Math.max(bestProvider, provider);
+            bestBaseline = Math.max(bestBaseline, baseline);
+            ratios[i] = provider / baseline;
+        }
+        double medianRatio = median(ratios);
+
+        assertThat(bestProvider)
+                .as("SM4-%s best-of-%d throughput: %.2f MB/s (absolute floor: %.1f MB/s, "
+                                + "raw BC baseline: %.2f MB/s, median overhead ratio: %.2f)",
+                        cbc ? "CBC" : "ECB", PERF_SAMPLES, bestProvider, MIN_THROUGHPUT_MBPS,
+                        bestBaseline, medianRatio)
+                .isGreaterThan(MIN_THROUGHPUT_MBPS);
+
+        assertThat(medianRatio)
+                .as("SM4-%s SM4Provider/raw-BC-baseline median overhead ratio: %.2f (allowed < %.2f); "
+                                + "provider best: %.2f MB/s, baseline best: %.2f MB/s",
+                        cbc ? "CBC" : "ECB", medianRatio, MAX_OVERHEAD_FACTOR,
+                        bestProvider, bestBaseline)
+                .isLessThan(MAX_OVERHEAD_FACTOR);
+    }
+
+    /** 生产路径吞吐：{@link SM4Provider#encrypt}（含 PKCS7 填充与分块循环），MB/s。 */
+    private double measureProviderThroughput(byte[] data, byte[] key, byte[] iv, boolean cbc) {
+        long start = System.nanoTime();
+        for (int i = 0; i < PERF_ITERATIONS; i++) {
+            sm4.encrypt(data, key, cbc ? "CBC" : "ECB", cbc ? iv : null);
+        }
+        long elapsed = System.nanoTime() - start;
+        return (double) data.length * PERF_ITERATIONS / (elapsed / 1e9) / (1024 * 1024);
+    }
+
+    /** 裸 BC 轻量级 {@link SM4Engine} 的 ECB 参考吞吐，分块循环形状与生产路径一致，MB/s。 */
+    private double rawBcEcbThroughput(byte[] key, byte[] data) {
+        SM4Engine engine = new SM4Engine();
+        engine.init(true, new KeyParameter(key));
+        byte[] out = new byte[data.length];
+        int blockLen = GmAlgorithm.SM4_BLOCK_LEN;
+        int blocks = data.length / blockLen;
+
+        long start = System.nanoTime();
+        for (int i = 0; i < PERF_ITERATIONS; i++) {
+            for (int b = 0; b < blocks; b++) {
+                engine.processBlock(data, b * blockLen, out, b * blockLen);
+            }
+        }
+        long elapsed = System.nanoTime() - start;
+        return (double) data.length * PERF_ITERATIONS / (elapsed / 1e9) / (1024 * 1024);
+    }
+
+    /** 裸 BC 轻量级 {@link SM4Engine} 的 CBC 参考吞吐（手动链接，与生产路径一致），MB/s。 */
+    private double rawBcCbcThroughput(byte[] key, byte[] iv, byte[] data) {
+        SM4Engine engine = new SM4Engine();
+        engine.init(true, new KeyParameter(key));
+        byte[] out = new byte[data.length];
+        int blockLen = GmAlgorithm.SM4_BLOCK_LEN;
+        int blocks = data.length / blockLen;
+        byte[] chain = new byte[blockLen];
+        byte[] blk = new byte[blockLen];
+
+        long start = System.nanoTime();
+        for (int i = 0; i < PERF_ITERATIONS; i++) {
+            System.arraycopy(iv, 0, chain, 0, blockLen);
+            for (int b = 0; b < blocks; b++) {
+                int off = b * blockLen;
+                for (int j = 0; j < blockLen; j++) {
+                    blk[j] = (byte) (data[off + j] ^ chain[j]);
+                }
+                engine.processBlock(blk, 0, out, off);
+                System.arraycopy(out, off, chain, 0, blockLen);
+            }
+        }
+        long elapsed = System.nanoTime() - start;
+        return (double) data.length * PERF_ITERATIONS / (elapsed / 1e9) / (1024 * 1024);
+    }
+
+    /** 中位数（复制入参，不修改调用方数组）。 */
+    private static double median(double[] values) {
+        double[] sorted = Arrays.copyOf(values, values.length);
+        Arrays.sort(sorted);
+        int mid = sorted.length / 2;
+        return sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
     }
 }

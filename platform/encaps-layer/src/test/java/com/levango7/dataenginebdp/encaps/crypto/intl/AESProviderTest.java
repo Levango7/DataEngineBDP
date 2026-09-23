@@ -10,6 +10,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -524,54 +525,121 @@ class AESProviderTest {
         assertThat(ourCt).isEqualTo(jdkCt);
     }
 
-    // ===== AES-256-GCM 吞吐性能测试 =====
+    // ===== AES-GCM 吞吐性能测试 =====
     //
-    // 注：AES-GCM 吞吐取决于运行环境的硬件加速（AES-NI）。
-    // - 有 AES-NI 的生产环境：可达 500+ MB/s
-    // - 无 AES-NI 的开发/CI 环境：约 50-100 MB/s
-    // 本测试采用环境自适应阈值：检测 AES-NI 可用性，有则要求 500MB/s，无则要求 50MB/s。
+    // 设计目标：断言"是否存在工程性吞吐退化"，而不是"这台机器有多快"。
+    //
+    // 实测依据（AMD Ryzen 9 7945HX / Windows 11 / Corretto 17，JDK 未启用 AES-NI 硬件加速；
+    // 完整数据见 deliverables/gstack/flaky-aes-throughput-2026-09-23.md）：
+    //   - 绝对吞吐对机器负载高度敏感：空载 48–66 MB/s，16 路 CPU 满载 20–22 MB/s（约 2.5–3x 漂移）。
+    //     因此任何落在该区间内的固定绝对阈值都必然抖动 —— 原 40 MB/s 阈值正落在区间内，
+    //     空载机器上单次采样即可低于 40 MB/s，属于"结构性 flaky"而非偶发。
+    //   - 相对指标 AESProvider / 裸 JDK Cipher（同进程交错采样）实测中位数 0.94–1.03，
+    //     在空载与满载下同样稳定，且不随机器快慢变化 —— 这才是可用于门禁的判据。
+    //
+    // 两条断言：
+    //   1) 相对开销（主判据）：AESProvider 相对其所包装的裸 JDK Cipher 的开销 < 1.5x。
+    //      实测中位数 ≤ 1.03（余量约 45%）。可捕捉 AESProvider 自身代码引入的 ≥1.5x 退化
+    //      （如逐块重建 Cipher、整体复制明文、无谓同步等）。
+    //   2) 绝对下限（兜底）：best-of-N 吞吐 > 5 MB/s。相对实测最差值 19.7 MB/s 有约 3.9x 余量，
+    //      可捕捉 ≥4x 的灾难性退化，同时在任何负载下都不会误报。
+
+    /** 单次吞吐采样所用数据块大小。1MB 工作集对 L2/L3 更友好，读数比 10MB 更稳，耗时低一个数量级。 */
+    private static final int PERF_DATA_SIZE = 1024 * 1024;
+
+    /** 采样次数。取 best-of-N 作为读数，是共享/高负载 CI 上标准的去噪手段。 */
+    private static final int PERF_SAMPLES = 5;
+
+    /** 绝对吞吐下限（MB/s）—— 仅用于兜底捕捉灾难性退化。 */
+    private static final double MIN_THROUGHPUT_MBPS = 5.0;
+
+    /** AESProvider 相对裸 JDK Cipher 的最大允许开销倍数（主判据）。 */
+    private static final double MAX_OVERHEAD_FACTOR = 1.5;
+
+    @Test
+    @DisplayName("性能 — AES-256-GCM 吞吐无工程性退化（相对裸JDK开销 < 1.5x，绝对下限 5 MB/s）")
+    void performance_aes256Gcm_throughput_shouldNotRegress() {
+        assertNoThroughputRegression(256);
+    }
+
+    @Test
+    @DisplayName("性能 — AES-128-GCM 吞吐无工程性退化（相对裸JDK开销 < 1.5x，绝对下限 5 MB/s）")
+    void performance_aes128Gcm_throughput_shouldNotRegress() {
+        assertNoThroughputRegression(128);
+    }
 
     /**
-     * 检测当前环境是否有 AES-NI 硬件加速。
+     * 断言指定密钥长度的 AES-GCM 吞吐未出现工程性退化。
      *
-     * @return 有 AES-NI 返回 true
+     * <p>两侧测量在同一次迭代内背靠背进行（交错采样），因此共同承受当时的机器负载，
+     * 比值不受负载影响；再取 best-of-N 与中位数，进一步压制单次抖动。</p>
      */
-    private boolean hasAesNi() {
-        // 通过测量小数据块吞吐来推断是否有硬件加速
-        // 有 AES-NI 时小数据块吞吐也较高，无 AES-NI 时较低
+    private void assertNoThroughputRegression(int keySize) {
+        byte[] key = aesProvider.generateKey(keySize);
+        byte[] data = new byte[PERF_DATA_SIZE];
+        new SecureRandom().nextBytes(data);
+
+        double bestProvider = 0.0;
+        double bestJdkBaseline = 0.0;
+        double[] ratios = new double[PERF_SAMPLES];
+
+        for (int i = 0; i < PERF_SAMPLES; i++) {
+            double provider = aesProvider.measureThroughput(keySize, PERF_DATA_SIZE);
+            double baseline = jdkGcmBaselineThroughput(key, data);
+            bestProvider = Math.max(bestProvider, provider);
+            bestJdkBaseline = Math.max(bestJdkBaseline, baseline);
+            ratios[i] = provider / baseline;
+        }
+        double medianRatio = median(ratios);
+
+        assertThat(bestProvider)
+                .as("AES-%d-GCM best-of-%d throughput: %.2f MB/s (absolute floor: %.1f MB/s, "
+                                + "JDK baseline: %.2f MB/s, median overhead ratio: %.2f)",
+                        keySize, PERF_SAMPLES, bestProvider, MIN_THROUGHPUT_MBPS, bestJdkBaseline, medianRatio)
+                .isGreaterThan(MIN_THROUGHPUT_MBPS);
+
+        assertThat(medianRatio)
+                .as("AES-%d-GCM AESProvider/JDK-baseline median overhead ratio: %.2f (allowed < %.2f); "
+                                + "provider best: %.2f MB/s, baseline best: %.2f MB/s",
+                        keySize, medianRatio, MAX_OVERHEAD_FACTOR, bestProvider, bestJdkBaseline)
+                .isLessThan(MAX_OVERHEAD_FACTOR);
+    }
+
+    /**
+     * 裸 JDK {@code Cipher} 的 AES-GCM 参考吞吐（MB/s）。
+     *
+     * <p>循环形状与 {@link AESProvider#measureThroughput(int, int)} 保持一致
+     * （1 次预热 + 5 次 {@code getInstance/init/doFinal}），因此两侧可直接比较。</p>
+     */
+    private double jdkGcmBaselineThroughput(byte[] key, byte[] data) {
         try {
-            double throughput = aesProvider.measureThroughput(256, 1024 * 1024);
-            // 如果 1MB 数据吞吐 > 200MB/s，认为有 AES-NI
-            return throughput > 200.0;
+            SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
+            byte[] iv = new byte[12];
+            Cipher warmup = Cipher.getInstance("AES/GCM/NoPadding");
+            warmup.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
+            warmup.doFinal(data);
+
+            int iterations = 5;
+            long startTime = System.nanoTime();
+            for (int i = 0; i < iterations; i++) {
+                iv[11] = (byte) (i & 0xff);
+                Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
+                cipher.doFinal(data);
+            }
+            long elapsedNanos = System.nanoTime() - startTime;
+            return (double) data.length * iterations / (elapsedNanos / 1_000_000_000.0) / (1024 * 1024);
         } catch (Exception e) {
-            return false;
+            throw new CryptoException("JDK GCM baseline measurement failed", e);
         }
     }
 
-    @Test
-    @DisplayName("性能 — AES-256-GCM 吞吐 ≥ 500 MB/s（有AES-NI）/ ≥ 50 MB/s（无AES-NI）")
-    void performance_aes256Gcm_throughput_shouldExceed500MBps() {
-        int dataSize = 10 * 1024 * 1024;
-        double throughput = aesProvider.measureThroughput(256, dataSize);
-
-        double threshold = hasAesNi() ? 500.0 : 40.0;
-        assertThat(throughput)
-                .as("AES-256-GCM throughput: %.2f MB/s (threshold: %.0f MB/s, AES-NI: %s)",
-                        throughput, threshold, hasAesNi())
-                .isGreaterThan(threshold);
-    }
-
-    @Test
-    @DisplayName("性能 — AES-128-GCM 吞吐 ≥ 500 MB/s（有AES-NI）/ ≥ 40 MB/s（无AES-NI）")
-    void performance_aes128Gcm_throughput_shouldExceed500MBps() {
-        int dataSize = 10 * 1024 * 1024;
-        double throughput = aesProvider.measureThroughput(128, dataSize);
-
-        double threshold = hasAesNi() ? 500.0 : 40.0;
-        assertThat(throughput)
-                .as("AES-128-GCM throughput: %.2f MB/s (threshold: %.0f MB/s, AES-NI: %s)",
-                        throughput, threshold, hasAesNi())
-                .isGreaterThan(threshold);
+    /** 中位数（复制入参，不修改调用方数组）。 */
+    private static double median(double[] values) {
+        double[] sorted = Arrays.copyOf(values, values.length);
+        Arrays.sort(sorted);
+        int mid = sorted.length / 2;
+        return sorted.length % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2.0;
     }
 
     @Test

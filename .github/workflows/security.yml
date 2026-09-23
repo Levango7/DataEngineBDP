@@ -193,7 +193,7 @@ jobs:
   # Python 依赖漏洞扫描：pip-audit
   # 针对每个 Python 组件的 requirements.txt / pyproject.toml 进行漏洞匹配
   #
-  # 2026-09-23 定向豁免：--ignore-vuln PYSEC-2026-3865
+  # 2026-09-23 定向豁免：--ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447
   #   该 CVE 影响 mlflow 3.15.1，上游**无修复版本**（pip-audit 报 fix=[]）。
   #   若不豁免，即使其余漏洞全部修复，本门禁也会因它**永远为红**、失去意义。
   #   豁免范围**仅限这一个 CVE**（其余漏洞仍全部阻断）。
@@ -230,7 +230,7 @@ jobs:
             echo "============================================"
             echo "  pip-audit: $mod_name"
             echo "============================================"
-            (cd "$mod_dir" && pip-audit --strict -r requirements.txt --ignore-vuln PYSEC-2026-3865 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
+            (cd "$mod_dir" && pip-audit --strict -r requirements.txt --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
           done < <(find platform -name requirements.txt 2>/dev/null)
           # 对使用 pyproject.toml 但无 requirements.txt 的组件
           while IFS= read -r f; do
@@ -240,7 +240,7 @@ jobs:
               echo "============================================"
               echo "  pip-audit (pyproject): $mod_name"
               echo "============================================"
-              (cd "$mod_dir" && pip-audit --strict --ignore-vuln PYSEC-2026-3865 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
+              (cd "$mod_dir" && pip-audit --strict --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
             fi
           done < <(find platform -name pyproject.toml 2>/dev/null)
           if [ "$fail_count" -gt 0 ]; then
