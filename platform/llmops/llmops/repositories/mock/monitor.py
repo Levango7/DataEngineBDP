@@ -22,6 +22,8 @@ from llmops.repositories import DeploymentNotFoundError
 
 def _seed(deployment_id: str) -> int:
     """从 deployment_id 生成确定性种子，保证同一部署指标稳定."""
+    # nosemgrep: python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5
+    # 核实依据：MD5 此处用作确定性种子（保证同一部署指标稳定），非安全用途；改 SHA-256 会改变种子值。
     h = hashlib.md5(deployment_id.encode("utf-8")).digest()
     return int.from_bytes(h[:4], "big")
 

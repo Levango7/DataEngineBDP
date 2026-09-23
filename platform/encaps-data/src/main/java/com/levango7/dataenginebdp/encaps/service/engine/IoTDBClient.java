@@ -107,6 +107,8 @@ public class IoTDBClient {
             if (!DEVICE_NAME_PATTERN.matcher(device).matches()) {
                 throw new IllegalArgumentException("非法的 device 参数: " + device);
             }
+            // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+            // 核实依据：误报：拼接前已有严格白名单 DEVICE_NAME_PATTERN=^[a-zA-Z0-9_.]+$，不匹配即抛 IllegalArgumentException。
             sql = "SHOW TIMESERIES " + device;
         }
         List<Map<String, Object>> result = new ArrayList<>();

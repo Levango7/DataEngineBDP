@@ -114,6 +114,8 @@ public class QueryPlanCacheService {
             }
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
+            // nosemgrep: java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion
+            // 核实依据：误报：该规则针对定宽字节拼接丢前导零；此处 Integer.toHexString(int) 的 int->hex 是单射，不引入碰撞。主路径另用 %02x 已补零。
             return Integer.toHexString(raw.hashCode());
         }
     }

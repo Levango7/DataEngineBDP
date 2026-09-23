@@ -30,6 +30,8 @@ from ml_platform.repositories import (
 
 def _deterministicPredict(modelId: str, samples: list[dict[str, Any]]) -> list[float]:
     """基于模型 ID 哈希生成确定性预测值（便于测试断言）."""
+    # nosemgrep: python.lang.security.insecure-hash-algorithms-md5.insecure-hash-algorithm-md5
+    # 核实依据：MD5 此处用作确定性种子（源码注释：便于测试断言），非安全用途；改 SHA-256 会打断既有断言。
     seed = int(hashlib.md5(modelId.encode()).hexdigest()[:8], 16)
     predictions: list[float] = []
     for i, sample in enumerate(samples):

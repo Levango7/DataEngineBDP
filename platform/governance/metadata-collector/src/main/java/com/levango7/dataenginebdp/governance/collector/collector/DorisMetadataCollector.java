@@ -148,6 +148,8 @@ public class DorisMetadataCollector extends AbstractJdbcMetadataCollector {
         // 拼接仍可能改变语句结构。改用**反引号标识符引用**（MySQL/Doris 标准），
         // 并对名字中的反引号做加倍转义 —— 这是标识符引用的正确写法，
         // 对常规库/表名不改变任何行为。
+        // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+        // 核实依据：已加固：库/表名改用反引号标识符引用并加倍内部反引号；值来自源库目录，非终端用户输入。
         String sql = "SHOW CREATE TABLE `"
                 + database.replace("`", "``") + "`.`"
                 + table.replace("`", "``") + "`";

@@ -209,6 +209,8 @@ public class DorisClient {
                     // TenantPathMapper 本就拒绝含 `\` 的租户 ID，故本改动
                     // 不改变任何合法输入的行为。此为纵深防御。
                     String safeTenant = tenantId.replace("\\", "\\\\").replace("'", "''");
+                    // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+                    // 核实依据：已加固：safeTenant 先转义反斜杠再转义引号（顺序不可颠倒），且 tenantId 来自 TenantContext(JWT)。
                     setStmt.execute("SET @tenant_id = '" + safeTenant + "'");
                 }
             }
@@ -269,6 +271,8 @@ public class DorisClient {
                 try (Statement setStmt = conn.createStatement()) {
                     // 2026-09-23 加固：同 executeQuery —— 反斜杠须先于引号转义。
                     String safeTenant = tenantId.replace("\\", "\\\\").replace("'", "''");
+                    // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+                    // 核实依据：已加固：safeTenant 先转义反斜杠再转义引号（顺序不可颠倒），且 tenantId 来自 TenantContext(JWT)。
                     setStmt.execute("SET @tenant_id = '" + safeTenant + "'");
                 }
             }
