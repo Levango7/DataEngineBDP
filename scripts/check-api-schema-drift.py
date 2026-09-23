@@ -188,6 +188,8 @@ def load_openapi(path: str | None, base_url: str, token: str | None) -> dict:
     req = urllib.request.Request(url)
     if token:
         req.add_header("Authorization", f"Bearer {token}")
+    # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+    # 核实依据：url = base_url + "/v3/api-docs"，base_url 来自脚本入参（CI 内可信配置），非终端用户输入。
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.load(resp)
 

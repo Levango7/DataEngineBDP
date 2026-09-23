@@ -166,12 +166,16 @@ def execute_trino_query(url: str, sql: str, user: str = "bench") -> QueryResult:
             },
             method="POST",
         )
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        # 核实依据：URL 来自脚本入参（本地基准测试集群端点），非终端用户输入。
         with urllib.request.urlopen(req, timeout=300) as resp:
             data = _json.loads(resp.read())
         # 轮询查询结果
         next_uri = data.get("nextUri")
         row_count = 0
         while next_uri:
+            # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            # 核实依据：next_uri 来自上一次服务端响应（本地基准测试的自有 Trino 集群），服务端可信、非攻击者可控。
             with urllib.request.urlopen(next_uri, timeout=300) as resp:
                 data = _json.loads(resp.read())
             if data.get("data"):
@@ -199,6 +203,8 @@ def execute_doris_query(url: str, sql: str, user: str = "root") -> QueryResult:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             method="POST",
         )
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+        # 核实依据：URL 来自脚本入参（本地基准测试集群端点），非终端用户输入。
         with urllib.request.urlopen(req, timeout=300) as resp:
             data = json.loads(resp.read())
         row_count = len(data.get("data", [])) if isinstance(data, dict) else 0

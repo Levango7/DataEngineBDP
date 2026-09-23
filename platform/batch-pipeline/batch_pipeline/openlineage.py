@@ -173,6 +173,8 @@ class OpenLineageEmitter:
             method="POST",
         )
         try:
+            # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+            # 核实依据：URL 为 self.endpoint（配置的 OpenLineage 上报端点），非终端用户输入。
             with urllib.request.urlopen(req, timeout=3) as resp:  # noqa: S310
                 resp.read()
         except urllib.error.HTTPError as exc:
