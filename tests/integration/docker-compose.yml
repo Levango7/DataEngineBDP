@@ -292,7 +292,7 @@ services:
   # - WebSocket 实时进度推送
   finetuning-loop:
     build:
-      context: ../../platform/model-finetuning/loop
+      context: ../../design/planned/model-finetuning/loop
       dockerfile: Dockerfile
     image: shuqing/finetuning-loop:0.1.0
     container_name: it-finetuning-loop
@@ -325,7 +325,7 @@ services:
   # T033 模型仓库：微调后模型注册 + 一键部署 + 部署管理 + 健康检查
   model-registry:
     build:
-      context: ../../platform/registry
+      context: ../../design/planned/registry
       dockerfile: Dockerfile
     image: shuqing/model-registry:0.1.0
     container_name: it-model-registry
