@@ -21,9 +21,9 @@ See docs/evolution.md §3.3.2.
 from __future__ import annotations
 
 import csv
+from datetime import date, datetime
 import logging
 import os
-from datetime import date, datetime
 from typing import Any, Optional
 
 from ..helpers import (
@@ -45,9 +45,7 @@ from ..helpers import (
 logger = logging.getLogger(__name__)
 
 
-def _rows_to_str_rows(
-    rows: list[dict[str, Any]], fields: list[str]
-) -> list[dict[str, Optional[str]]]:
+def _rows_to_str_rows(rows: list[dict[str, Any]], fields: list[str]) -> list[dict[str, Optional[str]]]:
     """将 List[Dict] 转为 spark.createDataFrame 可接受的行格式.
 
     非空值转 string（与 CSV 语义一致）；空字符串 '' 与缺失字段统一转 None
@@ -135,9 +133,7 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
         if ctx.incremental_enabled and wm_type != "full_load":
             entry = _ingest_incremental(ctx, name, rel, src, raw_dir, table_cfg, log)
         else:
-            entry = _ingest_full(
-                ctx, name, rel, src, raw_dir, log, incremental=ctx.incremental_enabled
-            )
+            entry = _ingest_full(ctx, name, rel, src, raw_dir, log, incremental=ctx.incremental_enabled)
         source_files.append(entry)
 
     ctx.manifest.set_source(source_cfg.get("name", "unknown"), source_files)
@@ -360,9 +356,7 @@ def _ingest_incremental(
 
     # Subsequent run: stream source, keep rows where watermark > wm_value.
     dst = os.path.join(raw_dir, f"{name}_incremental.csv")
-    rows, new_wm, fields = _copy_incremental(
-        src, dst, wm_col, wm_value, backend=ctx.engine_backend, ctx=ctx
-    )
+    rows, new_wm, fields = _copy_incremental(src, dst, wm_col, wm_value, backend=ctx.engine_backend, ctx=ctx)
     # sha256：spark 路径用占位符；parquet 路径下实际文件是 .csv.parquet
     # 引擎特定逻辑——非函数级 dispatch：sha 计算内联三分支，条件混合
     # engine_backend 与 _get_storage_backend（parquet），保留内联。
@@ -400,9 +394,7 @@ def _ingest_incremental(
     return entry
 
 
-def _stage_new_watermark(
-    ctx: PipelineContext, table: str, value: Optional[str], row_count: int
-) -> None:
+def _stage_new_watermark(ctx: PipelineContext, table: str, value: Optional[str], row_count: int) -> None:
     """Stage new watermark into ctx.state in memory (mirrors StateStore.set_new_watermark).
 
     Keeps existing per-table metadata (watermark_column / watermark_type) and
@@ -559,9 +551,7 @@ def _copy_incremental_polars(
     return df.height, new_wm, src_fields
 
 
-def _compute_watermark(
-    path: str, wm_col: str, backend: str = "python", spark: Any = None
-) -> Optional[str]:
+def _compute_watermark(path: str, wm_col: str, backend: str = "python", spark: Any = None) -> Optional[str]:
     """Scan a csv and return the max value of ``wm_col`` (string compare).
 
     ``backend="polars"`` 时用 ``pl.scan_csv(path).select(pl.col(wm_col).max())``

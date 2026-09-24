@@ -20,9 +20,7 @@ class ReportService:
         self._bl_store = bl_store
         self._report_store = report_store
 
-    async def create_report(
-        self, report: Report, tenant_id: str | None = None
-    ) -> Report:
+    async def create_report(self, report: Report, tenant_id: str | None = None) -> Report:
         """创建报表（强制隔离：report.blId 决定归属）.
 
         租户隔离：若提供 tenant_id，校验业务线归属租户一致。
@@ -34,9 +32,7 @@ class ReportService:
             report.id = str(uuid.uuid4())
         return await self._report_store.create(report)
 
-    async def get_report(
-        self, bl_id: str, report_id: str, tenant_id: str | None = None
-    ) -> Report:
+    async def get_report(self, bl_id: str, report_id: str, tenant_id: str | None = None) -> Report:
         """获取报表（业务线隔离：bl_id 必须与报表归属一致）.
 
         租户隔离：若提供 tenant_id，校验业务线归属租户一致。
@@ -50,9 +46,7 @@ class ReportService:
             raise PermissionDeniedError(bl_id, "get_report")
         return report
 
-    async def list_reports(
-        self, filter_: ReportFilter, tenant_id: str | None = None
-    ) -> list[Report]:
+    async def list_reports(self, filter_: ReportFilter, tenant_id: str | None = None) -> list[Report]:
         """列出报表（按 blId 隔离）.
 
         租户隔离：若提供 tenant_id，校验业务线归属租户一致。
@@ -78,9 +72,7 @@ class ReportService:
             raise PermissionDeniedError(tenant_id, "update_report")
         return await self._report_store.update(bl_id, report_id, patch)
 
-    async def delete_report(
-        self, bl_id: str, report_id: str, tenant_id: str | None = None
-    ) -> None:
+    async def delete_report(self, bl_id: str, report_id: str, tenant_id: str | None = None) -> None:
         """删除报表.
 
         租户隔离：若提供 tenant_id，校验业务线归属租户一致。

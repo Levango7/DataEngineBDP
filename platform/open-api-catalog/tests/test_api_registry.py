@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from openapi_catalog.models import (
     APIFilter,
     APIStatus,
@@ -13,7 +15,6 @@ from openapi_catalog.repositories import (
     APINotFoundError,
     APIStatusTransitionError,
 )
-import pytest
 
 
 class TestAPIRegistry:

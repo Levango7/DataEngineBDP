@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-
 from models import (
     ColumnSchema,
     Intent,

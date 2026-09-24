@@ -238,14 +238,8 @@ def test_commit_all_equivalent_to_separate_commits(store):
     a = store_a.load()
     b = store_b.load()
     assert a["tables"]["orders"]["watermark_value"] == b["tables"]["orders"]["watermark_value"]
-    assert (
-        a["iceberg_snapshots"]["orders"]["snapshot_id"]
-        == b["iceberg_snapshots"]["orders"]["snapshot_id"]
-    )
-    assert (
-        a["tables"]["orders"]["cumulative_row_count"]
-        == b["tables"]["orders"]["cumulative_row_count"]
-    )
+    assert a["iceberg_snapshots"]["orders"]["snapshot_id"] == b["iceberg_snapshots"]["orders"]["snapshot_id"]
+    assert a["tables"]["orders"]["cumulative_row_count"] == b["tables"]["orders"]["cumulative_row_count"]
 
 
 # ----------------------------------------------------------------------
@@ -482,9 +476,7 @@ def test_recompute_derived_bad_revenue_keeps_share_and_ranks_last():
 def test_merge_aggregate_rejects_non_numeric_into_numeric_column(store):
     """脏 delta 的非数值值不得覆盖数值列的历史累加值."""
     fields = ["date", "orders", "revenue"]
-    store.merge_aggregate(
-        "kpi", fields, [{"date": "d1", "orders": "10", "revenue": "100.0"}], key_cols=["date"]
-    )
+    store.merge_aggregate("kpi", fields, [{"date": "d1", "orders": "10", "revenue": "100.0"}], key_cols=["date"])
     store.merge_aggregate(
         "kpi",
         fields,
@@ -647,9 +639,7 @@ def test_commit_batch_without_pending_clears_stale_marker(store):
     """无暂存聚合的新提交点必须清掉陈旧 aggregates_pending 标记."""
     state = store.load()
     fields = ["date", "orders"]
-    _, pending = store.merge_aggregate_staged(
-        "kpi", fields, [{"date": "d1", "orders": "1"}], key_cols=["date"]
-    )
+    _, pending = store.merge_aggregate_staged("kpi", fields, [{"date": "d1", "orders": "1"}], key_cols=["date"])
     store.commit_batch(state, "B-1", pending_aggregates={"kpi": pending})
     store.complete_pending_aggregates(store.load())
     state2 = store.load()

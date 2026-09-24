@@ -58,7 +58,7 @@ _JAVA_JUNCTION = r"F:\jdk17"
 
 def _cmd_unsafe(p: str) -> bool:
     """路径是否含 cmd 批处理不安全字符（空格/括号/& 等，未加引号展开必炸）."""
-    return any(c in p for c in ' ()&^%!')
+    return any(c in p for c in " ()&^%!")
 
 
 def _bootstrap_env(key: str, junction: str) -> None:

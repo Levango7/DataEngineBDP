@@ -14,6 +14,7 @@ P-04 合同交付实体 — 合同 CRUD API 骨架。
 鉴权：所有端点要求 Bearer JWT；写操作（创建/更新/签署/终止）要求 admin 角色。
 租户隔离：list_contracts 的 tenantId 从 JWT claims 提取，admin 可通过 query param 覆盖。
 """
+
 from __future__ import annotations
 
 import logging

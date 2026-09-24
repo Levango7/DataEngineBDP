@@ -23,8 +23,8 @@ import os
 import shutil
 import tempfile
 import time
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -78,9 +78,7 @@ def fake_ctx(tmp_workdir):
 
 
 def _make_slog(run_dir: str, stage: str) -> StageLog:
-    return StageLog(
-        os.path.join(run_dir, "logs", stage + ".jsonl"), batch_id="test-batch", stage=stage
-    )
+    return StageLog(os.path.join(run_dir, "logs", stage + ".jsonl"), batch_id="test-batch", stage=stage)
 
 
 def _make_stage_fn(behaviour: list[Any]):
@@ -536,9 +534,7 @@ def test_e2e_default_config_unchanged(_same_drive_tmp_root, request):
     # error_handling 段保留缺省（max_retries=0）
     batch_id = "test-errhand-e2e-" + uuid.uuid4().hex[:6]
 
-    request.addfinalizer(
-        lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True)
-    )
+    request.addfinalizer(lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True))
 
     rc = run_pipeline(cfg, batch_id, "")
     assert rc == 0, "端到端批次应成功"
@@ -576,9 +572,7 @@ def test_e2e_idempotent_rerun_same_batch(_same_drive_tmp_root, request):
     }
     batch_id = "test-errhand-idem-" + uuid.uuid4().hex[:6]
 
-    request.addfinalizer(
-        lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True)
-    )
+    request.addfinalizer(lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True))
 
     # 第一次运行
     rc1 = run_pipeline(cfg, batch_id, "")
@@ -602,9 +596,9 @@ def test_e2e_idempotent_rerun_same_batch(_same_drive_tmp_root, request):
         second_lines = f.readlines()
     second_count = len(second_lines)
 
-    assert second_count == first_count, (
-        f"幂等性：重复运行同批次产物行数应一致 (first={first_count}, second={second_count})"
-    )
+    assert (
+        second_count == first_count
+    ), f"幂等性：重复运行同批次产物行数应一致 (first={first_count}, second={second_count})"
 
     # status 仍是 success
     status = json_load(os.path.join(run_dir, "status.json"))
@@ -638,9 +632,7 @@ def test_e2e_retry_with_real_failure(_same_drive_tmp_root, request, monkeypatch)
     }
     batch_id = "test-errhand-retry-" + uuid.uuid4().hex[:6]
 
-    request.addfinalizer(
-        lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True)
-    )
+    request.addfinalizer(lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True))
 
     # mock validate.run：第一次抛异常，第二次调真实 validate
     real_run = validate.run
@@ -688,9 +680,7 @@ def test_e2e_retry_exhausted_fails(_same_drive_tmp_root, request, monkeypatch):
     }
     batch_id = "test-errhand-exh-" + uuid.uuid4().hex[:6]
 
-    request.addfinalizer(
-        lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True)
-    )
+    request.addfinalizer(lambda: shutil.rmtree(os.path.join(run_root, batch_id), ignore_errors=True))
 
     call_state = {"calls": 0}
 

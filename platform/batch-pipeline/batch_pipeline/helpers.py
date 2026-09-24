@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import csv
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 import hashlib
 import json
 import logging
 import os
 import shutil
-import uuid
-from collections.abc import Sequence
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
+import uuid
 
 # Re-export from split modules for backward compatibility
 from .iceberg import (  # noqa: F401
@@ -641,11 +641,7 @@ def detect_spark_paths() -> dict[str, str]:
         ["/opt/hadoop", "/usr/local/hadoop", "C:\\hadoop", "F:\\hadoop"]
     )
     result["PYSPARK_PYTHON"] = (
-        env.get("PYSPARK_PYTHON")
-        or env.get("PYTHON")
-        or shutil.which("python3")
-        or shutil.which("python")
-        or ""
+        env.get("PYSPARK_PYTHON") or env.get("PYTHON") or shutil.which("python3") or shutil.which("python") or ""
     )
     result["PYSPARK_DRIVER_PYTHON"] = env.get("PYSPARK_DRIVER_PYTHON") or result["PYSPARK_PYTHON"]
     return result

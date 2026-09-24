@@ -23,8 +23,8 @@ import re
 import time
 from typing import Any, Optional
 
-import httpx
 from config.settings import Settings
+import httpx
 from loguru import logger
 from models import (
     AggFunc,
@@ -141,19 +141,22 @@ class BaseSqlGenerator:
             if tenantId
             else "无租户隔离要求"
         )
-        return _USER_PROMPT_TEMPLATE.format(
-            schema_ddl=schemaDdl,
-            query=query,
-            primary_type=intent.primaryType.value,
-            agg_func=intent.aggFunc.value,
-            agg_column=intent.aggColumn or "无",
-            filter_columns=", ".join(intent.filterColumns) or "无",
-            group_columns=", ".join(intent.groupColumns) or "无",
-            sort=sortStr,
-            join_tables=", ".join(intent.joinTables) or "无",
-            time_range=timeRange,
-            limit=limit,
-        ) + f"\n\n### 租户隔离\n{tenantClause}"
+        return (
+            _USER_PROMPT_TEMPLATE.format(
+                schema_ddl=schemaDdl,
+                query=query,
+                primary_type=intent.primaryType.value,
+                agg_func=intent.aggFunc.value,
+                agg_column=intent.aggColumn or "无",
+                filter_columns=", ".join(intent.filterColumns) or "无",
+                group_columns=", ".join(intent.groupColumns) or "无",
+                sort=sortStr,
+                join_tables=", ".join(intent.joinTables) or "无",
+                time_range=timeRange,
+                limit=limit,
+            )
+            + f"\n\n### 租户隔离\n{tenantClause}"
+        )
 
     @staticmethod
     def _escapeTenantId(tenantId: str) -> str:
@@ -314,9 +317,7 @@ class MockSqlGenerator(BaseSqlGenerator):
 
     # 时间范围白名单：仅允许字母数字下划线连字符和日期格式
     # 拒绝任何包含特殊字符（引号、分号、注释、空格等）的输入，防止 SQL 注入
-    _TIME_RANGE_PATTERN = re.compile(
-        r"^(?:[A-Za-z0-9_-]+|\d{4}-\d{2}-\d{2}|\d{4}-\d{2})$"
-    )
+    _TIME_RANGE_PATTERN = re.compile(r"^(?:[A-Za-z0-9_-]+|\d{4}-\d{2}-\d{2}|\d{4}-\d{2})$")
 
     @staticmethod
     def _timeToWhere(timeRange: str, table) -> str:
@@ -576,13 +577,9 @@ class OpenAiHttpSqlGenerator(BaseSqlGenerator):
             "Content-Type": "application/json",
         }
         try:
-            resp = await self._client.post(
-                self._chatUrl, json=payload, headers=headers
-            )
+            resp = await self._client.post(self._chatUrl, json=payload, headers=headers)
         except httpx.TimeoutException as e:
-            raise LlmCallError(
-                f"LLM 请求超时（>{self.settings.llmTimeout:.0f}s），请稍后重试或检查网络"
-            ) from e
+            raise LlmCallError(f"LLM 请求超时（>{self.settings.llmTimeout:.0f}s），请稍后重试或检查网络") from e
         except httpx.HTTPError as e:
             raise LlmCallError("LLM 服务不可达，请检查 LLM_API_BASE_URL 配置") from e
 

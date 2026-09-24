@@ -35,17 +35,17 @@ Spark 原生 incremental scan 等行为，以及与 pyiceberg 路径的互操作
 from __future__ import annotations
 
 import copy
-import os
 
 # ----------------------------------------------------------------------
 # skipif 条件：Hadoop native IO + iceberg-spark-runtime JAR（跨平台）
 # ----------------------------------------------------------------------
 # 在模块收集时求值（pytest fixture 设置环境变量是在测试运行时，太晚），
 # 因此直接检测默认路径下的 native library，或环境变量 HADOOP_HOME 指向的 bin/.
+import os
 import os as _os
 import platform as _platform
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -118,10 +118,7 @@ for _home in _SPARK_HOME_CANDIDATES:
         pass
 
 SPARK_ICEBERG_DISABLED = (
-    not _HADOOP_DLL_EXISTS
-    or not _PYSPARK_AVAILABLE
-    or not _ICEBERG_JAR_EXISTS
-    or not _SQLITE_JDBC_JAR_EXISTS
+    not _HADOOP_DLL_EXISTS or not _PYSPARK_AVAILABLE or not _ICEBERG_JAR_EXISTS or not _SQLITE_JDBC_JAR_EXISTS
 )
 
 _SKIP_REASON = (
@@ -424,9 +421,7 @@ def test_spark_iceberg_overwrite_append(spark_iceberg_env):
     cfg = _make_cfg(spark_iceberg_env)
     fields = ["id", "val"]
     # pyiceberg 建表 + 写初始数据
-    table_write(
-        "warehouse.spark_mode", [{"id": "1", "val": "init"}], cfg, fields=fields, mode="append"
-    )
+    table_write("warehouse.spark_mode", [{"id": "1", "val": "init"}], cfg, fields=fields, mode="append")
 
     # Spark overwrite
     from batch_pipeline.helpers import _get_spark_session
@@ -480,9 +475,7 @@ def test_spark_iceberg_config_injection(spark_iceberg_env):
     assert ice["catalog_type"] == "sql"
     assert "catalog_uri" in ice
     assert "warehouse" in ice
-    assert ice["spark_extensions"] == (
-        "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-    )
+    assert ice["spark_extensions"] == ("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
     assert ice["spark_catalog_class"] == "org.apache.iceberg.spark.SparkCatalog"
     # properties 包含 JAR 信息
     props = ice["properties"]
@@ -506,9 +499,7 @@ def test_pipeline_json_has_spark_iceberg_config():
         ice = cfg.get("storage", {}).get("iceberg", {})
         assert "spark_extensions" in ice, f"{fname} missing spark_extensions"
         assert "spark_catalog_class" in ice, f"{fname} missing spark_catalog_class"
-        assert ice["spark_extensions"] == (
-            "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
-        )
+        assert ice["spark_extensions"] == ("org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
         assert ice["spark_catalog_class"] == "org.apache.iceberg.spark.SparkCatalog"
         # properties 包含 JAR 兼容性信息
         props = ice.get("properties", {})

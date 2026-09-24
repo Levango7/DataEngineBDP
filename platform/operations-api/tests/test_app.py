@@ -12,6 +12,7 @@ P-04 合同交付实体 — 基础冒烟测试，确保：
     pip install -e ".[dev]"
     pytest tests/test_app.py -v
 """
+
 from __future__ import annotations
 
 import os

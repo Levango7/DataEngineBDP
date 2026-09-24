@@ -193,12 +193,7 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
                 # 大表上的标记差异可忽略，且 flag 结果不影响任何聚合值.
                 oc = rules.get(name, {}).get("outlier") or {}
                 oc_col = oc.get("column")
-                if (
-                    oc.get("action") == "flag"
-                    and oc_col
-                    and oc_col in df.columns
-                    and "order_id" in df.columns
-                ):
+                if oc.get("action") == "flag" and oc_col and oc_col in df.columns and "order_id" in df.columns:
                     factor = float(oc.get("factor", 1.5))
                     # total_amount 等派生列在 Spark 路径为 StringType，须先落
                     # double 派生列再求分位数（approxQuantile 不收字符串列）
@@ -209,10 +204,7 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
                         lo, hi = qs[0] - factor * iqr, qs[1] + factor * iqr
                         out_rows = (
                             dfn.select(F.col("order_id"), F.col("_oc_num").alias("_v"))
-                            .where(
-                                ((F.col("_v") < lo) | (F.col("_v") > hi))
-                                & F.col("order_id").isNotNull()
-                            )
+                            .where(((F.col("_v") < lo) | (F.col("_v") > hi)) & F.col("order_id").isNotNull())
                             .collect()
                         )
                         for r in out_rows:
@@ -242,22 +234,10 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
             total_in += df.height
             # _derive_amount 的 polars 等价：total_amount = str(round(qty*price, 2)) 或 ""
             if "quantity" in df.columns and "unit_price" in df.columns:
-                pl_qty = (
-                    pl.col("quantity")
-                    .cast(pl.Utf8)
-                    .str.replace_all(",", "")
-                    .cast(pl.Int64, strict=False)
-                )
-                pl_price = (
-                    pl.col("unit_price")
-                    .cast(pl.Utf8)
-                    .str.replace_all(",", "")
-                    .cast(pl.Float64, strict=False)
-                )
+                pl_qty = pl.col("quantity").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Int64, strict=False)
+                pl_price = pl.col("unit_price").cast(pl.Utf8).str.replace_all(",", "").cast(pl.Float64, strict=False)
                 pl_amt = pl_qty * pl_price
-                df = df.with_columns(
-                    pl_amt.round(2).cast(pl.Utf8).fill_null("").alias("total_amount")
-                )
+                df = df.with_columns(pl_amt.round(2).cast(pl.Utf8).fill_null("").alias("total_amount"))
             else:
                 df = df.with_columns(pl.lit("").alias("total_amount"))
             engine = RuleEngine(name, rules[name], ref_data)
@@ -335,9 +315,7 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
     with open(os.path.join(report_dir, "quality_report.md"), "w", encoding="utf-8") as f:
         f.write(render_markdown_report(summary))
     json_save(os.path.join(report_dir, "quality_report.json"), summary)
-    log.info(
-        "quality done", dq_score=summary["dq_score"], quarantined=total_bad, mode=summary["mode"]
-    )
+    log.info("quality done", dq_score=summary["dq_score"], quarantined=total_bad, mode=summary["mode"])
 
     # Declare lineage for products of this stage (paths relative to run_dir).
     lineage: dict[str, list] = {}

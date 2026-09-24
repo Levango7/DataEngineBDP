@@ -185,9 +185,7 @@ async def test_export_success_returns_result(monkeypatch):
     monkeypatch.setattr(httpx, "AsyncClient", _make_fake_client(captured, resp_body=body))
 
     exporter = _make_exporter()
-    result = await exporter.exportUsage(
-        tenantId="tenant-a", period="2026-08", usageData=[]
-    )
+    result = await exporter.exportUsage(tenantId="tenant-a", period="2026-08", usageData=[])
 
     assert result["id"] == "bill-999"
     assert result["totalAmount"] == 42.0
@@ -219,9 +217,7 @@ async def test_export_non_2xx_raises_error(monkeypatch):
 
     exporter = _make_exporter()
     with pytest.raises(FinOpsExportError) as exc_info:
-        await exporter.exportUsage(
-            tenantId="tenant-a", period="2026-08", usageData=[]
-        )
+        await exporter.exportUsage(tenantId="tenant-a", period="2026-08", usageData=[])
 
     assert exc_info.value.status_code == 500
 
@@ -238,6 +234,4 @@ async def test_export_network_error_raises_error(monkeypatch):
 
     exporter = _make_exporter()
     with pytest.raises(FinOpsExportError):
-        await exporter.exportUsage(
-            tenantId="tenant-a", period="2026-08", usageData=[]
-        )
+        await exporter.exportUsage(tenantId="tenant-a", period="2026-08", usageData=[])

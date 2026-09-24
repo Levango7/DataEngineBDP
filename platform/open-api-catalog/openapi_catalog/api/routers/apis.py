@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
+
 from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
@@ -25,7 +27,6 @@ from openapi_catalog.models import (
 )
 from openapi_catalog.repositories import CatalogError
 from openapi_catalog.services.registry import ServiceRegistry
-from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/apis", tags=["apis"])
 

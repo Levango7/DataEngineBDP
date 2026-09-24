@@ -149,6 +149,7 @@ class TestMockSqlGenerator:
         gen = createGenerator(settings, SqlValidator(settings))
         assert isinstance(gen, MockSqlGenerator)
 
+
 class TestTimeToWhereSqlInjection:
     """_timeToWhere 白名单校验测试（防 SQL 注入）."""
 
@@ -214,7 +215,7 @@ class TestTimeToWhereSqlInjection:
             "last_abc_days",  # 非数字
             "last_7_days ",  # 末尾空格
             " today",  # 前导空格
-            "today\"",  # 双引号
+            'today"',  # 双引号
             "today\\",  # 反斜杠
             "today\x00",  # null 字节
             "x" * 33,  # 超长（>32）

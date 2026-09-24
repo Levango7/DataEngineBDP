@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from openapi_catalog.models.base import SubscriptionStatus, TimestampMixin
 from pydantic import BaseModel, Field
+
+from openapi_catalog.models.base import SubscriptionStatus, TimestampMixin
 
 
 class APISubscription(TimestampMixin):

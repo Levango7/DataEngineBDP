@@ -11,10 +11,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import os
 import random
 import tempfile
-from datetime import datetime
 
 import pytest
 
@@ -256,9 +256,7 @@ def test_gen_orders_outlier_unit_price():
     rng = random.Random(7)
     customers, products = _make_ref()
     rows = gen_orders(rng, 500, customers, products, BASE_DATE, {"outlier": 1.0}, 90)
-    outliers = [
-        r for r in rows if isinstance(r["unit_price"], (int, float)) and r["unit_price"] > 1500.0
-    ]
+    outliers = [r for r in rows if isinstance(r["unit_price"], (int, float)) and r["unit_price"] > 1500.0]
     assert len(outliers) > 0, "outlier=1.0 应产生 unit_price > 1500 的异常值"
 
 

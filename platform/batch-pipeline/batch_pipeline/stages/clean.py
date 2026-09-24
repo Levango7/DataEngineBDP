@@ -147,16 +147,11 @@ def _clean_orders_polars(ctx: PipelineContext, log) -> tuple[int, Any, list[str]
     # 转回 Utf8：与 python 路径 str(round(...)) 一致，parquet 写出时保留 String
     # （否则 polars 分支写 .parquet 会把 total_amount 存为 Float64，与 python
     # 路径的 pa.string() schema 不一致，破坏“逐字段一致”承诺）。
-    df = df.with_columns(
-        ((qty * price * (pl.lit(1.0) - disc)).round(2)).cast(pl.Utf8).alias("total_amount")
-    )
+    df = df.with_columns(((qty * price * (pl.lit(1.0) - disc)).round(2)).cast(pl.Utf8).alias("total_amount"))
 
     # is_anomaly 标记
     df = df.with_columns(
-        pl.when(pl.col("order_id").is_in(outlier_keys))
-        .then(pl.lit("1"))
-        .otherwise(pl.lit("0"))
-        .alias(flag_col)
+        pl.when(pl.col("order_id").is_in(outlier_keys)).then(pl.lit("1")).otherwise(pl.lit("0")).alias(flag_col)
     )
 
     # out_fields：base_fields + 新增列，避免重复（validate stage 在 polars 路径下
@@ -223,11 +218,7 @@ def _dedup_keep_first_spark(df: Any, dedup_cols: list[str]) -> tuple[int, Any]:
     indexed = indexed.cache()
     rows_in = indexed.count()  # 立即物化缓存，后续所有 action 行序一致
     w = Window.partitionBy(*dedup_cols).orderBy(F.col("_row_idx"))
-    deduped = (
-        indexed.withColumn("_rn", F.row_number().over(w))
-        .filter(F.col("_rn") == 1)
-        .drop("_row_idx", "_rn")
-    )
+    deduped = indexed.withColumn("_rn", F.row_number().over(w)).filter(F.col("_rn") == 1).drop("_row_idx", "_rn")
     return rows_in, deduped
 
 
@@ -353,9 +344,7 @@ def run(ctx: PipelineContext, log) -> dict[str, Any]:
     cl_dir = os.path.join(ctx.run_dir, "03_clean")
     os.makedirs(cl_dir, exist_ok=True)
 
-    return dispatch_by_engine(
-        ctx.engine_backend, _run_python, _run_polars, _run_spark, ctx, log, cl_dir
-    )
+    return dispatch_by_engine(ctx.engine_backend, _run_python, _run_polars, _run_spark, ctx, log, cl_dir)
 
 
 def _run_python(ctx: PipelineContext, log, cl_dir: str) -> dict[str, Any]:

@@ -14,8 +14,8 @@ import platform
 import shutil
 import subprocess
 import tempfile
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -174,9 +174,7 @@ _BATCH_ID_PREFIXES = (
 )
 
 
-def _cleanup_run_dir(
-    run_root: str, created_batch_ids: list[str], prefix: str | None = None
-) -> None:
+def _cleanup_run_dir(run_root: str, created_batch_ids: list[str], prefix: str | None = None) -> None:
     """按精确 batch_id 列表清理 run_dir.
 
     优先清理 created_batch_ids 中的批次（精确清理，不误删其他进程目录）.
@@ -606,9 +604,7 @@ def polars_env(_same_drive_tmp_root, request):
 # ----------------------------------------------------------------------
 # Spark 多机模式 fixture（cluster + S3 Parquet）
 # ----------------------------------------------------------------------
-def _spark_master_reachable(
-    host: str = "localhost", port: int = 15077, timeout: float = 3.0
-) -> bool:
+def _spark_master_reachable(host: str = "localhost", port: int = 15077, timeout: float = 3.0) -> bool:
     """检查 Spark Master 是否可达（socket 连接测试）."""
     import socket
 
@@ -708,9 +704,7 @@ def spark_cluster_env(_same_drive_tmp_root, request):
     # 缺省时 executor 在容器内连自己的 loopback → refused → exit(1) 崩溃循环。
     _is_wsl = "microsoft" in platform.release().lower()
     _driver_host = os.environ.get("SPARK_CLUSTER_DRIVER_HOST") or (
-        "host.docker.internal"
-        if platform.system() in ("Windows", "Darwin") or _is_wsl
-        else "localhost"
+        "host.docker.internal" if platform.system() in ("Windows", "Darwin") or _is_wsl else "localhost"
     )
     cfg["engine"]["spark"]["cluster"] = {
         "enabled": True,
@@ -766,13 +760,9 @@ def spark_cluster_env(_same_drive_tmp_root, request):
         try:
             from minio import Minio
 
-            client = Minio(
-                "localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False
-            )
+            client = Minio("localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False)
             prefix_to_clean = s3_prefix + "/"
-            objects = list(
-                client.list_objects("batch-pipeline", prefix=prefix_to_clean, recursive=True)
-            )
+            objects = list(client.list_objects("batch-pipeline", prefix=prefix_to_clean, recursive=True))
             for obj in objects:
                 client.remove_object("batch-pipeline", obj.object_name)
         except Exception:  # noqa: BLE001
@@ -955,9 +945,7 @@ def s3_env(_same_drive_tmp_root, request):
         try:
             from minio import Minio
 
-            client = Minio(
-                "localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False
-            )
+            client = Minio("localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False)
             prefix_to_clean = s3_prefix + "/"
             objects = list(client.list_objects("batch-pipeline", prefix=prefix_to_clean, recursive=True))
             for obj in objects:
@@ -986,9 +974,7 @@ def _minio_available() -> bool:
     try:
         from minio import Minio
 
-        client = Minio(
-            "localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False
-        )
+        client = Minio("localhost:9000", access_key="minioadmin", secret_key="minioadmin", secure=False)
         # 确保 bucket 存在
         if not client.bucket_exists("batch-pipeline"):
             client.make_bucket("batch-pipeline")

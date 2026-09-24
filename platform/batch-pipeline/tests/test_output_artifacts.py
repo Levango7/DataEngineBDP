@@ -37,9 +37,7 @@ from batch_pipeline.stages import output, validate
 # ----------------------------------------------------------------------
 def _make_ctx(run_dir: str, small_config: dict, batch_id: str = "B-UNIT") -> PipelineContext:
     manifest = Manifest(batch_id, "digest-unit", run_dir)
-    return PipelineContext(
-        config=small_config, run_dir=run_dir, batch_id=batch_id, manifest=manifest
-    )
+    return PipelineContext(config=small_config, run_dir=run_dir, batch_id=batch_id, manifest=manifest)
 
 
 def _find_key(artifacts: dict, suffix: str) -> str:
@@ -79,9 +77,9 @@ def test_validate_lineage_edges_survive_registration(ingested_ctx):
     target = _find_key(ctx.manifest.lineage, "02_valid/valid_orders.csv")
     assert "\\" not in target
     upstreams = ctx.manifest.lineage[target]
-    assert any(u.endswith("01_raw/orders.csv") for u in upstreams), (
-        f"validate 边 02_valid/valid_orders.csv 的上游应含 01_raw/orders.csv，实际 {upstreams}"
-    )
+    assert any(
+        u.endswith("01_raw/orders.csv") for u in upstreams
+    ), f"validate 边 02_valid/valid_orders.csv 的上游应含 01_raw/orders.csv，实际 {upstreams}"
 
 
 def test_validate_lineage_survives_forced_backslash_relpath(ingested_ctx, monkeypatch):
@@ -329,9 +327,7 @@ def test_spark_overwrite_existing_table_preserves_history():
     from batch_pipeline.iceberg import _table_write_iceberg
 
     spark = _FakeSpark(exists=True)
-    n = _table_write_iceberg(
-        "ns.orders", _FakeDF(spark.writer), _ICE_CFG, "spark", spark=spark, mode="overwrite"
-    )
+    n = _table_write_iceberg("ns.orders", _FakeDF(spark.writer), _ICE_CFG, "spark", spark=spark, mode="overwrite")
     assert n == 42
     assert len(spark.sql_queries) == 1
     assert "INSERT OVERWRITE TABLE batch_pipeline.ns.orders" in spark.sql_queries[0]
@@ -345,9 +341,7 @@ def test_spark_overwrite_missing_table_creates():
     from batch_pipeline.iceberg import _table_write_iceberg
 
     spark = _FakeSpark(exists=False)
-    n = _table_write_iceberg(
-        "ns.orders", _FakeDF(spark.writer), _ICE_CFG, "spark", spark=spark, mode="overwrite"
-    )
+    n = _table_write_iceberg("ns.orders", _FakeDF(spark.writer), _ICE_CFG, "spark", spark=spark, mode="overwrite")
     assert n == 42
     assert spark.writer.create_or_replace_calls == 1
     assert spark.sql_queries == []

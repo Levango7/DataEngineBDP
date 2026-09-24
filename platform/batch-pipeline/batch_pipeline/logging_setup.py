@@ -32,10 +32,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import logging
 import os
-from datetime import datetime, timezone
 from typing import Any
 
 # 标准字段，不放入 extra
@@ -140,8 +140,7 @@ class TextFormatter(logging.Formatter):
 
     def __init__(self):
         super().__init__(
-            fmt="%(asctime)s %(levelname)s [batch=%(batch_id)s stage=%(stage)s] "
-            "%(name)s: %(message)s",
+            fmt="%(asctime)s %(levelname)s [batch=%(batch_id)s stage=%(stage)s] " "%(name)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 

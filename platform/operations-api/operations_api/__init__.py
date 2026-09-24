@@ -10,4 +10,5 @@ P-04 合同交付实体（代码骨架）
 
 关联设计：design/deploy/services/operations/main.py
 """
+
 __version__ = "0.1.0"

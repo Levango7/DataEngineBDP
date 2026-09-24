@@ -42,14 +42,12 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from batch_pipeline.helpers import (  # noqa: E402
-    _get_iceberg_catalog,  # noqa: E402
-    _iceberg_ensure_namespace,  # noqa: E402
-    _iceberg_infer_schema,  # noqa: E402
-    _iceberg_table_identifier,  # noqa: E402
-    abs_path,  # noqa: E402
-    json_load,  # noqa: E402
-)  # noqa: E402
+from batch_pipeline.helpers import _get_iceberg_catalog  # noqa: E402
+from batch_pipeline.helpers import _iceberg_ensure_namespace  # noqa: E402
+from batch_pipeline.helpers import _iceberg_infer_schema  # noqa: E402
+from batch_pipeline.helpers import _iceberg_table_identifier  # noqa: E402
+from batch_pipeline.helpers import abs_path  # noqa: E402
+from batch_pipeline.helpers import json_load  # noqa: E402; noqa: E402
 
 
 def _read_parquet_to_arrow(parquet_path: str, cfg: dict[str, Any]) -> Any:
@@ -164,19 +162,14 @@ def migrate_one(
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Migrate Phase 3 S3 Parquet to Iceberg table")
-    parser.add_argument(
-        "--config", default="config/pipeline.json", help="Pipeline config file path"
-    )
+    parser.add_argument("--config", default="config/pipeline.json", help="Pipeline config file path")
     parser.add_argument("--parquet-path", help="Source Parquet file path (local or s3:// URI)")
-    parser.add_argument(
-        "--iceberg-table", help="Target Iceberg table name (e.g. warehouse.orders_clean)"
-    )
+    parser.add_argument("--iceberg-table", help="Target Iceberg table name (e.g. warehouse.orders_clean)")
     parser.add_argument(
         "--batch",
         action="append",
         default=[],
-        help="Batch migrate: iceberg_table=parquet_logical_path "
-        "(e.g. warehouse.orders=orders/orders_clean)",
+        help="Batch migrate: iceberg_table=parquet_logical_path " "(e.g. warehouse.orders=orders/orders_clean)",
     )
     parser.add_argument(
         "--overwrite",
@@ -205,10 +198,7 @@ def main(argv: list[str]) -> int:
     # 批量迁移
     for batch_spec in args.batch:
         if "=" not in batch_spec:
-            print(
-                f"ERROR: invalid --batch spec '{batch_spec}', "
-                f"expected iceberg_table=parquet_logical_path"
-            )
+            print(f"ERROR: invalid --batch spec '{batch_spec}', " f"expected iceberg_table=parquet_logical_path")
             return 1
         iceberg_table, parquet_logical = batch_spec.split("=", 1)
         # 把逻辑路径解析为 S3 URI

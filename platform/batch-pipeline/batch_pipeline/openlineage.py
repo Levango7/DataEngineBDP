@@ -20,13 +20,13 @@ eventTime/eventType/run/job/producer/schemaVersion，inputs/outputs 为数据集
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
+from typing import Any, Optional
 import urllib.error
 import urllib.request
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
 
 PRODUCER = "https://github.com/Levango7/DataEngineBDP"
 SCHEMA_VERSION = "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"
