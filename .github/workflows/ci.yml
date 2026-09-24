@@ -1743,11 +1743,26 @@ jobs:
             echo "============================================"
             echo "  Docker build 验证: $mod_name ($mod_dir)"
             echo "============================================"
-            # 使用本地镜像 tag，仅验证构建不 push
-            if docker build -t "sq-${mod_name}:ci-verify" "$mod_dir"; then
-              echo "✓ $mod_name Docker 构建成功"
+            # 构建上下文自适应：本仓 Dockerfile 存在两种约定——
+            #   (a) 按「模块目录」编写：COPY go.mod ./ 、COPY . .
+            #       （catalog / ai-assistant / dqctl / karmada-api / business-portal…）
+            #   (b) 按「仓库根」编写：COPY platform/<mod>/pom.xml 、COPY platform/<mod>/src
+            #       （tag-engine / encaps-layer / governance/* / infra-provider-* …）
+            # 原实现一律以 "$mod_dir" 作上下文，导致 (b) 类报
+            #   failed to calculate checksum of ref ...: "/platform/<mod>/src": not found
+            # 故按 Dockerfile 是否引用 platform/ 前缀自适应选择上下文。
+            if grep -qE '^COPY[[:space:]]+platform/' "$df"; then
+              build_ctx="."
+              ctx_kind="仓库根"
             else
-              echo "✗ $mod_name Docker 构建失败"
+              build_ctx="$mod_dir"
+              ctx_kind="模块目录"
+            fi
+            # 使用本地镜像 tag，仅验证构建不 push
+            if docker build -t "sq-${mod_name}:ci-verify" -f "$df" "$build_ctx"; then
+              echo "✓ $mod_name Docker 构建成功（上下文：$ctx_kind）"
+            else
+              echo "✗ $mod_name Docker 构建失败（上下文：$ctx_kind）"
               fail_count=$((fail_count + 1))
             fi
           done < <(find platform -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*")
