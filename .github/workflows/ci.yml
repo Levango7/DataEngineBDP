@@ -1533,11 +1533,12 @@ jobs:
       minio:
         # MinIO 官方社区版镜像已停止分发：Docker Hub minio/minio 下架（runner 报 repository does not exist），
         # quay.io/minio/minio 亦不可用（docker manifest inspect → "no such manifest"；v2 API → 401）。
-        # 改用社区维护的 MinIO CE 构建 ghcr.io/golithus/minio，并按 digest 固定——这是第三方社区镜像
-        # （新增供应链依赖），固定 digest 才能保证"今天/以后"拉到的是同一份。
-        # digest 获取方式：docker manifest inspect ghcr.io/golithus/minio:latest → Docker-Content-Digest
-        #   multi-arch OCI index；其中 linux/amd64 子清单 sha256:186184b0b9fcf9743c20c114adecb3411b46c9b71d88e4ca854f6da79ec3440a
-        image: ghcr.io/golithus/minio@sha256:8793e960474071520bdb91bb9a6d1793eb229fdbc9dcb7ec75ad836b69bbab40
+        # 曾改用 ghcr.io/golithus/minio@sha256:8793e960…（第三方社区构建），实测 CI 仍失败：
+        #   ##[error]Failed to initialize container ghcr.io/golithus/minio@sha256:8793e960…
+        # 故改用**本仓既有约定**：design/deploy/charts/minio/values.yaml 早已使用国内镜像源
+        #   docker.m.daocloud.io/minio/minio  tag=RELEASE.2024-08-03T04-33-23Z
+        # 与 chart 对齐 = 单一真源，避免"CI 用 A 源、部署用 B 源"的供应链漂移。
+        image: docker.m.daocloud.io/minio/minio:RELEASE.2024-08-03T04-33-23Z
         command: server /data --console-address ":9001"
         env:
           MINIO_ROOT_USER: minioadmin
