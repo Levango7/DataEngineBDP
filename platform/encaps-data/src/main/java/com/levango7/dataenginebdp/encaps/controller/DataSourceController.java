@@ -187,9 +187,9 @@ public class DataSourceController {
             Map<String, Object> result = new LinkedHashMap<>();
             long start = System.currentTimeMillis();
             boolean success = false;
+            // 核实依据：误报：TCP 连通性探测，connect() 后立即由 try-with-resources 关闭，不传输任何数据；连接前另有 ssrfGuard.validate()。
+            // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
             try (Socket socket = new Socket()) {
-                // 核实依据：误报：此为 TCP 连通性探测，connect() 后立即由 try-with-resources 关闭，不传输任何数据；连接前另有 ssrfGuard.validate()。
-                // nosemgrep: java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
                 socket.connect(new InetSocketAddress(entity.getHost(), entity.getPort()), 5000);
                 success = true;
                 result.put("success", true);

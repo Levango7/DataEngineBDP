@@ -107,8 +107,6 @@ public class IoTDBClient {
             if (!DEVICE_NAME_PATTERN.matcher(device).matches()) {
                 throw new IllegalArgumentException("非法的 device 参数: " + device);
             }
-            // 核实依据：误报：拼接前已有严格白名单 DEVICE_NAME_PATTERN=^[a-zA-Z0-9_.]+$，不匹配即抛 IllegalArgumentException。
-            // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
             sql = "SHOW TIMESERIES " + device;
         }
         List<Map<String, Object>> result = new ArrayList<>();
@@ -116,6 +114,8 @@ public class IoTDBClient {
              Statement stmt = c.createStatement()) {
             // P3: 设置查询超时
             stmt.setQueryTimeout(JDBC_QUERY_TIMEOUT_SECONDS);
+            // 核实依据：误报：sql 由上方 DEVICE_NAME_PATTERN=^[a-zA-Z0-9_.]+$ 白名单校验后拼接，不匹配即抛 IllegalArgumentException。
+            // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
             try (ResultSet rs = stmt.executeQuery(sql)) {
                 while (rs.next()) {
                     Map<String, Object> ts = new LinkedHashMap<>();

@@ -101,6 +101,8 @@ public class QueryPlanCacheService {
     /**
      * 构建计划缓存键：SHA-256(engine|normalizedSql|tenantId)。
      */
+    // 核实依据：误报：该规则针对定宽字节拼接丢前导零；此处 Integer.toHexString(int) 的 int->hex 是单射，不引入碰撞；主路径另用 %02x 已补零。
+    // nosemgrep: java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion
     private String buildPlanCacheKey(String engine, String sql, String tenantId) {
         String raw = (engine == null ? "" : engine) + "|"
                 + (sql == null ? "" : sql.trim()) + "|"
@@ -114,8 +116,6 @@ public class QueryPlanCacheService {
             }
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {
-            // 核实依据：误报：该规则针对定宽字节拼接丢前导零；此处 Integer.toHexString(int) 的 int->hex 是单射，不引入碰撞。主路径另用 %02x 已补零。
-            // nosemgrep: java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion
             return Integer.toHexString(raw.hashCode());
         }
     }
