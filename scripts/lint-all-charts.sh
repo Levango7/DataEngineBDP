@@ -7,7 +7,11 @@ count=0
 while IFS= read -r cf; do
   d=$(dirname "$cf")
   count=$((count+1))
-  if ! helm lint "$d" -q >/dev/null 2>&1; then
+  # helm lint 的 quiet 只有长选项 --quiet，没有 -q 短选项：用 -q 会报
+  # "unknown shorthand flag: 'q' in -q" 并对每个 chart 都返回非 0，导致全部误判 LINT-FAIL。
+  # （与 scripts/verify-all-templates.sh 的既有修法一致。）
+  # 注：本脚本未被任何 workflow / 脚本引用（临时脚本），此处仅修缺陷、防未来踩坑。
+  if ! helm lint "$d" --quiet >/dev/null 2>&1; then
     echo "LINT-FAIL: $d"
     fail=$((fail+1))
   fi

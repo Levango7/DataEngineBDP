@@ -46,6 +46,7 @@ jobs:
           for lib_pom in \
             "platform/common-security/pom.xml" \
             "platform/encaps-layer/pom.xml" \
+            "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
             [ -f "$lib_pom" ] || continue
             mvn -f "$lib_pom" install -B -q -DskipTests -U \

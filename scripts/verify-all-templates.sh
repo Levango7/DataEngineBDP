@@ -94,7 +94,10 @@ for chart_dir in "$CHARTS_DIR"/*/; do
     continue
   fi
   chart_name="$(basename "$chart_dir")"
-  if helm lint "$chart_dir" -q >/dev/null 2>&1; then
+  # 注意：helm lint 的 quiet 只有长选项 --quiet（无 -q 短选项，见 helm v3.16.4
+  # cmd/helm/lint.go 的 f.BoolVar(&client.Quiet, "quiet", ...)）。此前用 -q 会
+  # 触发 "unknown shorthand flag: 'q'"，导致 9 套模板全部误判为 lint 失败。
+  if helm lint "$chart_dir" --quiet >/dev/null 2>&1; then
     echo "  ✓ $chart_name lint 通过"
     LINT_PASS=$((LINT_PASS + 1))
   else

@@ -56,7 +56,8 @@ jobs:
       - name: 预解析所有 Maven 依赖
         run: |
           # 与 ci.yml java-build-test 相同的依赖链顺序：父 POM → common-security →
-          # encaps-layer → sql-gateway（lineage-analyzer 依赖 sql-gateway jar）。
+          # encaps-layer → encaps-data → sql-gateway（encaps-gateway 依赖 encaps-data，
+          # lineage-analyzer 依赖 sql-gateway jar）。
           # 此前缺父 POM 安装，子模块 install 在干净 runner 上解析不到
           # dataenginebdp-parent，本步骤直接红（CI Security workflow 失败根因）。
           mvn install -B -N -q \
@@ -64,6 +65,7 @@ jobs:
           for lib_pom in \
             platform/common-security/pom.xml \
             platform/encaps-layer/pom.xml \
+            platform/encaps-data/pom.xml \
             platform/sql-gateway/pom.xml; do
             [ -f "$lib_pom" ] || continue
             mvn -f "$lib_pom" install -B -q -DskipTests -U \
