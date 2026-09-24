@@ -22,6 +22,11 @@
         <!-- Spring Boot 4.1.x 要求 JDK 17+（本升级保持 17，后续可评估 25 LTS） -->
         <java.version>17</java.version>
         <spring-boot.version>4.1.1</spring-boot.version>
+        <!-- 2026-09-24 安全修复：覆盖 Spring Boot 4.1.1 托管的 tomcat 版本。
+             11.0.24 存在 3 个 CRITICAL（CVE-2026-65182 / 65905 / 68525），
+             Trivy 给出修复版本 11.0.25（patch 级，兼容性风险极低）。
+             该项在全仓 fs 扫描中命中 141 次，占全部漏洞约 30%。 -->
+        <tomcat.version>11.0.25</tomcat.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
