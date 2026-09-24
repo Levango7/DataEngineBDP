@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -70,7 +70,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
@@ -157,7 +157,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python 3.11
         uses: actions/setup-python@v7
@@ -213,7 +213,7 @@ jobs:
         working-directory: frontend/
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Node.js 22
         uses: actions/setup-node@v4
@@ -250,7 +250,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 JDK 17 (Temurin)
         uses: actions/setup-java@v5
@@ -316,7 +316,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 yamllint
         run: |
@@ -356,7 +356,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python
         uses: actions/setup-python@v7
@@ -383,7 +383,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 检查 ske/ske.sh 语法
         run: |
@@ -487,7 +487,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Go
         uses: actions/setup-go@v7
@@ -526,7 +526,7 @@ jobs:
         working-directory: frontend/
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Node.js 22
         uses: actions/setup-node@v4
@@ -611,7 +611,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Helm
         uses: azure/setup-helm@v5
@@ -683,7 +683,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 JDK 17 (Temurin)
         uses: actions/setup-java@v5
@@ -1016,7 +1016,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
@@ -1264,7 +1264,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python 3.11
         uses: actions/setup-python@v7
@@ -1537,7 +1537,7 @@ jobs:
           --health-retries 5
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python 3.12
         uses: actions/setup-python@v7
@@ -1694,7 +1694,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1752,7 +1752,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 运行版本对账
         run: bash scripts/check-versions.sh
@@ -1772,7 +1772,7 @@ jobs:
       - go-build-test
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 检查集成测试环境
         run: |
@@ -1900,7 +1900,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
@@ -1949,7 +1949,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v4
@@ -1993,7 +1993,7 @@ jobs:
       - dependency-review
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 markdownlint-cli
         run: npm install -g markdownlint-cli
@@ -2038,7 +2038,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Maven 并预热本地缓存（避免 Trivy 请求 Maven Central 被 429 限流）
         uses: actions/setup-java@v5
@@ -2099,7 +2099,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装CycloneDX
         run: |
@@ -2142,7 +2142,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装kubeconform
         run: |
@@ -2186,7 +2186,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python 3.11
         uses: actions/setup-python@v7
@@ -2256,7 +2256,7 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Python 3.11
         uses: actions/setup-python@v7
@@ -2434,7 +2434,7 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
