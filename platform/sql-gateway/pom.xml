@@ -154,7 +154,7 @@
         <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-linq4j</artifactId>
-            <version>1.37.0</version>
+            <version>1.42.0</version>
         </dependency>
 
         <!-- Caffeine：高性能本地缓存，用于虚拟表元数据缓存 -->

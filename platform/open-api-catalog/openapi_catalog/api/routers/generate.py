@@ -9,6 +9,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import APIDefinition
 from openapi_catalog.repositories import CatalogError
@@ -19,7 +21,6 @@ from openapi_catalog.services.api_generator import (
     SqlGenerateRequest,
 )
 from openapi_catalog.services.registry import ServiceRegistry
-from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/apis/generate", tags=["generate"])
 

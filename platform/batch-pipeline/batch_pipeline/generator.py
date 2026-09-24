@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timedelta
 import os
 import random
 import sys
-from datetime import datetime, timedelta
 from typing import Any
 
 from .helpers import abs_path, csv_write, json_load, json_save, local_ts_str
@@ -27,9 +27,7 @@ def gen_customers(rng: random.Random, n: int, base_date: datetime) -> list[dict[
                 "customer_id": f"CUS-{i:06d}",
                 "tier": rng.choices(TIERS, weights=[50, 30, 15, 5])[0],
                 "city": rng.choice(CITIES),
-                "join_date": (base_date - timedelta(days=rng.randint(0, 1800))).strftime(
-                    "%Y-%m-%d"
-                ),
+                "join_date": (base_date - timedelta(days=rng.randint(0, 1800))).strftime("%Y-%m-%d"),
             }
         )
     return rows
@@ -68,9 +66,7 @@ def gen_orders(
         product_id = rng.choice(prod_ids)
         days_ago = rng.randint(0, date_days)
         order_date = (base_date - timedelta(days=days_ago)).strftime("%Y-%m-%d")
-        created_ts = (base_date - timedelta(days=days_ago, minutes=rng.randint(0, 1200))).strftime(
-            "%Y-%m-%dT%H:%M:%S"
-        )
+        created_ts = (base_date - timedelta(days=days_ago, minutes=rng.randint(0, 1200))).strftime("%Y-%m-%dT%H:%M:%S")
         region = rng.choice(REGIONS)
         channel = rng.choice(CHANNELS)
         quantity: float | str = rng.randint(1, 20)
@@ -136,9 +132,7 @@ def main(cfg: dict[str, Any]) -> dict[str, Any]:
 
     customers = gen_customers(rng, int(gen.get("customer_count", 3000)), base_date)
     products = gen_products(rng, int(gen.get("product_count", 200)))
-    orders = gen_orders(
-        rng, n, customers, products, base_date, defects, int(gen.get("date_range_days", 90))
-    )
+    orders = gen_orders(rng, n, customers, products, base_date, defects, int(gen.get("date_range_days", 90)))
 
     # rows=0 / 空参考表时 orders[0] 会 IndexError；用固定列序兜底。
     # 兜底列序必须与 gen_orders / gen_products 的实际字段一致（2026-08 审查 B9：

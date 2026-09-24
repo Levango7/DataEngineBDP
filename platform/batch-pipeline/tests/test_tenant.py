@@ -18,8 +18,8 @@ import json
 import os
 import shutil
 import tempfile
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -43,9 +43,7 @@ class TestValidateTenantId:
     def test_ok(self, tid):
         assert validate_tenant_id(tid) == tid
 
-    @pytest.mark.parametrize(
-        "tid", ["", "   ", "Tenant", "tenant_a", "-lead", "trail-", "a" * 64, "ten ant", "租户"]
-    )
+    @pytest.mark.parametrize("tid", ["", "   ", "Tenant", "tenant_a", "-lead", "trail-", "a" * 64, "ten ant", "租户"])
     def test_rejects(self, tid):
         with pytest.raises(TenantError):
             validate_tenant_id(tid)
@@ -109,9 +107,7 @@ class TestApplyTenant:
         cfg["pipeline"]["run_dir"] = os.path.join(str(ROOT), "run")
         out = apply_tenant(cfg, "acme")
         # 配置字段统一正斜杠；与 os.path.join 产物按归一化路径比较
-        assert os.path.normpath(out["pipeline"]["run_dir"]) == os.path.normpath(
-            os.path.join(str(ROOT), "run", "acme")
-        )
+        assert os.path.normpath(out["pipeline"]["run_dir"]) == os.path.normpath(os.path.join(str(ROOT), "run", "acme"))
 
     def test_prefix_preserved(self):
         cfg = self._base_cfg()

@@ -225,7 +225,10 @@ deprecated-modules =
 
 [LOGGING]
 # 日志格式风格
-logging-format-style = fstr
+# 合法取值为 old（%）与 new（{}）；历史取值 fstr 已在 pylint 中移除，
+# 传入会导致 `argument --logging-format-style: invalid choice: 'fstr'` 并使 pylint 整体拒绝启动。
+# 注：W1202(logging-format-interpolation) 未启用，此取值仅决定其判定风格，不影响现有告警。
+logging-format-style = new
 
 [SIMILARITIES]
 # 忽略相似代码检查

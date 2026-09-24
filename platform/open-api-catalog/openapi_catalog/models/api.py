@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import BaseModel, Field, model_validator
+
 from openapi_catalog.models.base import (
     APIStatus,
     AuthType,
@@ -14,7 +16,6 @@ from openapi_catalog.models.base import (
     SLALevel,
     TimestampMixin,
 )
-from pydantic import BaseModel, Field, model_validator
 
 
 class APIParam(BaseModel):

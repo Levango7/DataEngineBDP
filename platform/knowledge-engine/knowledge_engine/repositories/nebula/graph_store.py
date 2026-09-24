@@ -58,11 +58,7 @@ class NebulaGraphStore(GraphStore):
         # 硬编码为函数默认参数。部署方若不显式传参，就会静默使用公开已知口令。
         # 改为 None 哨兵 + 环境变量优先，**默认行为完全不变**（仍回落到 "nebula"），
         # 但提供了不改代码即可覆盖的途径，且不再把口令写死在签名里。
-        resolved_password = (
-            password
-            if password is not None
-            else os.getenv("NEBULA_PASSWORD", "nebula")
-        )
+        resolved_password = password if password is not None else os.getenv("NEBULA_PASSWORD", "nebula")
         self.host = host
         self.port = port
         self.user = user

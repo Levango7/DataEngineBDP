@@ -51,9 +51,7 @@ class TestMetricsSampler:
         result = sampler.sample()
         for key in ("cpu_percent", "memory_mb"):
             v = result[key]
-            assert v is None or isinstance(v, float), (
-                f"{key} 应为 float 或 None，实际 {type(v)}: {v}"
-            )
+            assert v is None or isinstance(v, float), f"{key} 应为 float 或 None，实际 {type(v)}: {v}"
 
     def test_sample_does_not_raise(self):
         """sample() 不应抛异常（即使 psutil 不可用）."""

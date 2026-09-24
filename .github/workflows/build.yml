@@ -163,11 +163,14 @@ jobs:
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
               || echo "::error::parent POM 安装失败，后续模块可能无法解析"
           fi
-          # 内部依赖链：common-security ← encaps-layer / sql-gateway ← lineage-analyzer
+          # 内部依赖链：common-security ← encaps-layer ← encaps-data ← sql-gateway ← lineage-analyzer
           # 按依赖序先装库，否则下游模块解析不到 SNAPSHOT（与 ci.yml java-build-test 一致）
+          # 2026-09-24：ci.yml java-build-test 已于 607ff02d 补入 encaps-data，
+          # 本 job 与 ci.yml trivy-scan 预装清单同步对齐（缺失会报 encaps-data SNAPSHOT 解析失败）
           for lib_pom in \
             "platform/common-security/pom.xml" \
             "platform/encaps-layer/pom.xml" \
+            "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
             if [ -f "$lib_pom" ]; then
               mvn -f "$lib_pom" install -B -DskipTests -U \
@@ -384,9 +387,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Helm
+        # 固定 Helm 3.16.4（勿用 'latest'/浮动大版本，避免被解析为 Helm 4.x）
         uses: azure/setup-helm@v5
         with:
-          version: 'latest'
+          version: 'v3.16.4'
 
       - name: 登录 GHCR OCI
         run: |

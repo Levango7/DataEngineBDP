@@ -36,6 +36,8 @@ Zero dependencies: only stdlib (json / csv / os / time / threading / shutil).
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 import csv
 import json
 import logging
@@ -45,8 +47,6 @@ import shutil
 import sys
 import threading
 import time
-from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
 from typing import Any, Optional
 
 from .helpers import utc_ts
@@ -114,8 +114,7 @@ def recompute_derived(rows: list[dict[str, Any]], fields: Sequence[str]) -> None
             revenue = _try_float(r.get("revenue"))
             if orders is None or revenue is None:
                 log.warning(
-                    "non-numeric orders/revenue (%r/%r) in aggregate row; "
-                    "keeping original avg_order_value %r",
+                    "non-numeric orders/revenue (%r/%r) in aggregate row; " "keeping original avg_order_value %r",
                     r.get("orders"),
                     r.get("revenue"),
                     r.get("avg_order_value"),
@@ -144,9 +143,7 @@ def recompute_derived(rows: list[dict[str, Any]], fields: Sequence[str]) -> None
         def _rank_key(i: int) -> float:
             v = _try_float(rows[i].get("revenue"))
             if v is None:
-                log.warning(
-                    "non-numeric revenue %r while ranking; treated as 0", rows[i].get("revenue")
-                )
+                log.warning("non-numeric revenue %r while ranking; treated as 0", rows[i].get("revenue"))
                 return 0.0
             return -v
 
@@ -267,9 +264,7 @@ class StateStore:
         os.makedirs(self.state_dir, exist_ok=True)
         fh = open(self.lock_path, "a+b")
         try:
-            _acquire_file_lock(
-                fh, self.lock_path, self.lock_timeout if timeout is None else timeout
-            )
+            _acquire_file_lock(fh, self.lock_path, self.lock_timeout if timeout is None else timeout)
             held[self.lock_path] = 1
             try:
                 yield
@@ -528,9 +523,7 @@ class StateStore:
         if overflow > 0:
             del ledger[:overflow]
         if pending_aggregates:
-            state["aggregates_pending"] = {
-                name: os.path.abspath(path) for name, path in pending_aggregates.items()
-            }
+            state["aggregates_pending"] = {name: os.path.abspath(path) for name, path in pending_aggregates.items()}
         else:
             # Defensive: a stale marker (already completed at startup) must not
             # survive a fresh commit point.
@@ -545,9 +538,7 @@ class StateStore:
         """Absolute path of the staged (pending) aggregate ``{name}.csv``."""
         return os.path.join(self.get_pending_dir(), name + ".csv")
 
-    def write_pending_aggregate(
-        self, name: str, fields: Sequence[str], rows: Sequence[dict[str, Any]]
-    ) -> str:
+    def write_pending_aggregate(self, name: str, fields: Sequence[str], rows: Sequence[dict[str, Any]]) -> str:
         """Write merged rows to the pending staged file (atomic); return its path.
 
         Used by the Spark merge path, which computes the merged result itself
@@ -611,9 +602,7 @@ class StateStore:
             data = list(reader)
         return data, fields
 
-    def save_aggregate(
-        self, name: str, fields: Sequence[str], rows: Sequence[dict[str, Any]]
-    ) -> None:
+    def save_aggregate(self, name: str, fields: Sequence[str], rows: Sequence[dict[str, Any]]) -> None:
         """Write historical aggregate to ``<state_dir>/aggregates/{name}.csv``.
 
         Atomic (tmp + os.replace, task #74 M15) and serialized by the state
@@ -727,9 +716,7 @@ class StateStore:
         except ValueError:
             return False
 
-    def _merge_into(
-        self, base: dict[str, Any], new: dict[str, Any], fields: Sequence[str], key_set: set
-    ) -> None:
+    def _merge_into(self, base: dict[str, Any], new: dict[str, Any], fields: Sequence[str], key_set: set) -> None:
         """Accumulate numeric cols of ``new`` into ``base``; keep non-numeric new value.
 
         Task #74 (minor) type protection: dimension columns may be overwritten
@@ -751,9 +738,7 @@ class StateStore:
                 # inf/nan 等非有限值会让 round() 抛 OverflowError——跳过并告警，
                 # 不让单列脏数据炸掉整个增量合并
                 if not math.isfinite(total):
-                    log.warning(
-                        "skipping non-finite accumulation for column %r: %s + %s", f, bv, nv
-                    )
+                    log.warning("skipping non-finite accumulation for column %r: %s + %s", f, bv, nv)
                     continue
                 base[f] = int(total) if total.is_integer() else round(total, 4)
             elif nv is not None and str(nv).strip() != "":

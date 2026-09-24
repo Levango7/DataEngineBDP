@@ -71,9 +71,7 @@ class BusinessLineService:
             raise PermissionDeniedError(bl_id, user_id)
         return await self._store.update(bl_id, patch)
 
-    async def delete_business_line(
-        self, bl_id: str, user_id: str | None = None, tenant_id: str | None = None
-    ) -> None:
+    async def delete_business_line(self, bl_id: str, user_id: str | None = None, tenant_id: str | None = None) -> None:
         """删除业务线（仅业务线管理员可操作）."""
         bl = await self._store.get(bl_id)
         # 租户隔离：若指定 tenant_id，必须与业务线租户匹配，否则视为不存在（404）

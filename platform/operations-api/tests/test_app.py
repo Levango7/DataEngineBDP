@@ -12,6 +12,7 @@ P-04 合同交付实体 — 基础冒烟测试，确保：
     pip install -e ".[dev]"
     pytest tests/test_app.py -v
 """
+
 from __future__ import annotations
 
 import os
@@ -19,9 +20,9 @@ import os
 # 测试环境：强制 AUTH_MODE=none，避免 K8s fail-fast
 os.environ.setdefault("AUTH_MODE", "none")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402  # noqa: E402
 
-from operations_api.app import app
+from operations_api.app import app  # noqa: E402  # noqa: E402
 
 
 def test_app_instance_created():

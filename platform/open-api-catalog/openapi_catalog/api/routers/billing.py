@@ -14,6 +14,8 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+
 from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
@@ -31,7 +33,6 @@ from openapi_catalog.repositories.rate_limit_store import (
     get_rate_limit_store,
 )
 from openapi_catalog.services.registry import ServiceRegistry
-from pydantic import BaseModel, Field
 
 
 def _assert_subscription_access(ctx: AuthContext, sub) -> None:
@@ -52,6 +53,7 @@ def _assert_api_access(ctx: AuthContext, api) -> None:
     """
     if ctx.role != "admin" and api.providerTenantId != ctx.tenantId:
         raise HTTPException(status_code=403, detail="无权访问此 API 计费配置")
+
 
 # 订阅增强路由（挂在 /subscriptions 下）
 subscriptions_billing_router = APIRouter(prefix="/subscriptions", tags=["subscription-billing"])

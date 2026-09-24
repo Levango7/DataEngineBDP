@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-
 from models import (
     ColumnSchema,
     Intent,
@@ -180,7 +179,7 @@ class TestGenerateEndpointTenantIsolation:
         )
         assert resp.status_code == 200
         data = resp.json()
-        sql = data["sql"]
+        assert "sql" in data
         assert "tenant-other" in data.get("params", [])
 
     def test_generate_user_cannot_override_tenant(self, app, monkeypatch) -> None:
@@ -197,7 +196,7 @@ class TestGenerateEndpointTenantIsolation:
         )
         assert resp.status_code == 200
         data = resp.json()
-        sql = data["sql"]
+        assert "sql" in data
         # 普通用户强制使用 token 声明的 tenant-a，而非请求体的 tenant-other
         assert "tenant-a" in data.get("params", [])
         assert "tenant-other" not in data.get("params", [])

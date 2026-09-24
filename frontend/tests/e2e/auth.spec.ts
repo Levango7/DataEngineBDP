@@ -29,8 +29,8 @@ test.describe('登录流程', () => {
     await expect(page.locator('input[autocomplete="current-password"]')).toBeVisible()
     // 登录按钮
     await expect(page.getByRole('button', { name: /登.*录/ })).toBeVisible()
-    // 提示信息
-    await expect(page.locator('.tip')).toContainText('admin')
+    // 提示信息（Login.vue 已将 class="tip" 改名为 class="dev-tip"，bae9a404）
+    await expect(page.locator('.dev-tip')).toContainText('admin')
   })
 
   test('正确账号登录成功', async ({ page }) => {

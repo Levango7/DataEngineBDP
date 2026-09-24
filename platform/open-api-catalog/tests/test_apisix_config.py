@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+
 from openapi_catalog.models import (
     AuthType,
     HttpMethod,
     SLALevel,
 )
-import pytest
 
 
 class TestAPISIXConfig:

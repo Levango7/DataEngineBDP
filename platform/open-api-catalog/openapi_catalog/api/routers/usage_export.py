@@ -104,9 +104,7 @@ async def exportUsage(
     period = req.period or datetime.now(timezone.utc).strftime("%Y-%m")
 
     # 2. 列出当前租户的 API
-    apis = await registry.apiRegistryService.list_apis(
-        APIFilter(providerTenantId=tenantId)
-    )
+    apis = await registry.apiRegistryService.list_apis(APIFilter(providerTenantId=tenantId))
 
     # 3. 聚合每个 API 的计量数据
     items: list[UsageItem] = []
@@ -115,9 +113,7 @@ async def exportUsage(
 
     for api in apis:
         try:
-            metrics = await registry.meteringService.get_metrics(
-                api.id, range_str=req.range, consumer_tenant_id=None
-            )
+            metrics = await registry.meteringService.get_metrics(api.id, range_str=req.range, consumer_tenant_id=None)
         except Exception:
             # 单个 API 计量查询失败不影响整体导出
             metrics = None
@@ -143,7 +139,7 @@ async def exportUsage(
     if totalCalls > 0:
         exporter = FinOpsUsageExporter(settings)
         authHeader = request.headers.get("Authorization", "")
-        jwtToken = authHeader[len("Bearer "):] if authHeader.startswith("Bearer ") else None
+        jwtToken = authHeader[len("Bearer ") :] if authHeader.startswith("Bearer ") else None
 
         try:
             result = await exporter.exportUsage(
@@ -154,7 +150,7 @@ async def exportUsage(
             )
             finopsBillingId = result.get("id")
             finopsTotalAmount = result.get("totalAmount")
-        except FinOpsExportError as exc:
+        except FinOpsExportError:
             # finops 导出失败不阻断计量聚合结果返回，标记状态为 FAILED
             exportStatus = "FAILED"
     else:

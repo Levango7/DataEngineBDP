@@ -49,17 +49,14 @@ def _get_iceberg_catalog(cfg: dict[str, Any]) -> Any:
         from pyiceberg.catalog import load_catalog  # lazy import
     except ImportError as e:
         raise RuntimeError(
-            "pyiceberg is required for storage.backend='iceberg' "
-            "(install: pip install --pre pyiceberg==0.12.0rc1)"
+            "pyiceberg is required for storage.backend='iceberg' " "(install: pip install --pre pyiceberg==0.12.0rc1)"
         ) from e
     ice_cfg = cfg.get("storage", {}).get("iceberg", {}) or {}
     # 缺省名须是合法 Spark 标识符（无连字符）：spark 路径的 INSERT OVERWRITE
     # 语句不做反引号转义，连字符名会使 SQL 解析失败
     name = ice_cfg.get("catalog_name", "batch_pipeline")
     catalog_type = ice_cfg.get("catalog_type", "sql")
-    catalog_uri = _normalize_catalog_uri(
-        ice_cfg.get("catalog_uri", "sqlite:///state/iceberg_catalog.db")
-    )
+    catalog_uri = _normalize_catalog_uri(ice_cfg.get("catalog_uri", "sqlite:///state/iceberg_catalog.db"))
     warehouse = ice_cfg.get("warehouse", "state/warehouse")
     if warehouse.startswith("file:///"):
         warehouse = warehouse[len("file:///") :]
@@ -69,9 +66,7 @@ def _get_iceberg_catalog(cfg: dict[str, Any]) -> Any:
             cached = _ICEBERG_CATALOG_CACHE.get(cache_key)
             if cached is not None:
                 return cached
-            catalog = load_catalog(
-                name=name, type=catalog_type, uri=catalog_uri, warehouse=warehouse
-            )
+            catalog = load_catalog(name=name, type=catalog_type, uri=catalog_uri, warehouse=warehouse)
             _ICEBERG_CATALOG_CACHE[cache_key] = catalog
             return catalog
         except Exception as e:  # noqa: BLE001
@@ -108,9 +103,7 @@ def _iceberg_infer_schema(rows: list[dict[str, Any]], fields=None) -> Any:
 
     if fields is None:
         fields = list(rows[0].keys()) if rows else []
-    nested_fields = [
-        NestedField(i + 1, f, StringType(), required=False) for i, f in enumerate(fields)
-    ]
+    nested_fields = [NestedField(i + 1, f, StringType(), required=False) for i, f in enumerate(fields)]
     return Schema(*nested_fields)
 
 
@@ -230,9 +223,7 @@ def _table_write_iceberg(
         try:
             n_rows = df.count()
         except Exception as e:  # noqa: BLE001
-            raise RuntimeError(
-                f"failed to count rows before writing Iceberg table {full_name} via Spark: {e}"
-            ) from e
+            raise RuntimeError(f"failed to count rows before writing Iceberg table {full_name} via Spark: {e}") from e
         try:
             if mode == "overwrite":
                 if _spark_table_exists(spark, full_name):
@@ -246,10 +237,7 @@ def _table_write_iceberg(
                     # 是纯 catalog 查询 + SQL 字符串。
                     df.createOrReplaceTempView("_batch_pipeline_overwrite_src")
                     try:
-                        spark.sql(
-                            f"INSERT OVERWRITE TABLE {full_name} "
-                            "SELECT * FROM _batch_pipeline_overwrite_src"
-                        )
+                        spark.sql(f"INSERT OVERWRITE TABLE {full_name} " "SELECT * FROM _batch_pipeline_overwrite_src")
                     finally:
                         spark.catalog.dropTempView("_batch_pipeline_overwrite_src")
                 else:

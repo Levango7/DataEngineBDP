@@ -24,9 +24,9 @@ monkeypatch.chdir 把 CWD 切到 tmp_path，防止污染项目内 benchmarks/ �
 from __future__ import annotations
 
 import importlib.util
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -53,9 +53,7 @@ class _RunCapture:
     def __init__(self) -> None:
         self.cmd: list[str] | None = None
         self.kwargs: dict[str, Any] = {}
-        self.result: subprocess.CompletedProcess = subprocess.CompletedProcess(
-            [], 0, stdout="", stderr=""
-        )
+        self.result: subprocess.CompletedProcess = subprocess.CompletedProcess([], 0, stdout="", stderr="")
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def _fake_run(cmd: Any, *args: Any, **kwargs: Any) -> subprocess.CompletedProcess:

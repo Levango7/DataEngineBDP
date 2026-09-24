@@ -1,60 +1,62 @@
-# golangci-lint 配置 for infra-provider-baremetal
-# 文档: https://golangci-lint.run/usage/configuration/
-# 简化为核心 linters，与 catalog/dqctl 保持一致
-
+version: "2"
 run:
-  # 超时
+  # 超时时间（v1→v2 迁移时丢失，2026-09-24 补回）
   timeout: 5m
-  # Go版本
   go: "1.25"
-  # 模块下载模式
   modules-download-mode: readonly
-
-linters:
-  enable:
-    - errcheck        # 检查未处理的error
-    - gosimple        # 简化代码
-    - govet           # go vet
-    - ineffassign     # 无效赋值
-    - staticcheck     # 静态检查全套
-    - unused          # 未使用代码
-    - gofmt           # 格式检查
-    - goimports       # import顺序
-    - misspell        # 拼写检查
-    - unparam         # 未使用参数检查
-    - unconvert       # 不必要类型转换
-    - nakedret        # 裸return
-
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - fmt.Fprintf
-      - fmt.Printf
-      - fmt.Print
-      - fmt.Println
-      - fmt.Scanf
-      - fmt.Fscanf
-  staticcheck:
-    checks: ["all"]
-
-issues:
-  # 每个linter最多报告50条
-  max-issues-per-linter: 50
-  # 最多50条same-issues
-  max-same-issues: 10
-  # 排除生成的文件
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-        - gocyclo
-  # 排除目录
-  exclude-dirs:
-    - vendor
-    - third_party
-
 output:
   formats:
-    - format: colored-line-number
-  sort-results: true
+    text:
+      path: stdout
+linters:
+  enable:
+    - misspell
+    - nakedret
+    - unconvert
+    - unparam
+  settings:
+    errcheck:
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Printf
+        - fmt.Print
+        - fmt.Println
+        - fmt.Scanf
+        - fmt.Fscanf
+    staticcheck:
+      checks:
+        - all
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+          - gocyclo
+          - gosec
+        path: _test\.go
+    paths:
+      - vendor
+      - third_party
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 10
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - third_party
+      - third_party$
+      - builtin$
+      - examples$

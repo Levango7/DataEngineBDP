@@ -16,10 +16,10 @@
 from __future__ import annotations
 
 import copy
-import os
-import uuid
 from datetime import datetime, timedelta
+import os
 from typing import Any
+import uuid
 
 import pytest
 
@@ -143,17 +143,17 @@ def test_polars_full_run_equals_python(polars_env):
     p_daily = _csv_rows(os.path.join(run_dir_p, "04_aggregates", "daily_sales.csv"))
     py_daily = _csv_rows(os.path.join(run_dir_py, "04_aggregates", "daily_sales.csv"))
     daily_keys = ["order_date", "orders", "units", "revenue", "avg_order_value"]
-    assert _normalize_rows(p_daily, daily_keys) == _normalize_rows(py_daily, daily_keys), (
-        "daily_sales 内容 polars 与 python 不一致"
-    )
+    assert _normalize_rows(p_daily, daily_keys) == _normalize_rows(
+        py_daily, daily_keys
+    ), "daily_sales 内容 polars 与 python 不一致"
 
     # customer_value.csv 内容一致（按 customer_id 排序后比较关键列）
     p_cv = _csv_rows(os.path.join(run_dir_p, "04_aggregates", "customer_value.csv"))
     py_cv = _csv_rows(os.path.join(run_dir_py, "04_aggregates", "customer_value.csv"))
     cv_keys = ["customer_id", "tier", "city", "orders", "revenue", "rank"]
-    assert _normalize_rows(p_cv, cv_keys) == _normalize_rows(py_cv, cv_keys), (
-        "customer_value 内容 polars 与 python 不一致"
-    )
+    assert _normalize_rows(p_cv, cv_keys) == _normalize_rows(
+        py_cv, cv_keys
+    ), "customer_value 内容 polars 与 python 不一致"
 
     # DQ Score 一致
     manifest_p = json_load(os.path.join(run_dir_p, "manifest.json"))
@@ -232,9 +232,7 @@ def test_polars_incremental_combination(polars_env):
 
     # 首次水位 = max(order_date)
     expected_orders_wm = max(r["order_date"] for r in _csv_rows(env["orders_path"]))
-    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "首次 orders 水位应为 max(order_date)"
-    )
+    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, "首次 orders 水位应为 max(order_date)"
 
     # --- 第二次运行（无新数据）---
     bid2 = _new_bid("inc-2")
@@ -247,9 +245,7 @@ def test_polars_incremental_combination(polars_env):
 
     # 水位不变
     state2 = json_load(state_path)
-    assert state2["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "无新数据时水位应不变"
-    )
+    assert state2["tables"]["orders"]["watermark_value"] == expected_orders_wm, "无新数据时水位应不变"
 
     # --- 追加新数据后第三次运行 ---
     cust_rows = _csv_rows(env["customers_path"])
@@ -259,9 +255,7 @@ def test_polars_incremental_combination(polars_env):
 
     n_new = 10
     base_date = _next_date(expected_orders_wm)
-    new_orders = _make_new_orders(
-        n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00"
-    )
+    new_orders = _make_new_orders(n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00")
     _append_orders(env["orders_path"], new_orders)
 
     bid3 = _new_bid("inc-3")
@@ -326,9 +320,9 @@ def test_polars_parquet_format(polars_env):
         p_final_count = _csv_count(p_final_path)
 
     csv_final_count = _csv_count(os.path.join(run_dir_csv, "05_output", "orders_final.csv"))
-    assert p_final_count == csv_final_count, (
-        f"parquet format orders_final 行数 {p_final_count} 应等于 csv format {csv_final_count}"
-    )
+    assert (
+        p_final_count == csv_final_count
+    ), f"parquet format orders_final 行数 {p_final_count} 应等于 csv format {csv_final_count}"
 
 
 # ----------------------------------------------------------------------
@@ -367,9 +361,7 @@ def test_polars_incremental_cv_blank_tier_bucket():
     }
 
     cv_py, tiers_py = _customer_value_incremental(orders, customers, history_meta)
-    cv_pl, tiers_pl = _customer_value_incremental_polars(
-        pl.DataFrame(orders), pl.DataFrame(customers), history_meta
-    )
+    cv_pl, tiers_pl = _customer_value_incremental_polars(pl.DataFrame(orders), pl.DataFrame(customers), history_meta)
     cv_pl_dicts = _df_to_dicts(cv_pl)
     tiers_pl_dicts = _df_to_dicts(tiers_pl)
 
@@ -383,9 +375,7 @@ def test_polars_incremental_cv_blank_tier_bucket():
     # tier 分桶与 python 完全一致；空串桶修复为 "unknown"
     assert tiers_py == tiers_pl_dicts
     tier_names = {t["tier"] for t in tiers_pl_dicts}
-    assert tier_names == {"gold", "silver", "unknown"}, (
-        f"历史空 tier 应分桶到 unknown，实际: {tier_names}"
-    )
+    assert tier_names == {"gold", "silver", "unknown"}, f"历史空 tier 应分桶到 unknown，实际: {tier_names}"
     by_tier = {t["tier"]: t for t in tiers_pl_dicts}
     # customers 只计真新客户（C3）；历史客户 C1/C2 不重复计数
     assert by_tier["unknown"]["customers"] == 0

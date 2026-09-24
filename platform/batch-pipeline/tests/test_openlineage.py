@@ -229,9 +229,7 @@ def test_emitter_http_post_failure_ignored(monkeypatch, tmp_path):
         raise urllib.error.HTTPError("http://x", 500, "boom", {}, None)
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
-    e = OpenLineageEmitter(
-        "b", endpoint="http://bad-host:9999", out_path=str(tmp_path / "out.ndjson")
-    )
+    e = OpenLineageEmitter("b", endpoint="http://bad-host:9999", out_path=str(tmp_path / "out.ndjson"))
     e.pipeline_event("START")  # 不应抛
     assert tmp_path.joinpath("out.ndjson").exists()
     lines = tmp_path.joinpath("out.ndjson").read_text(encoding="utf-8").strip().splitlines()

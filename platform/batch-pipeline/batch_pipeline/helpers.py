@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import csv
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 import hashlib
 import json
 import logging
 import os
 import shutil
-import uuid
-from collections.abc import Sequence
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
+import uuid
 
 # Re-export from split modules for backward compatibility
 from .iceberg import (  # noqa: F401
@@ -460,7 +460,7 @@ def table_read(
             opts = cfg.get("engine", {}).get("spark", {}).get("read_options", {}) or {}
             return _strip_bom_spark(spark.read.csv(path, header=True, inferSchema=True, **opts))
     elif backend == "polars":
-        import polars as pl  # lazy import：仅 polars 路径需要
+        import polars as pl  # noqa: F811  lazy import：仅 polars 路径需要
 
         fmt = cfg.get("engine", {}).get("format", "csv")
         opts = cfg.get("engine", {}).get("polars", {}).get("read_options", {}) or {}
@@ -552,7 +552,7 @@ def table_write(
             df.write.mode("overwrite").option("header", True).csv(path)
         return n
     elif backend == "polars":
-        import polars as pl  # noqa: F401  lazy import
+        import polars as pl  # noqa: F401,F811  lazy import
 
         fmt = cfg.get("engine", {}).get("format", "csv")
         if fmt == "parquet":
@@ -641,11 +641,7 @@ def detect_spark_paths() -> dict[str, str]:
         ["/opt/hadoop", "/usr/local/hadoop", "C:\\hadoop", "F:\\hadoop"]
     )
     result["PYSPARK_PYTHON"] = (
-        env.get("PYSPARK_PYTHON")
-        or env.get("PYTHON")
-        or shutil.which("python3")
-        or shutil.which("python")
-        or ""
+        env.get("PYSPARK_PYTHON") or env.get("PYTHON") or shutil.which("python3") or shutil.which("python") or ""
     )
     result["PYSPARK_DRIVER_PYTHON"] = env.get("PYSPARK_DRIVER_PYTHON") or result["PYSPARK_PYTHON"]
     return result

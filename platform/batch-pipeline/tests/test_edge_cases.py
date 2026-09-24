@@ -5,9 +5,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import os
 import random
-from datetime import datetime
 
 import pytest
 
@@ -304,9 +304,7 @@ def test_merge_aggregate_empty_new_rows(tmp_path):
 def test_merge_aggregate_single_row(tmp_path):
     """merge_aggregate 单行 new_rows 应正常合并."""
     s = StateStore(str(tmp_path / "state"))
-    n = s.merge_aggregate(
-        "kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": "5"}], key_cols=["date"]
-    )
+    n = s.merge_aggregate("kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": "5"}], key_cols=["date"])
     assert n == 1
     data, _ = s.load_aggregate("kpi")
     assert len(data) == 1
@@ -315,18 +313,14 @@ def test_merge_aggregate_single_row(tmp_path):
 def test_merge_aggregate_none_numeric_value(tmp_path):
     """merge_aggregate 行中数值字段为 None 应不抛异常（_is_numeric(None)=False）."""
     s = StateStore(str(tmp_path / "state"))
-    n = s.merge_aggregate(
-        "kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": None}], key_cols=["date"]
-    )
+    n = s.merge_aggregate("kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": None}], key_cols=["date"])
     assert n == 1
 
 
 def test_merge_aggregate_empty_string_numeric_value(tmp_path):
     """merge_aggregate 行中数值字段为空字符串应不抛异常."""
     s = StateStore(str(tmp_path / "state"))
-    n = s.merge_aggregate(
-        "kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": ""}], key_cols=["date"]
-    )
+    n = s.merge_aggregate("kpi", ["date", "orders"], [{"date": "2026-01-01", "orders": ""}], key_cols=["date"])
     assert n == 1
 
 

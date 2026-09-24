@@ -8,8 +8,8 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Any, Optional
 
 import httpx
@@ -73,7 +73,9 @@ class FinOpsUsageExporter:
 
         logger.info(
             "导出 API 用量到 finops: tenant=%s, period=%s, items=%d",
-            tenantId, period, len(usageData or []),
+            tenantId,
+            period,
+            len(usageData or []),
         )
 
         try:
@@ -91,7 +93,9 @@ class FinOpsUsageExporter:
         result = resp.json()
         logger.info(
             "导出完成: tenant=%s, billingId=%s, totalAmount=%s",
-            tenantId, result.get("id"), result.get("totalAmount"),
+            tenantId,
+            result.get("id"),
+            result.get("totalAmount"),
         )
         return result
 

@@ -9,9 +9,9 @@
 
 from __future__ import annotations
 
-import threading
 from pathlib import Path
 import sqlite3
+import threading
 from typing import Optional
 
 # 默认数据库文件路径（相对当前工作目录）
@@ -45,7 +45,7 @@ class SQLiteConnection:
         conn = sqlite3.connect(
             self.dbPath,
             check_same_thread=True,  # 强制同线程使用，thread-local 保证
-            isolation_level=None,    # autocommit；事务用 BEGIN/COMMIT 显式控制
+            isolation_level=None,  # autocommit；事务用 BEGIN/COMMIT 显式控制
         )
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")

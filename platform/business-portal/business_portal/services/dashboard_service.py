@@ -24,5 +24,6 @@ class DashboardService:
         bl = await self._bl_store.get(bl_id)
         if tenant_id and getattr(bl, "tenantId", None) != tenant_id:
             from business_portal.repositories import BusinessLineNotFoundError
+
             raise BusinessLineNotFoundError(bl_id)
         return await self._dashboard_store.get_dashboard(bl_id)

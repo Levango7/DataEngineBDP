@@ -10,9 +10,9 @@ storeType=mock 时回退到进程内内存字典，保持单测隔离与零文�
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import sqlite3
 import threading
-from dataclasses import dataclass
 from typing import Optional
 
 from openapi_catalog.config.settings import Settings
@@ -56,8 +56,7 @@ class _SQLiteRateLimitStore:
         )
         self._conn.execute("PRAGMA journal_mode = WAL;")
         self._conn.execute("PRAGMA busy_timeout = 5000;")
-        self._conn.execute(
-            """
+        self._conn.execute("""
             CREATE TABLE IF NOT EXISTS rate_limit_configs (
                 subscription_id TEXT PRIMARY KEY,
                 qps             INTEGER NOT NULL,
@@ -65,8 +64,7 @@ class _SQLiteRateLimitStore:
                 burst           INTEGER NOT NULL,
                 updated_at      TEXT NOT NULL
             );
-            """
-        )
+            """)
 
     def save(self, subscription_id: str, row: RateLimitRow) -> None:
         from openapi_catalog.models.base import utc_now

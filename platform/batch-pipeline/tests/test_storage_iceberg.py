@@ -22,8 +22,8 @@ from __future__ import annotations
 
 import os
 import threading
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -202,9 +202,7 @@ def test_iceberg_overwrite(iceberg_env):
     cfg = _make_iceberg_cfg(iceberg_env)
     fields = ["id", "val"]
     # 初始 append
-    table_write(
-        "warehouse.overwrite_test", [{"id": "1", "val": "a"}], cfg, fields=fields, mode="append"
-    )
+    table_write("warehouse.overwrite_test", [{"id": "1", "val": "a"}], cfg, fields=fields, mode="append")
     rows, _ = table_read("warehouse.overwrite_test", cfg)
     assert len(rows) == 1
     # overwrite：覆盖为 2 行
@@ -220,9 +218,7 @@ def test_iceberg_overwrite(iceberg_env):
     actual_ids = {r["id"] for r in rows}
     assert actual_ids == {"2", "3"}
     # 再 append：应有 3 行
-    table_write(
-        "warehouse.overwrite_test", [{"id": "4", "val": "d"}], cfg, fields=fields, mode="append"
-    )
+    table_write("warehouse.overwrite_test", [{"id": "4", "val": "d"}], cfg, fields=fields, mode="append")
     rows, _ = table_read("warehouse.overwrite_test", cfg)
     assert len(rows) == 3
 
@@ -264,10 +260,7 @@ def test_iceberg_concurrent_append(iceberg_env):
 
     def _append(thread_id: int) -> None:
         try:
-            rows = [
-                {"id": str(thread_id * 100 + i), "val": f"t{thread_id}-{i}"}
-                for i in range(rows_per_thread)
-            ]
+            rows = [{"id": str(thread_id * 100 + i), "val": f"t{thread_id}-{i}"} for i in range(rows_per_thread)]
             table_write("warehouse.concurrent", rows, cfg, fields=fields, mode="append")
         except Exception as e:  # noqa: BLE001
             errors.append(e)
@@ -515,6 +508,4 @@ def test_iceberg_e2e_incremental_snapshot_diff(iceberg_env):
     state = json_load(state_path)
     assert "iceberg_snapshots" in state, "state should have iceberg_snapshots"
     assert "orders" in state["iceberg_snapshots"], "state should have orders snapshot"
-    assert state["iceberg_snapshots"]["orders"]["snapshot_id"] is not None, (
-        "snapshot_id should be committed"
-    )
+    assert state["iceberg_snapshots"]["orders"]["snapshot_id"] is not None, "snapshot_id should be committed"

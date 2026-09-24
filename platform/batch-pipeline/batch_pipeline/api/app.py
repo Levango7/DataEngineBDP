@@ -72,9 +72,7 @@ def create_app(
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": (
-                    exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error"
-                ),
+                "error": (exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error"),
                 "message": str(exc.detail),
             },
         )

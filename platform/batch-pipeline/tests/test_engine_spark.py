@@ -26,7 +26,7 @@
 from __future__ import annotations
 
 import copy
-import os
+from datetime import datetime, timedelta
 
 # ----------------------------------------------------------------------
 # skipif 条件：Hadoop native IO 库检测（跨平台）
@@ -34,11 +34,11 @@ import os
 # 在模块收集时求值（pytest fixture 设置环境变量是在测试运行时，太晚），
 # 因此直接检测默认路径下的 native library，或环境变量 HADOOP_HOME 指向的 bin/。
 # Windows: hadoop.dll; Linux: libhadoop.so*; macOS: libhadoop.dylib
+import os
 import os as _os
 import platform as _platform
-import uuid
-from datetime import datetime, timedelta
 from typing import Any
+import uuid
 
 import pytest
 
@@ -79,7 +79,7 @@ def _pyspark_jvm_exists() -> bool:
         # Auto-detect SPARK_HOME from pyspark package location if not set
         if not _os.environ.get("SPARK_HOME"):
             try:
-                import pyspark
+                import pyspark  # noqa: F811
 
                 _spark_home = _os.path.dirname(pyspark.__file__)
                 if _os.path.isdir(_os.path.join(_spark_home, "bin")):
@@ -101,7 +101,7 @@ def _pyspark_jvm_exists() -> bool:
         sc = SparkContext.getOrCreate(conf=conf)
         sc.stop()
         return True
-    except Exception as _exc:  # noqa: BLE001
+    except Exception:
         return False
 
 
@@ -157,10 +157,7 @@ except ImportError:
     _PYSPARK_AVAILABLE = False
 
 SPARK_WRITE_DISABLED = (
-    not _HADOOP_HOME_EXPLICIT
-    or not _HADOOP_DLL_EXISTS
-    or not _PYSPARK_AVAILABLE
-    or not PYSPARK_JVM_OK
+    not _HADOOP_HOME_EXPLICIT or not _HADOOP_DLL_EXISTS or not _PYSPARK_AVAILABLE or not PYSPARK_JVM_OK
 )
 
 _SKIP_REASON = (
@@ -313,17 +310,17 @@ def test_spark_full_equivalence(spark_env):
     s_daily = _csv_rows(os.path.join(run_dir_s, "04_aggregates", "daily_sales.csv"))
     py_daily = _csv_rows(os.path.join(run_dir_py, "04_aggregates", "daily_sales.csv"))
     daily_keys = ["order_date", "orders", "units", "revenue", "avg_order_value"]
-    assert _normalize_rows(s_daily, daily_keys) == _normalize_rows(py_daily, daily_keys), (
-        "daily_sales 内容 spark 与 python 不一致"
-    )
+    assert _normalize_rows(s_daily, daily_keys) == _normalize_rows(
+        py_daily, daily_keys
+    ), "daily_sales 内容 spark 与 python 不一致"
 
     # customer_value.csv 内容一致（按 customer_id 排序后比较关键列）
     s_cv = _csv_rows(os.path.join(run_dir_s, "04_aggregates", "customer_value.csv"))
     py_cv = _csv_rows(os.path.join(run_dir_py, "04_aggregates", "customer_value.csv"))
     cv_keys = ["customer_id", "tier", "city", "orders", "revenue", "rank"]
-    assert _normalize_rows(s_cv, cv_keys) == _normalize_rows(py_cv, cv_keys), (
-        "customer_value 内容 spark 与 python 不一致"
-    )
+    assert _normalize_rows(s_cv, cv_keys) == _normalize_rows(
+        py_cv, cv_keys
+    ), "customer_value 内容 spark 与 python 不一致"
 
     # DQ Score 一致
     manifest_s = json_load(os.path.join(run_dir_s, "manifest.json"))
@@ -407,9 +404,7 @@ def test_spark_incremental(spark_env):
 
     # 首次水位 = max(order_date)
     expected_orders_wm = max(r["order_date"] for r in _csv_rows(env["orders_path"]))
-    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "首次 orders 水位应为 max(order_date)"
-    )
+    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, "首次 orders 水位应为 max(order_date)"
 
     # --- 第二次运行（无新数据）---
     bid2 = _new_bid("inc-2")
@@ -422,9 +417,7 @@ def test_spark_incremental(spark_env):
 
     # 水位不变
     state2 = json_load(state_path)
-    assert state2["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "无新数据时水位应不变"
-    )
+    assert state2["tables"]["orders"]["watermark_value"] == expected_orders_wm, "无新数据时水位应不变"
 
     # --- 追加新数据后第三次运行 ---
     cust_rows = _csv_rows(env["customers_path"])
@@ -434,9 +427,7 @@ def test_spark_incremental(spark_env):
 
     n_new = 10
     base_date = _next_date(expected_orders_wm)
-    new_orders = _make_new_orders(
-        n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00"
-    )
+    new_orders = _make_new_orders(n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00")
     _append_orders(env["orders_path"], new_orders)
 
     bid3 = _new_bid("inc-3")

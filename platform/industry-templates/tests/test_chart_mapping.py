@@ -14,8 +14,8 @@
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
+import re
 
 import pytest
 
@@ -81,9 +81,7 @@ class TestChartMapping:
                 continue
             resolved = engine._resolve_chart_path(t.id)
             expected_suffix = f"{t.meta.industry.value}-template"
-            assert resolved.endswith(expected_suffix), (
-                f"{t.id} 解析 {resolved} 未按 {{{{industry}}}}-template 命名回退"
-            )
+            assert resolved.endswith(expected_suffix), f"{t.id} 解析 {resolved} 未按 {{{{industry}}}}-template 命名回退"
 
     def test_explicit_chart_ref_takes_priority(self):
         """chartRef 显式指定时优先命中（构造临时 chart 目录验证）。"""
@@ -143,11 +141,11 @@ class TestDeployRecordsChartPath:
                 from industry_templates.services.helm_executor import HelmCommandError
 
                 raise HelmCommandError(
-                    'helm 命令失败（rc=1）: helm upgrade --install test',
+                    "helm 命令失败（rc=1）: helm upgrade --install test",
                     cmd=["helm", "upgrade", "--install", "test"],
                     returncode=1,
                     stdout="",
-                    stderr="Error: chart \"nonexistent\" not found",
+                    stderr='Error: chart "nonexistent" not found',
                 )
 
             def uninstall(self, releaseName, namespace):

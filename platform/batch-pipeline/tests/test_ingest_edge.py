@@ -16,11 +16,11 @@
 from __future__ import annotations
 
 import csv
+from datetime import date, datetime
 import logging
 import os
 import shutil
 import tempfile
-from datetime import date, datetime
 from typing import Any
 
 import pytest
@@ -53,9 +53,7 @@ def work_dir():
     shutil.rmtree(d, ignore_errors=True)
 
 
-def _make_ctx(
-    cfg: dict[str, Any], run_dir: str, batch_id: str, state: dict[str, Any]
-) -> PipelineContext:
+def _make_ctx(cfg: dict[str, Any], run_dir: str, batch_id: str, state: dict[str, Any]) -> PipelineContext:
     """构造支撑 _ingest_incremental 的最小 PipelineContext."""
     os.makedirs(run_dir, exist_ok=True)
     manifest = Manifest(batch_id, config_digest(cfg), run_dir)

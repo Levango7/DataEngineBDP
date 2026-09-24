@@ -21,13 +21,13 @@
 from __future__ import annotations
 
 import copy
+from datetime import datetime, timedelta
 import os
 import socket
-import uuid
-from datetime import datetime, timedelta
 from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
+import uuid
 
 import pytest
 
@@ -39,9 +39,7 @@ from batch_pipeline.pipeline import run_pipeline
 # skipif 条件：Spark Master 不可达 或 pyspark 未安装 或 JVM 不可用
 # （多机模式 Worker 在 Docker Linux 容器中运行，不需要 Windows hadoop.dll）
 # ----------------------------------------------------------------------
-def _spark_master_reachable(
-    host: str = "localhost", port: int = 15077, timeout: float = 3.0
-) -> bool:
+def _spark_master_reachable(host: str = "localhost", port: int = 15077, timeout: float = 3.0) -> bool:
     try:
         s = socket.socket()
         s.settimeout(timeout)
@@ -247,37 +245,33 @@ def test_cluster_spark_s3_equivalence(spark_cluster_env):
     c_daily = _table_rows(os.path.join(run_dir_c, "04_aggregates", "daily_sales.csv"), cfg_cluster)
     l_daily = _table_rows(os.path.join(run_dir_l, "04_aggregates", "daily_sales.csv"), cfg_csv)
     daily_keys = ["order_date", "orders", "units", "revenue", "avg_order_value"]
-    assert _normalize_rows(c_daily, daily_keys) == _normalize_rows(l_daily, daily_keys), (
-        "daily_sales 内容 cluster 与 local_csv 不一致"
-    )
+    assert _normalize_rows(c_daily, daily_keys) == _normalize_rows(
+        l_daily, daily_keys
+    ), "daily_sales 内容 cluster 与 local_csv 不一致"
 
     # category_stats 内容一致
     c_cat = _table_rows(os.path.join(run_dir_c, "04_aggregates", "category_stats.csv"), cfg_cluster)
     l_cat = _table_rows(os.path.join(run_dir_l, "04_aggregates", "category_stats.csv"), cfg_csv)
     cat_keys = ["category", "orders", "units", "revenue", "revenue_share"]
-    assert _normalize_rows(c_cat, cat_keys) == _normalize_rows(l_cat, cat_keys), (
-        "category_stats 内容 cluster 与 local_csv 不一致"
-    )
+    assert _normalize_rows(c_cat, cat_keys) == _normalize_rows(
+        l_cat, cat_keys
+    ), "category_stats 内容 cluster 与 local_csv 不一致"
 
     # region_channel_stats 内容一致
-    c_rc = _table_rows(
-        os.path.join(run_dir_c, "04_aggregates", "region_channel_stats.csv"), cfg_cluster
-    )
-    l_rc = _table_rows(
-        os.path.join(run_dir_l, "04_aggregates", "region_channel_stats.csv"), cfg_csv
-    )
+    c_rc = _table_rows(os.path.join(run_dir_c, "04_aggregates", "region_channel_stats.csv"), cfg_cluster)
+    l_rc = _table_rows(os.path.join(run_dir_l, "04_aggregates", "region_channel_stats.csv"), cfg_csv)
     rc_keys = ["region", "channel", "orders", "revenue"]
-    assert _normalize_rows(c_rc, rc_keys) == _normalize_rows(l_rc, rc_keys), (
-        "region_channel_stats 内容 cluster 与 local_csv 不一致"
-    )
+    assert _normalize_rows(c_rc, rc_keys) == _normalize_rows(
+        l_rc, rc_keys
+    ), "region_channel_stats 内容 cluster 与 local_csv 不一致"
 
     # customer_value 内容一致
     c_cv = _table_rows(os.path.join(run_dir_c, "04_aggregates", "customer_value.csv"), cfg_cluster)
     l_cv = _table_rows(os.path.join(run_dir_l, "04_aggregates", "customer_value.csv"), cfg_csv)
     cv_keys = ["customer_id", "tier", "city", "orders", "revenue", "rank"]
-    assert _normalize_rows(c_cv, cv_keys) == _normalize_rows(l_cv, cv_keys), (
-        "customer_value 内容 cluster 与 local_csv 不一致"
-    )
+    assert _normalize_rows(c_cv, cv_keys) == _normalize_rows(
+        l_cv, cv_keys
+    ), "customer_value 内容 cluster 与 local_csv 不一致"
 
     # DQ Score 一致
     manifest_c = json_load(os.path.join(run_dir_c, "manifest.json"))
@@ -353,9 +347,7 @@ def test_cluster_incremental_spark_s3(spark_cluster_env):
 
     # 首次水位 = max(order_date)
     expected_orders_wm = max(r["order_date"] for r in _csv_rows(env["orders_path"]))
-    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "首次 orders 水位应为 max(order_date)"
-    )
+    assert state1["tables"]["orders"]["watermark_value"] == expected_orders_wm, "首次 orders 水位应为 max(order_date)"
 
     # --- 追加新数据后二次运行 ---
     cust_rows = _csv_rows(env["customers_path"])
@@ -365,9 +357,7 @@ def test_cluster_incremental_spark_s3(spark_cluster_env):
 
     n_new = 10
     base_date = _next_date(expected_orders_wm)
-    new_orders = _make_new_orders(
-        n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00"
-    )
+    new_orders = _make_new_orders(n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00")
     _append_orders(env["orders_path"], new_orders)
 
     bid2 = _new_bid("inc-2")
@@ -427,6 +417,4 @@ def test_cluster_worker_count(spark_cluster_env):
         memory = w.get("memory", 0)
         assert cores >= 2, "Worker {} 核心数应 ≥ 2，实际 {}".format(w.get("id", "?"), cores)
         # memory 单位为 MB，2G = 2048MB
-        assert memory >= 2048, "Worker {} 内存应 ≥ 2048MB，实际 {}MB".format(
-            w.get("id", "?"), memory
-        )
+        assert memory >= 2048, "Worker {} 内存应 ≥ 2048MB，实际 {}MB".format(w.get("id", "?"), memory)

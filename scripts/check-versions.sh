@@ -20,8 +20,14 @@ echo "检查 Go 版本（期望 go $EXPECTED_GO）..."
 while IFS= read -r f; do
     # 仅匹配以 "go " 开头的行（跳过注释行）
     ver=$(grep "^go " "$f" | head -1 | awk '{print $2}')
-    if [ -n "$ver" ] && [ "$ver" != "$EXPECTED_GO" ]; then
-        echo "::error file=$f::go $ver (期望 $EXPECTED_GO)"
+    # 只比对 major.minor：Go 1.21+ 在依赖要求更高 patch 时，会把 go 指令写成
+    # patch 级（如 `go 1.26.0`），与 `go 1.26` 语义等价，不应判为不一致。
+    # ⚠️ 反例（2026-09-25 实测）：**不可**为通过本检查而把 go 指令降为 `1.26` ——
+    #    `go mod tidy -diff` 会唯一要求改回 `1.26.0`，`go build ./...` 直接报
+    #    `go: updates to go.mod needed`，Smoke Local / Go Build & Test 因此转红。
+    ver_mm=$(printf '%s' "$ver" | cut -d. -f1,2)
+    if [ -n "$ver" ] && [ "$ver_mm" != "$EXPECTED_GO" ]; then
+        echo "::error file=$f::go $ver (期望 $EXPECTED_GO.x)"
         ERRORS=$((ERRORS + 1))
     fi
 done < <(find platform -name "go.mod" -not -path "*/target/*" 2>/dev/null)

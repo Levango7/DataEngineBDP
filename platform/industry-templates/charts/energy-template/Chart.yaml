@@ -18,7 +18,7 @@ appVersion: "1.0.0"
 home: https://shuqing.com/industry-templates/energy
 sources:
   - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/energy
-mainters:
+maintainers:
   - name: hw029373469
     email: hw029373469@shuqing.com
     url: https://shuqing.com

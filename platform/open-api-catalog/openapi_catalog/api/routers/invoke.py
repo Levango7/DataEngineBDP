@@ -9,11 +9,12 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import BaseModel, Field
+
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import CallResult
 from openapi_catalog.repositories import CatalogError
 from openapi_catalog.services.registry import ServiceRegistry
-from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/apis", tags=["invoke"])
 
