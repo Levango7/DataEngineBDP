@@ -94,6 +94,25 @@ jobs:
           exit-code: '1'  # 发现 CRITICAL/HIGH/MEDIUM 漏洞时阻断 CI
           ignore-unfixed: true
 
+      # 2026-09-24：fs 扫描以 exit-code 1 阻断时，其后的步骤（含上传 SARIF
+      # artifact）会被整体跳过，导致**拿不到具体漏洞清单**、无法定位修复。
+      # 故在此导出一份 JSON 明细并上传；if: always() 保证阻断时也执行，
+      # 末尾 `|| true` 保证它自身不额外失败。
+      - name: 导出 fs 扫描明细（供定位修复，不阻断）
+        if: always()
+        run: |
+          trivy fs --format json --output trivy-fs-detail.json \
+            --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed . || true
+          echo "明细大小: $(wc -c < trivy-fs-detail.json 2>/dev/null || echo 0) bytes"
+
+      - name: 上传 fs 扫描明细
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-fs-detail
+          path: trivy-fs-detail.json
+          retention-days: 30
+
       - name: 扫描 IaC 配置（YAML/K8s/Helm）
         uses: aquasecurity/trivy-action@v0.36.0
         with:
