@@ -525,11 +525,60 @@ jobs:
           fi
           echo "✓ 所有镜像扫描通过"
 
+      - name: 合并镜像扫描 SARIF
+        # 2026-09-24 修复：原先直接上传目录 reports/trivy（内含每个镜像一个 SARIF），
+        # 合并后产生**多个 run 且 category 相同**，被 CodeQL Action 拒绝：
+        #   "does not support uploading multiple SARIF runs with the same category"
+        # —— 注意：此时**扫描本身其实已通过**（日志无"镜像存在漏洞"错误），
+        #   该步骤失败会让整个 job 变红，属于误报式阻断。
+        # 改为先合并成**单 run**再上传。
+        # 输出写在 reports/ 而非 reports/trivy/，避免被 glob 再次捞到。
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, glob
+
+          files = sorted(glob.glob('reports/trivy/*.sarif'))
+          if not files:
+              pathlib.Path('reports/trivy-merged.sarif').write_text(
+                  json.dumps({"version": "2.1.0", "runs": []}), encoding='utf-8')
+              print("无 SARIF 文件，写出空报告")
+              raise SystemExit
+
+          merged = None
+          results = []
+          rules = {}
+          total = 0
+          for f in files:
+              d = json.loads(pathlib.Path(f).read_text(encoding='utf-8'))
+              total += sum(len(r.get('results', [])) for r in d.get('runs', []))
+              if merged is None:
+                  # 深拷贝：否则清空 results 会同时污染第一个文件的数据
+                  merged = json.loads(json.dumps(d))
+                  merged['runs'] = [json.loads(json.dumps(d['runs'][0]))]
+                  merged['runs'][0]['results'] = []
+                  merged['runs'][0]['tool']['driver']['rules'] = []
+              for r in d.get('runs', []):
+                  results.extend(r.get('results', []))
+                  for rule in (r.get('tool', {}).get('driver', {}).get('rules') or []):
+                      rid = rule.get('id')
+                      if rid and rid not in rules:
+                          rules[rid] = rule
+
+          merged['runs'][0]['results'] = results
+          merged['runs'][0]['tool']['driver']['rules'] = list(rules.values())
+          pathlib.Path('reports/trivy-merged.sarif').write_text(
+              json.dumps(merged), encoding='utf-8')
+          print(f"合并 {len(files)} 个 SARIF -> 1 run / {len(results)} results（原 {total}）")
+          assert total == len(results), f"results 数量不一致：{total} != {len(results)}"
+          PY
+
       - name: 上传镜像扫描 SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: reports/trivy
+          sarif_file: reports/trivy-merged.sarif
+          category: 'trivy-image'
 
       - name: 上传镜像扫描报告 Artifact
         if: always()
