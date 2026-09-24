@@ -1,16 +1,7 @@
-"""operations-api JWT 鉴权依赖（FastAPI）.
-
-复用 nl2sql/llmops/ml-platform 等服务的 jwt_auth 模式：纯标准库 HS256 JWT 校验，
-与 Go 侧 golang-jwt/v5 HS256 签发格式兼容。
-
-环境变量：
-    AUTH_MODE            jwt=强制鉴权(生产)；none=放行并一次性告警(本地/测试)。缺省 none。
-    JWT_SECRET           HS256 密钥，AUTH_MODE=jwt 时必填（首次请求时 fail-fast）
-    JWT_EXPECTED_ISSUER  可选；设置后校验 iss claim 是否匹配
-
-安全提示：在 K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下若未显式设置 AUTH_MODE，
-服务将拒绝启动（fail-fast）——生产部署必须显式 AUTH_MODE=jwt 并配置 JWT_SECRET；
-仅限本地/测试（非 K8s）环境允许缺省 none 匿名放行。
+"""MIRRORED FILE — 本文件在多处服务间保持逐字节一致。
+修改任一副本必须同步其余所有副本；完整副本清单以 scripts/check-mirrored-jwt-auth.sh 为唯一准据
+（此处不再重复列举，避免清单漂移导致新增副本漏校验）。
+CI 由该脚本强制校验。
 """
 
 from __future__ import annotations
