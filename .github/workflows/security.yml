@@ -372,9 +372,21 @@ jobs:
           docker compose ps
 
       # T-07: PR/push 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）
+      #
+      # 版本说明（2026-09-25）：v0.12.0 → v0.15.0
+      #   v0.12.0 内部使用**已退役的 Artifact v3 API**（请求 URL 带 api-version=6.0-preview），
+      #   该接口服务端已下线 → 报
+      #     ##[error]Create Artifact Container failed:
+      #       The artifact name zap-baseline-report-pr is not valid
+      #   错误信息具误导性：客户端校验其实是**通过**的（日志可见 "Artifact name is valid!"），
+      #   且该名字本身完全合法——真正原因是承载它的旧 API 已不存在。
+      #   扫描本身是成功的（FAIL-NEW: 0 / WARN-NEW: 2 / PASS: 68）。
+      #   v0.15.0 的 dist 中 `6.0-preview` 出现 0 次、新 Artifact API（actions/results）
+      #   出现 4 次；输入参数 target / cmd_options / artifact_name / allow_issue_writing
+      #   全部兼容，且由 node20 升为 node24（顺带消除 Node 20 弃用告警）。
       - name: 执行 ZAP 基线扫描（PR/push 模式，不阻断）
         if: steps.zap_check.outputs.skip != 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           # 修复：compose 映射 encaps-layer 到本机 18080（见 tests/integration/docker-compose.yml），
           # 原扫 localhost:8080 是空靶（报告 9）
@@ -388,7 +400,7 @@ jobs:
       # T-07: 夜间/手动触发 → ZAP 完整扫描（阻断模式）
       - name: 执行 ZAP 完整扫描（夜间模式，阻断）
         if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request' && github.event_name != 'push'
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: 'http://localhost:18080'
           # 夜间完整模式 — -a 主动规则 + -j AJAX 请求，更深入扫描
