@@ -371,7 +371,7 @@ class MockSqlGenerator(BaseSqlGenerator):
         if len(timeRange) == 10 and timeRange[4] == "-" and timeRange[7] == "-":
             # 校验各段为数字
             try:
-                year, month, day = int(timeRange[0:4]), int(timeRange[5:7]), int(timeRange[8:10])
+                _, month, day = int(timeRange[0:4]), int(timeRange[5:7]), int(timeRange[8:10])
                 if not (1 <= month <= 12 and 1 <= day <= 31):
                     raise ValueError
             except ValueError:
@@ -380,7 +380,7 @@ class MockSqlGenerator(BaseSqlGenerator):
         # 年月 YYYY-MM
         if len(timeRange) == 7 and timeRange[4] == "-":
             try:
-                year, month = int(timeRange[0:4]), int(timeRange[5:7])
+                _, month = int(timeRange[0:4]), int(timeRange[5:7])
                 if not (1 <= month <= 12):
                     raise ValueError
             except ValueError:

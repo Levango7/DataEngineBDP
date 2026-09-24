@@ -460,7 +460,7 @@ def table_read(
             opts = cfg.get("engine", {}).get("spark", {}).get("read_options", {}) or {}
             return _strip_bom_spark(spark.read.csv(path, header=True, inferSchema=True, **opts))
     elif backend == "polars":
-        import polars as pl  # lazy import：仅 polars 路径需要
+        import polars as pl  # noqa: F811  lazy import：仅 polars 路径需要
 
         fmt = cfg.get("engine", {}).get("format", "csv")
         opts = cfg.get("engine", {}).get("polars", {}).get("read_options", {}) or {}
@@ -552,7 +552,7 @@ def table_write(
             df.write.mode("overwrite").option("header", True).csv(path)
         return n
     elif backend == "polars":
-        import polars as pl  # noqa: F401  lazy import
+        import polars as pl  # noqa: F401,F811  lazy import
 
         fmt = cfg.get("engine", {}).get("format", "csv")
         if fmt == "parquet":

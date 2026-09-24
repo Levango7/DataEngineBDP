@@ -194,7 +194,6 @@ async def test_export_success_returns_result(monkeypatch):
 @pytest.mark.asyncio
 async def test_export_non_2xx_raises_error(monkeypatch):
     """finops 返回非 2xx 应抛 FinOpsExportError."""
-    captured: dict = {}
 
     class _Resp:
         status_code = 500

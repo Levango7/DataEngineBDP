@@ -492,7 +492,7 @@ def test_pipeline_json_has_spark_iceberg_config():
 
     检查 storage.iceberg.spark_extensions / spark_catalog_class 字段存在.
     """
-    from batch_pipeline.helpers import abs_path, json_load
+    from batch_pipeline.helpers import json_load
 
     for fname in ("config/pipeline.json", "config/pipeline_small.json"):
         cfg = json_load(abs_path(fname))

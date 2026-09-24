@@ -147,7 +147,7 @@ class ContractService:
         Returns:
             更新为到期状态的合同数量
         """
-        today = date.today()
+        today = date.today()  # noqa: F841  TODO 实现到期遍历后使用  # noqa: F841  TODO 实现到期遍历后使用
         count = 0
         # TODO: 遍历所有生效合同，检查是否到期
         logger.info("合同到期检查完成，更新 %d 份合同", count)

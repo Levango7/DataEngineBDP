@@ -2,7 +2,7 @@
 资产打包进 ConfigMap retail-template-assets，由 import Job 导入 DolphinScheduler.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator

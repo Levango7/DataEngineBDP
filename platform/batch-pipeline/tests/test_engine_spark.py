@@ -79,7 +79,7 @@ def _pyspark_jvm_exists() -> bool:
         # Auto-detect SPARK_HOME from pyspark package location if not set
         if not _os.environ.get("SPARK_HOME"):
             try:
-                import pyspark
+                import pyspark  # noqa: F811
 
                 _spark_home = _os.path.dirname(pyspark.__file__)
                 if _os.path.isdir(_os.path.join(_spark_home, "bin")):
@@ -101,7 +101,7 @@ def _pyspark_jvm_exists() -> bool:
         sc = SparkContext.getOrCreate(conf=conf)
         sc.stop()
         return True
-    except Exception as _exc:  # noqa: BLE001
+    except Exception:
         return False
 
 

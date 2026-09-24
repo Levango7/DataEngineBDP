@@ -1,6 +1,7 @@
 """能源行业模板 DAG - 能耗聚合与告警流水线.
 资产打包进 ConfigMap energy-template-assets，由 import Job 导入 DolphinScheduler.
-对应 template energy-iot-monitor dataFlow: collect_telemetry -> energy_agg -> efficiency -> load_forecast -> alert_dispatch
+对应 template energy-iot-monitor dataFlow:
+collect_telemetry -> energy_agg -> efficiency -> load_forecast -> alert_dispatch
 """
 
 from datetime import datetime, timedelta

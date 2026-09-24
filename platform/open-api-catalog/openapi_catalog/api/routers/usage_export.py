@@ -150,7 +150,7 @@ async def exportUsage(
             )
             finopsBillingId = result.get("id")
             finopsTotalAmount = result.get("totalAmount")
-        except FinOpsExportError as exc:
+        except FinOpsExportError:
             # finops 导出失败不阻断计量聚合结果返回，标记状态为 FAILED
             exportStatus = "FAILED"
     else:
