@@ -165,8 +165,12 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: 安装 lint 工具集
-        run: pip install pylint black isort flake8 mypy -q
+      - name: 安装 lint 工具集（版本锁定）
+        # 唯一真源：requirements-lint.txt。原为不锁版本（pip install pylint black
+        # isort flake8 mypy），CI 每次装当时最新版——工具一升级即造成全量重排
+        # （black 切片补空格）或参数不兼容（pylint logging-format-style 取值移除），
+        # 导致约 10 个模块集体红灯，且本地无法复现。
+        run: pip install -r requirements-lint.txt -q
 
       - name: 对每个 Python 组件执行 lint
         run: |
@@ -614,9 +618,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Helm
+        # 固定 Helm 3.16.4：'latest' 会被 azure/setup-helm@v5 解析为 Helm 4.x，
+        # 与 nightly-e2e.yml chart-smoke 保持一致，避免浮动版本漂移。
+        # 注意：#7 的真正根因是 verify-all-templates.sh 用了 helm lint 不存在的 `-q`
+        # 短选项（只有 --quiet，见 helm v3.16.4 cmd/helm/lint.go），已在该脚本修正；
+        # 此处固定版本作为配套加固。
         uses: azure/setup-helm@v5
         with:
-          version: 'latest'
+          version: 'v3.16.4'
 
       - name: 对每个 Chart 执行 helm lint（阻断：lint 失败则 CI 失败）
         run: |
@@ -1522,7 +1531,13 @@ jobs:
         working-directory: platform/batch-pipeline
     services:
       minio:
-        image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+        # MinIO 官方社区版镜像已停止分发：Docker Hub minio/minio 下架（runner 报 repository does not exist），
+        # quay.io/minio/minio 亦不可用（docker manifest inspect → "no such manifest"；v2 API → 401）。
+        # 改用社区维护的 MinIO CE 构建 ghcr.io/golithus/minio，并按 digest 固定——这是第三方社区镜像
+        # （新增供应链依赖），固定 digest 才能保证"今天/以后"拉到的是同一份。
+        # digest 获取方式：docker manifest inspect ghcr.io/golithus/minio:latest → Docker-Content-Digest
+        #   multi-arch OCI index；其中 linux/amd64 子清单 sha256:186184b0b9fcf9743c20c114adecb3411b46c9b71d88e4ca854f6da79ec3440a
+        image: ghcr.io/golithus/minio@sha256:8793e960474071520bdb91bb9a6d1793eb229fdbc9dcb7ec75ad836b69bbab40
         command: server /data --console-address ":9001"
         env:
           MINIO_ROOT_USER: minioadmin
@@ -2055,15 +2070,17 @@ jobs:
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
               || echo "::warning::parent POM 安装失败"
           fi
-          # 先安装 common-security，再安装 sql-gateway
-          if [ -f platform/common-security/pom.xml ]; then
-            mvn -f platform/common-security/pom.xml install -B -q -DskipTests -U \
+          # 依赖序预装库模块（与 java-build-test 预装清单对齐，顺序不可颠倒）：
+          # common-security → encaps-layer → encaps-data → sql-gateway
+          for lib_pom in \
+            platform/common-security/pom.xml \
+            platform/encaps-layer/pom.xml \
+            platform/encaps-data/pom.xml \
+            platform/sql-gateway/pom.xml; do
+            [ -f "$lib_pom" ] || continue
+            mvn -f "$lib_pom" install -B -q -DskipTests -U \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-          fi
-          if [ -f platform/sql-gateway/pom.xml ]; then
-            mvn -f platform/sql-gateway/pom.xml install -B -q -DskipTests -U \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-          fi
+          done
           while IFS= read -r pom; do
             mvn -f "$pom" dependency:resolve -B -q -DskipTests || true
           done < <(find platform -name pom.xml -not -path "*/target/*")

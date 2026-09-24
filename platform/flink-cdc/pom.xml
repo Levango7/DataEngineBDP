@@ -25,7 +25,8 @@
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
         <debezium.version>1.9.7.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
-        <postgres.connector.version>42.7.3</postgres.connector.version>
+        <!-- 2026-09-24 安全修复：CVE-2026-42198（HIGH），42.7.3 -> 42.7.11 -->
+        <postgres.connector.version>42.7.11</postgres.connector.version>
         <oracle.connector.version>23.26.3.0.0</oracle.connector.version>
         <kafka.clients.version>3.8.1</kafka.clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>

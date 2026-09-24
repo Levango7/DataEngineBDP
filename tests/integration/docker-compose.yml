@@ -34,6 +34,15 @@ services:
       # 本地降级登录（无 Keycloak 的集成/E2E 栈：admin/admin 签发平台 JWT）；
       # 生产部署严禁开启——Keycloak 不可达时应返回 503 而非降级
       - APP_SECURITY_LOCAL_AUTH_ENABLED=true
+      # 显式注入降级账号密码：AuthController 的 local-auth.password 默认值为空，
+      # 且 @PostConstruct 会随机生成 16 位强密码（bae9a404 安全加固），
+      # 不注入则 admin/admin 恒返 401，导致 E2E 登录门禁全线失败。
+      # 注意：必须用全路径 env 名 APP_SECURITY_LOCAL_AUTH_PASSWORD 才能绑定到
+      # app.security.local-auth.password；短名 LOCAL_AUTH_PASSWORD 不参与绑定。
+      - APP_SECURITY_LOCAL_AUTH_PASSWORD=admin
+      # E2E 每用例独立登录、workers=1 串行猛打，默认登录限流 5 rpm/IP 会误伤；
+      # 测试栈放宽至 600（application.yml: login-rpm=${RATE_LIMIT_LOGIN_RPM:5}）
+      - RATE_LIMIT_LOGIN_RPM=600
     healthcheck:
       # encaps-layer 无 /api/v1/health 控制器，使用 Spring Boot Actuator 端点
       # （application.yml 已暴露 health，SecurityConfig 已放行 /actuator/health）
