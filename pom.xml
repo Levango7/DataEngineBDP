@@ -39,6 +39,34 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- 2026-09-24 安全修复（低风险批次；Trivy fs HIGH/CRITICAL）：
+                 以下两项为传递依赖，全仓未显式声明版本，故在此集中 pin 到已修复版本。
+                 · bouncycastle 1.75/1.78.1 -> 1.85
+                   CVE-2025-14813 / CVE-2026-8763 (CRITICAL) / CVE-2026-13506 (HIGH)
+                   1.85 与 encaps-layer 既有版本一致，jdk18on 同分支 minor 升级，风险低。
+                 · lz4-java 1.8.0 -> 1.8.1（CVE-2025-12183，patch 级） -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>1.85</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>1.85</version>
+            </dependency>
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>1.8.1</version>
+            </dependency>
+            <!-- 2026-09-24 安全修复：commons-compress 1.22 为传递依赖（全仓未显式声明），
+                 在此集中 pin。CVE-2023-42503 / CVE-2024-25710 / CVE-2024-26308。 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.26.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
