@@ -38,7 +38,15 @@ import java.util.Locale;
  * <p>所有方法均创建新的 {@link Cipher} 实例，无共享可变状态，可安全并发调用。</p>
  *
  * <h3>性能</h3>
- * <p>AES-GCM 在 JDK 17+ 中使用硬件加速（AES-NI），AES-256-GCM 吞吐可达 500MB/s 以上。</p>
+ * <p>硬件 AES 加速（AES-NI）加速的是 <b>AES 分组密码核心</b>，而非 GCM 整体。
+ * 实测（AMD Ryzen 9 7945HX / JDK 17）：纯 AES-ECB 可达 1.1–1.4 GB/s，
+ * 说明 AES-NI 确实生效；但 <b>AES-GCM 仅 40–52 MB/s</b>，慢约 25 倍，
+ * 瓶颈在于 GHASH 认证码的纯 Java 实现，而非分组加密本身。</p>
+ *
+ * <p>因此不要以固定绝对吞吐作为 GCM 的性能契约：该数值对机器与负载高度敏感
+ * （实测空载 48–66 MB/s、16 路 CPU 满载 20–22 MB/s）。如需性能回归防护，
+ * 应以「相对裸 JDK Cipher 的开销比」这类机器无关的指标为准
+ * （参见 AESProviderTest 的 assertNoThroughputRegression）。</p>
  */
 public class AESProvider {
 
