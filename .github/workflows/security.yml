@@ -125,7 +125,7 @@ jobs:
           category: 'trivy-iac'
 
       - name: 上传 SARIF artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-sarif-reports
           path: |
@@ -182,7 +182,7 @@ jobs:
 
       - name: 上传 govulncheck 日志
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: go-vulncheck-log
           path: go-vulncheck.log
@@ -250,7 +250,7 @@ jobs:
 
       - name: 上传 pip-audit 报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-audit-reports
           path: python-audit-reports/
@@ -307,7 +307,7 @@ jobs:
 
       - name: 上传 Dependency-Check 报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: java-depcheck-reports
           path: java-depcheck-reports/
@@ -413,7 +413,7 @@ jobs:
 
       - name: 上传 Semgrep 报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-reports
           path: reports/semgrep/
@@ -582,7 +582,7 @@ jobs:
 
       - name: 上传镜像扫描报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-image-reports
           path: reports/trivy/
