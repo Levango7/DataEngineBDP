@@ -3,7 +3,7 @@
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
 - 前端入口：`frontend/src/api/*.ts`（共 36 个文件）
-- 后端前缀：Java 65 / Python 21 / Go 16（含显式注册表 4 项）
+- 后端前缀：Java 71 / Python 21 / Go 16（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 
@@ -144,9 +144,9 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/models/models`  | `/models` | llmops, ml-platform | ✅ |
 | `/models/models/${encodeURIComponent(name)}/versions` （1 变量） | `/models` | llmops, ml-platform | ✅ |
 | `/models/models/${id}` （1 变量） | `/models` | llmops, ml-platform | ✅ |
-| `/registry/deployments`  | `/registry` | registry | ✅ |
-| `/registry/deployments/${id}` （1 变量） | `/registry` | registry | ✅ |
-| `/registry/deployments/${id}/scale` （1 变量） | `/registry` | registry | ✅ |
+| `/registry/deployments`  | `/registry` | - | ❌ |
+| `/registry/deployments/${id}` （1 变量） | `/registry` | - | ❌ |
+| `/registry/deployments/${id}/scale` （1 变量） | `/registry` | - | ❌ |
 
 ## dev-sched.ts
 
@@ -419,9 +419,9 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
 |---|---|---|---|
-| `/standards/${id}` （1 变量） | `/standards` | encaps-layer | ✅ |
-| `/standards`  | `/standards` | encaps-layer | ✅ |
-| `/standards/summary`  | `/standards` | encaps-layer | ✅ |
+| `/standards/${id}` （1 变量） | `/standards` | data-standard, encaps-layer | ✅ |
+| `/standards`  | `/standards` | data-standard, encaps-layer | ✅ |
+| `/standards/summary`  | `/standards` | data-standard, encaps-layer | ✅ |
 
 ## streamBatch.ts
 
@@ -468,6 +468,8 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：258
-- 未匹配：0
+- 匹配：255
+- 未匹配：3
+
+> ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。
 
