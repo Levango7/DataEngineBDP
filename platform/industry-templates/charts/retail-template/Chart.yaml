@@ -20,7 +20,7 @@ appVersion: "1.0.0"
 home: https://shuqing.com/industry-templates/retail
 sources:
   - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/retail
-mainters:
+maintainers:
   - name: hw029373469
     email: hw029373469@shuqing.com
     url: https://shuqing.com

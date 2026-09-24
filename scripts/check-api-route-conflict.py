@@ -63,6 +63,18 @@ KNOWN_CROSS_PROCESS_ROUTES: set[tuple[str, str]] = {
     ("GET", "/api/v1/search/facets"),
     ("GET", "/api/v1/search/history"),
     ("GET", "/api/v1/search/suggest"),
+    # standards：data-standard vs encaps-layer 两个独立 Spring Boot 应用
+    # （各有 @SpringBootApplication；端口 8087 vs 8080 → 跨进程，无同 context 歧义）。
+    # ⚠️ 待评审：data-standard 当前**未部署**——design/deploy/ 下无其 chart，
+    #    tests/integration/ 亦无任何引用；对外实际实现为 encaps-layer:8080
+    #    （其注释「ROADMAP 前后端接线：前端 /standards」即指此）。
+    #    两处为同一资源的重复实现，建议架构评审后择一保留。
+    #    本次仅解除门禁阻断，不擅自删改任一实现。
+    ("GET", "/api/v1/standards"),
+    ("GET", "/api/v1/standards/{id}"),
+    ("POST", "/api/v1/standards"),
+    ("PUT", "/api/v1/standards/{id}"),
+    ("DELETE", "/api/v1/standards/{id}"),
 }
 
 
