@@ -2197,7 +2197,23 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      # 移除之前添加的表报告（它已造成 Security 失败且 YAML 以避免添加工件为主）
+      - name: 渲染 Trivy 明细（SARIF 不进日志，失败时只剩一行 exit 1）
+        # 2026-09-25 实测：本 job 失败后日志里没有任何漏洞条目，只能去 Security tab 猜，
+        # 而 tab 的 active 告警分散在 8 个历史 commit 上（大量已被 pom 抬版覆盖但不会自动关闭），
+        # 完全不代表当前 HEAD。故从**已产出的 SARIF** 派生可读清单：
+        # 不重跑扫描（扫描要预热 Maven 缓存、耗时数十秒），也不碰 SARIF 上传路径。
+        # 本步骤不改变门禁语义（是否阻断仍由上一步的 --exit-code 1 决定）。
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        run: python3 scripts/trivy-sarif-report.py trivy-results.sarif --markdown trivy-detail.md
+
+      - name: 上传 Trivy 可读报告
+        if: always() && hashFiles('trivy-detail.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-detail-report
+          path: trivy-detail.md
+          retention-days: 14
+
 
   # ============================================================
   # CycloneDX SBOM 生成：为 Java (Maven) 和前端 (npm) 组件生成软件物料清单
