@@ -9,10 +9,11 @@
 # 8 个从未被任何代码发射的 shuqing_* 指标 + 2 个不存在的 process_* 指标，全部是死规则）。
 # 校验：scripts/check-alert-metric-coverage.py（已挂 CI）。
 #
-# 模板变量（租户自定义时替换）：
-#   {{tenant_id}}       — 租户 ID（namespace 命名 ws-<tenantId>-<slug>）
+# 模板变量（须由 scripts/render-tenant-alert-rules.py 渲染后才可交给 Prometheus）：
+#   {{tenant_id}}       — 租户 ID 正则片段（=~ 插值，具体 ID 与 ".+" 皆适用）
 #   {{latency_p95}}     — 延迟 P95 阈值，默认 5 秒
 #   {{disk_threshold}}  — 存储水位阈值，默认 0.8（80%）
+#   {{fail_threshold}}  — 请求失败率阈值，默认 0.1（10%）
 groups:
   - name: p1-important-platform
     interval: 30s
@@ -162,3 +163,32 @@ groups:
           description: "租户 {{tenant_id}} 命名空间 {{ $labels.namespace }} 存储使用率超过 {{disk_threshold}}，持续 30 分钟。"
           value: "{{ $value | humanizePercentage }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-storage"
+
+      # 规则 8：租户请求失败率超阈值（阈值可由租户自定义）
+      # 指标：http_server_requests_seconds_count（micrometer，Java 组件发射），
+      #       tenant_id 由 prometheus.yml 的 namespace label tenantId → tenant_id relabel 注入。
+      # 【命名与口径的诚实说明】alert 名沿用产品契约里的 TenantJobFailureRateHigh
+      #   （tests/integration/docker/test_grafana_dual_view.py 断言该名字），但作业维度
+      #   需要 shuqing_job_* 指标，当前无任何组件发射 —— 故本条实际度量**同步请求 5xx 占比**，
+      #   是先覆盖同一意图的替代口径。真正的批作业规则见 rules/pending/
+      #   （TenantBatchJobFailureRateHigh），补齐调度器指标后启用。
+      # 已知边界：Go 组件发的是 http_requests_total（无 outcome 标签），故只覆盖 Java 侧。
+      # 变量：{{tenant_id}} 租户正则片段；{{fail_threshold}} 失败率阈值，默认 0.1。
+      - alert: TenantJobFailureRateHigh
+        expr: |
+          (
+            sum by (tenant_id) (rate(http_server_requests_seconds_count{tenant_id=~"{{tenant_id}}", outcome="SERVER_ERROR"}[5m]))
+            /
+            sum by (tenant_id) (rate(http_server_requests_seconds_count{tenant_id=~"{{tenant_id}}"}[5m]))
+          ) > {{fail_threshold}}
+        for: 10m
+        labels:
+          severity: P1
+          component: tenant-workload
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 请求失败率过高"
+          description: "租户 {{tenant_id}} 5 分钟窗口内 SERVER_ERROR 占比超过 {{fail_threshold}}，持续 10 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-failure-rate"

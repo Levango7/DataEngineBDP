@@ -20,7 +20,7 @@
 # | NodeDown | up{job="node-exporter"} | 部署 node-exporter（DaemonSet） |
 # | DiskSpaceExhausted | node_filesystem_avail_bytes / node_filesystem_size_bytes | 部署 node-exporter |
 # | PodRestartTooFrequent | kube_pod_container_status_restarts_total | 部署 kube-state-metrics |
-# | TenantJobFailureRateHigh / TenantAllJobsFailed | shuqing_job_total / shuqing_job_failed_total / shuqing_job_running | 调度组件（DolphinScheduler / stream-batch-scheduler）发射作业指标并带 tenant_id |
+# | TenantBatchJobFailureRateHigh / TenantAllJobsFailed | shuqing_job_total / shuqing_job_failed_total / shuqing_job_running | 调度组件（DolphinScheduler / stream-batch-scheduler）发射作业指标并带 tenant_id |
 # | TenantJobRetry | shuqing_job_retry_total | 同上 |
 # | TenantQuotaUsage | shuqing_tenant_api_calls_total / shuqing_tenant_api_quota | open-api-catalog 或 APISIX 按租户维度发射配额指标 |
 # | TenantQueryLatencyHigh | sql_gateway_query_duration_seconds_bucket{tenant_id=...} | sql-gateway 在查询指标上补 tenant_id 标签（当前只有 engine/type 标签） |
@@ -97,8 +97,12 @@ groups:
           value: "{{ $value }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-jobs-failed"
 
-      # 规则：租户作业失败率超阈值
-      - alert: TenantJobFailureRateHigh
+      # 规则：租户**批作业**失败率超阈值
+      # 命名说明：../p1-rules.yaml 已有一条同名的生效规则 TenantJobFailureRateHigh，
+      # 但它度量的是同步请求 5xx 占比（micrometer http_server_requests_seconds_count）——
+      # 作业维度的指标当前无人发射，只能先按请求维度覆盖同一意图。本条启用后两者会同时存在，
+      # 故改名 TenantBatchJobFailureRateHigh 以避免 alert 名冲突（Alertmanager 按 alertname 聚合）。
+      - alert: TenantBatchJobFailureRateHigh
         expr: |
           (
             sum(rate(shuqing_job_failed_total{tenant_id="{{tenant_id}}"}[15m]))
@@ -112,8 +116,8 @@ groups:
           category: tenant
           tenant_id: "{{tenant_id}}"
         annotations:
-          summary: "租户 {{tenant_id}} 作业失败率过高"
-          description: "租户 {{tenant_id}} 作业失败率超过 {{fail_threshold}}，持续 10 分钟。"
+          summary: "租户 {{tenant_id}} 批作业失败率过高"
+          description: "租户 {{tenant_id}} 批作业失败率超过 {{fail_threshold}}，持续 10 分钟。"
           value: "{{ $value | humanizePercentage }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-fail"
 

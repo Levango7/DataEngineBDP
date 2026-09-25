@@ -13,3 +13,11 @@ scripts/check-api-route-conflict.py text eol=lf
 # Sprint 2.2 L2/L3：git hook 与 vite 代理校验脚本强制 LF
 .githooks/* text eol=lf
 scripts/verify-vite-proxy.py text eol=lf
+# 2026-09-26 告警规则渲染链：模板与 chart 渲染副本都须钉 LF。
+# 否则 Windows 工作区 checkout 成 CRLF，而 scripts/render-tenant-alert-rules.py
+# 产出 LF → sync-alert-rules.sh --check 在开发机上误报漂移。
+platform/observability/rules/*.yaml text eol=lf
+platform/observability/rules/pending/*.yaml text eol=lf
+design/deploy/charts/prometheus/files/rules/*.yaml text eol=lf
+scripts/render-tenant-alert-rules.py text eol=lf
+scripts/check-alert-rule-contract.py text eol=lf

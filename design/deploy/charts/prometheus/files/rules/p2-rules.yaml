@@ -109,7 +109,7 @@ groups:
             sum by (namespace, pod, container) (container_memory_working_set_bytes)
             /
             sum by (namespace, pod, container) (container_spec_memory_limit_bytes > 0)
-          ) > {{mem_threshold}}
+          ) > 0.9
         for: 15m
         labels:
           severity: P2
@@ -117,7 +117,7 @@ groups:
           category: resource
         annotations:
           summary: "容器内存接近 limit: {{ $labels.namespace }}/{{ $labels.pod }}"
-          description: "容器 {{ $labels.container }} 内存使用量达到 limit 的 {{mem_threshold}} 以上，持续 15 分钟。"
+          description: "容器 {{ $labels.container }} 内存使用量达到 limit 的 0.9 以上，持续 15 分钟。"
           value: "{{ $value | humanizePercentage }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/container-memory"
 
@@ -132,7 +132,7 @@ groups:
         expr: |
           histogram_quantile(0.99,
             sum by (le) (rate(sql_gateway_query_duration_seconds_bucket[5m]))
-          ) > {{slow_query_threshold}}
+          ) > 2
         for: 15m
         labels:
           severity: P2
@@ -140,6 +140,6 @@ groups:
           category: performance
         annotations:
           summary: "SQL 网关查询 P99 延迟过高"
-          description: "SQL 网关查询 P99 延迟超过 {{slow_query_threshold}} 秒，持续 15 分钟。"
+          description: "SQL 网关查询 P99 延迟超过 2 秒，持续 15 分钟。"
           value: "{{ $value | humanizeDuration }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/slow-query"

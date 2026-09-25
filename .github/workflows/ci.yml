@@ -452,9 +452,17 @@ jobs:
       - name: 告警规则指标覆盖校验（防死规则：规则只能引用已登记的真实指标）
         run: python3 scripts/check-alert-metric-coverage.py
 
+      - name: 告警规则租户契约校验（防"模板复用"能力静默失效 + 规则重名）
+        # 把 tests/integration/docker/test_grafana_dual_view.py::TestRuleTemplateReuse 的
+        # 断言前移到秒级：各档≥5条、expr 必备 {{tenant_id}}/{{fail_threshold}} 等契约变量、
+        # 必备规则名存在、pending 与生效规则不得重名。
+        run: python3 scripts/check-alert-rule-contract.py
+
       - name: 告警规则 → Prometheus Chart 副本一致性
         # 规则事实来源 platform/observability/rules/*.yaml，chart 只能读自身目录内文件，
-        # 故用副本 + 本校验防止两处漂移（漂移会导致部署的规则与仓内规则不一致）
+        # 故用副本 + 本校验防止两处漂移（漂移会导致部署的规则与仓内规则不一致）。
+        # 副本存的是**渲染产物**：占位符原样进 Prometheus 是合法 PromQL 但匹配不到序列，
+        # 规则会永久静默，故 --check 同时断言副本数据字段无残留占位符。
         run: bash scripts/sync-alert-rules.sh --check
 
       - name: API 路由冲突扫描（Sprint 2.1，阻断未知同前缀多 Controller）

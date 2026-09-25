@@ -9,14 +9,17 @@
 # 依赖 node-exporter / kube-state-metrics / 作业调度指标（DolphinScheduler、批流调度）的规则
 # 已移至 rules/pending/pending-rules.yaml —— 那些指标当前无组件发射，留在生效目录只会产生死规则。
 #
-# 模板变量（租户自定义时替换）：
-#   {{tenant_id}}    — 租户 ID，平台方告警用 "platform" 或留空
-#   {{threshold}}    — 告警阈值，各规则有不同默认值
-#   {{duration}}     — 持续时间，默认 1m
+# 模板变量（须由 scripts/render-tenant-alert-rules.py 渲染后才可交给 Prometheus）：
+#   {{tenant_id}}    — 租户 ID 正则片段（=~ 插值，具体 ID 与 ".+" 皆适用）
+#   {{threshold}}    — 不可达 Pod 数阈值，默认 0
 #
 # 使用方式：
-#   1. 平台方：直接加载本文件，tenant_id 留空或用 "platform"。
-#   2. 客户方：复制本文件，替换 {{tenant_id}} 为实际租户 ID，调整 threshold。
+#   1. 平台侧（对全部租户生效）：渲染成 tenant_id=~".+" 并按 tenant_id 分组逐租户触发；
+#      scripts/sync-alert-rules.sh --sync 即按此方式生成 Prometheus Chart 的副本。
+#   2. 单租户定制：python3 scripts/render-tenant-alert-rules.py --tenant-id acme-corp
+#
+# ⚠ 未渲染的占位符不可直接加载：expr 中的 "{{tenant_id}}" 是合法 PromQL 字符串字面量，
+#   语法检查过得去但匹配不到任何序列，规则会永久静默（本文件此前的缺陷即在于此）。
 groups:
   - name: p0-critical-platform
     interval: 30s
@@ -93,3 +96,27 @@ groups:
           description: "目标 {{ $labels.instance }}（job={{ $labels.job }}）连续 2 分钟抓取失败，该目标的指标将缺失。"
           value: "{{ $value }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/target-down"
+
+      # ---------------------------------------------------------------------------
+      # 规则 5：租户工作空间 Pod 不可达（租户维度，可自定义阈值）
+      # 指标：up（job=kubernetes-pods）。tenant_id 标签由 prometheus.yml 的
+      #       __meta_kubernetes_namespace_label_tenantId → tenant_id relabel 注入，
+      #       命名空间形如 ws-<tenantId>-<slug>（K8sWorkspaceTranslator.buildNamespaceLabels）。
+      # 变量：{{tenant_id}} 租户正则片段；{{threshold}} 允许的不可达 Pod 数，默认 0。
+      # ---------------------------------------------------------------------------
+      - alert: TenantWorkspaceDown
+        expr: |
+          count by (tenant_id) (
+            up{job="kubernetes-pods", tenant_id=~".+"} == 0
+          ) > 0
+        for: 2m
+        labels:
+          severity: P0
+          component: tenant-workspace
+          category: multi-tenancy
+          tenant_id: ".+"
+        annotations:
+          summary: "租户 {{ $labels.tenant_id }} 有 {{ $value }} 个工作空间 Pod 不可达"
+          description: "租户 .+ 的工作空间连续 2 分钟存在抓取失败的 Pod，该租户部分业务指标将缺失。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-workspace-down"
