@@ -10,6 +10,10 @@
 pytest>=9.0,<10.0        # 测试框架（>=9.0 修复 PYSEC-2026-1845；兼容 pytest-asyncio 0.25+）
 pytest-cov>=4.0,<6.0      # 覆盖率插件（生成 coverage.xml + htmlcov/）
 httpx>=0.27,<1.0          # fastapi.testclient 传输依赖（tests/test_api.py）
+moto[server]>=5.0,<6.0    # S3 兼容 mock：CI 用它起 localhost:9000 承载 test_storage_parquet 的
+                          # S3/Parquet 用例。取代原先的 MinIO services 容器 —— MinIO 社区版镜像
+                          # 与二进制均已停止公开分发（dl.min.io 实测 HTTP 410），容器拉不下来会
+                          # 连带 checkout 都不执行，拖垮整条 batch-pipeline 测试腿。
 
 # -----------------------------------------------------------------------------
 # 静态分析与格式化

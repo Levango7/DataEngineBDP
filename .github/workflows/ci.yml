@@ -1312,7 +1312,7 @@ jobs:
           echo "============================================"
           echo "  扫描 platform/ 下所有含 pytest 配置的子目录"
           echo "  （batch-pipeline 除外：由独立 job batch-pipeline-test 专跑——"
-          echo "    依赖 polars/pyspark/pyarrow/pyiceberg 全量安装、需 MinIO service、"
+          echo "    依赖 polars/pyspark/pyarrow/pyiceberg 全量安装、S3 用例由 moto 承载、"
           echo "    集群用例需 -k \"not cluster\" 排除，不进通用矩阵避免重复执行）"
           echo "============================================"
           py_modules=()
@@ -1543,9 +1543,9 @@ jobs:
   # 通用 python-test 矩阵不覆盖本组件（见其发现步骤过滤）：
   #   - 依赖重：polars/pyspark/pyarrow/pyiceberg 全量安装
   #   - 集群测试需排除（-k "not cluster"，集群腿由 docker/spark-cluster 专跑）
-  #   - MinIO service 使 S3/Parquet 用例在 CI 实际运行
+  #   - S3/Parquet 用例由 moto（进程内 S3 兼容服务）承载，见下方"启动 S3 兼容服务"步骤
   # 口径与上游 AutoBatch CI build job 一致：pytest 全量 - 集群，
-  # MinIO/Spark 环境受限用例经 skipif 自动跳过；
+  # 环境受限用例经 skipif 自动跳过；
   # 显式 shell: bash + set -eo pipefail 防止 tee 管道掩蔽 pytest 退出码
   # ============================================================
   batch-pipeline-test:
@@ -1555,30 +1555,19 @@ jobs:
     defaults:
       run:
         working-directory: platform/batch-pipeline
-    services:
-      minio:
-        # MinIO 官方社区版镜像已停止分发：Docker Hub minio/minio 下架（runner 报 repository does not exist），
-        # quay.io/minio/minio 亦不可用（docker manifest inspect → "no such manifest"；v2 API → 401）。
-        # 曾改用 ghcr.io/golithus/minio@sha256:8793e960…（第三方社区构建），实测 CI 仍失败：
-        #   ##[error]Failed to initialize container ghcr.io/golithus/minio@sha256:8793e960…
-        # 故改用**本仓既有约定**：design/deploy/charts/minio/values.yaml 早已使用国内镜像源
-        #   docker.m.daocloud.io/minio/minio  tag=RELEASE.2024-08-03T04-33-23Z
-        # 与 chart 对齐 = 单一真源，避免"CI 用 A 源、部署用 B 源"的供应链漂移。
-        image: docker.m.daocloud.io/minio/minio:RELEASE.2024-08-03T04-33-23Z
-        command: server /data --console-address ":9001"
-        env:
-          MINIO_ROOT_USER: minioadmin
-          MINIO_ROOT_PASSWORD: minioadmin
-        ports:
-          - 9000:9000
-          - 9001:9001
-        options: >-
-          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # 曾用 services.minio 提供 S3，但 MinIO 社区版镜像已全面停止公开分发，四条路都试过：
+    #   Docker Hub minio/minio → repository does not exist
+    #   quay.io/minio/minio    → no such manifest（v2 API 401）
+    #   ghcr.io/golithus/minio → Failed to initialize container（第三方构建）
+    #   docker.m.daocloud.io/minio/minio → runner 上 "Error response from daemon: denied"
+    # 且 2026-09-25 实测 https://dl.min.io/server/minio/release/linux-amd64/minio → HTTP 410 Gone，
+    # 连"下载二进制起进程"这条路也没有了。
+    # 后果不止于本 job 红：services 初始化失败会让 checkout 都不执行，整条 batch-pipeline 腿
+    # 与其覆盖率门禁永不运行 —— 一个只为 1 个用例（test_storage_parquet.py 的 skipif）存在的
+    # 必需容器，拖住了全部 542 个用例。故改为进程内 S3 mock（moto），不依赖任何镜像仓库。
     steps:
       - name: 检出代码
+        id: checkout
         uses: actions/checkout@v4
 
       - name: 安装 Python 3.12
@@ -1595,6 +1584,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
+
+      - name: 启动 S3 兼容服务（moto 进程内 mock，替代已无公开镜像的 MinIO）
+        # 起不来也不阻断：tests/conftest.py 的 _minio_available() 探不到 localhost:9000
+        # 时返回 False，S3 用例经 skipif 自动跳过 —— 其余用例与覆盖率门禁照常运行。
+        # 这是与 services.minio 的关键差别：S3 不可用不再拖垮整条腿。
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -eo pipefail
+          # moto 由上一步 requirements-dev.txt 一并安装。
+          # 注意必须用 --host/-H：moto 5.x 的 argparse 里 -h 是 --help，
+          # 写成 `-h 127.0.0.1` 会打印帮助后直接退出，服务根本不起（本地实测踩到）。
+          nohup python -m moto.server --host 127.0.0.1 --port 9000 >/tmp/moto.log 2>&1 &
+          # curl 不带 -f：只要端口能应答就返回 0（S3 根路径本就回 4xx 的 XML 错误页）
+          up=0
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://127.0.0.1:9000/; then up=1; echo "moto 已监听 9000（第 $i 次探测）"; break; fi
+            sleep 1
+          done
+          if [ "$up" != "1" ]; then
+            echo "::warning::moto 未能在 30s 内监听 9000，S3 用例将跳过"
+            tail -20 /tmp/moto.log || true
+            exit 1
+          fi
+          python -c "from minio import Minio; c=Minio('localhost:9000', access_key='minioadmin', secret_key='minioadmin', secure=False); c.make_bucket('batch-pipeline') if not c.bucket_exists('batch-pipeline') else None; print('bucket batch-pipeline 就绪')"
 
       - name: 运行 pytest（全量 - 集群；环境受限用例 skipif 自动跳过）
         shell: bash
@@ -1663,7 +1677,10 @@ jobs:
           echo "✓ batch-pipeline 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${cov}%，下降 $drop%）"
 
       - name: 失败用例转注解（便于匿名排查）
-        if: failure()
+        # 守卫原因：容器初始化失败时 checkout 从未执行，本步骤会以
+        # "working directory platform/batch-pipeline: No such file or directory" 报出
+        # 与真实原因无关的错误（2026-09-25 run #1239 实测）。
+        if: failure() && steps.checkout.outcome == 'success'
         shell: bash
         run: |
           grep -E "^(FAILED|ERROR) " /tmp/pytest-batch-pipeline.log | head -30 | while IFS= read -r line; do
@@ -1690,7 +1707,7 @@ jobs:
         # 供 baseline-consistency-check 检查 3（基线上限）对 batch-pipeline 生效。
         # python-test job 排除了 batch-pipeline，其 python-coverage-summary.json 不含本模块，
         # 因此 baseline-consistency-check 需单独下载本摘要并合并到 Python 摘要中。
-        if: always()
+        if: always() && steps.checkout.outcome == 'success'
         shell: bash
         run: |
           python3 << 'PYEOF'
