@@ -521,17 +521,21 @@ router.beforeEach((to) => {
   return authGuard(to, authStore.isAuthenticated, authStore.token)
 })
 
-router.afterEach((to) => {
-  // 预加载当前路由对应的模块级 i18n 词条（问题6：懒加载优化）
-  preloadRouteI18n(to.path)
-
+/** 按路由 meta.titleKey 设置文档标题（词条未合并时会回退显示原始 key）。 */
+function applyRouteTitle(to: RouteLocationNormalized): void {
   const t = i18n.global.t
   const titleKey = to.meta.titleKey
-  if (titleKey) {
-    document.title = `${t(titleKey)} · ${t('nav.brand')}`
-  } else {
-    document.title = t('nav.brand')
-  }
+  document.title = titleKey ? `${t(titleKey)} · ${t('nav.brand')}` : t('nav.brand')
+}
+
+router.afterEach((to) => {
+  applyRouteTitle(to)
+
+  // 模块级词条异步加载完成后重设一次标题：懒加载路由的 meta.titleKey 在首次
+  // 翻译时词条还没合并，会回退显示原始 key（如 "register.title"）
+  void preloadRouteI18n(to.path).then(() => {
+    if (router.currentRoute.value.path === to.path) applyRouteTitle(to)
+  })
 })
 
 export default router
