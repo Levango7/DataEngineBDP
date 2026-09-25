@@ -25,10 +25,8 @@ import threading
 from typing import Any
 import uuid
 
-import pytest
 
 from batch_pipeline.helpers import (
-    ROOT,
     _iceberg_path_is_table_name,
     abs_path,
     csv_read,

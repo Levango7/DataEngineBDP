@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import os
 
-import pytest
 
 from batch_pipeline.helpers import VERSION, json_load
 from batch_pipeline.lineage import Manifest, lineage_view, save_latest_pointer

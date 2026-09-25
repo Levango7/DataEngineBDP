@@ -17,7 +17,6 @@ from ..models.contract import (
     Contract,
     ContractCreateRequest,
     ContractStatus,
-    ContractType,
     ContractUpdateRequest,
 )
 from ..repositories import contract_repo

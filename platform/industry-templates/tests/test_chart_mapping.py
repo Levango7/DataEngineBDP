@@ -85,7 +85,6 @@ class TestChartMapping:
 
     def test_explicit_chart_ref_takes_priority(self):
         """chartRef 显式指定时优先命中（构造临时 chart 目录验证）。"""
-        import shutil
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmp:

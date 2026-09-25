@@ -7,8 +7,11 @@
 load-plugins =
     pylint.extensions.mccabe,
     pylint.extensions.docstyle,
-    pylint.extensions.bad_builtin,
-    pylint.extensions.emptystring
+    pylint.extensions.bad_builtin
+# 注：pylint.extensions.emptystring 已在 pylint 3.x 中移除（check 并入
+# comparison_placement），继续加载会报
+#   E0013: Plugin 'pylint.extensions.emptystring' is impossible to load
+# 并使 pylint 拒绝启动 —— 故移除（2026-09-25，pylint 4.0.9 实测）。
 
 # 递归查找 Python 文件
 recursive = true
@@ -35,8 +38,8 @@ ignore-patterns =
     conftest\.py$,
     setup\.py$
 
-# 使用的字符编码
-input-encoding = utf-8
+# 注：input-encoding 已在 pylint 3.0 移除（输入恒按 UTF-8 解码），
+# 保留会报 E0015: Unrecognized option found: input-encoding（2026-09-25 实测）。
 
 [MESSAGES CONTROL]
 # 启用的检查器
@@ -116,9 +119,6 @@ enable =
 
 # 禁用的检查器
 disable =
-    # 与 black 冲突的格式相关
-    C0326,  # bad-whitespace
-    C0330,  # bad-continuation
     # 与 isort 冲突
     C0411,  # wrong-import-order
     C0412,  # wrong-import-position
@@ -146,8 +146,8 @@ output-format = text
 max-line-length = 120
 # 缩进
 indent-string = '    '
-# 允许不规范的缩进
-no-space-check = trailing-comma,empty-line
+# 注：no-space-check 已在 pylint 2.6 移除，保留会报
+# E0015: Unrecognized option found: no-space-check（2026-09-25 实测）。
 # 模块起始空行
 module-rgx = (([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
 # 类名 PascalCase
@@ -191,8 +191,8 @@ property-classes = abc.ABCMeta
 max-line-length = 120
 # 类最大属性数
 max-attributes = 12
-# 类最大方法数
-max-methods = 20
+# 注：max-methods 已在 pylint 3.0 移除（由 max-public-methods 承担），
+# 保留会报 E0015: Unrecognized option found: max-methods（2026-09-25 实测）。
 # 类最大公共方法数
 max-public-methods = 20
 # 函数最大参数数

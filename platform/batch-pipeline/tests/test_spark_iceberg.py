@@ -52,7 +52,6 @@ import pytest
 from batch_pipeline.helpers import (
     _iceberg_spark_full_name,
     abs_path,
-    csv_read,
     iceberg_snapshot_diff,
     iceberg_snapshot_diff_spark,
     list_snapshots,

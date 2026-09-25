@@ -24,7 +24,6 @@ import pytest
 
 from batch_pipeline.helpers import ROOT, abs_path, json_save
 from batch_pipeline.monitoring import (
-    Alert,
     AlertChecker,
     HealthServer,
     MetricsSampler,

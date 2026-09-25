@@ -87,8 +87,6 @@ def test_jwt_auth_module_importable():
     from operations_api.jwt_auth import (
         AuthContext,
         effectiveTenant,
-        getAuthContext,
-        requireAdmin,
     )
 
     # effectiveTenant 行为：admin + 指定 tenantId → 返回指定值

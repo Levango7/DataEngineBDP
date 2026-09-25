@@ -14,7 +14,6 @@ from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, Field
 
 from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
 from asset_exchange.api.routers.deps import get_registry
