@@ -347,6 +347,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/llmops/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/metadata/**",
           "upstream": {
             "type": "roundrobin",
@@ -361,6 +370,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/models/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
             }
           }
         },
@@ -559,6 +577,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/templates/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "industry-templates:8080": 1
             }
           }
         },

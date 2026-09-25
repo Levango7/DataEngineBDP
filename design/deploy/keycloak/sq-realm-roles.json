@@ -1,0 +1,83 @@
+{
+  "realm": "sq",
+  "enabled": true,
+  "displayName": "数擎租户域",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "refreshTokenMaxReuse": 0,
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      {
+        "name": "SUPER_ADMIN",
+        "description": "平台超级管理员：租户 CRUD、邀请码、跨租户审批、K8s 集群管理",
+        "composite": false,
+        "attributes": {
+          "grants": "/api/v1/tenants,/api/v1/invites,/api/v1/admin,/api/v1/k8s,/api/v1/audit"
+        }
+      },
+      {
+        "name": "TENANT_ADMIN",
+        "description": "租户管理员：本租户内的注册审批与资源管理（不可跨租户）",
+        "composite": false,
+        "attributes": {
+          "grants": "/api/v1/registrations(本租户),/api/v1/workspaces,/api/v1/projects"
+        }
+      },
+      {
+        "name": "USER",
+        "description": "普通用户：仅业务功能，不含管理端点",
+        "composite": false,
+        "attributes": {}
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "sq-console",
+      "name": "数擎控制台",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "redirectUris": ["https://console.<domain>/*", "http://localhost:5173/*"],
+      "webOrigins": ["+"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "ids.token.claim": "false"
+          }
+        },
+        {
+          "name": "tenant-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "tenantId",
+            "claim.name": "tenantId",
+            "jsonType.label": "String",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "_comment": [
+    "本文件是 Keycloak 部分导入（partial import）用的 realm 片段，不是全量 dump。",
+    "为什么需要它：鉴权链路只认 JWT 的 realm_access.roles（JwtAuthFilter 转成 ROLE_*），",
+    "而本仓此前既没有任何 realm 导入物、Keycloak Chart 也不消费 values 里的 realms 段，",
+    "导致 SUPER_ADMIN / TENANT_ADMIN 在任何环境都无法授予 —— 所有 @PreAuthorize 端点必然 403。",
+    "两个必需的角色声明映射（realm-roles / tenant-id mapper）不能省：",
+    "前者保证角色进 access token，后者保证 TenantContext 有租户归属（多租户隔离依赖它）。",
+    "导入方式见 scripts/import-keycloak-realm.sh 与 docs/Keycloak角色与登录配置.md。"
+  ]
+}

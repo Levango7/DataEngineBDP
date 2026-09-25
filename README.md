@@ -18,7 +18,7 @@
 > 📌 **作者姊妹项目**：[Levango7/Corps](https://github.com/Levango7/Corps)（团队协作 SaaS）· [Levango7/Interaction](https://github.com/Levango7/Interaction)（本地优先 PWA）· **DataEngineBDP**（本项目 · 大数据平台）
 
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
-> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **独立部署单元 42**（ADR-001，扣库形态组件）→ **platform/ 目录数 38**（一级子目录）。
+> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **服务形态组件 42**（扣 4 个库形态：common-security / flink-cdc / storage-io / chunker）→ **有 Helm Chart 可部署单元 35**（另有 7 个服务无 Chart，详见口径文档第 6 节）→ **platform/ 目录数 38**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-RC（已发布）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
@@ -300,6 +300,7 @@ bash scripts/poc/run-poc.sh
 | 指标 | 数值 |
 | --- | --- |
 | 自研组件目录 | 46 个（Java 24 / Go 10 / Python 12） |
+| 有 Chart 可部署单元 | 35 个（46 − 4 个库形态组件 − 7 个尚无 Helm Chart 的服务，口径见 [模块数口径定义](docs/模块数口径定义.md) §6） |
 | Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 52 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |

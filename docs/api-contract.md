@@ -141,9 +141,9 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/jobs/${id}/run` （1 变量） | `/jobs` | stream-batch-scheduler | ✅ |
 | `/jobs/${id}/cancel` （1 变量） | `/jobs` | stream-batch-scheduler | ✅ |
 | `/jobs/${id}/logs` （1 变量） | `/jobs` | stream-batch-scheduler | ✅ |
-| `/models/models`  | `/models` | llmops, ml-platform | ✅ |
-| `/models/models/${encodeURIComponent(name)}/versions` （1 变量） | `/models` | llmops, ml-platform | ✅ |
-| `/models/models/${id}` （1 变量） | `/models` | llmops, ml-platform | ✅ |
+| `/models`  | `/models` | llmops, ml-platform | ✅ |
+| `/models/${encodeURIComponent(name)}/versions` （1 变量） | `/models` | llmops, ml-platform | ✅ |
+| `/models/${id}` （1 变量） | `/models` | llmops, ml-platform | ✅ |
 | `/registry/deployments`  | `/registry` | - | ❌ |
 | `/registry/deployments/${id}` （1 变量） | `/registry` | - | ❌ |
 | `/registry/deployments/${id}/scale` （1 变量） | `/registry` | - | ❌ |

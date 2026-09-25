@@ -192,7 +192,9 @@ mvn package -Dmaven.test.skip=true -q
 
 | # | 事项 | 影响 | 解锁条件 | 现状 |
 |---|------|------|----------|------|
-| 1 | APISIX 5 处前缀归属冲突：`/dashboards`(business-portal vs finops)、`/templates`(encaps-layer vs industry-templates)、`/llmops`(encaps-layer vs llmops)、`/models`(llmops vs ml-platform)、粗前缀 `/api/v1`(catalog/karmada/llm-gateway/observability/vector-engine 共享) | 这 5 组前缀生产环境仍不可达（网关不路由） | 产品/架构裁决每个前缀的承接服务；粗前缀需细化到二级路径 | `scripts/gen-apisix-routes.py --report` 会列出；未裁决期间不静默猜测 |
+| 1 | **APISIX 前缀冲突（根因：同一业务域被两个服务各自实现）**。已按前端实际调用取证裁定 4 条：`/tenants`→encaps-layer、`/llmops`→encaps-layer（仅它实现 `/inference-services`）、`/templates`→industry-templates（仅它有 `/{id}/deploy`、`/preview`、`/deployments`、`/categories`）、`/models`→ml-platform。**仍待裁 2 条**：`/dashboards`（business-portal 与 finops 两侧都实现了前端全部 6 个调用，无证据可判）、粗前缀 `/api/v1`（catalog/llm-gateway/observability/vector-engine 等共享） | 未裁决期间 `/dashboards` 与 `/api/v1` 下联邦类前缀生产不可达 | 产品定"分析看板 vs 成本看板"是否拆前缀；粗前缀按二级路径细化后登记进 `PREFIX_OWNER_OVERRIDES` | `scripts/gen-apisix-routes.py --report` 列出、`--check` 防漂移 |
+| 1b | **门面重复实现（架构债）**：`encaps-layer` 的 `TemplateController` 用自有 `TemplateRepository`、`LLMOpsService` 用自有 4 个仓储，与 `industry-templates`/`llmops`/`ml-platform` 各自建表实现同一业务域 | 数据分裂：同一模板/模型在两处各有一份，路由选定后另一方成孤儿数据 | 定权威实现方并迁移，或删除门面侧复制实现（仅保留代理转发） | 与第 1 条同源 |
+| 1c | ml-platform 无 `/models/{modelId}/versions` 子资源 | 前端"模型版本列表"必 404 | 补该端点，或改由模型详情返回版本 | `frontend/src/api/dev-ml.ts` 注释已指向本条 |
 | 2 | 8 个组件**没有任何 Helm Chart**：`encaps-tenant`、`encaps-data`、`encaps-gateway`、`common-security`、`data-standard`、`master-data`、`operations-api`、`real-time-pipeline` | 这些服务生产环境无法部署，其 11 个 API 前缀前端调不到 | 补 Chart + 纳入 umbrella；或确认为"库/内部组件"并从对外口径剔除 | `check-db-migration-coverage.py` 与 `gen-apisix-routes.py` 均会暴露 |
 | 3 | 15 个 JPA 模块尚未接入建表迁移 | prod `ddl-auto: validate` 下这些服务连库即失败 | 逐个跑 `bash scripts/gen-db-baseline.sh <模块>` + 配 Flyway（见 docs/数据库迁移指南.md） | 已登记 `docs/db-migration-backlog.yaml`，CI 闸门禁止新增缺口 |
 | 4 | 集群级 exporter 未部署：node-exporter、kube-state-metrics、dcgm-exporter | 磁盘/节点/Pod 重启类告警不生效；**计费 GPU 维度恒为 0 且不会 fail-loud**（其余四维度正常，故不触发出账拒绝）——已知静默零值 | 部署对应 exporter；GPU 维度在部署前应在账单备注中标注"未计量" | 相关规则移入 `platform/observability/rules/pending/`，指标登记为 pending |
@@ -202,6 +204,9 @@ mvn package -Dmaven.test.skip=true -q
 | 8 | 资产流通的文件交付 / 数据库直连交付无真实实现 | 交付方式 3 选 1 可用；另两种如实返回 FAILED | 需数据集物化落盘 + 对象存储预签名 / 凭据托管与权限编排 | 详见 `docs/资产交付实现状态.md` |
 | 9 | 环境验证仅 2/4：信创、公有云、私有云三套 Profile 为骨架，0/6 维度实测 | "四环境零改动交付"承诺尚无证据 | 需真实信创硬件（鲲鹏/海光 + openEuler/麒麟）与客户云 VM 各跑一次 | `docs/环境验证状态.md` |
 | 10 | 等保三级/密评材料为自撰（落款机构与编号无法核实） | 面向政企招投标时构成实质风险 | 送第三方测评，或把材料名称改为"差距分析/自评" | `docs/compliance/` |
+| 11 | **Keycloak Chart 无法启动**：`deployment.yaml` 无 `args`/`command`（官方镜像无子命令直接退出），`values.config.realms` 只渲染成 `realms: "map[...]"` 这类无意义环境变量字符串 | 生产环境按文档部署 Keycloak 会 CrashLoop；角色无处授予 | 给 Chart 补启动参数 + `KC_DB_*` Secret 注入 + `--import-realm` 挂载；过渡期用 `scripts/import-keycloak-realm.sh` 对已运行的 Keycloak 导入 | 详见 `docs/Keycloak角色与登录配置.md` §5 |
+| 12 | **88 个 Chart 中仅 16 个使用 Secret 注入**（多为 Python 组件）；Java 服务与基础设施 Chart 一律 `envFrom: configMapRef` | `DB_PASSWORD`/`JWT_SECRET` 等只能进 ConfigMap，任何具备 `get configmap` 权限者可读 | 统一改为 `secretKeyRef`/`envFrom secretRef`，并把已入库的默认弱口令一并清理 | `design/deploy/charts/*/templates/deployment.yaml` |
+| 13 | 注册审批通过**不建 Keycloak 用户、不发凭证**（只改数据库状态） | "租户自助开通 → 拿到可用账号"闭环缺一环；`approvedBy` 亦无法回查真实操作人（已改取 JWT subject） | 审批时调用 Keycloak Admin API 建用户、写 `tenantId` 属性并按邀请角色授予 realm 角色 | `RegistrationController.decide` |
 
 ---
 

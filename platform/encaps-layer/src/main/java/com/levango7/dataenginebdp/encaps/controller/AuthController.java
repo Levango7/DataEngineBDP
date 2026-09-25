@@ -23,6 +23,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,6 +72,17 @@ public class AuthController {
 
     @Value("${app.security.local-auth.password:}")
     private String localPassword;
+
+    /**
+     * 本地降级账号签发的 realm 角色（逗号分隔，默认 SUPER_ADMIN）。
+     *
+     * <p>鉴权链路只认 JWT 的 {@code realm_access.roles}（由 JwtAuthFilter 转成
+     * {@code ROLE_*} 权限）。该账号的 tenantId 固定为 platform-admin，语义上就是平台超管，
+     * 因此必须带 SUPER_ADMIN —— 否则本地登录后访问 /api/v1/tenants、/api/v1/invites
+     * 一律 403，租户管理与邀请审批在本地完全无法验证。</p>
+     */
+    @Value("${app.security.local-auth.roles:SUPER_ADMIN}")
+    private List<String> localAuthRoles;
 
     /** 与 JwtAuthFilter 同源的签名密钥（app.security.jwt.secret → JWT_SECRET 环境变量）。 */
     @Value("${app.security.jwt.secret:}")
@@ -263,6 +275,9 @@ public class AuthController {
                 .subject(localUsername)
                 .claim("tenantId", "platform-admin")
                 .claim("role", "admin")
+                // 鉴权只看 realm_access.roles：不带该声明会被 JwtAuthFilter 兜底成 ROLE_USER，
+                // 导致本地管理员访问 /api/v1/tenants、/api/v1/invites 全部 403
+                .claim("realm_access", Map.of("roles", localAuthRoles))
                 .issuedAt(new java.util.Date(now))
                 .expiration(new java.util.Date(now + expiresIn * 1000))
                 .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(

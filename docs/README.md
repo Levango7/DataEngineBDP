@@ -19,6 +19,7 @@
 | 资产交付实现状态 | `资产交付实现状态.md` | 三种交付方式的真实实现度：API 已落地（凭证来自开放 API 目录），文件/DB 直连如实失败并记录解锁条件 |
 | 迁移待补清单 | `db-migration-backlog.yaml` | 已接入 / 待补建表迁移的 Java 模块机器可读清单（CI 闸门据此校验） |
 | 监控指标契约 | `../platform/observability/metric-contract.yaml` | 告警规则与看板可引用的指标清单（available / pending），标注来源与依赖的 exporter |
+| Keycloak 角色与登录配置 | `Keycloak角色与登录配置.md` | 角色模型、前端角色映射、本地/联调/生产三条登录路径、realm 角色导入与验证方法 |
 | 开源协议 | `../LICENSE` | Apache License 2.0 全文 |
 
 ## 用户指南

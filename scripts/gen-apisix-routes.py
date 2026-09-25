@@ -40,11 +40,24 @@ ROUTES_FILE = CHARTS_DIR / "apisix" / "templates" / "configmap-routes.yaml"
 
 # 多服务声明同一前缀时的显式裁决（必须写明理由，否则脚本报冲突并退出）
 # key = 前缀，value = 承接该前缀的 chart 名
+#
+# 以下四条按"前端实际要调哪些端点 + 哪一侧真的实现了它们"取证，不按服务名猜测。
+# 这类冲突的根因是同一业务域被两个服务各自实现，已作为架构债登记
+# （docs/KNOWN-FAILURES.md §6）。/api/v1/dashboards 两侧都实现了前端全部 6 个调用，
+# 无法用证据裁定，故意不裁（继续由本脚本报冲突、该前缀暂不经网关）。
 PREFIX_OWNER_OVERRIDES: dict[str, str] = {
-    # encaps-layer 与 encaps-tenant 都声明了 /api/v1/tenants：
+    # encaps-layer 与 encaps-tenant 都声明 /api/v1/tenants：
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
     # 故生产网关把租户管理 API 统一指向 encaps-layer；encaps-tenant 仅供集群内直连。
     "/api/v1/tenants": "encaps-layer",
+    # llmops.ts 头注释明写对齐 encaps-layer LLMOpsController，且 /inference-services
+    # 只有它实现（llmops 服务仅有 models/finetune/eval-metrics/human-eval）。
+    "/api/v1/llmops": "encaps-layer",
+    # template.ts 要 /{id}/deploy、/{id}/preview、/{id}/deployments、/categories ——
+    # 只有 industry-templates 全实现（encaps-layer 的 TemplateController 仅 list/get/create）。
+    "/api/v1/templates": "industry-templates",
+    # dev-ml.ts 注释明写"模型仓库端点对齐 ml-platform（/api/v1/models*）"。
+    "/api/v1/models": "ml-platform",
 }
 
 # 不对外经网关暴露的前缀（各服务都有，无区分度）
