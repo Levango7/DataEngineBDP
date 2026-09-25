@@ -15,6 +15,10 @@
 | 路线图 | `../ROADMAP.md` | v2.0 演进规划 |
 | 命名约定 | `../CONVENTIONS.md` | 统一命名与版本号规范（单一事实来源） |
 | 组件成熟度矩阵 | `component-maturity.md` | 46 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
+| 数据库迁移指南 | `数据库迁移指南.md` | Flyway 接入步骤、一库多 schema 约定、基线 DDL 生成器、Spring Boot 4 的三个坑 |
+| 资产交付实现状态 | `资产交付实现状态.md` | 三种交付方式的真实实现度：API 已落地（凭证来自开放 API 目录），文件/DB 直连如实失败并记录解锁条件 |
+| 迁移待补清单 | `db-migration-backlog.yaml` | 已接入 / 待补建表迁移的 Java 模块机器可读清单（CI 闸门据此校验） |
+| 监控指标契约 | `../platform/observability/metric-contract.yaml` | 告警规则与看板可引用的指标清单（available / pending），标注来源与依赖的 exporter |
 | 开源协议 | `../LICENSE` | Apache License 2.0 全文 |
 
 ## 用户指南

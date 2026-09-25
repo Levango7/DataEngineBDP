@@ -19,7 +19,7 @@ assetMarket.ts 的 list/deliver/billing 走本服务，apiCatalog.ts 的 approve
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
 from asset_exchange.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
@@ -33,7 +33,6 @@ from asset_exchange.models.delivery import (
 )
 from asset_exchange.models.subscription import (
     ApprovalRequest,
-    SubscribeRequest,
     Subscription,
     SubscriptionFilter,
 )
@@ -154,13 +153,19 @@ async def approve_subscription(
 async def deliver_data(
     subscription_id: str,
     req: DeliveryRequest,
+    request: Request,
     registry: ServiceRegistry = Depends(get_registry),
     ctx: AuthContext = Depends(getAuthContext),
 ) -> Delivery:
-    """交付数据（支持 API / 文件 / 数据库直连三种方式）. 仅 admin 可执行."""
+    """交付数据（支持 API / 文件 / 数据库直连三种方式）. 仅 admin 可执行.
+
+    API 交付需向开放 API 目录取真实凭证，故透传调用方 JWT（跨服务租户上下文一致）。
+    """
     requireAdmin(ctx)
+    auth_header = request.headers.get("Authorization", "")
+    jwt_token = auth_header[len("Bearer ") :] if auth_header.startswith("Bearer ") else None
     try:
-        result = await registry.deliveryService.deliver(subscription_id, req)
+        result = await registry.deliveryService.deliver(subscription_id, req, jwt_token=jwt_token)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.DELIVER,

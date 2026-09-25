@@ -36,4 +36,7 @@ public class BillingItem {
 
     /** GPU 型号（仅当 resourceType=GPU 时有意义，如 A100/V100/Ascend910） */
     private String gpuModel;
+
+    /** 来源引用（计量汇入项如 API ID；Prometheus 采集项为空），用于账单对账追溯 */
+    private String sourceRef;
 }

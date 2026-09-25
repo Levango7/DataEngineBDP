@@ -2,7 +2,7 @@
 
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
-- 前端入口：`frontend/src/api/*.ts`（共 36 个文件）
+- 前端入口：`frontend/src/api/*.ts`（共 37 个文件）
 - 后端前缀：Java 71 / Python 21 / Go 16（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
@@ -450,6 +450,18 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/tenants/${id}` （1 变量） | `/tenants` | encaps-layer, encaps-tenant | ✅ |
 | `/tenants`  | `/tenants` | encaps-layer, encaps-tenant | ✅ |
 
+## tenantAdminApi.ts
+
+| 前端调用 | 首段 | 后端模块 | 状态 |
+|---|---|---|---|
+| `/tenants`  | `/tenants` | encaps-layer, encaps-tenant | ✅ |
+| `/tenants/${id}` （1 变量） | `/tenants` | encaps-layer, encaps-tenant | ✅ |
+| `/invites`  | `/invites` | encaps-layer | ✅ |
+| `/invites/${id}` （1 变量） | `/invites` | encaps-layer | ✅ |
+| `/invites/${encodeURIComponent(code.toUpperCase())}/preview` （1 变量） | `/invites` | encaps-layer | ✅ |
+| `/registrations`  | `/registrations` | encaps-layer | ✅ |
+| `/registrations/${id}/decision` （1 变量） | `/registrations` | encaps-layer | ✅ |
+
 ## vector.ts
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
@@ -468,7 +480,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：255
+- 匹配：262
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

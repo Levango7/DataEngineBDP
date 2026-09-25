@@ -1,6 +1,6 @@
-# 已知失败用例清单
+# 已知失败与待决项清单
 
-> 最后更新: 2026-09-15 | 状态: RC（Release Candidate）| 清零期限: v2.2.0
+> 最后更新: 2026-09-26 | 状态: RC（Release Candidate）| 清零期限: v2.2.0
 
 ---
 
@@ -13,14 +13,18 @@
 
 | 类别 | 数量 | 状态 | 清零期限 |
 |------|------|------|----------|
-| vue-tsc 类型错误 | 7 | 待修复 | v2.2.0 |
-| vitest 失败用例 | 43 | 待修复 | v2.2.0 |
+| vue-tsc 类型错误 | 0 | ✅ 已清零（2026-09-26 实测 `npx vue-tsc --noEmit` exit 0） | 2026-09-26 |
+| vitest 失败用例 | 本机 11 例 / CI 预期 0 | ⚠️ 环境相关：本机 Node 26 内置 `localStorage` 遮蔽 jsdom，theme 相关用例失败；CI 钉 Node 22 | v2.2.0（同时补 `.nvmrc`） |
 | Java 编译错误（已修复） | 0 | ✅ 已清零 | 2026-09-15 |
-| **合计** | **50** | — | — |
+| **生产化待决项** | **8 类** | 📋 见第六节（具备条件再做，先记载在案） | v2.2.0 / GA |
 
 ---
 
 ## 一、vue-tsc 类型错误（7个）
+
+> **2026-09-26 更正**：本节所列 7 个类型错误在当前 HEAD 已全部修复，
+> 实测 `npx vue-tsc --noEmit` 返回 exit 0、0 错误（Drawer/Modal 已改用函数式 `:ref`）。
+> 以下内容保留作历史记录，不再代表现状。
 
 ### 1.1 Drawer/Modal 组件 VNodeRef 类型不匹配（4个）
 
@@ -178,6 +182,26 @@ cd frontend && npx vitest run
 export JAVA_HOME="E:/dev-tools/jdk17.0.20_8"
 mvn package -Dmaven.test.skip=true -q
 ```
+
+---
+
+## 六、生产化待决项（2026-09-26 记载在案，具备条件再做）
+
+> 口径：这些不是"测试失败"，而是**当前不具备实现条件或需要产品/架构裁决**的缺口。
+> 已按"能修就修、不能修就如实失败并记录"处理：代码里不再有假装成功的分支。
+
+| # | 事项 | 影响 | 解锁条件 | 现状 |
+|---|------|------|----------|------|
+| 1 | APISIX 5 处前缀归属冲突：`/dashboards`(business-portal vs finops)、`/templates`(encaps-layer vs industry-templates)、`/llmops`(encaps-layer vs llmops)、`/models`(llmops vs ml-platform)、粗前缀 `/api/v1`(catalog/karmada/llm-gateway/observability/vector-engine 共享) | 这 5 组前缀生产环境仍不可达（网关不路由） | 产品/架构裁决每个前缀的承接服务；粗前缀需细化到二级路径 | `scripts/gen-apisix-routes.py --report` 会列出；未裁决期间不静默猜测 |
+| 2 | 8 个组件**没有任何 Helm Chart**：`encaps-tenant`、`encaps-data`、`encaps-gateway`、`common-security`、`data-standard`、`master-data`、`operations-api`、`real-time-pipeline` | 这些服务生产环境无法部署，其 11 个 API 前缀前端调不到 | 补 Chart + 纳入 umbrella；或确认为"库/内部组件"并从对外口径剔除 | `check-db-migration-coverage.py` 与 `gen-apisix-routes.py` 均会暴露 |
+| 3 | 15 个 JPA 模块尚未接入建表迁移 | prod `ddl-auto: validate` 下这些服务连库即失败 | 逐个跑 `bash scripts/gen-db-baseline.sh <模块>` + 配 Flyway（见 docs/数据库迁移指南.md） | 已登记 `docs/db-migration-backlog.yaml`，CI 闸门禁止新增缺口 |
+| 4 | 集群级 exporter 未部署：node-exporter、kube-state-metrics、dcgm-exporter | 磁盘/节点/Pod 重启类告警不生效；**计费 GPU 维度恒为 0 且不会 fail-loud**（其余四维度正常，故不触发出账拒绝）——已知静默零值 | 部署对应 exporter；GPU 维度在部署前应在账单备注中标注"未计量" | 相关规则移入 `platform/observability/rules/pending/`，指标登记为 pending |
+| 5 | Alertmanager 只有配置文件（`platform/observability/alertmanager/*.yml`），无 Chart、无真实投递演练 | 告警"能触发不代表能送达"；P0 电话/短信网关未联调 | 补 Chart + 用真实 SMTP/IM webhook 演练一次并留证据 | 通知地址已全部外置为环境变量，无硬编码 |
+| 6 | 治理四环（元数据采集 → 质量校验 → 血缘 → 资产入目录）无事件编排，靠人工串联 | 产品核心叙事"治理闭环"未闭合；`rule-engine` 无任何组件调用 | 引入事件驱动（Kafka topic 或 HTTP 编排），lineage 消费 collector 产出 | 断点已定位：`MetadataWriterService.java:84` 有写入，`LineageController.java:176` 只接手工 POST |
+| 7 | 计费自定义定价未接入：`pricingConfigName` 仅支持 `default`，其余取值报 400 | 无法按客户合同差异化定价（不再静默用错价格，但功能缺失） | billing 侧接 cost-model 的 `PricingConfig`（跨模块依赖） | 已改为显式拒绝 + 单测锁定 |
+| 8 | 资产流通的文件交付 / 数据库直连交付无真实实现 | 交付方式 3 选 1 可用；另两种如实返回 FAILED | 需数据集物化落盘 + 对象存储预签名 / 凭据托管与权限编排 | 详见 `docs/资产交付实现状态.md` |
+| 9 | 环境验证仅 2/4：信创、公有云、私有云三套 Profile 为骨架，0/6 维度实测 | "四环境零改动交付"承诺尚无证据 | 需真实信创硬件（鲲鹏/海光 + openEuler/麒麟）与客户云 VM 各跑一次 | `docs/环境验证状态.md` |
+| 10 | 等保三级/密评材料为自撰（落款机构与编号无法核实） | 面向政企招投标时构成实质风险 | 送第三方测评，或把材料名称改为"差距分析/自评" | `docs/compliance/` |
 
 ---
 

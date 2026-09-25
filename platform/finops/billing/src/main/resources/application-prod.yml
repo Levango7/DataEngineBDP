@@ -1,0 +1,50 @@
+# 生产环境 Profile（spring.profiles.active=prod）
+# 覆盖默认 H2 配置，切换到 PostgreSQL；JWT secret 与 Prometheus 地址必须外置。
+#
+# 有关出账口径的两个开关：
+#   PROMETHEUS_URL   — 必须指向集群内 Prometheus（默认 localhost:19090 只适用于本地开发）。
+#                      取不到数据时本服务会拒绝出账（BillingDataUnavailableException → 503），
+#                      不会产出可被误当成结算依据的 0 元账单。
+#   ALLOW_EMPTY_USAGE — 仅在确认"该租户确实无任何资源用量"时置 true；默认 false。
+
+spring:
+  datasource:
+    # 各服务共用 PostgreSQL 实例、各自独立 schema（避免多服务同库撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=finops_billing}
+    username: ${DB_USERNAME:shuqing}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:finops_billing}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      # 生产默认 validate（表由迁移管理）；本地验证/初始化可用 DDL_AUTO=update 覆盖
+      ddl-auto: ${DDL_AUTO:validate}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Flyway 已建表，Hibernate 不再参与 schema 管理
+        hbm2ddl:
+          schema_export: false
+  h2:
+    console:
+      enabled: false
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}  # 生产环境必须外置，无默认值
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+    cors:
+      allowed-origins: ${CORS_ORIGINS}
+  prometheus:
+    url: ${PROMETHEUS_URL:http://prometheus:9090}
+    query-timeout-ms: ${PROMETHEUS_QUERY_TIMEOUT:10000}
+  billing:
+    # 无任何资源用量时序时是否允许出 0 元账单；默认拒绝（见 docs/监控告警闭环验证报告.md）
+    allow-empty-usage: ${ALLOW_EMPTY_USAGE:false}

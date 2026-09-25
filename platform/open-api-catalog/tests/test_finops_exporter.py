@@ -16,9 +16,57 @@ import pytest
 
 from openapi_catalog.config.settings import Settings
 from openapi_catalog.services.finops_exporter import (
+    FIN_OPS_USAGE_RECORD_FIELDS,
     FinOpsExportError,
     FinOpsUsageExporter,
+    toFinopsUsageRecords,
 )
+
+
+def test_to_finops_usage_records_maps_contract_fields():
+    """API 计量聚合项须映射为下游 UsageRecord 契约字段（字段名一致，否则下游 400）."""
+    records = toFinopsUsageRecords(
+        [{"apiId": "api-1", "apiName": "查询接口", "callCount": 200, "totalCost": 2.5, "totalTrafficBytes": 1024}]
+    )
+
+    assert len(records) == 1
+    record = records[0]
+    assert set(record) == set(FIN_OPS_USAGE_RECORD_FIELDS)
+    assert record["resourceType"] == "API_CALL"
+    assert record["usage"] == 200.0
+    assert record["amount"] == 2.5
+    assert record["unitPrice"] == 0.0125  # 2.5 / 200，仅用于对账展示
+    assert record["sourceRef"] == "api-1"
+
+
+def test_to_finops_usage_records_skips_zero_call_items():
+    """调用次数为 0 的项不产生账单行，避免零用量行与除零."""
+    records = toFinopsUsageRecords(
+        [
+            {"apiId": "api-empty", "callCount": 0, "totalCost": 0.0},
+            {"apiId": "api-2", "callCount": 7, "totalCost": 0.7},
+        ]
+    )
+
+    assert [r["sourceRef"] for r in records] == ["api-2"]
+
+
+@pytest.mark.asyncio
+async def test_payload_usage_data_matches_java_contract_fields(monkeypatch):
+    """端到端字段契约：payload 中 usageData 的字段名与 Java UsageRecord 完全一致."""
+    captured: dict = {}
+    monkeypatch.setattr(httpx, "AsyncClient", _make_fake_client(captured))
+
+    exporter = _make_exporter()
+    await exporter.exportUsage(
+        tenantId="tenant-a",
+        period="2026-08",
+        usageData=toFinopsUsageRecords([{"apiId": "api-9", "callCount": 10, "totalCost": 0.5}]),
+    )
+
+    payload_records = captured["json"]["usageData"]
+    assert len(payload_records) == 1
+    assert set(payload_records[0]) == set(FIN_OPS_USAGE_RECORD_FIELDS)
 
 
 def _make_exporter() -> FinOpsUsageExporter:

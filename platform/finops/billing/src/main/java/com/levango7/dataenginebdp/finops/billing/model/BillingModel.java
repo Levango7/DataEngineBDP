@@ -72,7 +72,8 @@ public class BillingModel {
     private BigDecimal totalAmount;
 
     /** 账单状态：GENERATED / SETTLED / FAILED */
-    @Column(name = "status", nullable = false, length = 16)
+    // 长度 32：需容纳 GENERATED_DEGRADED（降级账单，19 字符）；原 16 会插入失败
+    @Column(name = "status", nullable = false, length = 32)
     private String status;
 
     /** 账单生成时间（UTC） */

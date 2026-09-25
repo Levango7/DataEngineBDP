@@ -122,7 +122,7 @@
             </template>
             <template v-else>
               <span class="appr-approved-by">
-                {{ row.approvedBy }} · {{ fmtTime(row.approvedAt!) }}
+                {{ row.approvedBy ?? '—' }} · {{ fmtTime(row.approvedAt ?? '') }}
               </span>
             </template>
           </template>
@@ -239,13 +239,21 @@ function tenantCodeOf(id: number): string {
 function fmtTime(iso: string): string {
   if (!iso) return '—'
   const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-function loadList() {
+/** 加载注册申请 + 租户缓存（租户用于列表/弹窗中的名称展示） */
+async function loadList() {
   loading.value = true
-  setTimeout(() => (loading.value = false), 200)
+  try {
+    await Promise.all([admin.loadRegistrations(), admin.loadTenants()])
+  } catch {
+    ElMessage.error(t('approvals.messages.loadFailed'))
+  } finally {
+    loading.value = false
+  }
 }
 
 /* 审批对话框 */
@@ -265,18 +273,18 @@ function openApprove(row: AdminRegistration, approved: boolean) {
   decisionVisible.value = true
 }
 
-function submitDecision() {
+async function submitDecision() {
   if (!currentRow.value) return
   submitting.value = true
-  const result = admin.decideRegistration(
+  // 后端只接受 {approved, note}（approvedBy 由后端写入），不再传 approver
+  const result = await admin.decideRegistration(
     currentRow.value.id,
     decisionApproved.value,
-    'platform-admin',
     decisionNote.value
   )
   submitting.value = false
   if (!result.ok) {
-    ElMessage.error(result.error || t('common.operateFailed'))
+    ElMessage.error(result.error || t('approvals.messages.decisionFailed'))
     return
   }
   decisionVisible.value = false

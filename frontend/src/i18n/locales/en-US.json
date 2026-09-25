@@ -244,12 +244,19 @@
       "notFound": "Invite code not found",
       "cancelled": "Invite code cancelled",
       "used": "Invite code already used",
-      "expired": "Invite code expired"
+      "expired": "Invite code expired or unavailable"
     },
     "reg": {
       "usernameExists": "Username already exists in this tenant",
       "notFound": "Registration not found",
-      "alreadyDecided": "Registration already decided"
+      "alreadyDecided": "Registration already decided",
+      "conflict": "Invite code already used/cancelled, or the username already exists"
+    },
+    "tenant": {
+      "notFound": "Tenant not found or already deleted"
+    },
+    "common": {
+      "requestFailed": "Operation failed, please retry later"
     }
   }
 }

@@ -449,6 +449,14 @@ jobs:
       - name: 生产交付物 Mock 烘焙校验（Dockerfile/生产 chart）
         run: bash scripts/check-prod-mock-hygiene.sh
 
+      - name: 告警规则指标覆盖校验（防死规则：规则只能引用已登记的真实指标）
+        run: python3 scripts/check-alert-metric-coverage.py
+
+      - name: 告警规则 → Prometheus Chart 副本一致性
+        # 规则事实来源 platform/observability/rules/*.yaml，chart 只能读自身目录内文件，
+        # 故用副本 + 本校验防止两处漂移（漂移会导致部署的规则与仓内规则不一致）
+        run: bash scripts/sync-alert-rules.sh --check
+
       - name: API 路由冲突扫描（Sprint 2.1，阻断未知同前缀多 Controller）
         run: python3 scripts/check-api-route-conflict.py
 
@@ -469,6 +477,16 @@ jobs:
 
       - name: vite dev 代理完整性校验（Sprint 2.2 L3，P0 教训固化）
         run: python3 scripts/verify-vite-proxy.py
+
+      - name: APISIX 生产路由与代码前缀一致性（防"生产 404"）
+        # 历史缺陷：APISIX 只配了 4 条路由，其余 40+ 前缀在生产网关后不可达，
+        # 而本地开发用 vite 代理所以看不出来。本校验确保 routes.json 由代码前缀生成且不漂移。
+        run: python3 scripts/gen-apisix-routes.py --check
+
+      - name: 数据库迁移覆盖校验（防"生产没人建表"）
+        # prod 统一 ddl-auto=validate 但仓内原本 0 迁移框架 0 DDL；
+        # 本校验要求：已接入模块必须真的启用 Flyway，未接入模块必须显式登记在待补清单
+        run: python3 scripts/check-db-migration-coverage.py
 
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |

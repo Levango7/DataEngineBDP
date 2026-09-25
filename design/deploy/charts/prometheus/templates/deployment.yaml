@@ -40,6 +40,8 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- toYaml .Values.args | nindent 12 }}
           ports:
             - name: http
               containerPort: {{ .Values.service.containerPort | int }}
@@ -47,6 +49,17 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "prometheus.configmapName" . }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            {{- if .Values.alertRules.enabled }}
+            - name: alert-rules
+              mountPath: /etc/prometheus/rules
+              readOnly: true
+            {{- end }}
+            - name: data
+              mountPath: /prometheus
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -80,3 +93,19 @@ spec:
                 - {{ . }}
 {{- end }}
 {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "prometheus.configmapName" . }}
+        {{- if .Values.alertRules.enabled }}
+        - name: alert-rules
+          configMap:
+            name: {{ .Values.alertRules.existingConfigMap | default (printf "%s-alert-rules" (include "prometheus.fullname" .)) }}
+        {{- end }}
+        - name: data
+          {{- if .Values.persistence.emptyDir }}
+          emptyDir: {}
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ include "prometheus.fullname" . }}-data
+          {{- end }}

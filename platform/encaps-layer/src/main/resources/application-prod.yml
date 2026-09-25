@@ -3,10 +3,18 @@
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing}
+    # 各服务共用 PostgreSQL 实例、各自独立 schema（避免多服务同库撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=encaps_layer}
     username: ${DB_USERNAME:shuqing}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:encaps_layer}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
   jpa:
     hibernate:
       ddl-auto: validate

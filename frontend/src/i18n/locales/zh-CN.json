@@ -244,12 +244,19 @@
       "notFound": "邀请码不存在",
       "cancelled": "邀请码已撤销",
       "used": "邀请码已被使用",
-      "expired": "邀请码已过期"
+      "expired": "邀请码已过期或不可用"
     },
     "reg": {
       "usernameExists": "该用户名在租户内已存在",
       "notFound": "申请不存在",
-      "alreadyDecided": "该申请已审批"
+      "alreadyDecided": "该申请已审批",
+      "conflict": "邀请码已被使用或撤销，或用户名已存在"
+    },
+    "tenant": {
+      "notFound": "租户不存在或已被删除"
+    },
+    "common": {
+      "requestFailed": "操作失败，请稍后重试"
     }
   }
 }

@@ -1,0 +1,174 @@
+# 待启用告警规则（不参与加载）
+#
+# 本文件**不在** Prometheus 的 rule_files 通配范围内（见 charts/prometheus values 的
+# rule_files 只匹配当前目录下的 *.yaml，不含 pending/ 子目录），因此不会产生"永远不触发"
+# 的死规则；同时保留规则内容与启用条件，避免治理意图丢失。
+#
+# 为什么要分开：生效目录里的规则引用了当前没有任何组件发射的指标
+# （shuqing_job_* / shuqing_tenant_api_* / node_filesystem_* / kube_pod_container_status_restarts_total），
+# Prometheus 会正常加载、评估、永不触发 —— 监控看起来"配好了"实际是空的。
+# 指标契约与状态见 ../metric-contract.yaml。
+#
+# 启用步骤（每条规则头部标注了所需指标与前置条件）：
+#   1. 部署对应 exporter / 让对应组件发射指标（下表）
+#   2. 在 metric-contract.yaml 中把该指标 status 改为 available
+#   3. 把规则移回 ../p0-rules.yaml / p1-rules.yaml / p2-rules.yaml
+#   4. 跑 scripts/check-alert-metric-coverage.py 确认无未声明指标
+#
+# | 规则 | 所需指标 | 前置条件 |
+# | --- | --- | --- |
+# | NodeDown | up{job="node-exporter"} | 部署 node-exporter（DaemonSet） |
+# | DiskSpaceExhausted | node_filesystem_avail_bytes / node_filesystem_size_bytes | 部署 node-exporter |
+# | PodRestartTooFrequent | kube_pod_container_status_restarts_total | 部署 kube-state-metrics |
+# | TenantJobFailureRateHigh / TenantAllJobsFailed | shuqing_job_total / shuqing_job_failed_total / shuqing_job_running | 调度组件（DolphinScheduler / stream-batch-scheduler）发射作业指标并带 tenant_id |
+# | TenantJobRetry | shuqing_job_retry_total | 同上 |
+# | TenantQuotaUsage | shuqing_tenant_api_calls_total / shuqing_tenant_api_quota | open-api-catalog 或 APISIX 按租户维度发射配额指标 |
+# | TenantQueryLatencyHigh | sql_gateway_query_duration_seconds_bucket{tenant_id=...} | sql-gateway 在查询指标上补 tenant_id 标签（当前只有 engine/type 标签） |
+groups:
+  - name: pending-requires-node-exporter
+    interval: 30s
+    rules:
+      # 规则：集群节点宕机
+      # 启用条件：部署 node-exporter 后移回 p0-rules.yaml
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: P0
+          component: node
+          category: infrastructure
+        annotations:
+          summary: "节点 {{ $labels.instance }} 宕机"
+          description: "节点 {{ $labels.instance }} 已离线超过 1 分钟，可能影响业务。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/node-down"
+
+      # 规则：磁盘空间耗尽（< 5%）
+      - alert: DiskSpaceExhausted
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} /
+                node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 0.95
+        for: 1m
+        labels:
+          severity: P0
+          component: disk
+          category: infrastructure
+        annotations:
+          summary: "磁盘空间耗尽: {{ $labels.instance }} {{ $labels.mountpoint }}"
+          description: "磁盘使用率超过 95%，可能导致服务写入失败。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/disk-full"
+
+  - name: pending-requires-kube-state-metrics
+    interval: 30s
+    rules:
+      # 规则：Pod 重启次数过多
+      - alert: PodRestartTooFrequent
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 5m
+        labels:
+          severity: P1
+          component: kubernetes
+          category: infrastructure
+        annotations:
+          summary: "Pod 频繁重启: {{ $labels.namespace }}/{{ $labels.pod }}"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} 1 小时内重启超过 5 次。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/pod-restart"
+
+  - name: pending-requires-job-metrics
+    interval: 30s
+    rules:
+      # 规则：租户核心作业全部失败
+      - alert: TenantAllJobsFailed
+        expr: |
+          shuqing_job_running{tenant_id="{{tenant_id}}"} == 0
+          and
+          shuqing_job_failed_total{tenant_id="{{tenant_id}}"} > 0
+        for: 5m
+        labels:
+          severity: P0
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 所有作业失败"
+          description: "租户 {{tenant_id}} 持续 5 分钟无运行中作业且有失败记录，可能影响业务数据产出。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-jobs-failed"
+
+      # 规则：租户作业失败率超阈值
+      - alert: TenantJobFailureRateHigh
+        expr: |
+          (
+            sum(rate(shuqing_job_failed_total{tenant_id="{{tenant_id}}"}[15m]))
+            /
+            sum(rate(shuqing_job_total{tenant_id="{{tenant_id}}"}[15m]))
+          ) > {{fail_threshold}}
+        for: 10m
+        labels:
+          severity: P1
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 作业失败率过高"
+          description: "租户 {{tenant_id}} 作业失败率超过 {{fail_threshold}}，持续 10 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-fail"
+
+      # 规则：租户作业重试提醒
+      - alert: TenantJobRetry
+        expr: |
+          increase(shuqing_job_retry_total{tenant_id="{{tenant_id}}"}[1h]) > {{retry_threshold}}
+        for: 5m
+        labels:
+          severity: P2
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 作业重试提醒"
+          description: "租户 {{tenant_id}} 作业 1 小时内重试超过 {{retry_threshold}} 次。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-retry"
+
+  - name: pending-requires-tenant-labels
+    interval: 30s
+    rules:
+      # 规则：租户查询延迟 P95 超阈值（需 sql-gateway 在指标上补 tenant_id 标签）
+      - alert: TenantQueryLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(sql_gateway_query_duration_seconds_bucket{tenant_id="{{tenant_id}}"}[5m]))
+          ) > {{latency_p95}}
+        for: 10m
+        labels:
+          severity: P1
+          component: query
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 查询延迟 P95 过高"
+          description: "租户 {{tenant_id}} 查询 P95 延迟超过 {{latency_p95}} 秒，持续 10 分钟。"
+          value: "{{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-query-latency"
+
+      # 规则：租户 API 配额使用率提醒（需 open-api-catalog / APISIX 按租户发射配额指标）
+      - alert: TenantQuotaUsage
+        expr: |
+          shuqing_tenant_api_calls_total{tenant_id="{{tenant_id}}"}
+          /
+          shuqing_tenant_api_quota{tenant_id="{{tenant_id}}"}
+          > 0.8
+        for: 30m
+        labels:
+          severity: P2
+          component: quota
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} API 配额使用率提醒"
+          description: "租户 {{tenant_id}} API 配额使用率超过 80%，持续 30 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-quota"

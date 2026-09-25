@@ -62,7 +62,8 @@
       "codeRequired": "Please enter invite code",
       "codeInvalid": "Invalid invite code",
       "submitFailed": "Registration failed",
-      "invalidInvite": "Invite code state is invalid, please re-validate"
+      "invalidInvite": "Invite code state is invalid, please re-validate",
+      "loginRequired": "Validating the invite code requires a platform account. Please sign in before registering"
     }
   }
 }

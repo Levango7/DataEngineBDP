@@ -26,6 +26,7 @@ from asset_exchange.services.asset_service import AssetService  # noqa: E402
 from asset_exchange.services.audit_service import AuditService  # noqa: E402
 from asset_exchange.services.billing_service import BillingService  # noqa: E402
 from asset_exchange.services.delivery_service import DeliveryService  # noqa: E402
+from asset_exchange.services.openapi_catalog_client import OpenApiCatalogClient  # noqa: E402
 from asset_exchange.services.registry import ServiceRegistry  # noqa: E402
 from asset_exchange.services.settlement_service import SettlementService  # noqa: E402
 from asset_exchange.services.subscription_service import SubscriptionService  # noqa: E402
@@ -86,7 +87,13 @@ def registry(
     """构建使用独立 Mock 实例的 registry（每个测试隔离）."""
     asset_service = AssetService(mock_asset_repo, mock_sub_repo)
     subscription_service = SubscriptionService(mock_sub_repo, asset_service)
-    delivery_service = DeliveryService(mock_delivery_repo, mock_sub_repo)
+    # 与生产装配保持一致：注入开放 API 目录客户端（API 交付的真实凭证来源），
+    # 否则测试走的是"未配置目录"分支，覆盖不到真实交付路径
+    delivery_service = DeliveryService(
+        mock_delivery_repo,
+        mock_sub_repo,
+        catalog_client=OpenApiCatalogClient(settings),
+    )
     billing_service = BillingService(
         mock_billing_repo,
         asset_service,

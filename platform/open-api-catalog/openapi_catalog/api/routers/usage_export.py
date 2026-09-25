@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -21,7 +21,11 @@ from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext
 from openapi_catalog.api.routers.deps import get_registry
 from openapi_catalog.config.settings import Settings
 from openapi_catalog.models import APIFilter
-from openapi_catalog.services.finops_exporter import FinOpsExportError, FinOpsUsageExporter
+from openapi_catalog.services.finops_exporter import (
+    FinOpsExportError,
+    FinOpsUsageExporter,
+    toFinopsUsageRecords,
+)
 from openapi_catalog.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/billing", tags=["出账闭环-计量汇入"])
@@ -145,7 +149,9 @@ async def exportUsage(
             result = await exporter.exportUsage(
                 tenantId=tenantId,
                 period=period,
-                usageData=[item.model_dump() for item in items],
+                # 映射为下游 Java UsageRecord 契约（resourceType/usage/unitPrice/amount/sourceRef），
+                # 字段名不一致会被下游以 400 拒绝而不是静默丢弃
+                usageData=toFinopsUsageRecords([item.model_dump() for item in items]),
                 jwtToken=jwtToken,
             )
             finopsBillingId = result.get("id")

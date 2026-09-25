@@ -6,15 +6,505 @@ metadata:
     app.kubernetes.io/name: apisix
     app.kubernetes.io/part-of: shuqing-bigdata
 data:
+  # 由 scripts/gen-apisix-routes.py 从代码路由前缀生成，勿手工编辑；
+  # 新增服务后运行：python scripts/gen-apisix-routes.py
+  # 上游名按 chart 名（约定：单独 helm install <chart> 或以 fullnameOverride 固定）；
+  # 若整套以同一 release 名部署，需相应调整上游名。
   routes.json: |
     {
       "routes": [
         {
-          "uri": "/api/v1/tenants/**",
+          "uri": "/api/finops/v1/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/materialized-views/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "flink-cdc:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/agents/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ai-assistant/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ai-assistant:18110": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/allocation/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/apis/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/apis/generate/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/asset-subscriptions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/assets/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/audiences/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/audit-logs/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/auth/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/bill/export/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/business-lines/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "business-portal:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/capacity/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-orchestrator:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/cluster/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "observability:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-orchestrator:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/cloud/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-cloud:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/private/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-private:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/xinchang/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-xinchang:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/cost/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/dashboard/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/dashboard/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/deployments/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/develop/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/experiments/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/feature-groups/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/finops/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/finops/metering/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/governance/assets/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/integrate/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/invites/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/jobs/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "stream-batch-scheduler:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/k8s/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/knowledge/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/lineage/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "lineage-analyzer:8086": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/metadata/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "metadata-collector:8084": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ml/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ops/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "observability:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/orchestrator/dags/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/pricing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/profiles/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/projects/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/quality/rules/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/quality/rules/batch-pipeline/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/registrations/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/rewrite/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/rules/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/scheduler/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/search/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/sec/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/security/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/settlements/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/spaces/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "knowledge-engine:8080": 1
             }
           }
         },
@@ -28,7 +518,97 @@ data:
           }
         },
         {
-          "uri": "/api/v1/catalog/**",
+          "uri": "/api/v1/standards/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/stream-batch/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "stream-batch-scheduler:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/subscriptions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/suggestions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "finops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/tags/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/tenants/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/training/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/training/jobs/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/vector/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "vector-engine:8086": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/virtual-tables/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/catalog/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -37,11 +617,29 @@ data:
           }
         },
         {
-          "uri": "/api/v1/rules/**",
+          "uri": "/platform/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "rule-engine:8083": 1
+              "observability:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/tenant/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "observability:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/v1/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llm-gateway:8084": 1
             }
           }
         }

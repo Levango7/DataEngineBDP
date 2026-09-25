@@ -103,6 +103,23 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- Flyway：生产库表结构迁移（prod profile 启用；dev 沿用 H2 + ddl-auto 零配置）。
+             版本由 spring-boot-dependencies 统一管理。
+             注意：Spring Boot 4 把 Flyway 自动装配拆到 spring-boot-flyway 模块——
+             只加 flyway-core 不会有 FlywayAutoConfiguration，迁移不会执行，
+             Hibernate 会抢在建表前 validate 失败（实测踩过）。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
