@@ -49,17 +49,22 @@ import yaml
 # 项目根目录（从 tests/integration/docker/ 向上三级）
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
-# Serverless 运行时目录
-RUNTIMES_DIR = PROJECT_ROOT / "platform" / "knative" / "runtimes"
+# Serverless 运行时清单所在目录。
+# 曾在 platform/knative/runtimes/ 下，`e1ccd9da`（2026-09-12"骨架冻结"）把它整体移到了
+# design/planned/knative/runtimes/（未删除、仍在版本控制内）。本模块的多数用例是按
+# docstring 所述"解析 Dockerfile 与 KService YAML 验证配置正确性 + mock 运行时行为"，
+# 不需要真实集群，所以指向新位置即可继续生效。
+RUNTIMES_DIR = PROJECT_ROOT / "design" / "planned" / "knative" / "runtimes"
+if not RUNTIMES_DIR.is_dir():  # 兜底：兼容仍把骨架放在 platform/ 下的历史分支
+    RUNTIMES_DIR = PROJECT_ROOT / "platform" / "knative" / "runtimes"
 
-# 本模块 docstring 承诺"Knative 未部署时自动跳过，不产生错误"，但缺目录时实际是在
-# fixture 里 open() 抛 FileNotFoundError —— CI 上表现为 21 例 error 而非 skip。
-# platform/knative/runtimes/ 已在 e1ccd9da（2026-09-12 "骨架冻结"）整体删除，
-# 目录不再存在，故在此落实模块自己声明的跳过语义（台账见 docs/KNOWN-FAILURES.md #18）。
+# 兜底跳过：本模块 docstring 承诺"Knative 未部署时自动跳过，不产生错误"，但缺目录时
+# 实际是在 fixture 里 open() 抛 FileNotFoundError（CI 上表现为成片 error 而非 skip）。
+# 两处路径都不存在时（例如骨架被真正移除或换目录）才跳过，落实自己声明的语义。
 if not RUNTIMES_DIR.is_dir():
     pytest.skip(
-        f"Serverless 运行时骨架未部署（{RUNTIMES_DIR.relative_to(PROJECT_ROOT)} 不存在，"
-        "随 e1ccd9da 骨架冻结移除）；恢复该组件后本模块自动重新生效",
+        f"Serverless 运行时骨架未找到（{RUNTIMES_DIR} 不存在）；"
+        "骨架恢复或换目录后本模块自动重新生效",
         allow_module_level=True,
     )
 

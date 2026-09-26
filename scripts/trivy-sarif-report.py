@@ -74,11 +74,16 @@ def main() -> int:
         print(f"ERROR: SARIF 解析失败 {args.sarif}: {exc}", file=sys.stderr)
         return 2
 
-    # key = (工具, 包, 已装版本) → {严重级集合, 修复版本集合, 漏洞编号集合}
-    agg: dict[tuple, dict] = defaultdict(lambda: {"sev": set(), "fix": set(), "ids": set()})
+    # key = (工具, 包, 已装版本) → 严重级 / 修复版本 / 漏洞编号 / **命中清单文件**
+    agg: dict[tuple, dict] = defaultdict(lambda: {"sev": set(), "fix": set(), "ids": set(), "paths": set()})
     for tool, rules, res in results:
         msg = (res.get("message") or {}).get("text", "") or ""
         rid = res.get("ruleId", "")
+        locs = {
+            str((loc.get("physicalLocation") or {}).get("artifactLocation", {}).get("uri", ""))
+            for loc in res.get("locations", []) or []
+        }
+        locs.discard("")
         pkg = _PKG.search(msg)
         if not pkg:
             # 非依赖类结果（IaC/密钥等）按规则聚合，保留可见性
@@ -87,6 +92,7 @@ def main() -> int:
             sev = rule.get("defaultConfiguration", {}).get("severity", "") or res.get("level", "")
             agg[key]["sev"].add(_norm_sev(sev))
             agg[key]["ids"].add(rid)
+            agg[key]["paths"].update(locs)
             continue
         installed = _INSTALLED.search(msg)
         key = (tool, pkg.group(1), installed.group(1) if installed else "?")
@@ -99,6 +105,9 @@ def main() -> int:
             agg[key]["fix"].add(fix.group(1).rstrip(","))
         if vuln:
             agg[key]["ids"].add(vuln.group(1))
+        # 清单路径是定位"谁引入的"的关键：avro / commons-beanutils 这类传递依赖
+        # 全靠它落到具体 pom.xml，否则报告只能说"有洞"却说不清去哪个模块改。
+        agg[key]["paths"].update(locs)
 
     if not agg:
         print("OK: SARIF 中无 CRITICAL/HIGH 且上游已发修复版的依赖漏洞")
@@ -124,8 +133,11 @@ def main() -> int:
         fixes = ", ".join(sorted(f for f in info["fix"] if f and f != "?")) or "-"
         ids = sorted(info["ids"])
         shown = ", ".join(ids[:3]) + (f" +{len(ids) - 3}" if len(ids) > 3 else "")
+        paths = sorted(info["paths"])
+        shown_paths = ", ".join(paths[:4]) + (f" +{len(paths) - 4}" if len(paths) > 4 else "")
         print(f"[{top:8s}] {pkg} @ {installed}")
         print(f"           修复版本: {fixes}")
+        print(f"           清单文件: {shown_paths or '-'}")
         print(f"           漏洞({len(ids)}): {shown}   [{tool}]")
 
     print("-" * 78)
@@ -133,11 +145,17 @@ def main() -> int:
     print("提示：--ignore-unfixed 已过滤上游无修复版的条目，故此处每一条都存在可执行的升级路径。")
 
     if args.markdown:
-        lines = ["# Trivy 依赖漏洞明细", "", "| 严重级 | 包 | 已装版本 | 修复版本 | 漏洞数 |", "|---|---|---|---|---|"]
+        lines = [
+            "# Trivy 依赖漏洞明细",
+            "",
+            "| 严重级 | 包 | 已装版本 | 修复版本 | 命中清单文件 | 漏洞数 |",
+            "|---|---|---|---|---|---|",
+        ]
         for (tool, pkg, installed), info in rows:
             top = min(info["sev"], key=lambda s: _SEV_RANK.get(s, 9), default="?")
             fixes = ", ".join(sorted(f for f in info["fix"] if f and f != "?")) or "-"
-            lines.append(f"| {top} | `{pkg}` | {installed} | {fixes} | {len(info['ids'])} ({tool}) |")
+            paths = "<br>".join(f"`{p}`" for p in sorted(info["paths"])[:6]) or "-"
+            lines.append(f"| {top} | `{pkg}` | {installed} | {fixes} | {paths} " f"| {len(info['ids'])} ({tool}) |")
         with open(args.markdown, "w", encoding="utf-8", newline="\n") as fh:
             fh.write("\n".join(lines) + "\n")
         print(f"markdown 报告已写出: {args.markdown}")
