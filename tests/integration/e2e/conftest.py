@@ -55,6 +55,7 @@ except ImportError:  # pragma: no cover — 容错：直接运行 e2e 目录时�
             "iss": "shuqing-bigdata",
             "sub": "e2e-tester",
             "tenantId": "e2e-tenant",
+            "realm_access": {"roles": list(kwargs.get("roles", ("USER",)))},
             "iat": now,
             "exp": now + 3600,
         }
@@ -191,8 +192,16 @@ def is_e2e_service_available(name: str) -> bool:
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def e2e_auth_token() -> str:
-    """E2E 测试专用 JWT token（tenantId=e2e-tenant）。"""
-    return generate_test_jwt(tenant_id="e2e-tenant", user_id="e2e-tester")
+    """E2E 测试专用 JWT token（tenantId=e2e-tenant）。
+
+    E2E 场景要"建租户 → 发凭证 → 建项目 → 跑查询"整条链，全程需要管理端权限；
+    角色放 realm_access.roles（encaps-layer 的 JwtAuthFilter 只认这里）。
+    """
+    return generate_test_jwt(
+        tenant_id="e2e-tenant",
+        user_id="e2e-tester",
+        roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"),
+    )
 
 
 @pytest.fixture(scope="session")

@@ -53,7 +53,7 @@ def test_all_modules_healthy(encaps_url, sql_gateway_url, catalog_url, rule_engi
 # ---------------------------------------------------------------------------
 # 链路 1：封装层创建租户 → SQL 网关执行 SQL
 # ---------------------------------------------------------------------------
-def test_encaps_to_sql_gateway_chain(api_client, encaps_url, sql_gateway_url):
+def test_encaps_to_sql_gateway_chain(api_admin_client, encaps_url, sql_gateway_url):
     """验证封装层创建租户后，SQL 网关能在该租户上下文执行 SQL。
 
     链路：POST /api/v1/tenants → POST /api/v1/sql/execute
@@ -126,7 +126,7 @@ def test_catalog_to_sql_gateway_chain(api_client, catalog_url, sql_gateway_url):
 # ---------------------------------------------------------------------------
 # 链路 3：封装层创建租户 → 规则引擎执行规则
 # ---------------------------------------------------------------------------
-def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
+def test_encaps_to_rule_engine_chain(api_admin_client, encaps_url, rule_engine_url):
     """验证封装层创建租户后，规则引擎能在该租户上下文创建并执行规则。
 
     链路：POST /api/v1/tenants → POST /api/v1/rules → POST /api/v1/rules/execute
@@ -251,7 +251,7 @@ def test_full_chain_all_services(
 # 链路 5：JWT token 跨服务一致性
 # ---------------------------------------------------------------------------
 def test_jwt_token_consistency_across_services(
-    api_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
+    api_admin_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
 ):
     """验证同一个 JWT token 能被 4 个模块同时接受。
 

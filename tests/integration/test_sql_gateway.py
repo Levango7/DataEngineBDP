@@ -50,7 +50,7 @@ def test_list_routes(api_client, sql_gateway_url):
     assert isinstance(body, list)
 
 
-def test_add_route(api_client, sql_gateway_url):
+def test_add_route(api_admin_client, sql_gateway_url):
     """验证 POST /api/v1/sql/routes 添加路由规则返回 201/200，且可在列表中查到。"""
     payload = {
         "pattern": "INSERT INTO",
@@ -106,7 +106,7 @@ def test_execute_sql_with_doris(api_client, sql_gateway_url):
     assert body.get("engine") == "doris"
 
 
-def test_sql_execution_flow(api_client, sql_gateway_url):
+def test_sql_execution_flow(api_admin_client, sql_gateway_url):
     """端到端 SQL 执行流程：添加路由 → 执行命中路由的 SQL → 校验引擎路由结果。
 
     场景：添加一条 ``pattern=INSERT INTO, engine=doris`` 的路由，

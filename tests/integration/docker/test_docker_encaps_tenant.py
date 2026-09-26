@@ -70,7 +70,7 @@ def test_unauthorized_with_invalid_token(encaps_tenant_url):
 # ---------------------------------------------------------------------------
 # 租户 CRUD（与 encaps-layer 的 tenants 端点契约一致——跨进程复用同前缀）
 # ---------------------------------------------------------------------------
-def test_tenant_crud_flow(api_client, encaps_tenant_url):
+def test_tenant_crud_flow(api_admin_client, encaps_tenant_url):
     """端到端验证租户 CRUD：创建(201) → 查询(200) → 列表包含 → 更新(200) → 删除(204)。"""
     payload = {
         "name": "docker-it-encaps-tenant-crud",
@@ -107,7 +107,7 @@ def test_tenant_crud_flow(api_client, encaps_tenant_url):
         api_client.delete(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
 
 
-def test_tenant_not_found(api_client, encaps_tenant_url):
+def test_tenant_not_found(api_admin_client, encaps_tenant_url):
     """验证 GET 不存在的租户 id 返回 404。"""
     resp = api_client.get(encaps_tenant_url + "/api/v1/tenants/999999")
     assert resp.status_code == 404
@@ -272,7 +272,7 @@ def test_workspace_create_and_list(api_client, encaps_tenant_url, numeric_tenant
 # ---------------------------------------------------------------------------
 # Quota（校验必填字段契约；K8s mock 下状态容忍）
 # ---------------------------------------------------------------------------
-def test_quota_validation_and_list(api_client, encaps_tenant_url, numeric_tenant_token):
+def test_quota_validation_and_list(api_admin_client, encaps_tenant_url, numeric_tenant_token):
     """验证 POST /quotas 缺 workspaceId 返回 400（Bean Validation 契约）。"""
     headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
     # 缺 workspaceId/tenantId/cpuLimit 等必填字段
@@ -303,4 +303,4 @@ def numeric_tenant_token() -> str:
     """
     from conftest import generate_test_jwt
 
-    return generate_test_jwt(tenant_id="1")
+    return generate_test_jwt(tenant_id="1", roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"))

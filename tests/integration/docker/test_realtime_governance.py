@@ -910,12 +910,20 @@ class TestInfrastructure:
         except requests.ConnectionError:
             pytest.skip("Governance service not available")
 
-    def test_prometheus_metrics_endpoint(self, governance_available):
-        """Prometheus 指标端点暴露治理指标。"""
+    def test_prometheus_metrics_endpoint(self, governance_available, auth_token):
+        """Prometheus 指标端点暴露治理指标。
+
+        必须带 Bearer token：actuator 受 Spring Security 保护（show-details=when-authorized），
+        匿名访问返回 403 是**预期行为**，不是缺陷 —— 所以这里补上凭证而不是放宽断言。
+        """
         import requests
 
         try:
-            resp = requests.get(GOVERNANCE_URL + "/actuator/prometheus", timeout=10)
+            resp = requests.get(
+                GOVERNANCE_URL + "/actuator/prometheus",
+                timeout=10,
+                headers={"Authorization": f"Bearer {auth_token}"},
+            )
             assert resp.status_code == 200
             # 验证包含治理相关指标
             text = resp.text

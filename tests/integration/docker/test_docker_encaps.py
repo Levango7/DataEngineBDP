@@ -83,7 +83,7 @@ def test_unauthorized_with_invalid_token(encaps_url):
 # ---------------------------------------------------------------------------
 # 租户 CRUD
 # ---------------------------------------------------------------------------
-def test_create_tenant(api_client, encaps_url):
+def test_create_tenant(api_admin_client, encaps_url):
     """验证 POST /api/v1/tenants 创建租户返回 201，且响应体含 id 与请求字段。"""
     payload = {
         "name": "docker-it-create-tenant",
@@ -128,7 +128,7 @@ def test_get_tenant(api_client, encaps_url, sample_tenant):
     assert body.get("name") == sample_tenant["name"]
 
 
-def test_get_tenant_not_found(api_client, encaps_url):
+def test_get_tenant_not_found(api_admin_client, encaps_url):
     """验证 GET /api/v1/tenants/{id} 对不存在的 id 返回 404。"""
     resp = api_client.get(encaps_url + "/api/v1/tenants/999999")
     assert resp.status_code == 404
@@ -154,7 +154,7 @@ def test_update_tenant(api_client, encaps_url, sample_tenant):
     assert body.get("quotaProfile") == "large"
 
 
-def test_delete_tenant(api_client, encaps_url):
+def test_delete_tenant(api_admin_client, encaps_url):
     """验证 DELETE /api/v1/tenants/{id} 删除租户返回 204。"""
     # 先创建一个待删除的租户。
     payload = {
@@ -178,7 +178,7 @@ def test_delete_tenant(api_client, encaps_url):
 # ---------------------------------------------------------------------------
 # 端到端 CRUD 流程
 # ---------------------------------------------------------------------------
-def test_tenant_crud_flow(api_client, encaps_url):
+def test_tenant_crud_flow(api_admin_client, encaps_url):
     """端到端验证租户 CRUD 完整流程：创建 → 查询 → 更新 → 删除。"""
     # 1. 创建
     create_payload = {

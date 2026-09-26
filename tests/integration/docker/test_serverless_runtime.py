@@ -52,6 +52,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 # Serverless 运行时目录
 RUNTIMES_DIR = PROJECT_ROOT / "platform" / "knative" / "runtimes"
 
+# 本模块 docstring 承诺"Knative 未部署时自动跳过，不产生错误"，但缺目录时实际是在
+# fixture 里 open() 抛 FileNotFoundError —— CI 上表现为 21 例 error 而非 skip。
+# platform/knative/runtimes/ 已在 e1ccd9da（2026-09-12 "骨架冻结"）整体删除，
+# 目录不再存在，故在此落实模块自己声明的跳过语义（台账见 docs/KNOWN-FAILURES.md #18）。
+if not RUNTIMES_DIR.is_dir():
+    pytest.skip(
+        f"Serverless 运行时骨架未部署（{RUNTIMES_DIR.relative_to(PROJECT_ROOT)} 不存在，"
+        "随 e1ccd9da 骨架冻结移除）；恢复该组件后本模块自动重新生效",
+        allow_module_level=True,
+    )
+
 # 三种运行时名称
 RUNTIMES = ("python", "java", "go")
 
