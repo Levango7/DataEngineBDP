@@ -97,6 +97,32 @@
                 <artifactId>aircompressor</artifactId>
                 <version>2.0.3</version>
             </dependency>
+
+            <!-- NebulaGraph Java 客户端：排除其自带的 okhttp 3.14.0（CVE-2021-0341 HIGH）。
+                 证据链（2026-09-26 实测）：
+                 · 3.8.4 是 vesoft client 最新的 3.x 版本，无"升级即修好"的路径；
+                   GitHub Advisory 显示 CVE-2021-0341 受影响范围 < 4.9.2，
+                   **3.x 全线没有任何修复版**，故"留在 3.x 打补丁"不可行。
+                 · 全 jar 仅 2 个类引用 okhttp3：
+                   com/facebook/thrift/transport/{THttp2Client,OkHttp3Util}.class，
+                   且只由 SyncConnection.getProtocolWithTlsHttp2()/getProtocolForHttp2() 使用；
+                 · 这两条分支受 SyncConnection.useHttp2 控制，构造器里默认 iconst_0（false），
+                   只能经 NebulaPoolConfig.setUseHttp2(true) 打开 —— 本仓 governance 代码
+                   与配置对 http2 的引用数为 0，唯一连接点是 NebulaGraphClient.java:88-95
+                   的 NebulaPool.init(List<HostAddress>, config)。
+                 => okhttp 在本项目里是图库 HTTP/2 传输的死代码依赖，排除不改变任何行为。
+                 放在根 pom 集中管理，避免后续新模块再次引入同一版本。 -->
+            <dependency>
+                <groupId>com.vesoft</groupId>
+                <artifactId>client</artifactId>
+                <version>3.8.4</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.squareup.okhttp3</groupId>
+                        <artifactId>okhttp</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

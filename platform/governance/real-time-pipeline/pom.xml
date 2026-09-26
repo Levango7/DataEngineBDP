@@ -23,7 +23,6 @@
         <flink.version>1.20.0</flink.version>
         <flink.cdc.version>3.0.1</flink.cdc.version>
         <iceberg.version>1.5.2</iceberg.version>
-        <nebula.version>3.8.4</nebula.version>
         <flink.scope>provided</flink.scope>
     </properties>
 
@@ -143,11 +142,11 @@
             <version>${iceberg.version}</version>
         </dependency>
 
-        <!-- ============ NebulaGraph Java Client（血缘图存储） ============ -->
+        <!-- ============ NebulaGraph Java Client（血缘图存储） ============
+             版本与 okhttp 排除由根 pom dependencyManagement 统一管理 ============ -->
         <dependency>
             <groupId>com.vesoft</groupId>
             <artifactId>client</artifactId>
-            <version>${nebula.version}</version>
         </dependency>
 
         <!-- ============ SQL 解析（Calcite Avatica，用于 Flink CDC SQL 字段级血缘提取） ============ -->

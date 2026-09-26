@@ -141,11 +141,11 @@
             </exclusions>
         </dependency>
 
-        <!-- NebulaGraph Java 客户端：可选图存储后端，nebula.enabled=true 时启用 -->
+        <!-- NebulaGraph Java 客户端：可选图存储后端，nebula.enabled=true 时启用。
+             版本与 okhttp 排除由根 pom dependencyManagement 统一管理 -->
         <dependency>
             <groupId>com.vesoft</groupId>
             <artifactId>client</artifactId>
-            <version>3.8.4</version>
         </dependency>
 
         <!-- Lombok -->
