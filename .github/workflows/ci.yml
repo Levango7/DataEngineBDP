@@ -458,6 +458,12 @@ jobs:
         # 必备规则名存在、pending 与生效规则不得重名。
         run: python3 scripts/check-alert-rule-contract.py
 
+      - name: Mermaid 图样样式校验（类名白名单 + WCAG 对比度 + 棘轮）
+        # 规范见 docs/图样规范.md。现存 189 个历史块不做一次性改写，
+        # 但基线只降不升：新增图必须带标准 %%{init}%% 主题块、且只能用登记过的语义类。
+        # 反向自检已做：临时加一个无主题块 + 一个自造类名，两项均被拦下。
+        run: python3 scripts/check-mermaid-style.py
+
       - name: 告警规则 → Prometheus Chart 副本一致性
         # 规则事实来源 platform/observability/rules/*.yaml，chart 只能读自身目录内文件，
         # 故用副本 + 本校验防止两处漂移（漂移会导致部署的规则与仓内规则不一致）。
