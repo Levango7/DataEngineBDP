@@ -1,4 +1,4 @@
-﻿# 文档索引
+# 文档索引
 
 > 数据引擎大数据平台（DataEngineBDP）文档导航中心。本索引汇集项目全部文档，便于快速定位。
 
@@ -21,7 +21,7 @@
 | 监控指标契约 | `../platform/observability/metric-contract.yaml` | 告警规则与看板可引用的指标清单（available / pending），标注来源与依赖的 exporter |
 | Keycloak 角色与登录配置 | `Keycloak角色与登录配置.md` | 角色模型、前端角色映射、本地/联调/生产三条登录路径、realm 角色导入与验证方法 |
 | 图样规范（Mermaid 样式基线） | `图样规范.md` | 全仓图表的统一配色语义、主题块、10 个语义类及 WCAG 对比度实测、布局约定；CI 按棘轮禁止新增未样式化图 |
-| 图样样式基线 | `mermaid-style-baseline.json` | 未样式化 Mermaid 块数量的机器可读基线（CI 闸门据此只降不升） |
+| 治理闭环修复草案 | `治理闭环修复草案.md` | 治理四环断链的实测定位（血缘双写、两个零调用方入口、规则两份）+ 四阶段接线方案；**含两项待裁决** | | 图样样式基线 | `mermaid-style-baseline.json` | 未样式化 Mermaid 块数量的机器可读基线（CI 闸门据此只降不升） |
 | 开源协议 | `../LICENSE` | Apache License 2.0 全文 |
 
 ## 用户指南
