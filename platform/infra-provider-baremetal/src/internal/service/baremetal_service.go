@@ -575,8 +575,11 @@ func (s *BareMetalService) scaleIn(ctx context.Context, cluster *model.BareMetal
 	}
 	cluster.State = model.ClusterStateRunning
 	cluster.NodeCount -= removedCount
+	// 逐节点的销毁沿用 best-effort（失败只记日志、继续处理其余节点），
+	// 但集群自身状态落库失败必须回传：否则 ScaleCluster 会把没保存成功的
+	// 集群报成扩缩容完成，节点计数与实际不一致。
 	if err := s.db.Save(cluster).Error; err != nil {
-		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群缩容后状态失败")
+		return fmt.Errorf("保存集群缩容后状态失败: %w", err)
 	}
 	return nil
 }

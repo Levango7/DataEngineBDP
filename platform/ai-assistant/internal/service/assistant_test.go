@@ -63,7 +63,7 @@ func TestAssistant_Chat_FallbackWhenDownstreamDown(t *testing.T) {
 		SessionDBPath: "file::memory:?cache=shared",
 		LlmGatewayURL: "http://127.0.0.1:1", // 不可达端口
 		Nl2SqlURL:     "http://127.0.0.1:1",
-		SqlGatewayURL: "http://127.0.0.1:1",
+		SQLGatewayURL: "http://127.0.0.1:1",
 	}
 	proxy := NewDownstreamProxy(cfg)
 	svc := NewAssistantService(store, proxy, cfg)

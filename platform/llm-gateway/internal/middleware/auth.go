@@ -143,15 +143,15 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tenantId, _ := claims["tenantId"].(string)
-		userId, _ := claims["sub"].(string)
+		tenantID, _ := claims["tenantId"].(string)
+		userID, _ := claims["sub"].(string)
 		role, _ := claims["role"].(string)
 		if role == "" {
 			role = "user"
 		}
 
-		c.Set("tenantId", tenantId)
-		c.Set("userId", userId)
+		c.Set("tenantId", tenantID)
+		c.Set("userId", userID)
 		c.Set("role", role)
 
 		c.Next()

@@ -160,7 +160,7 @@ func (h *AssistantHandler) execute(c *gin.Context) {
 	if !ok {
 		return
 	}
-	out, err := h.proxy.ExecuteSql(c.Request.Context(), req.SQL, req.Dialect, tenantID)
+	out, err := h.proxy.ExecuteSQL(c.Request.Context(), req.SQL, req.Dialect, tenantID)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

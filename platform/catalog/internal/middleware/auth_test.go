@@ -41,11 +41,11 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	r := gin.New()
 	r.Use(AuthMiddleware())
 	r.GET("/protected", func(c *gin.Context) {
-		tenantId, _ := c.Get("tenantId")
-		userId, _ := c.Get("userId")
+		tenantID, _ := c.Get("tenantId")
+		userID, _ := c.Get("userId")
 		c.JSON(http.StatusOK, gin.H{
-			"tenantId": tenantId,
-			"userId":   userId,
+			"tenantId": tenantID,
+			"userId":   userID,
 		})
 	})
 

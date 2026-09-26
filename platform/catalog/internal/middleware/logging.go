@@ -21,11 +21,11 @@ func LoggingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 		status := c.Writer.Status()
 
 		// 从 gin.Context 获取 traceId（由 tracing 中间件写入）。
-		traceId, _ := c.Get("traceId")
-		traceIdStr, _ := traceId.(string)
+		traceID, _ := c.Get("traceId")
+		traceIDStr, _ := traceID.(string)
 
 		logger.Info("request completed",
-			slog.String("traceId", traceIdStr),
+			slog.String("traceId", traceIDStr),
 			slog.String("method", method),
 			slog.String("path", path),
 			slog.Int("status", status),

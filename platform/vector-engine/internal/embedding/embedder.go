@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -177,10 +178,20 @@ func textToNgramVector(text string, dim int) []float32 {
 	return vec
 }
 
+// hashIndex 把任意整数映射到 [0, dim) 的桶下标。
+//
+// 旧实现用 byte(v)/byte(v>>8)… 手工拆字节：既是 gosec G115 报的窄化转换，
+// 也依赖 int 的补码布局（负数入参行为不确定）。改为直接哈希其十进制文本 ——
+// 无类型转换、跨平台一致，且本函数只服务内存内的 n-gram 向量（不落库），
+// 哈希取值变化不影响任何已持久化数据。
 func hashIndex(v, dim int) int {
+	if dim <= 0 {
+		return 0
+	}
 	h := fnv.New32a()
-	_, _ = h.Write([]byte{byte(v), byte(v >> 8), byte(v >> 16), byte(v >> 24)})
-	return int(h.Sum32() % uint32(dim))
+	_, _ = h.Write(strconv.AppendInt(nil, int64(v), 10))
+	// Sum32 转 int 是等宽/加宽（int 在本平台 ≥32 位），取模在 int 域完成。
+	return int(h.Sum32()) % dim
 }
 
 func sqrtFloat64(x float64) float64 {

@@ -48,7 +48,7 @@ func NewMockProvider(cfg MockConfig) *MockProvider {
 		models:  cfg.Models,
 		latency: cfg.Latency,
 	}
-	p.errorMode.Store(noError)
+	p.errorMode.Store(errNoError)
 	return p
 }
 
@@ -58,7 +58,7 @@ func (p *MockProvider) Name() string { return p.name }
 // SetError 注入错误，下次调用返回该错误。传 nil 清除错误。
 func (p *MockProvider) SetError(err error) {
 	if err == nil {
-		p.errorMode.Store(noError)
+		p.errorMode.Store(errNoError)
 		return
 	}
 	p.errorMode.Store(err)
@@ -83,7 +83,7 @@ func (p *MockProvider) loadError() error {
 		return nil
 	}
 	err, _ := v.(error)
-	if errors.Is(err, noError) {
+	if errors.Is(err, errNoError) {
 		return nil
 	}
 	return err
@@ -225,6 +225,6 @@ func mockEmbedding(s string, dim int) []float64 {
 	return v
 }
 
-// noError 是 atomic.Value 中表示"无错误"的 sentinel。
+// errNoError 是 atomic.Value 中表示"无错误"的 sentinel。
 // atomic.Value 不允许 Store nil，故用此非 nil 的零值 error。
-var noError = errors.New("no-error")
+var errNoError = errors.New("no-error")

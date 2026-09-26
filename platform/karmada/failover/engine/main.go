@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -63,14 +64,14 @@ func main() {
 	}
 	karmadaToken := os.Getenv("KARMADA_API_TOKEN")
 	karmadaClient := karmada.NewClient(karmadaURL, karmadaToken)
-	log.Printf("[%s] karmada client initialized: %s", serviceName, karmadaURL)
+	log.Printf("[%s] karmada client initialized: %s", serviceName, strconv.Quote(karmadaURL))
 
 	// 2. 初始化 Prometheus 客户端。
 	promURL := os.Getenv("PROMETHEUS_URL")
 	var promClient *prometheus.Client
 	if promURL != "" {
 		promClient = prometheus.NewClient(promURL)
-		log.Printf("[%s] prometheus client initialized: %s", serviceName, promURL)
+		log.Printf("[%s] prometheus client initialized: %s", serviceName, strconv.Quote(promURL))
 	} else {
 		log.Printf("[%s] prometheus URL not set, using karmada API only", serviceName)
 	}
@@ -117,7 +118,7 @@ func main() {
 	srv := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
-		log.Printf("[%s] version=%s listening on %s", serviceName, version, port)
+		log.Printf("[%s] version=%s listening on %s", serviceName, strconv.Quote(version), strconv.Quote(port))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v", err)
 		}
@@ -190,12 +191,17 @@ func loadDefaultPolicies(manager *failover.Manager) {
 // consumeEvents 消费迁移事件（持久化到 DB 或日志）。
 func consumeEvents(manager *failover.Manager) {
 	for event := range manager.EventChan() {
+		// G706 定向豁免：字符串字段已逐个经 strconv.Quote 转义（换行无法伪造新记录）。
+		// gosec 的污点分析对"污点结构体的字段"不做净化器传播（实测：直接 Quote、
+		// 先取本地变量再 Quote 均仍报），故此处只能显式说明；事件源为本进程内
+		// manager.EventChan()，非外部请求体。
+		//nolint:gosec // G706 已用 strconv.Quote 净化，工具无法识别结构体字段污点已被清理
 		log.Printf("[%s] failover event: id=%s %s→%s status=%s duration=%dms",
 			serviceName,
-			event.EventID,
-			event.SourceCluster,
-			event.TargetCluster,
-			event.Status,
+			strconv.Quote(event.EventID),
+			strconv.Quote(event.SourceCluster),
+			strconv.Quote(event.TargetCluster),
+			strconv.Quote(event.Status),
 			event.DurationMs,
 		)
 		// 生产环境：持久化到 FailoverEvent 表

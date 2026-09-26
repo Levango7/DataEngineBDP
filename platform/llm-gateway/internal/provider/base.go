@@ -106,7 +106,7 @@ func (b *baseConfig) doJSON(ctx context.Context, method, path string, body, out 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		raw, err := readLimitedBody(resp.Body, maxResponseBody)
 		if err != nil {
-			return fmt.Errorf("%w: upstream status %d, body read failed: %v", ErrUpstreamUnavailable, resp.StatusCode, err)
+			return fmt.Errorf("%w: upstream status %d, body read failed: %w", ErrUpstreamUnavailable, resp.StatusCode, err)
 		}
 		return fmt.Errorf("%w: upstream status %d, body=%s", ErrUpstreamUnavailable, resp.StatusCode, string(raw))
 	}

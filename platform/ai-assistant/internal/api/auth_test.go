@@ -56,7 +56,7 @@ func buildTestRouter(t *testing.T, mutate func(*config.Config)) *gin.Engine {
 		SessionDBPath: "file::memory:?cache=shared",
 		LlmGatewayURL: "http://127.0.0.1:1",
 		Nl2SqlURL:     "http://127.0.0.1:1",
-		SqlGatewayURL: "http://127.0.0.1:1",
+		SQLGatewayURL: "http://127.0.0.1:1",
 	}
 	if mutate != nil {
 		mutate(cfg)
@@ -168,7 +168,7 @@ func TestExecute_EmptyBodyTenant_BackfilledFromClaim(t *testing.T) {
 	defer fakeGateway.Close()
 
 	router := buildTestRouter(t, func(cfg *config.Config) {
-		cfg.SqlGatewayURL = fakeGateway.URL
+		cfg.SQLGatewayURL = fakeGateway.URL
 	})
 	token := makeTestToken(t, "tenant-a")
 
@@ -193,7 +193,7 @@ func TestExecute_TenantMatchesClaim_OK(t *testing.T) {
 	defer fakeGateway.Close()
 
 	router := buildTestRouter(t, func(cfg *config.Config) {
-		cfg.SqlGatewayURL = fakeGateway.URL
+		cfg.SQLGatewayURL = fakeGateway.URL
 	})
 	token := makeTestToken(t, "tenant-a")
 

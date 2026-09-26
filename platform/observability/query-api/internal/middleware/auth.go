@@ -94,12 +94,12 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		tenantId, _ := claims["tenantId"].(string)
-		userId, _ := claims["sub"].(string)
+		tenantID, _ := claims["tenantId"].(string)
+		userID, _ := claims["sub"].(string)
 		role, _ := claims["role"].(string)
 
-		c.Set("tenantId", tenantId)
-		c.Set("userId", userId)
+		c.Set("tenantId", tenantID)
+		c.Set("userId", userID)
 		c.Set("role", role)
 
 		c.Next()
@@ -140,8 +140,8 @@ func PlatformRoleMiddleware(expectedRole string) gin.HandlerFunc {
 // 若 JWT 中 tenantId 为 "platform" 或空，视为平台方误用客户方端点，返回 403。
 func TenantIsolationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tenantId, _ := c.Get("tenantId")
-		tid, ok := tenantId.(string)
+		tenantID, _ := c.Get("tenantId")
+		tid, ok := tenantID.(string)
 		if !ok || tid == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "tenantId missing in JWT"})
 			return

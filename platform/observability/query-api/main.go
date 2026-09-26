@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -132,7 +133,7 @@ func main() {
 	srv := &http.Server{Addr: addr, Handler: r, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
-		log.Printf("[%s] version=%s listening on %s (prometheus=%s)", serviceName, version, addr, promURL)
+		log.Printf("[%s] version=%s listening on %s (prometheus=%s)", serviceName, strconv.Quote(version), strconv.Quote(addr), strconv.Quote(promURL))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v", err)
 		}

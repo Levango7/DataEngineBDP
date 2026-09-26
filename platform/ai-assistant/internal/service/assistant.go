@@ -137,7 +137,7 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 			}
 			return resp, nil
 		}
-		if execResult, err := a.proxy.ExecuteSql(ctx, resp.SQL, "ANSI", req.TenantID); err == nil {
+		if execResult, err := a.proxy.ExecuteSQL(ctx, resp.SQL, "ANSI", req.TenantID); err == nil {
 			resp.Executed = true
 			_ = execResult // 结果用于后续解读（P1 扩展）
 		}
