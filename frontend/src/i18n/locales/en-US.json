@@ -182,6 +182,7 @@
     "breadcrumbNav": "Breadcrumb navigation",
     "envBadge": "Current environment",
     "notificationPanel": "Notifications and activity panel",
+    "demoDataBanner": "Sample data: no real notification source yet (no backend notifications endpoint). The entries below only demonstrate the panel layout — do not use them to judge system state.",
     "panelTabs": "Panel tabs",
     "closePanel": "Close panel",
     "noticeList": "Notification list",

@@ -206,7 +206,13 @@ const routes: RouteRecordRaw[] = [
     path: '/approvals',
     name: 'Approvals',
     component: Approvals,
-    meta: { titleKey: 'nav.items.approvals', icon: 'CircleCheck', group: 'operations' }
+    // 角色要求照抄后端 RegistrationController 的 @PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN')")
+    meta: {
+      titleKey: 'nav.items.approvals',
+      icon: 'CircleCheck',
+      group: 'operations',
+      requiresRole: ['SUPER_ADMIN', 'TENANT_ADMIN']
+    }
   },
   {
     path: '/register',
@@ -498,7 +504,8 @@ export function isTokenExpired(token: string): boolean {
 export function authGuard(
   to: RouteLocationNormalized,
   isAuthenticated: boolean,
-  token: string | null = null
+  token: string | null = null,
+  roles: readonly string[] = []
 ): boolean | Record<string, unknown> {
   if (PUBLIC_PATHS.has(to.path)) {
     if (isAuthenticated) {
@@ -513,12 +520,19 @@ export function authGuard(
   if (token && isTokenExpired(token)) {
     return { path: '/login', query: { redirect: to.fullPath, reason: 'expired' } }
   }
+
+  // 角色守卫：把后端 @PreAuthorize 已声明的限制在进入页面前就拦掉，
+  // 避免用户看到一屏只会 403 的界面。仅作体验层兜底 —— 真正的鉴权在后端。
+  const required = to.meta.requiresRole
+  if (required && required.length > 0 && !required.some((r) => roles.includes(r))) {
+    return { path: '/dashboard', query: { denied: to.path } }
+  }
   return true
 }
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
-  return authGuard(to, authStore.isAuthenticated, authStore.token)
+  return authGuard(to, authStore.isAuthenticated, authStore.token, authStore.user?.roles ?? [])
 })
 
 /** 按路由 meta.titleKey 设置文档标题（词条未合并时会回退显示原始 key）。 */

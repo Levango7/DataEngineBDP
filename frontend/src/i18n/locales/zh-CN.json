@@ -182,6 +182,7 @@
     "breadcrumbNav": "面包屑导航",
     "envBadge": "当前环境标识",
     "notificationPanel": "通知与动态面板",
+    "demoDataBanner": "示例数据：通知中心的真实数据源尚未提供（后端无 notifications 接口），以下条目仅用于展示面板样式，请勿据此判断系统状态。",
     "panelTabs": "面板标签页",
     "closePanel": "关闭面板",
     "noticeList": "通知列表",
