@@ -276,7 +276,7 @@
 
 | 语言 | 版本 | 职责边界 | 选型依据 |
 | --- | --- | --- | --- |
-| **Java** | 17 | 主服务 / 治理 / 封装层 | Spring Boot 3.2.x 生态成熟（JPA / Security / WebFlux），企业级治理完备 |
+| **Java** | 17 | 主服务 / 治理 / 封装层 | Spring Boot 4.1.1 生态成熟（JPA / Security / WebFlux），企业级治理完备 |
 | **Go** | 1.22+ | CLI 工具 / 网关 / 轻量服务 | 编译单二进制（无 JVM 开销），启动毫秒级，信创 ARM64 一键交叉编译 |
 | **Python** | 3.11 | AI / 数据 / 模板 / 运营 | FastAPI + Pydantic 异步类型安全，ML 生态丰富（sklearn / MLflow / LLaMA-Factory） |
 
@@ -289,10 +289,10 @@
 │     └─ 是 → Python 3.11（FastAPI + Pydantic）
 │
 ├─ 2. 是否为 CLI 工具 / 网关 / 极低延迟轻量服务？
-│     └─ 是 → Go 1.22+（Gin / cobra，单二进制）
+│     └─ 是 → Go 1.26+（Gin / cobra，单二进制）
 │
 ├─ 3. 是否需要 K8s 资源翻译 / JPA 事务 / Spring Security 鉴权 / 云 SDK？
-│     └─ 是 → Java 17（Spring Boot 3.2.x）
+│     └─ 是 → Java 17（Spring Boot 4.1.1）
 │
 └─ 4. 混合场景？
       ├─ 计算密集 + 低延迟 → Go
@@ -302,7 +302,7 @@
 
 ### 11.3 选型约束
 
-- **禁止**：引入 Java 17 / Go 1.22+ / Python 3.11 以外的后端语言（TypeScript 仅限前端/IDE）。
+- **禁止**：引入 Java 17 / Go 1.26+ / Python 3.11 以外的后端语言（TypeScript 仅限前端/IDE）。
 - **禁止**：同一组件混用多语言（governance/finops/karmada 子模块按职责拆分除外）。
 - **禁止**：因个人偏好选型；必须依据 §11.2 决策树。
 - 新组件选型须在详细设计文档中记录语言选型依据（引用 ADR-001 §5.2 选型决策表）。
@@ -312,7 +312,7 @@
 | 语言 | 组件数 | 代表组件 |
 | --- | --- | --- |
 | Java 17 | 24 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
-| Go 1.22+ | 10 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、infra-provider-baremetal、karmada-api、karmada-failover-api、karmada-failover-engine |
+| Go 1.26+ | 10 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、infra-provider-baremetal、karmada-api、karmada-failover-api、karmada-failover-engine |
 | Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates、open-api-catalog、asset-exchange、business-portal、chunker、llm-gateway/evaluation |
 
 > 组件计数口径见 [模块数口径定义](docs/模块数口径定义.md)。
