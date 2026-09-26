@@ -67,6 +67,33 @@
                 <artifactId>commons-compress</artifactId>
                 <version>1.26.0</version>
             </dependency>
+            <!-- 2026-09-26 安全修复（Trivy fs run #1241 明细；三项均为传递依赖，
+                 全仓无显式版本声明，故按上面同款做法在此集中 pin）：
+                 · avro 1.9.2 / 1.11.3 -> 1.11.4（CRITICAL）
+                   引入链：hadoop-client 3.4.1 -> hadoop-common -> avro（metadata-collector）；
+                           iceberg-core 1.5.2 -> avro（real-time-pipeline、stream-batch-scheduler）。
+                 · commons-beanutils 1.9.4 -> 1.11.0（HIGH）
+                   引入链：hadoop-client -> hadoop-common -> commons-beanutils（metadata-collector）。
+                   注：finops/dashboard 经 opencsv 已经是 1.11.0，此处对齐而非另起一套。
+                 · aircompressor 0.26 -> 0.27（HIGH）
+                   引入链：iceberg-core 1.5.2 -> aircompressor。
+                   选 0.27 而非 2.0.3：2.x 是跨大版本 API 变更，Iceberg 1.5.2 按 0.x 编译，
+                   直接跳 2.x 属功能风险；0.27 已含该 CVE 的修复。 -->
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>1.11.4</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-beanutils</groupId>
+                <artifactId>commons-beanutils</artifactId>
+                <version>1.11.0</version>
+            </dependency>
+            <dependency>
+                <groupId>io.airlift</groupId>
+                <artifactId>aircompressor</artifactId>
+                <version>0.27</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

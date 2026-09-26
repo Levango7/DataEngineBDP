@@ -25,10 +25,16 @@
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
         <debezium.version>1.9.7.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
-        <!-- 2026-09-24 安全修复：CVE-2026-42198（HIGH），42.7.3 -> 42.7.11 -->
-        <postgres.connector.version>42.7.11</postgres.connector.version>
+        <!-- 2026-09-24 安全修复：CVE-2026-42198（HIGH），42.7.3 -> 42.7.11
+             2026-09-26 再抬：CVE-2026-54513/54515（HIGH），42.7.11 -> 42.7.13。
+             对齐 Spring Boot 4.1.1 BOM 已托管的 42.7.13 —— 其余 19 个模块不写版本、
+             由 BOM 直接拿到 42.7.13，只有本模块因显式覆盖才停在旧版。 -->
+        <postgres.connector.version>42.7.13</postgres.connector.version>
         <oracle.connector.version>23.26.3.0.0</oracle.connector.version>
-        <kafka.clients.version>3.8.1</kafka.clients.version>
+        <!-- 2026-09-26 安全修复：CVE-2026-41845/41850/43512/43513（HIGH）。
+             取 Trivy 给出的修复版 3.9.2 而非 BOM 的 4.2.1：3.x->4.x 是跨大版本，
+             本模块还带着 Debezium 1.9.7，未验证前不冒这个版本跨度。 -->
+        <kafka.clients.version>3.9.2</kafka.clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <flink.scope>provided</flink.scope>
     </properties>

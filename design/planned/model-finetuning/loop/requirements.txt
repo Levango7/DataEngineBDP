@@ -1,8 +1,11 @@
-# 微调→评测→部署闭环编排服务依赖
-fastapi==0.141.1
-uvicorn[standard]==0.29.0
-pydantic==2.13.4
-httpx==0.28.1
-loguru==0.7.3
-websockets==12.0
-python-multipart==0.0.9
+# 微调→评测→部署闭环编排服务依赖
+fastapi==0.141.1
+uvicorn[standard]==0.29.0
+pydantic==2.13.4
+httpx==0.28.1
+loguru==0.7.3
+websockets==12.0
+# 2026-09-26 安全修复（Trivy run #1241 明细，HIGH）：0.0.9 -> 0.0.30。
+# 注：本组件在 design/planned/ 下、当前不构建不部署，但仓库级 `trivy fs` 仍会扫到，
+#     所以照修；是否长期在此维护它，取决于"计划组件要不要纳入扫描口径"这一待决问题。
+python-multipart==0.0.30
