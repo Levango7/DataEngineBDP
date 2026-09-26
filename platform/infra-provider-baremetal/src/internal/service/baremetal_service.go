@@ -25,8 +25,9 @@ import (
 
 // provisionTask 正在进行的供应任务句柄
 type provisionTask struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx       context.Context
+	cancel    context.CancelFunc
+	clusterID string // 该任务所属集群，用于销毁集群时一并取消其节点供应任务
 }
 
 // BareMetalService 裸金属供应服务
@@ -37,17 +38,30 @@ type BareMetalService struct {
 	logger    *logrus.Entry
 	provision map[string]*provisionTask // 正在进行的供应任务
 	mu        sync.RWMutex
+	// baseCtx 承载"必须活过 HTTP 请求"的异步供应：一次 Redfish 配置要几十分钟，
+	// 挂在请求 ctx 上会随响应返回被取消，节点留在半成品状态。
+	// 它同时给出停机取消点 —— Shutdown 后所有在途供应收到 cancel（停机路径见 main.go）。
+	baseCtx context.Context
+	cancel  context.CancelFunc
 }
 
 // NewBareMetalService 创建裸金属供应服务
 func NewBareMetalService(db *gorm.DB, redfish *RedfishClient, k8s *K8sBootstrapper, logger *logrus.Entry) *BareMetalService {
+	baseCtx, cancel := context.WithCancel(context.Background())
 	return &BareMetalService{
 		db:        db,
 		redfish:   redfish,
 		k8s:       k8s,
 		logger:    logger,
 		provision: make(map[string]*provisionTask),
+		baseCtx:   baseCtx,
+		cancel:    cancel,
 	}
+}
+
+// Shutdown 取消全部在途异步供应，进程退出前调用。重复调用安全。
+func (s *BareMetalService) Shutdown() {
+	s.cancel()
 }
 
 // AutoMigrate 自动迁移数据库表
@@ -110,10 +124,10 @@ func (s *BareMetalService) CreateCluster(ctx context.Context, req *model.CreateC
 		return nil, fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	// 异步启动供应流程
-	provisionCtx, cancel := context.WithCancel(context.Background())
+	// 异步启动供应流程（从 baseCtx 派生：活过 HTTP 请求，但停机时可被取消）
+	provisionCtx, cancel := context.WithCancel(s.baseCtx)
 	s.mu.Lock()
-	s.provision[clusterID] = &provisionTask{ctx: provisionCtx, cancel: cancel}
+	s.provision[clusterID] = &provisionTask{ctx: provisionCtx, cancel: cancel, clusterID: clusterID}
 	s.mu.Unlock()
 
 	go s.provisionCluster(provisionCtx, clusterID, req)
@@ -148,11 +162,13 @@ func (s *BareMetalService) DeleteCluster(ctx context.Context, clusterID string) 
 		return fmt.Errorf("集群不存在: %w", err)
 	}
 
-	// 取消正在进行的供应
+	// 取消正在进行的供应：集群级任务 + 该集群下所有节点级硬件供应任务
 	s.mu.Lock()
-	if task, ok := s.provision[clusterID]; ok {
-		task.cancel()
-		delete(s.provision, clusterID)
+	for key, task := range s.provision {
+		if key == clusterID || task.clusterID == clusterID {
+			task.cancel()
+			delete(s.provision, key)
+		}
 	}
 	s.mu.Unlock()
 
@@ -472,8 +488,11 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 	return nil
 }
 
-// scaleOut 扩容
-func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+// scaleOut 扩容。
+//
+// ctx 用于同步的落库；异步硬件供应不挂在它上面（原因见 BareMetalService.baseCtx 注释），
+// 而是从 baseCtx 派生并登记进 s.provision，使停机时能统一取消。
+func (s *BareMetalService) scaleOut(ctx context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
 	// 防御性检查：specs 为空时直接返回，避免下方 specs[0] 越界 panic。
 	// 修复：原代码未校验 specs 长度，空切片会导致 index out of range。
 	if len(specs) == 0 {
@@ -481,21 +500,11 @@ func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalC
 	}
 	for _, spec := range specs {
 		node := buildNodeFromSpec(cluster.ID, spec)
-		if err := s.db.Create(node).Error; err != nil {
+		if err := s.db.WithContext(ctx).Create(node).Error; err != nil {
 			return err
 		}
 		// 异步供应新节点(简化: 仅硬件供应)
-		go func(n *model.BareMetalNode) {
-			provisionCtx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-			defer cancel()
-			if err := s.provisionNodeHardware(provisionCtx, n); err != nil {
-				n.State = model.NodeStateFailed
-				n.LastError = err.Error()
-				if saveErr := s.db.Save(n).Error; saveErr != nil {
-					s.logger.WithError(saveErr).WithField("node", n.Hostname).Warn("保存节点失败状态失败")
-				}
-			}
-		}(node)
+		go s.provisionNodeAsync(node)
 
 		switch spec.Role {
 		case model.NodeRoleControlPlane:
@@ -510,6 +519,33 @@ func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalC
 		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群扩容后状态失败")
 	}
 	return nil
+}
+
+// provisionNodeAsync 在后台完成单个节点的硬件供应，并把任务登记进 s.provision
+// 以便取消（键与 provisionCluster 的 cluster 级键共用一张表，故加 node: 前缀区分）。
+func (s *BareMetalService) provisionNodeAsync(n *model.BareMetalNode) {
+	key := "node:" + n.UUID
+	provisionCtx, cancel := context.WithTimeout(s.baseCtx, 30*time.Minute)
+	defer cancel()
+
+	s.mu.Lock()
+	s.provision[key] = &provisionTask{ctx: provisionCtx, cancel: cancel, clusterID: n.ClusterID}
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		if task, ok := s.provision[key]; ok && task.ctx == provisionCtx {
+			delete(s.provision, key)
+		}
+		s.mu.Unlock()
+	}()
+
+	if err := s.provisionNodeHardware(provisionCtx, n); err != nil {
+		n.State = model.NodeStateFailed
+		n.LastError = err.Error()
+		if saveErr := s.db.Save(n).Error; saveErr != nil {
+			s.logger.WithError(saveErr).WithField("node", n.Hostname).Warn("保存节点失败状态失败")
+		}
+	}
 }
 
 // scaleIn 缩容
