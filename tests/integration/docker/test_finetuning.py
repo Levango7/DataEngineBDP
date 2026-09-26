@@ -46,9 +46,14 @@ FINETUNE_URL = os.environ.get("FINETUNE_URL", "")
 HTTP_MODE = bool(FINETUNE_URL)
 
 # 微调引擎项目根目录（用于 TestClient 模式导入）
+# 组件已于 2026-09-12 降级为规划（platform/model-finetuning -> design/planned/...）。
+# 根目录不存在时 sys.path 会插入空目录，`import main` 便静默导入到同名的其它
+# main 模块（实测报 "module 'main' has no attribute 'app'"，41 个用例无法归因）。
 _PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "platform", "model-finetuning")
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "design", "planned", "model-finetuning")
 )
+if not HTTP_MODE and not os.path.isdir(_PROJECT_ROOT):
+    pytest.skip(f"微调引擎组件缺失：{_PROJECT_ROOT}", allow_module_level=True)
 
 
 # ============================================================

@@ -116,6 +116,12 @@ E2E_BASE_URLS: Dict[str, str] = {
     "nl2sql": os.environ.get("NL2SQL_URL", "http://localhost:18098"),
     "finetuning": os.environ.get("FINETUNING_URL", "http://localhost:18099"),
     "materialized_view": os.environ.get("MATERIALIZED_VIEW_URL", "http://localhost:18100"),
+    # karmada / observability 的键必须存在：下方 karmada_url()/observability_url()
+    # fixture 直接按 E2E_BASE_URLS["karmada"] 取值，缺键即 KeyError，
+    # 会让"服务未部署本应跳过"的用例变成 13 个 error（实测）。
+    # 端口另起 18101/18102：18090/18093 已让渡给入栈的 encaps-tenant/business-portal。
+    "karmada": os.environ.get("KARMADA_URL", "http://localhost:18101"),
+    "observability": os.environ.get("OBSERVABILITY_URL", "http://localhost:18102"),
 }
 
 E2E_HEALTH_PATHS: Dict[str, str] = {
@@ -136,6 +142,10 @@ E2E_HEALTH_PATHS: Dict[str, str] = {
     "nl2sql": "/health",
     "finetuning": "/health",
     "materialized_view": "/api/v1/health",
+    # 有证据的健康端点：federated-query 见 FederatedQueryController.java:87，
+    # observability query-api 见 handler_test.go:35 注册的 /health。
+    "karmada": "/api/v1/federated/health",
+    "observability": "/health",
 }
 
 # 核心模块（封装层/SQL网关/Catalog/规则引擎）的基础 URL 与健康检查路径。

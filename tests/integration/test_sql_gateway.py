@@ -58,7 +58,7 @@ def test_add_route(api_admin_client, sql_gateway_url):
         "priority": 10,
         "enabled": True,
     }
-    resp = api_client.post(sql_gateway_url + "/api/v1/sql/routes", json=payload)
+    resp = api_admin_client.post(sql_gateway_url + "/api/v1/sql/routes", json=payload)
     # 兼容 201 与 200 两种成功状态码。
     assert resp.status_code in (200, 201)
     body = resp.json()
@@ -66,7 +66,7 @@ def test_add_route(api_admin_client, sql_gateway_url):
     assert body.get("pattern") == "INSERT INTO"
 
     # 验证列表中包含刚添加的路由。
-    list_resp = api_client.get(sql_gateway_url + "/api/v1/sql/routes")
+    list_resp = api_admin_client.get(sql_gateway_url + "/api/v1/sql/routes")
     assert list_resp.status_code == 200
     routes = list_resp.json()
     assert any(r.get("pattern") == "INSERT INTO" for r in routes)
@@ -119,7 +119,7 @@ def test_sql_execution_flow(api_admin_client, sql_gateway_url):
         "priority": 5,
         "enabled": True,
     }
-    add_resp = api_client.post(
+    add_resp = api_admin_client.post(
         sql_gateway_url + "/api/v1/sql/routes", json=route_payload
     )
     assert add_resp.status_code in (200, 201)
@@ -129,7 +129,7 @@ def test_sql_execution_flow(api_admin_client, sql_gateway_url):
         "sql": "INSERT INTO it_flow VALUES (1, 'a')",
         "tenantId": "it-flow",
     }
-    exec_resp = api_client.post(
+    exec_resp = api_admin_client.post(
         sql_gateway_url + "/api/v1/sql/execute", json=exec_payload
     )
     assert exec_resp.status_code == 200

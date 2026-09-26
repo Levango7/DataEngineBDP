@@ -78,38 +78,38 @@ def test_tenant_crud_flow(api_admin_client, encaps_tenant_url):
         "namespace": "ns-it-encaps-tenant",
         "quotaProfile": "small",
     }
-    create_resp = api_client.post(encaps_tenant_url + "/api/v1/tenants", json=payload)
+    create_resp = api_admin_client.post(encaps_tenant_url + "/api/v1/tenants", json=payload)
     assert create_resp.status_code == 201
     tenant = unwrap_response(create_resp.json())
     tenant_id = tenant["id"]
 
     try:
         # 查询详情
-        get_resp = api_client.get(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
+        get_resp = api_admin_client.get(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
         assert get_resp.status_code == 200
         assert unwrap_response(get_resp.json())["name"] == payload["name"]
 
         # 列表包含
-        list_resp = api_client.get(encaps_tenant_url + "/api/v1/tenants")
+        list_resp = api_admin_client.get(encaps_tenant_url + "/api/v1/tenants")
         assert list_resp.status_code == 200
         ids = [t.get("id") for t in unwrap_response(list_resp.json())]
         assert tenant_id in ids
 
         # 更新
         update_payload = {**payload, "quotaProfile": "large"}
-        update_resp = api_client.put(
+        update_resp = api_admin_client.put(
             encaps_tenant_url + f"/api/v1/tenants/{tenant_id}", json=update_payload
         )
         assert update_resp.status_code == 200
         assert unwrap_response(update_resp.json()).get("quotaProfile") == "large"
     finally:
         # 清理
-        api_client.delete(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
+        api_admin_client.delete(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
 
 
 def test_tenant_not_found(api_admin_client, encaps_tenant_url):
     """验证 GET 不存在的租户 id 返回 404。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/tenants/999999")
+    resp = api_admin_client.get(encaps_tenant_url + "/api/v1/tenants/999999")
     assert resp.status_code == 404
 
 
@@ -276,13 +276,13 @@ def test_quota_validation_and_list(api_admin_client, encaps_tenant_url, numeric_
     """验证 POST /quotas 缺 workspaceId 返回 400（Bean Validation 契约）。"""
     headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
     # 缺 workspaceId/tenantId/cpuLimit 等必填字段
-    resp = api_client.post(
+    resp = api_admin_client.post(
         encaps_tenant_url + "/api/v1/quotas", json={"name": "invalid"}, headers=headers
     )
     assert resp.status_code == 400
 
     # 列表端点可用
-    list_resp = api_client.get(
+    list_resp = api_admin_client.get(
         encaps_tenant_url + "/api/v1/quotas", headers=headers
     )
     assert list_resp.status_code == 200
