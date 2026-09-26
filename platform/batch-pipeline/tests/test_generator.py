@@ -15,7 +15,6 @@ from datetime import datetime
 import os
 import random
 
-
 from batch_pipeline.generator import (
     CATEGORIES,
     CHANNELS,

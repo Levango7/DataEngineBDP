@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import os
 
-
 from batch_pipeline.helpers import json_load
 from batch_pipeline.metrics import MetricsRecorder
 

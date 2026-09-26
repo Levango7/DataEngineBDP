@@ -25,7 +25,6 @@ import threading
 from typing import Any
 import uuid
 
-
 from batch_pipeline.helpers import (
     _iceberg_path_is_table_name,
     abs_path,

@@ -17,7 +17,6 @@ import json
 import logging
 import os
 
-
 from batch_pipeline.logging_setup import (
     BatchLogFilter,
     JsonFormatter,
