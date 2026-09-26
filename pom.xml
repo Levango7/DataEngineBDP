@@ -75,10 +75,13 @@
                  · commons-beanutils 1.9.4 -> 1.11.0（HIGH）
                    引入链：hadoop-client -> hadoop-common -> commons-beanutils（metadata-collector）。
                    注：finops/dashboard 经 opencsv 已经是 1.11.0，此处对齐而非另起一套。
-                 · aircompressor 0.26 -> 0.27（HIGH）
+                 · aircompressor 0.26 -> 2.0.3（HIGH，CVE-2025-67721）
                    引入链：iceberg-core 1.5.2 -> aircompressor。
-                   选 0.27 而非 2.0.3：2.x 是跨大版本 API 变更，Iceberg 1.5.2 按 0.x 编译，
-                   直接跳 2.x 属功能风险；0.27 已含该 CVE 的修复。 -->
+                   注：先试过保守的 0.27，实测 Trivy 仍报同一条 —— 该 CVE 的修复版
+                   只有 2.0.3，0.27 不在修复范围内，保守版本等于白抬。故取 2.0.3，
+                   并对 real-time-pipeline / stream-batch-scheduler 跑全量单测验证。
+                   ⚠ 残留风险：这两个模块的 Iceberg 读写路径若无单测覆盖，
+                   单测绿不等于运行期无事，首次实跑 Iceberg 表时需重点观察。 -->
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
@@ -92,7 +95,7 @@
             <dependency>
                 <groupId>io.airlift</groupId>
                 <artifactId>aircompressor</artifactId>
-                <version>0.27</version>
+                <version>2.0.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
