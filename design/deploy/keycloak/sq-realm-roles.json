@@ -30,6 +30,14 @@
         "description": "普通用户：仅业务功能，不含管理端点",
         "composite": false,
         "attributes": {}
+      },
+      {
+        "name": "SQL_GATEWAY_WRITER",
+        "description": "SQL 网关路由规则写权限：可新增/变更查询路由与改写规则（SqlGatewayController 的 POST /api/v1/sql/routes）",
+        "composite": false,
+        "attributes": {
+          "grants": "POST /api/v1/sql/routes"
+        }
       }
     ]
   },
