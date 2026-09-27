@@ -604,8 +604,11 @@ def _python_components_finalizer():
 # 测试数据 fixtures（创建后自动清理，保证测试相互独立）
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def sample_tenant(api_client, encaps_url):
+def sample_tenant(api_admin_client, encaps_url):
     """创建一个示例租户，测试结束后自动删除。
+
+    必须用 admin 客户端：TenantController 类级要求 SUPER_ADMIN，
+    USER 角色 POST /api/v1/tenants 会 403（docker 腿实测同类问题）。
 
     Yields:
         dict: 已创建租户的 JSON 表示（含 id）。
@@ -616,7 +619,7 @@ def sample_tenant(api_client, encaps_url):
         "namespace": "ns-it-test",
         "quotaProfile": "medium",
     }
-    resp = api_client.post(
+    resp = api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json=payload,
     )
@@ -626,7 +629,7 @@ def sample_tenant(api_client, encaps_url):
 
     # 清理：删除创建的租户（若仍存在）。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant.get('id')}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant.get('id')}")
     except requests.RequestException:
         pass
 

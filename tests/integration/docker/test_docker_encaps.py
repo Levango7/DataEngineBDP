@@ -221,8 +221,12 @@ def test_tenant_crud_flow(api_admin_client, encaps_url):
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def sample_tenant(api_client, encaps_url):
+def sample_tenant(api_admin_client, encaps_url):
     """创建一个示例租户，测试结束后自动删除。
+
+    用 admin 客户端而非 api_client：TenantController 类级要求 SUPER_ADMIN，
+    USER 角色建租户会 403 并让所有依赖本 fixture 的用例直接 ERROR
+    （#1248 实测 test_list_tenants / test_get_tenant / test_update_tenant 即此因）。
 
     Yields:
         创建后的租户字典（含 id 等字段）。
@@ -234,7 +238,7 @@ def sample_tenant(api_client, encaps_url):
         "quotaProfile": "small",
         "status": "ACTIVE",
     }
-    resp = api_client.post(encaps_url + "/api/v1/tenants", json=payload)
+    resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=payload)
     assert resp.status_code == 201
     tenant = unwrap_response(resp.json())
 
@@ -242,6 +246,6 @@ def sample_tenant(api_client, encaps_url):
 
     # 清理。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
     except Exception:
         pass
