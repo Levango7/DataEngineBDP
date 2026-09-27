@@ -174,7 +174,12 @@ def test_encaps_to_rule_engine_chain(api_admin_client, encaps_url, rule_engine_u
 # 链路 4：全链路 - 创建租户 → 创建规则 → 执行规则 → 查询 Catalog → 执行 SQL
 # ---------------------------------------------------------------------------
 def test_full_chain_all_services(
-    api_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
+    api_client,
+    api_admin_client,
+    encaps_url,
+    sql_gateway_url,
+    catalog_url,
+    rule_engine_url,
 ):
     """验证全链路：4 个模块协同工作。
 
@@ -186,7 +191,10 @@ def test_full_chain_all_services(
     5. SQL 网关执行查询
     """
     # 1. 封装层创建租户。
-    tenant = unwrap_response(api_client.post(
+    # TenantController 类级要求 SUPER_ADMIN（见 TenantController.java:47），
+    # 用 USER 客户端会 403 → unwrap_response 后取 ['id'] 直接 KeyError（#1248 实测）。
+    # 后续步骤仍用 api_client：只有租户 CRUD 需要更高角色，不放大其余权限。
+    tenant = unwrap_response(api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json={
             "name": "docker-full-chain-tenant",
