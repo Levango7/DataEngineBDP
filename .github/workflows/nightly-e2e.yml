@@ -197,8 +197,11 @@ jobs:
               echo "::warning::$comp 未找到 Dockerfile，跳过"
               continue
             fi
-            echo "构建 sq/$comp:0.1.0（上下文 $dir）"
-            if docker build -q -t "sq/$comp:0.1.0" "$dir"; then
+            # 构建上下文必须是仓库根：这些 Dockerfile 里是 COPY platform/<组件>/src ...
+            # （与 docker-compose.yml 的 context: ../.. + dockerfile: platform/x/Dockerfile 一致）。
+            # 用组件目录作上下文会报 "/platform/<组件>/src: not found"（实测）。
+            echo "构建 sq/$comp:0.1.0（dockerfile $dir/Dockerfile，上下文 .）"
+            if docker build -q -t "sq/$comp:0.1.0" -f "$dir/Dockerfile" .; then
               images="$images sq/$comp:0.1.0"
             else
               echo "::warning::$comp 构建失败，跳过导入"
@@ -206,7 +209,8 @@ jobs:
           done
           if [ -n "$images" ]; then
             # shellcheck disable=SC2086
-            docker save $images | k3s ctr images import -
+            # k3s 的 containerd socket 归 root，非 sudo 直连会 permission denied（实测）
+            docker save $images | sudo k3s ctr images import -
             kubectl apply -f deploy/k3s/manifests/namespace.yaml
             kubectl apply -f deploy/k3s/manifests/ || echo "::warning::部分 manifest apply 失败（未构建的组件预期如此）"
             echo "等待链路相关 Deployment 出现可用副本（最多 420s）"
