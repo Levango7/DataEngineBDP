@@ -1946,6 +1946,21 @@ jobs:
           python -m pytest -v --tb=short --html=test-report.html --self-contained-html
           echo "集成测试执行完成"
 
+      - name: 失败时抓取容器日志（定位 5xx/4xx 真因）
+        # 为什么需要：pytest 的 --tb=short 只给出客户端看到的响应码（如 "assert 500 == 200"），
+        # 服务端抛出的异常与堆栈在容器里。实测 #1249 的 3 个 account 500 与 1 个 projects 409
+        # 就无法从 pytest 输出归因，只能靠容器日志区分"缺租户上下文"与别的成因。
+        if: env.it_skip != 'true' && failure()
+        working-directory: tests/integration
+        run: |
+          echo "=== 容器状态 ==="
+          docker compose ps -a || true
+          echo "=== encaps-tenant / encaps-layer 日志（各 200 行）==="
+          docker compose logs --tail=200 encaps-tenant || true
+          docker compose logs --tail=200 encaps-layer || true
+          echo "=== 其余服务错误行摘要 ==="
+          docker compose logs --tail=300 2>&1 | grep -E "ERROR|Exception|Caused by" | head -120 || true
+
       - name: 上传集成测试报告
         # always()：pytest 失败时也尽量上传已生成的报告辅助排查
         if: env.it_skip != 'true' && always()
