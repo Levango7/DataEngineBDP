@@ -180,6 +180,41 @@ jobs:
           kubectl wait --for=condition=Ready node --all --timeout=300s
           kubectl get nodes -o wide
 
+      - name: 构建并导入链路业务镜像
+        # 为什么补这一步：本 job 此前只装集群不部署服务，于是五链路用例整体 SKIPPED
+        # ——即"绿但空跑"（见本 job 开头注释与 run_k3s_integration.py 的退出码语义）。
+        # 导入方式沿用仓库自己验证过的路子（deploy/k3s/deployment_verification_report.md:26）：
+        # docker build → docker save | k3s ctr images import，构建上下文用组件目录
+        # （与 deploy/k3s/build_all.ps1 的 `docker build -t $image $path` 一致）。
+        # 只构建五链路真正需要的组件；其余 manifest 的 Pod 会停在 ImagePullBackOff，
+        # 由 conftest 的 ensure_k3s_services_deployed() 自身容忍 wait 超时，不拖红。
+        run: |
+          set -uo pipefail
+          images=""
+          for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates; do
+            dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
+            if [ -z "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
+              echo "::warning::$comp 未找到 Dockerfile，跳过"
+              continue
+            fi
+            echo "构建 sq/$comp:0.1.0（上下文 $dir）"
+            if docker build -q -t "sq/$comp:0.1.0" "$dir"; then
+              images="$images sq/$comp:0.1.0"
+            else
+              echo "::warning::$comp 构建失败，跳过导入"
+            fi
+          done
+          if [ -n "$images" ]; then
+            # shellcheck disable=SC2086
+            docker save $images | k3s ctr images import -
+            kubectl apply -f deploy/k3s/manifests/namespace.yaml
+            kubectl apply -f deploy/k3s/manifests/ || echo "::warning::部分 manifest apply 失败（未构建的组件预期如此）"
+            echo "等待链路相关 Deployment 出现可用副本（最多 420s）"
+            kubectl -n shuqing wait --for=condition=Available deployment --all --timeout=420s || \
+              echo "::warning::部分 Deployment 未就绪，交由用例自身的可用性判定处理"
+          fi
+          kubectl -n shuqing get pods -o wide | head -40
+
       - name: 安装集成测试依赖
         run: pip install -r tests/integration/requirements.txt -q
 
