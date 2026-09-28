@@ -213,9 +213,33 @@ jobs:
             docker save $images | sudo k3s ctr images import -
             kubectl apply -f deploy/k3s/manifests/namespace.yaml
             kubectl apply -f deploy/k3s/manifests/ || echo "::warning::部分 manifest apply 失败（未构建的组件预期如此）"
-            echo "等待链路相关 Deployment 出现可用副本（最多 420s）"
-            kubectl -n shuqing wait --for=condition=Available deployment --all --timeout=420s || \
-              echo "::warning::部分 Deployment 未就绪，交由用例自身的可用性判定处理"
+            # 链路所需 5 个组件必须真的 Ready：此处原先只发 warning，导致 chain1-4
+            # 全部在 fixture setup 阶段 ERROR 却不报"谁没起来"，把基础设施问题伪装成用例问题
+            # （run 36345945597 实测）。改为硬失败并打印现场。
+            echo "等待链路组件 Deployment 可用（每个最多 300s）"
+            notready=""
+            for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine; do
+              if ! kubectl -n shuqing wait --for=condition=Available "deployment/${comp}" --timeout=300s; then
+                notready="$notready $comp"
+              fi
+            done
+            # chain5 的 helm install 需要目标命名空间预先存在，否则报
+            # namespaces "energy" not found（run 36345945597 实测）
+            kubectl create namespace energy --dry-run=client -o yaml | kubectl apply -f -
+            if [ -n "$notready" ]; then
+              echo "::error::以下链路组件未在期限内 Ready:$notready"
+              kubectl -n shuqing get pods -o wide || true
+              for comp in $notready; do
+                echo "--- $comp 详情 ---"
+                kubectl -n shuqing describe deployment "$comp" | tail -20 || true
+                for pod in $(kubectl -n shuqing get pods -l "app=$comp" -o name 2>/dev/null | head -2); do
+                  kubectl -n shuqing describe "$pod" | tail -25 || true
+                  kubectl -n shuqing logs "$pod" --tail=60 || true
+                done
+              done
+              exit 1
+            fi
+            kubectl -n shuqing get pods -o wide | head -40
           fi
           kubectl -n shuqing get pods -o wide | head -40
 
