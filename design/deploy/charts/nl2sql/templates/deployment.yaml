@@ -36,6 +36,12 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      # k8s 会为同命名空间的 Service 向 Pod 注入 <SVC>_PORT=tcp://IP:PORT 形式的链接变量；
+      # 独立安装（release 名=chart 名，APISIX 上游即按 chart 名）时 Service 名等于 chart 名，
+      # 与 config/settings.py 的 env_prefix NL2SQL_ 同名 → NL2SQL_PORT 被当整数解析，
+      # 启动即崩溃（burn-in 集群实测 ValidationError，input_value='tcp://10.43.161.101:8093'）。
+      # 关闭服务链接注入（组件间寻址走 Service DNS / 显式 URL，不依赖这些变量）。
+      enableServiceLinks: false
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
