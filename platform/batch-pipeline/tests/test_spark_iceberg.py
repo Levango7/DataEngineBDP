@@ -41,7 +41,6 @@ import copy
 # ----------------------------------------------------------------------
 # 在模块收集时求值（pytest fixture 设置环境变量是在测试运行时，太晚），
 # 因此直接检测默认路径下的 native library，或环境变量 HADOOP_HOME 指向的 bin/.
-import os
 import os as _os
 import platform as _platform
 from typing import Any

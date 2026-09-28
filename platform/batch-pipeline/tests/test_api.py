@@ -22,7 +22,6 @@ import pytest
 
 from batch_pipeline.api.app import create_app
 import batch_pipeline.api.runner as runner_mod
-from batch_pipeline.api.runner import BatchRunner
 from batch_pipeline.api.settings import Settings
 from batch_pipeline.helpers import abs_path, csv_write, json_load, json_save
 
@@ -148,7 +147,7 @@ def api_env(_same_drive_tmp_root, monkeypatch):
     cfg_path = os.path.join(work, "pipeline_api.json")
     json_save(cfg_path, cfg)
     settings = Settings(runRoot=run_root, configPath=cfg_path)
-    client = TestClient(create_app(settings, BatchRunner()))
+    client = TestClient(create_app(settings, runner_mod.BatchRunner()))
     return {"client": client, "run_root": run_root, "work": work}
 
 
@@ -158,7 +157,7 @@ class TestHealth:
         monkeypatch.setenv("AUTH_MODE", "jwt")
         monkeypatch.setenv("JWT_SECRET", JWT_SECRET)
         settings = Settings(runRoot="run", configPath=abs_path("config/pipeline.json"))
-        client = TestClient(create_app(settings, BatchRunner()))
+        client = TestClient(create_app(settings, runner_mod.BatchRunner()))
         for path in ("/health", "/healthz", "/readyz"):
             r = client.get(PREFIX + path)
             assert r.status_code == 200, path
@@ -173,7 +172,7 @@ class TestAuthJwt:
         monkeypatch.setenv("AUTH_MODE", "jwt")
         monkeypatch.setenv("JWT_SECRET", JWT_SECRET)
         settings = Settings(runRoot="run", configPath=abs_path("config/pipeline.json"))
-        return TestClient(create_app(settings, BatchRunner()))
+        return TestClient(create_app(settings, runner_mod.BatchRunner()))
 
     def test_missing_token_401(self, jwt_client):
         r = jwt_client.get(PREFIX + "/batches")

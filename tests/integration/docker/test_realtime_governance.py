@@ -945,10 +945,14 @@ def governance_available() -> bool:
     """
     import requests
 
+    available = False
     try:
         resp = requests.get(GOVERNANCE_URL + "/api/v1/health", timeout=5)
         if resp.status_code == 200 and resp.json().get("status") == "UP":
-            return True
+            available = True
     except (requests.ConnectionError, ValueError):
+        # 连接失败或响应非 JSON → 视为不可用，走下方统一 skip
         pass
-    pytest.skip("Governance service not available")
+    if not available:
+        pytest.skip("Governance service not available")
+    return available

@@ -28,6 +28,7 @@ def count_lines(patterns: list[str], exclude: tuple[str, ...]) -> int:
                 with open(path, encoding="utf-8", errors="ignore") as fh:
                     total += sum(1 for _ in fh)
             except OSError:
+                # 单文件读取失败（权限等）不计入行数，不影响统计
                 pass
     return total
 
