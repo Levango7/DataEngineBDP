@@ -339,6 +339,10 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
         lines.append("> ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。")
         lines.append("")
 
+    # 末尾不留空行：markdownlint MD012 会把文件末尾的空行判为连续空行，
+    # 而 ci.yml 会重生成本文件并比对 git 状态，两者需同时满足
+    while lines and not lines[-1]:
+        lines.pop()
     content = "\n".join(lines) + "\n"
     if check_only:
         print(f"匹配 {matched_total}/{matched_total + unmatched_total}；未匹配 {unmatched_total} 条")
