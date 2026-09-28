@@ -137,6 +137,7 @@ rg -n '\bt\.(Errorf|Fatalf|Error|Fatal|Fail|FailNow)\(' --glob '*_test.go' platf
 | dqctl | `platform/dqctl/` | `cd platform/dqctl && go test ./...` |
 
 新增 Go 模块时，必须：
+
 1. 在 go.mod 中引入 `github.com/stretchr/testify v1.11.1`
 2. 测试文件遵循本指南第 2 节规范
 3. 在本表格中登记

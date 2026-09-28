@@ -67,6 +67,7 @@ curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080/api/v1/tenants"   
 
 前端 Login.vue 当前为表单登录（自签 JWT /auth/login）。
 接入 Keycloak 的两种方式：
+
 1. **授权码流程**：Login.vue 改为跳转 Keycloak authorize 端点，回调携带 code 换 token
 2. **保留表单 + 后端代理**：后端 /auth/login 调 Keycloak direct grant（password flow）返回 access_token
 

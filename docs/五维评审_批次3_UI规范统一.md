@@ -40,10 +40,12 @@
 
 **既有测试约束**：
 `frontend/src/views/__tests__/AuthDashboardAnalyze.test.ts` 第110-155行硬断言：
+
 ```ts
 expect(dashboardSrc).toContain('@media (max-width: 1100px)')
 expect(dashboardSrc).toContain('@media (max-width: 720px)')
 ```
+
 改断点（U-02）**必然破坏**该测试，需同步更新。
 
 ---
@@ -67,6 +69,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 **结论**：✅ **推荐实施**。低风险高收益，机制成熟，是5个问题中ROI第二高的。
 
 **实施建议**：
+
 1. 仅替换 `background: #fff;` / `background:#fff` → `background: var(--ds-bg-surface);`，**不替换** `#fff7ed`（警告底色）、`#fff3cd`（提示底色）、`#fffbeb`（琥珀底色）等带色调的值。
 2. 替换后跑暗色主题视觉回归（重点查 TopBar、StatusBar、SearchPortal、TenantManagement 等含 `#fff` 的组件）。
 
@@ -89,6 +92,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 **结论**：⚠️ **可实施但需谨慎**。中风险中收益，最大障碍是硬断言测试和 CSS 原生断点常量限制。建议作为第二阶段任务。
 
 **实施建议**：
+
 1. 先改测试：将 AuthDashboardAnalyze.test.ts 的 1100px/720px 断言更新为 1024px/640px。
 2. 用全局正则替换 `@media (max-width: 1100px)` → `@media (max-width: 1024px)`，`@media (max-width: 720px)` → `@media (max-width: 640px)`。
 3. 单独处理 1280px（main.css 1处）、960px（Login.vue 1处）、900px（SearchPortal.vue 1处）——逐处确认靠档方向。
@@ -113,6 +117,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 **结论**：✅ **最优先实施**。低风险高收益，`prefers-reduced-motion` 是无障碍合规必须，且规范已给出可直接复用的代码。是5个问题中ROI最高的。
 
 **实施建议**：
+
 1. **第一步（零风险）**：在 main.css 末尾添加规范§7.1的 `prefers-reduced-motion: reduce` 全局降级块（直接复制规范代码）。
 2. **第二步**：将 `ease-in-out` / `ease` / `linear` 替换为对应 `var(--ease-smooth)`（shimmer 骨架屏的 `linear` 可保留，规范§7第5项明确 shimmer 用 linear）。
 3. **第三步**：将 `regFloat 9s` / `orbFloat 9s` 改为 `4s`（与规范最长 gridPulse 4s 对齐）。
@@ -137,6 +142,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 **结论**：❌ **不建议本批次实施**。高风险低收益，规范文档本身建议暂缓。综合分为负，ROI最低。
 
 **替代建议**：
+
 1. **本批次仅做**：在 stylelint 中添加 4px 间距规则（`declaration-property-value-allowed-list` 限制 padding/margin/gap 为4倍数），**仅对新增代码生效**（不追溯存量），防止增量回归。
 2. **小数像素单独处理**：12.5px / 11.5px / 13.5px / 10.5px 等小数像素（约70处）可单独消除（取整风险低于靠档），但需确认渲染差异。
 3. **存量迁移**：留待组件级重构时逐处替换（规范§4.4.5建议的方案），不搞批量替换。
@@ -160,6 +166,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 **结论**：⚠️ **可实施但应分阶段**。中风险中收益，综合分略正。建议拆分为低风险子任务优先做。
 
 **实施建议**：
+
 1. **第一阶段（低风险，推荐本批次做）**：消除小数像素字号（11.5/12.5/13.5/10.5px 共约62处）→ 取整到最近阶梯值。小数像素取整不改变语义，风险最低，且解决跨浏览器渲染不一致。
 2. **第二阶段（中风险）**：9/10/11px→12px（约58处），统一映射，但需检查徽章/标签/页脚小字容器是否溢出。
 3. **第三阶段（较高风险，留待组件重构）**：15px→14/16px（约6处）逐处判断靠档。
@@ -182,31 +189,37 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 ## 四、推荐实施路径（分阶段）
 
 ### 阶段0：定义层（零风险，先行）
+
 - 在 design-tokens.css 注释中记录断点常量（640/1024/1440px）供人工参照
 - 在 main.css 末尾添加 `prefers-reduced-motion: reduce` 全局降级块（复制规范§7.1代码）
 - 添加 stylelint 规则：限制 padding/margin/gap 为4倍数、font-size 为阶梯值（**仅对新增代码生效，不追溯存量**）
 
 ### 阶段1：U-03 动画一致性（综合11，最优先）
+
 - 替换非标准曲线为 `var(--ease-smooth)`（shimmer 的 linear 保留）
 - 9s 超长动画改为 4s
 - 视觉回归：登录页、注册页、ChatPanel、DagVisualizer
 
 ### 阶段2：U-01 暗色覆写（综合10，次优先）
+
 - 20处 `background: #fff` → `var(--ds-bg-surface)`（不替换 `#fff7ed`/`#fff3cd`/`#fffbeb`）
 - 视觉回归：暗色主题下重点查 TopBar、StatusBar、SearchPortal、TenantManagement
 
 ### 阶段3：U-02 响应式断点（综合4，需谨慎）
+
 - 先改测试 AuthDashboardAnalyze.test.ts（1100→1024、720→640）
 - 全局正则替换 `@media (max-width: 1100px)` → `1024px`、`720px` → `640px`
 - 单独处理 1280/960/900px 三处
 - 视觉回归：3个断点区间（<640 / 640-1024 / 1024-1440）
 
 ### 阶段4：U-07 字号阶梯·子任务（综合2，仅做低风险部分）
+
 - 仅消除小数像素字号（11.5/12.5/13.5/10.5px → 取整，约62处）
 - 9/10/11px→12px 需检查溢出后决定是否本批次做
 - 15px→14/16px 留待组件重构
 
 ### 阶段5：U-05 间距阶梯（综合-2，暂缓）
+
 - **本批次不做存量修改**
 - 仅靠阶段0的 stylelint 规则防止增量回归
 - 存量迁移留待组件级重构时逐处替换（规范§4.4.5建议方案）
@@ -230,6 +243,7 @@ expect(dashboardSrc).toContain('@media (max-width: 720px)')
 ## 六、结论
 
 批次3的5个UI规范问题中：
+
 - **2个推荐立即实施**（U-03 动画一致性、U-01 暗色覆写），综合分10-11，低风险高收益。
 - **2个可实施但需分阶段/谨慎**（U-02 响应式断点、U-07 字号阶梯），综合分2-4，中风险中收益。
 - **1个建议暂缓**（U-05 间距阶梯），综合分-2，高风险低收益，且规范文档本身建议不修改存量。

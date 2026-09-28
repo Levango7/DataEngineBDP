@@ -95,7 +95,7 @@ JWT 中包含 `tenantId` claim，用于租户上下文隔离。
 |------|----------|--------------|
 | catalog | 业务端点 Bearer JWT（租户身份强制取自 claim） | GET /api/v1/health、GET /metrics |
 | vector-engine | 业务端点默认强制 Bearer JWT（secure-by-default；`VECTOR_AUTH_REQUIRED=false` 显式关闭、`JWT_DEV_MODE=true` 开发旁路），issuer 默认 `shuqing-bigdata` | GET /api/v1/health |
-| query-api | /tenant/** 需 JWT 并强制注入 tenant_id 过滤；/platform/** 与 /api/v1/ops/** 需 platform-ops 角色 | GET /api/v1/health |
+| query-api | /tenant/**需 JWT 并强制注入 tenant_id 过滤；/platform/** 与 /api/v1/ops/** 需 platform-ops 角色 | GET /api/v1/health |
 | knowledge-engine | 全部业务端点 Bearer JWT（FastAPI 路由级依赖注入）；原生 nGQL 查询端点在 AUTH_MODE=none 时直接 403 拒绝 | GET /health |
 | asset-exchange | assets / subscriptions / audit 全部业务端点 Bearer JWT | GET /api/v1/health |
 | open-api-catalog | 目录管理/订阅端点暂未挂载应用层鉴权中间件（以部署侧网关策略为准）；API 调用需 X-API-Key + X-API-Secret（见 22.4） | GET /api/v1/health |
@@ -1035,7 +1035,7 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | 可观测查询 | GET /api/v1/health | `{"status":"UP","component":"query-api","version":"0.1.0"}` |
 | 行业模板 | GET /api/v1/health | `{"status":"UP","component":"industry-templates","version":"0.1.0"}` |
 | LLMOps | GET /health | `{"status":"UP"}` |
-| 知识引擎 | GET /health | `{"status":"ok","store":"mock|nebula","extractor":"mock|llm","version":"0.1.0"}` |
+| 知识引擎 | GET /health | `{"status":"ok","store":"mock\|nebula","extractor":"mock\|llm","version":"0.1.0"}` |
 | ML 平台 | GET /health | `{"status":"UP"}` |
 | 业务门户 | GET /api/v1/health | `{"status":"UP"}` |
 | NL2SQL | GET /api/v1/health | `{"status":"UP","component":"nl2sql","version":"0.1.0","llmMode":"mock","catalogUrl":"http://localhost:8082","sqlGatewayUrl":"http://localhost:8081"}` |

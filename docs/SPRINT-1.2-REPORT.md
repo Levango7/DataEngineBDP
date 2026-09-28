@@ -41,15 +41,18 @@
 ## 4. 发现的问题
 
 ### 4.1 lineage-analyzer 构建依赖（已解决）
+
 `lineage-analyzer/pom.xml` 依赖同级模块 `sql-gateway:jar:0.1.0`，本地仓库未安装时
 单模块 `mvn -f ...` 直接构建失败。正确方式：根 reactor `mvn -pl platform/governance/lineage-analyzer -am`。
 
 ### 4.2 健康端点契约
+
 三模块健康端点路径统一为 `/api/v1/health`，已纳入 smoke-local 源码契约抽查。
 
 ## 5. 冒烟门禁
 
 新增 `scripts/smoke-local.sh`（本地快速门禁，无需集群）：
+
 1. Mock 生产卫生检查（check-prod-mock-hygiene.sh，实测通过）
 2. Go 模块编译（catalog/vector-engine/observability）
 3. Java 治理模块编译（三件套）

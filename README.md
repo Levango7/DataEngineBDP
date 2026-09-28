@@ -16,8 +16,9 @@
 
 <!-- 姊妹仓库导航 -->
 > 📌 **作者姊妹项目**：[Levango7/Corps](https://github.com/Levango7/Corps)（团队协作 SaaS）· [Levango7/Interaction](https://github.com/Levango7/Interaction)（本地优先 PWA）· **DataEngineBDP**（本项目 · 大数据平台）
-
+>
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
+>
 > - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **服务形态组件 42**（扣 4 个库形态：common-security / flink-cdc / storage-io / chunker）→ **有 Helm Chart 可部署单元 35**（另有 7 个服务无 Chart，详见口径文档第 6 节）→ **platform/ 目录数 38**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
@@ -31,6 +32,7 @@
 > 2.1.0-RC 已发布（2026-08-27），基于 v2.0.0 RC 完成核心组件生产化加固（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
 > 22 组件 GA 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
 > **完成度口径**（三维度统一表述，全仓文档共用）：
+>
 > - ⚠️ **以下三项均为项目自评口径，无独立复现方法，不应作为客观结论引用**。独立复核以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账为准。
 > - **80% 端到端可用**：自评（含端到端联调、真实环境部署、外部依赖对接等因素的估计值；注：四环境验证目前 0/6 维度实测，见台账 #9）
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`），衡量功能模块完成程度
@@ -325,4 +327,3 @@ bash scripts/poc/run-poc.sh
 ## 开源协议
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
-

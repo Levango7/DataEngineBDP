@@ -135,6 +135,7 @@
 ### 4.2 首次运行预期
 
 首次运行时，SonarCloud 会：
+
 - 自动创建项目（若不存在）
 - 执行全量分析（首次较慢，后续增量）
 - 生成基线指标
@@ -195,10 +196,12 @@ SonarCloud 默认提供 **Sonar way** 质量阈，适用于新代码（New Code�
 访问入口：`https://sonarcloud.io/dashboard?id=<projectKey>`
 
 **Java 模块示例**：
+
 - rule-engine: `https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_rule-engine`
 - vector-engine: `https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_vector-engine`
 
 **前端**：
+
 - `https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_frontend`
 
 ### 6.2 仪表盘关键指标
@@ -215,6 +218,7 @@ SonarCloud 默认提供 **Sonar way** 质量阈，适用于新代码（New Code�
 ### 6.3 PR 集成
 
 PR 创建后，SonarCloud 会自动在 PR 上：
+
 - 发布 **评论**：包含质量阈状态、新增问题数、覆盖率变化
 - 创建 **Check**：显示在 PR Checks 区域，状态反映质量阈结果
 

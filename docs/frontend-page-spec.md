@@ -723,10 +723,12 @@ router.beforeEach((to) => {
 ### 8.1 类型导入
 
 - 类型导入使用 `import type`，与值导入分离：
+
   ```ts
   import * as tenantApi from '@/api/tenant'
   import type { Tenant, PlanTier, TenantStatus } from '@/api/types'
   ```
+
 - 禁止 `import { Tenant } from ...`（值导入类型），会被严格模式与 verbatimModuleSyntax 拒绝。
 
 ### 8.2 响应数据类型

@@ -82,4 +82,3 @@ open-api-catalog:8090  /api/v1/asset-subscriptions  => 404  (不串域)
 4. **遗留候选**：Playwright 剩余页面扩面（cluster/datasources/vector/kb/llmops
    等）、跨进程 Python 路由冲突扫描器（check-api-route-conflict.py 目前只扫 Java
    @RestController，Python 服务靠人工契约审查——本次冲突即暴露此盲区）。
-

@@ -152,6 +152,7 @@
 #### 2.2.4 knative/runtimes/java 特殊风险
 
 PR #3 将 Spring Boot 从 3.3.4 升级到 4.1.0，该模块还使用：
+
 - `spring-cloud-dependencies` 2023.0.3（Spring Cloud 2023.0 仅兼容 Spring Boot 3.2.x）
 - `native-maven-plugin` 0.10.2（GraalVM 0.10.x 仅兼容 Spring Boot 3.x）
 - **三重不兼容**：Spring Boot 4 + Spring Cloud 2023.0 + native-maven-plugin 0.10 无法共存
@@ -159,6 +160,7 @@ PR #3 将 Spring Boot 从 3.3.4 升级到 4.1.0，该模块还使用：
 ### 2.3 建议：关闭所有 14 个 Spring Boot 升级 PR
 
 **理由**：
+
 1. Spring Boot 3→4 是大版本跳跃，涉及 Spring Framework 7、Jakarta EE 10、大量 auto-configuration 重构
 2. 项目有 18 个 Spring Boot 模块，需要统一升级策略，不能逐个模块单独升级
 3. 传递依赖（jjwt、fabric8、hive-jdbc、Calcite、WireMock）均未验证与 Spring Boot 4 的兼容性
@@ -166,6 +168,7 @@ PR #3 将 Spring Boot 从 3.3.4 升级到 4.1.0，该模块还使用：
 5. 正确做法：先统一升级到 Spring Boot 3.4.x（最新 3.x），验证全量通过后，再规划 4.x 迁移
 
 **关闭命令**（仅供参考，本次不执行）：
+
 ```
 @dependabot ignore this major version
 ```
@@ -220,12 +223,14 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 ### 3.3 建议：需修改后合并
 
 **需要修改的文件**：
+
 1. `platform/encaps-layer/src/test/java/.../K8sWorkspaceTranslatorTest.java` - 检查 DSL mock 链泛型
 2. `platform/encaps-layer/src/test/java/.../K8sQuotaTranslatorTest.java` - 检查 DSL mock 链泛型
 3. `platform/encaps-layer/src/main/java/.../K8sWorkspaceTranslator.java` - 检查 Resource DSL 调用
 4. `platform/encaps-layer/src/main/java/.../K8sQuotaTranslator.java` - 检查 Resource DSL 调用
 
 **修改内容**：
+
 - 更新 DSL 泛型类型参数以匹配 v7 签名
 - 验证 `network()`、`rbac()` 等 API group 访问方式未变
 - 运行 `mvn test -pl platform/encaps-layer` 验证测试通过
@@ -265,6 +270,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 ### 4.3 建议：保持 open
 
 **理由**：
+
 1. 驱动类名和 JDBC URL 格式兼容，核心代码无需修改
 2. 但依赖排除项需要根据 Hive 4.x 的实际依赖树调整，否则可能产生依赖冲突
 3. 建议在本地分支验证 `mvn dependency:tree -pl platform/governance/metadata-collector` 后再决定
@@ -341,6 +347,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 #### 5.4.2 建议：关闭
 
 **理由**：
+
 1. TypeScript 5→7 跨越两个大版本，无增量验证路径
 2. vue-tsc、vite、typescript-eslint 等工具链未验证支持 TS 7.x
 3. 正确做法：先升级到 TypeScript 5.9.x（最新 5.x），再评估 6.x 迁移
@@ -356,6 +363,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 - **当前**：openai==1.23.0（nl2sql/requirements.txt）
 - **目标**：2.53.0
 - **项目使用方式**：`nl2sql/sql_generator.py` 通过 `langchain_openai.ChatOpenAI` 间接使用
+
   ```python
   from langchain_openai import ChatOpenAI  # type: ignore
   self._llm = ChatOpenAI(
@@ -364,6 +372,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
       openai_api_base=self.settings.llmEndpoint,
   )
   ```
+
 - **openai 2.x 破坏性变更**：
   1. `OpenAI()` 客户端构造参数变更
   2. `openai_api_key` / `openai_api_base` 参数名可能变更（改为 `api_key` / `base_url`）
@@ -397,6 +406,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 #### 6.2.2 建议：关闭
 
 **理由**：
+
 1. langchain 0.1→1.x 是全量重构，所有 `from langchain.* import *` 需要重写
 2. 需要同步升级 langchain、langchain-community、langchain-openai，单独升级 langchain-core 会破坏依赖链
 3. `ChatOpenAI` 的 `openai_api_key`/`openai_api_base` 参数在 1.x 中已改名，`sql_generator.py` 必须修改
@@ -448,6 +458,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 #### 6.4.2 建议：需修改后合并
 
 **需要修改的内容**：
+
 1. 检查各模块的 `pyproject.toml` 中 `[tool.pytest.ini_options]` 的 `asyncio_mode` 配置
 2. 搜索是否有自定义 `event_loop` fixture（如有需移除）
 3. 验证 `@pytest.mark.asyncio` 在 1.x 下的行为一致性
@@ -487,6 +498,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
   - 1.1.7：修复 Maven plugin unit-test mock maker、Kotlin DSL delegated accessors
   - 1.1.6：大量 Maven/Gradle agent 执行修复、JUnit 6.1 兼容
 - **项目使用**：
+
   ```xml
   <plugin>
       <groupId>org.graalvm.buildtools</groupId>
@@ -501,6 +513,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
       </configuration>
   </plugin>
   ```
+
 - **风险**：
   1. **GraalVM 版本要求**：native-maven-plugin 1.x 可能要求 GraalVM JDK 21+
   2. **Spring Boot 兼容性**：native-maven-plugin 1.x 主要针对 Spring Boot 3.3+，与 3.3.4 兼容
@@ -510,6 +523,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 #### 7.2.2 建议：保持 open
 
 **理由**：
+
 1. native-maven-plugin 1.x 与 Spring Boot 3.3.4 基本兼容
 2. 但需要验证 GraalVM 版本和 buildArgs 兼容性
 3. 建议在 CI 环境验证 `mvn native:compile -Pnative` 后再合并
@@ -521,6 +535,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 - **当前**：actions/download-artifact@v4（release.yml line 481）
 - **目标**：v8
 - **使用上下文**：
+
   ```yaml
   - name: 下载所有构建制品
     uses: actions/download-artifact@v4
@@ -528,6 +543,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
       path: release-assets/
       merge-multiple: false
   ```
+
 - **actions/download-artifact v8 破坏性变更**：
   1. v5-v8 跨越多个大版本，每个大版本都有破坏性变更
   2. v5：`merge-multiple` 参数可能变更
@@ -541,6 +557,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 #### 7.3.2 建议：关闭
 
 **理由**：
+
 1. actions/download-artifact v4→v8 跨越 4 个大版本，无增量验证路径
 2. `merge-multiple` 参数兼容性未知
 3. 正确做法：先升级到 v5（最新稳定版），验证后再评估后续

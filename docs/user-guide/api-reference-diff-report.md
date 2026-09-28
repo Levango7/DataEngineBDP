@@ -30,6 +30,7 @@
 ### 4.1 封装层（encaps-layer）新增 16 个
 
 **工作空间管理（原仅有 POST，新增 5 个）：**
+
 - GET /api/v1/workspaces
 - GET /api/v1/workspaces/{id}
 - PUT /api/v1/workspaces/{id}
@@ -37,6 +38,7 @@
 - GET /api/v1/workspaces/{id}/status
 
 **配额管理（原仅有 PUT /quotas/{namespace}，新增 5 个并修正 1 个）：**
+
 - POST /api/v1/quotas
 - GET /api/v1/quotas
 - GET /api/v1/quotas/{id}
@@ -44,6 +46,7 @@
 - GET /api/v1/quotas/workspace/{workspaceId}/usage
 
 **安全门面 API（全新，6 个）：**
+
 - GET /api/v1/security/status
 - POST /api/v1/security/mask
 - GET /api/v1/security/audit/events
@@ -54,6 +57,7 @@
 ### 4.2 SQL 网关（sql-gateway）新增 13 个
 
 **查询改写 API（RewriteController，全新）：**
+
 - POST /api/v1/rewrite/execute
 - POST /api/v1/rewrite/route
 - POST /api/v1/rewrite/candidates
@@ -71,6 +75,7 @@
 ### 4.3 规则引擎（rule-engine）新增 22 个
 
 **调度引擎 API（SchedulerController，全新，10 个）：**
+
 - POST /api/v1/scheduler/tasks
 - GET /api/v1/scheduler/tasks
 - GET /api/v1/scheduler/tasks/{taskId}
@@ -83,12 +88,14 @@
 - PUT /api/v1/scheduler/quotas/{tenantId}
 
 **Agent 编排 API（AgentController，全新，4 个）：**
+
 - POST /api/v1/agents/{role}/execute
 - GET /api/v1/agents
 - GET /api/v1/agents/describe
 - GET /api/v1/agents/{role}/describe
 
 **编排引擎 API（OrchestratorController，全新，8 个）：**
+
 - POST /api/v1/orchestrator/dags
 - GET /api/v1/orchestrator/dags
 - GET /api/v1/orchestrator/dags/{id}
@@ -102,6 +109,7 @@
 ### 4.4 治理中台（governance）新增 27 个（全新章节）
 
 **实时治理管道（GovernanceController，13 个）：**
+
 - POST /api/v1/governance/metadata/collect
 - GET /api/v1/governance/metadata/{tableIdentifier}
 - POST /api/v1/governance/lineage/parse
@@ -117,6 +125,7 @@
 - GET /api/v1/governance/pipeline/history
 
 **元数据采集（CollectorController，11 个）：**
+
 - POST /api/v1/metadata/sources
 - GET /api/v1/metadata/sources
 - GET /api/v1/metadata/sources/{id}
@@ -130,6 +139,7 @@
 - GET /api/v1/metadata/collectors
 
 **血缘分析（LineageController，4 个）：**
+
 - POST /api/v1/lineage/analyze
 - GET /api/v1/lineage/upstream/{table}
 - GET /api/v1/lineage/downstream/{table}
@@ -138,6 +148,7 @@
 ### 4.5 标签引擎（tag-engine）新增 12 个（全新章节）
 
 **标签管理（TagController，8 个）：**
+
 - POST /api/v1/tags
 - GET /api/v1/tags
 - GET /api/v1/tags/{id}
@@ -148,11 +159,13 @@
 - POST /api/v1/tags/batch-compute
 
 **用户画像（ProfileController，3 个）：**
+
 - GET /api/v1/profiles/{userId}
 - POST /api/v1/profiles/query
 - POST /api/v1/profiles/count
 
 **人群圈选（AudienceController，1 个）：**
+
 - POST /api/v1/audiences/select
 
 ### 4.6 向量引擎（vector-engine）新增 7 个（全新章节）
@@ -168,6 +181,7 @@
 ### 4.7 大模型网关（llm-gateway）新增 17 个（全新章节）
 
 **网关管理 API（8 个）：**
+
 - POST /api/v1/chat/completions
 - POST /api/v1/embeddings
 - GET /api/v1/models
@@ -178,6 +192,7 @@
 - GET /api/v1/metrics/latency
 
 **多模态 OpenAI 兼容 API（8 个）：**
+
 - POST /v1/chat/completions
 - POST /v1/batch/jobs
 - GET /v1/batch/jobs
@@ -190,6 +205,7 @@
 ### 4.8 可观测查询（query-api）新增 10 个（全新章节）
 
 **平台方视图（5 个）：**
+
 - GET /platform/api/v1/query
 - GET /platform/api/v1/query_range
 - GET /platform/api/v1/labels
@@ -197,6 +213,7 @@
 - GET /platform/api/v1/series
 
 **客户方视图（5 个）：**
+
 - GET /tenant/api/v1/query
 - GET /tenant/api/v1/query_range
 - GET /tenant/api/v1/labels
@@ -206,6 +223,7 @@
 ### 4.9 LLMOps 新增 19 个（全新章节）
 
 **模型管理（6 个）：**
+
 - POST /api/v1/models
 - GET /api/v1/models
 - GET /api/v1/models/{model_id}
@@ -214,6 +232,7 @@
 - PUT /api/v1/models/{model_id}/production-version
 
 **训练任务（5 个）：**
+
 - POST /api/v1/training/jobs
 - GET /api/v1/training/jobs
 - GET /api/v1/training/jobs/{job_id}
@@ -221,12 +240,14 @@
 - GET /api/v1/training/jobs/{job_id}/eval
 
 **部署管理（4 个）：**
+
 - POST /api/v1/deployments
 - GET /api/v1/deployments
 - GET /api/v1/deployments/{deployment_id}
 - DELETE /api/v1/deployments/{deployment_id}
 
 **监控（4 个）：**
+
 - GET /api/v1/deployments/{deployment_id}/metrics
 - GET /api/v1/deployments/{deployment_id}/latency
 - GET /api/v1/deployments/{deployment_id}/throughput
@@ -249,6 +270,7 @@
 ### 4.11 ML 平台（ml-platform）新增 21 个（全新章节）
 
 **实验管理（6 个）：**
+
 - POST /api/v1/experiments
 - GET /api/v1/experiments
 - GET /api/v1/experiments/{experimentId}
@@ -257,12 +279,14 @@
 - POST /api/v1/experiments/{experimentId}/params
 
 **训练任务（4 个）：**
+
 - POST /api/v1/training/jobs
 - GET /api/v1/training/jobs
 - GET /api/v1/training/jobs/{jobId}
 - DELETE /api/v1/training/jobs/{jobId}
 
 **模型管理（5 个）：**
+
 - GET /api/v1/models
 - GET /api/v1/models/{modelId}
 - DELETE /api/v1/models/{modelId}
@@ -270,6 +294,7 @@
 - POST /api/v1/models/{modelId}/evaluate
 
 **特征工程（6 个）：**
+
 - POST /api/v1/feature-groups
 - GET /api/v1/feature-groups
 - GET /api/v1/feature-groups/{groupName}
@@ -280,6 +305,7 @@
 ### 4.12 业务门户（business-portal）新增 15 个（全新章节）
 
 **业务线管理（5 个）：**
+
 - POST /api/v1/business-lines
 - GET /api/v1/business-lines
 - GET /api/v1/business-lines/{bl_id}
@@ -287,15 +313,18 @@
 - DELETE /api/v1/business-lines/{bl_id}
 
 **仪表盘与工作台（2 个）：**
+
 - GET /api/v1/business-lines/{bl_id}/dashboard
 - GET /api/v1/business-lines/{bl_id}/workbench
 
 **数据目录（3 个）：**
+
 - GET /api/v1/business-lines/{bl_id}/catalog
 - POST /api/v1/business-lines/{bl_id}/catalog
 - DELETE /api/v1/business-lines/{bl_id}/catalog/{node_id}
 
 **BI 报表（5 个）：**
+
 - GET /api/v1/business-lines/{bl_id}/reports
 - POST /api/v1/business-lines/{bl_id}/reports
 - GET /api/v1/business-lines/{bl_id}/reports/{report_id}
@@ -305,6 +334,7 @@
 ### 4.13 开放 API 目录（open-api-catalog）新增 11 个（全新章节）
 
 **API 注册与管理（5 个）：**
+
 - POST /api/v1/apis
 - GET /api/v1/apis
 - GET /api/v1/apis/{api_id}
@@ -312,6 +342,7 @@
 - DELETE /api/v1/apis/{api_id}
 
 **状态转换（6 个）：**
+
 - POST /api/v1/apis/{api_id}/submit-review
 - POST /api/v1/apis/{api_id}/approve
 - POST /api/v1/apis/{api_id}/reject
@@ -403,6 +434,7 @@
 ## 8. 结论
 
 本次同步验证发现文档严重滞后于代码实现：
+
 - **原文档仅覆盖 5 个组件**，实际平台包含 **17 个组件**
 - **原文档记录 57 个端点**，实际代码定义 **230+ 个端点**
 - 文档完整率仅约 **25%**

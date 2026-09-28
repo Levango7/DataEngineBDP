@@ -484,4 +484,3 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。
-

@@ -312,6 +312,7 @@
 | 8 | 问题 1：AI 组件全 Mock | >3 人月 + 基础设施 | 需 GPU/Milvus/NebulaGraph/MLflow |
 
 **执行策略**：
+
 - **问题 1**（成本性否决）：不建议一次性全链路真实化。建议**拆分子问题分批推进**：
   - 1a. llm-gateway 接入真实 Provider（阶段 1，1-2 周，成本性 3/5，可单独决策）
   - 1b. vector-engine 启用 Milvus 构建产物（阶段 2，1 周，成本性 4/5，可单独决策）

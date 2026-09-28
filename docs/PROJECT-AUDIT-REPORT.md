@@ -7,7 +7,7 @@
 > [模块数口径定义](模块数口径定义.md)、[组件成熟度矩阵](component-maturity.md)、
 > [KNOWN-FAILURES](KNOWN-FAILURES.md)（已知缺口台账）。
 > 2026-09-26 已就地订正本报告中"Spring Boot 3.2.x"为实测的 4.1.1（栈版本是现状事实，不是当时结论）。 | 勘误日期: 2026-08-28（原 96/100 夸大，真实完成度约 80%，已下调）
-> 
+>
 > **审查修复更新: 2026-09-15** — R17-R23共7轮全栈审查修复完成，153个问题全部修复，6维度收敛（P0=0/P1=0/P2=0/P3=0）。5个预存Java编译错误已清零。详见下方"审查修复记录"章节。
 
 ---
@@ -28,6 +28,7 @@ DataEngineBDP是一个面向政企/商用场景的多租户大数据平台，采
 | 文档完整性 | 90/100 | A |
 
 ---
+
 ## 一、架构审计 (85/100)
 
 ### 1.1 项目规模
@@ -102,6 +103,7 @@ X  横切层: 身份权限(Keycloak+国密)/安全合规/运维观测/API网关(
 ### 2.2 代码规范评审
 
 **优点**:
+
 - 包结构规范(controller/service/repository/security/config)，遵循Spring Boot最佳实践
 - JPA Entity定义清晰，字段注解完整
 - 使用Lombok减少样板代码(@Data/@Builder/@Slf4j)
@@ -120,18 +122,21 @@ X  横切层: 身份权限(Keycloak+国密)/安全合规/运维观测/API网关(
 ### 2.3 设计模式与架构
 
 **优点**:
+
 - Controller-Service-Repository分层清晰
 - 使用策略模式(LLMProvider接口+多适配器)实现多模型路由
 - JWT过滤器链 + 安全上下文 模式规范
 - Spring Data JPA实现数据访问层，H2/PostgreSQL双模切换
 
 **改进点**:
+
 - catalog模块(Go)与Java模块的认证中间件需要抽象统一
 - 部分Service层直接返回Entity而非DTO
 
 ### 2.4 安全编码评审
 
 **已修复的历史问题**:
+
 - JWT过滤器 shouldNotFilter 修复(setRequestURI替代setServletPath) - 已修复
 - 多租户隔离 X-Tenant-Id header校验 - 已修复
 - 硬编码 change-me token - 已修复(配置外部化)
@@ -168,21 +173,25 @@ X  横切层: 身份权限(Keycloak+国密)/安全合规/运维观测/API网关(
 ### 3.2 TypeScript规范评审
 
 **优点**:
+
 - 启用strict模式
 - API层接口定义完整
 - Pinia store使用类型安全
 
 **问题**:
+
 - 未发现any类型滥用(通过strict模式约束)
 
 ### 3.3 组件设计评审
 
 **优点**:
+
 - 按功能模块拆分子目录(views/)，结构清晰
 - 路由懒加载配置
 - API层封装规范(客户端类+响应类型+错误处理)
 
 **改进点**:
+
 - 部分大型Vue文件建议拆分(>300行)
 - 缺少共享组件库目录(components/内容较少)
 
@@ -243,6 +252,7 @@ Vite从5.x升级到6.x，修复了CVE-2025-31095。CSS变量自引用问题已�
 ### 4.4 .gitignore安全审计
 
 **已排除(安全)**:
+
 - cosign.key/cosign.pub (密钥文件)
 - *.spdx.json (SBOM产物)
 - *.env/.credentials (敏感配置文件)
@@ -416,20 +426,24 @@ Vite从5.x升级到6.x，修复了CVE-2025-31095。CSS变量自引用问题已�
 ### 8.4 优先修复建议(P0-P3)
 
 **P0(阻塞GA)**:
+
 - [x] OrchestratorController 17个TODO端点实现(融合设计文档中的Agent推理记录/工具调用/人工介入/检查点/回放) ✅ H1已修复
 - [x] 8处占位符凭证替换为真实Secrets管理(接入Vault或SealedSecrets) ✅ H2已修复
 
 **P1(生产就绪前)**:
+
 - [x] 前端添加Vitest核心组件单元测试(目标50%覆盖) ✅ M3已修复(155个测试通过)
 - [x] Helm Chart补充Ingress/HPA/PDB模板 ✅ M5已修复(4组件×hpa/pdb+12外部values)
 - [x] cosign接入Sigstore公共Rekor透明日志 ✅ M7已修复(--tlog-upload=true+Rekor验证)
 
 **P2(提升质量)**:
+
 - [x] 外围20+模块添加基础健康检查测试 ✅ M4已验证(llm-gateway/knowledge-engine/nl2sql已有)
 - [x] 创建Helm umbrella chart统一聚合管理 ✅ M6已修复(83个子chart依赖)
 - [x] 建立代码质量门禁(SonarQube质量阈) ✅ P3.4已完成(SonarCloud CI workflow+sonar-project.properties)
 
 **P3(长期优化)**:
+
 - [x] 封装层按域拆分(租户管理/认证/路由/计费) ✅ P3.1已完成(encaps-tenant+encaps-gateway+encaps-data三模块拆分+全部compile+test-compile通过)
 - [x] 统一Java/Go模块的认证中间件抽象 ✅ P3.2已完成(common-security模块抽取+28个重复文件删除+53个import更新)
 - [x] 建立自动化密钥轮换机制 ✅ P3.3已完成(JwtKeyRotationService+DualKeyManager+RSA2048双密钥过渡期)
@@ -450,12 +464,14 @@ Vite从5.x升级到6.x，修复了CVE-2025-31095。CSS变量自引用问题已�
 ## 附录: 审计方法说明
 
 本次审计采用以下方法:
+
 1. **文件探索**: glob递归扫描项目结构，识别30+模块
 2. **代码抽样**: grep搜索关键模式(凭证/安全/质量/待办)
 3. **历史会话沉淀**: 整合之前多轮会话中的测试结果、安全修复、验证报告
 4. **多维度评分**: 6维度 × 加权平均 = 综合评分
 
 **审计者**: 华为云CodeArts代码智能体(2026-08-20)
+
 ---
 
 ## 审查修复记录（2026-09-15 更新）

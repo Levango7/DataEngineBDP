@@ -152,6 +152,7 @@
 | 阶段 2（最终目标） | 40% | 18% | 20% | 40% | 待切换 | 待核心视图与 API 层单测覆盖达标后切换 |
 
 > **配置位置**：
+>
 > - `frontend/vitest.config.ts`：thresholds 定义（阶段计划注释）
 > - `.github/workflows/ci.yml`：CI 前端 job `THRESHOLD=25`（与阶段1对齐）
 > - `scripts/coverage-gate.sh`：`FRONTEND_MIN_COVERAGE=25`（与阶段1对齐）
@@ -165,22 +166,26 @@
 **目标**：将 7 个 P0 模块（覆盖率 0-30%）提升至 50% 以上
 
 **范围**：
+
 - Java：real-time-pipeline、stream-batch-scheduler、flink-cdc、infra-orchestrator、infra-provider-private、infra-provider-cloud、infra-provider-xinchang
 - Go：vector-engine、infra-provider-baremetal、karmada/failover/engine
 - Python：ml-platform、open-api-catalog、llm-gateway/evaluation
 
 **预期结果**：
+
 - Java 整体覆盖率：42.26% → ~50%
 - Go 整体覆盖率：~30% → ~40%
 - Python 整体覆盖率：~64% → ~68%
 
 **实际结果（2026-08-13 完成，commit 6c22b1d）**：
+
 - Java 整体覆盖率：42.26% → ~44%（sql-gateway 行覆盖率提升至 70.49%）
 - Go 整体覆盖率：~30% → ~45%（**超出预期**，5 个模块达标）
 - Python 整体覆盖率：~64% → ~66%（llm-gateway/evaluation 新增 92 个测试全部通过）
 - 详细记录见 §5
 
 **验收标准**：
+
 - 每个 P0 模块行覆盖率 ≥ 50%
 - CI 趋势阻断检查通过（无下降 > 2%）
 - 更新基线：`bash scripts/coverage/update-baseline.sh all`
@@ -190,16 +195,19 @@
 **目标**：将 P1 模块提升至 70% 以上，整体覆盖率达到 70%
 
 **范围**：
+
 - Java：sql-gateway、lineage-analyzer、metadata-collector、storage-io、tag-engine、rule-engine、federated-query、dashboard、cost-model
 - Go：catalog、dqctl、llm-gateway、observability/query-api、karmada/api、karmada/failover/api
 - Python：nl2sql、chunker、business-portal、knowledge-engine、llmops
 
 **预期结果**：
+
 - Java 整体覆盖率：~50% → ~70%
 - Go 整体覆盖率：~40% → ~65%
 - Python 整体覆盖率：~68% → ~75%
 
 **验收标准**：
+
 - 每个 P1 模块行覆盖率 ≥ 70%
 - CI 门禁阈值可从当前值提升（见 Phase 4）
 
@@ -208,16 +216,19 @@
 **目标**：所有模块覆盖率达到 85% GA 标准
 
 **范围**：
+
 - Java：encaps-layer（维持）、billing/data-standard/master-data（补充测试）
 - Python：asset-exchange（维持）、industry-templates（维持）
 - 所有 P0/P1 模块从 70% 提升至 85%
 
 **预期结果**：
+
 - Java 整体覆盖率：~70% → 85%
 - Go 整体覆盖率：~65% → 85%
 - Python 整体覆盖率：~75% → 85%
 
 **验收标准**：
+
 - 所有模块行覆盖率 ≥ 85%
 - 所有模块分支覆盖率 ≥ 85%
 - CI 门禁阈值提升至 85%
@@ -252,6 +263,7 @@
 #### 4.2.1 基线保护机制（T-08 增强，2026-09-11）
 
 > 此前基线更新依赖手动执行脚本，存在以下风险：
+>
 > - 基线可被人为调高远超实际覆盖率，使趋势阻断形同虚设
 > - 基线可被人为降低，绕过趋势阻断
 > - 基线可包含已删除模块名或缺少新增模块，导致检查遗漏
@@ -292,6 +304,7 @@ git push
 ```
 
 **人工降级基线的例外流程**：当模块重构导致覆盖率合理下降（如删除冗余测试、收紧测试范围），需：
+
 1. 在 PR 描述中说明降级原因
 2. 手动编辑基线 JSON 文件（绕过脚本保护）
 3. PR 触发 `baseline-pr-guard` 检测到下降，CI 失败
