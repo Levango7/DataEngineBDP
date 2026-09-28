@@ -14,6 +14,10 @@
     5. 鉴权检查: GET /api/v1/security/auth/check
     6. 查询审计事件: GET /api/v1/security/audit/events
     7. 端到端: 脱敏 → 审计 → 状态验证
+
+响应契约：encaps-layer 全局 ApiResponseAdvice 会将 /api/v1/** 的裸响应包装为
+{code, message, data, timestamp, success} 信封（见 ApiResponse.java），业务数据在
+data 字段；本文件统一通过 _unwrap 取出 data 后再断言。
 """
 
 from __future__ import annotations
@@ -25,6 +29,17 @@ import pytest
 from conftest import record_test_result
 
 CHAIN_NAME = "链路4: SecurityFacade→加解密"
+
+
+def _unwrap(body):
+    """解包 encaps-layer 的 ApiResponse 统一信封，返回业务数据 data.
+
+    信封形态：{"code":0,"message":"OK","data":<业务数据>,"timestamp":...,"success":true}；
+    对未包装的裸响应（非 encaps-layer 服务）原样返回。
+    """
+    if isinstance(body, dict) and "code" in body and "data" in body:
+        return body.get("data")
+    return body
 
 
 # ---------------------------------------------------------------------------
@@ -60,12 +75,13 @@ class TestChain4SecurityStatus:
         try:
             resp = k3s_client.get(encaps_layer_url + "/api/v1/security/status")
             body = resp.json() if resp.status_code == 200 else {}
-            passed = resp.status_code == 200 and "enabled" in body
+            data = _unwrap(body) or {}
+            passed = resp.status_code == 200 and "enabled" in data
             detail = (
                 f"status={resp.status_code}, "
-                f"enabled={body.get('enabled')}, "
-                f"crypto={body.get('crypto', {}).get('enabled')}, "
-                f"mask={body.get('mask', {}).get('enabled')}"
+                f"enabled={data.get('enabled')}, "
+                f"crypto={data.get('crypto', {}).get('enabled')}, "
+                f"mask={data.get('mask', {}).get('enabled')}"
             )
         except Exception as e:
             passed = False
@@ -93,14 +109,15 @@ class TestChain4Mask:
                 encaps_layer_url + "/api/v1/security/mask", json=payload
             )
             body = resp.json() if resp.status_code == 200 else {}
-            masked = body.get("masked", "")
+            data = _unwrap(body) or {}
+            masked = data.get("masked", "")
             # 脱敏后不应包含完整原始手机号
             passed = (
                 resp.status_code == 200
-                and "masked" in body
+                and "masked" in data
                 and "13812345678" not in masked
             )
-            detail = f"status={resp.status_code}, type={body.get('type')}, masked={masked}"
+            detail = f"status={resp.status_code}, type={data.get('type')}, masked={masked}"
         except Exception as e:
             passed = False
             detail = f"请求异常: {e}"
@@ -120,13 +137,14 @@ class TestChain4Mask:
                 encaps_layer_url + "/api/v1/security/mask", json=payload
             )
             body = resp.json() if resp.status_code == 200 else {}
-            masked = body.get("masked", "")
+            data = _unwrap(body) or {}
+            masked = data.get("masked", "")
             passed = (
                 resp.status_code == 200
-                and "masked" in body
+                and "masked" in data
                 and "110101199001011234" not in masked
             )
-            detail = f"status={resp.status_code}, type={body.get('type')}, masked={masked}"
+            detail = f"status={resp.status_code}, type={data.get('type')}, masked={masked}"
         except Exception as e:
             passed = False
             detail = f"请求异常: {e}"
@@ -146,13 +164,14 @@ class TestChain4Mask:
                 encaps_layer_url + "/api/v1/security/mask", json=payload
             )
             body = resp.json() if resp.status_code == 200 else {}
-            masked = body.get("masked", "")
+            data = _unwrap(body) or {}
+            masked = data.get("masked", "")
             passed = (
                 resp.status_code == 200
-                and "masked" in body
+                and "masked" in data
                 and "zhangsan@huawei.com" not in masked
             )
-            detail = f"status={resp.status_code}, type={body.get('type')}, masked={masked}"
+            detail = f"status={resp.status_code}, type={data.get('type')}, masked={masked}"
         except Exception as e:
             passed = False
             detail = f"请求异常: {e}"
@@ -173,11 +192,12 @@ class TestChain4AuthCheck:
         try:
             resp = k3s_client.get(encaps_layer_url + "/api/v1/security/auth/check")
             body = resp.json() if resp.status_code == 200 else {}
-            passed = resp.status_code == 200 and "allowed" in body
+            data = _unwrap(body) or {}
+            passed = resp.status_code == 200 and "allowed" in data
             detail = (
                 f"status={resp.status_code}, "
-                f"allowed={body.get('allowed')}, "
-                f"principal={body.get('principal')}"
+                f"allowed={data.get('allowed')}, "
+                f"principal={data.get('principal')}"
             )
         except Exception as e:
             passed = False
@@ -200,8 +220,13 @@ class TestChain4Audit:
             resp = k3s_client.get(
                 encaps_layer_url + "/api/v1/security/audit/events"
             )
-            passed = resp.status_code == 200
-            detail = f"status={resp.status_code}, body={resp.text[:300]}"
+            body = resp.json() if resp.status_code == 200 else None
+            events = _unwrap(body)
+            passed = resp.status_code == 200 and isinstance(events, list)
+            detail = (
+                f"status={resp.status_code}, "
+                f"count={len(events) if isinstance(events, list) else 'N/A'}"
+            )
         except Exception as e:
             passed = False
             detail = f"请求异常: {e}"
@@ -225,7 +250,7 @@ class TestChain4EndToEnd:
                 encaps_layer_url + "/api/v1/security/status"
             )
             assert status_resp.status_code == 200, "SecurityFacade 状态查询失败"
-            initial_status = status_resp.json()
+            initial_status = _unwrap(status_resp.json()) or {}
             initial_audit_size = (
                 initial_status.get("audit", {}).get("currentSize", 0)
             )
@@ -236,33 +261,41 @@ class TestChain4EndToEnd:
                 encaps_layer_url + "/api/v1/security/mask", json=mask_payload
             )
             assert mask_resp.status_code == 200, "脱敏操作失败"
-            mask_body = mask_resp.json()
+            mask_body = _unwrap(mask_resp.json()) or {}
             masked_value = mask_body.get("masked", "")
 
             # 步骤3: 查询审计事件（验证脱敏被记录）
             audit_resp = k3s_client.get(
                 encaps_layer_url + "/api/v1/security/audit/events"
             )
-            audit_body = audit_resp.json() if audit_resp.status_code == 200 else []
+            audit_body = (
+                _unwrap(audit_resp.json()) if audit_resp.status_code == 200 else None
+            )
 
             # 步骤4: 再次查询状态（审计大小可能增加）
             status_resp2 = k3s_client.get(
                 encaps_layer_url + "/api/v1/security/status"
             )
-            final_status = status_resp2.json() if status_resp2.status_code == 200 else {}
+            final_status = (
+                (_unwrap(status_resp2.json()) or {})
+                if status_resp2.status_code == 200
+                else {}
+            )
             final_audit_size = final_status.get("audit", {}).get("currentSize", 0)
 
             passed = (
                 status_resp.status_code == 200
                 and mask_resp.status_code == 200
+                and masked_value != ""
                 and "13987654321" not in masked_value
                 and audit_resp.status_code == 200
+                and isinstance(audit_body, list)
             )
             detail = (
                 f"初始审计={initial_audit_size}, "
                 f"脱敏={mask_resp.status_code}(masked={masked_value}), "
                 f"最终审计={final_audit_size}, "
-                f"审计事件数={len(audit_body)}"
+                f"审计事件数={len(audit_body) if isinstance(audit_body, list) else 'N/A'}"
             )
         except Exception as e:
             passed = False
