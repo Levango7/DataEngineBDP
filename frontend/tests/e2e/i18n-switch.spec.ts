@@ -64,10 +64,12 @@ test.describe('i18n 语言切换回归', () => {
     await switchLocale(page, 'en-US')
 
     // h1 词条值对齐 locales/modules/*.en-US.json 实际词条
+    // 注意 /quality 已在 C-2 导航合并中重定向到 /standard（router/index.ts），
+    // 故质量不再有独立 h1；此处用 /standard 的 "Data Standards"
     const cases: Array<[string, RegExp]> = [
       ['/dashboard', /Workspace/i],
       ['/projects', /Projects/i],
-      ['/quality', /Data Quality/i],
+      ['/standard', /Data Standards/i],
       ['/govern', /Asset Catalog/i],
       ['/search', /Search Portal/i]
     ]
@@ -128,8 +130,9 @@ test.describe('i18n 语言切换回归', () => {
     await page.waitForSelector('aside.side .brand', { timeout: 10_000 })
 
     await switchLocale(page, 'zh-CN')
-    await page.goto('/#/quality', { waitUntil: 'domcontentloaded' })
+    // /quality 重定向到 /standard（C-2 导航合并），h1 为"数据标准"
+    await page.goto('/#/standard', { waitUntil: 'domcontentloaded' })
     await page.waitForSelector('h1', { timeout: 10_000 })
-    await expect(page.locator('h1').first()).toContainText('数据质量')
+    await expect(page.locator('h1').first()).toContainText('数据标准')
   })
 })
