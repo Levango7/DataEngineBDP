@@ -17,7 +17,7 @@
 | vue-tsc 类型错误 | 0 | ✅ 已清零（2026-09-26 实测 `npx vue-tsc --noEmit` exit 0） | 2026-09-26 |
 | vitest 失败用例 | 本机 11 例 / CI 预期 0 | ⚠️ 环境相关：本机 Node 26 内置 `localStorage` 遮蔽 jsdom，theme 相关用例失败；CI 钉 Node 22 | v2.2.0（同时补 `.nvmrc`） |
 | Java 编译错误（已修复） | 0 | ✅ 已清零 | 2026-09-15 |
-| **生产化待决项** | **33 项**（2026-09-29 新增 #24–#31，其中 5 项已在 `fix/p0-production-blockers` 修复待 CI 核验） | 📋 见第六节（具备条件再做，先记载在案） | v2.2.0 / GA |
+| **生产化待决项** | **34 项**（2026-09-29 新增 #24–#32，其中 6 项已在 `fix/p0-production-blockers` 修复待 CI 核验） | 📋 见第六节（具备条件再做，先记载在案） | v2.2.0 / GA |
 
 ---
 
@@ -191,8 +191,8 @@ mvn package -Dmaven.test.skip=true -q
 > 口径：这些不是"测试失败"，而是**当前不具备实现条件或需要产品/架构裁决**的缺口。
 > 已按"能修就修、不能修就如实失败并记录"处理：代码里不再有假装成功的分支。
 >
-> **2026-09-29 更新**：本节新增 #24–#31（CI 红项分诊结论），并在 #20 追加收敛明细、#23 标记已解决。
-> 新增各项中 5 项已在本分支修复，标注"待 CI 核验"；3 项（#28 CodeQL 误报、#29 Trivy fs、#30 Kind Smoke 镜像源）
+> **2026-09-29 更新**：本节新增 #24–#32（CI 红项分诊结论），并在 #20 追加收敛明细、#23 标记已解决。
+> 新增各项中 6 项已在本分支修复，标注"待 CI 核验"；3 项（#28 CodeQL 误报、#29 Trivy fs、#30 Kind Smoke 镜像源）
 > 属**裁决项**，需产品/架构决定处置口径，详见各项"解锁条件"列。
 
 | # | 事项 | 影响 | 解锁条件 | 现状 |
@@ -226,10 +226,11 @@ mvn package -Dmaven.test.skip=true -q
 | 25 | **Docker Build Verify 红：3 个 Dockerfile 缺 common-security 预装**。`tag-engine`、`karmada/federated-query`、`governance/real-time-pipeline` 三个 Dockerfile 在 `go-offline` 离线构建前未先安装本仓 `common-security` 模块，Maven 报 `com.levango7.dataenginebdp:common-security:jar:0.1.0-SNAPSHOT (absent)`（run 36378306992 job 108788568621，L3425） | 镜像构建失败，3 个服务无法产出镜像 | 已修复：按 `sql-gateway`/`rule-engine` 既有 Dockerfile 模式补预装步骤 | 已修，本地三个镜像构建实测 `TAG_ENGINE_EXIT=0` / `FEDERATED_EXIT=0` / `RTP_EXIT=0`，**待 CI 核验** |
 | 26 | **Playwright E2E 红：13 例跨 4 个 spec 文件失败**（run 36378306993 job 108788568716）：`i18n-switch.spec.ts` L32/49/69/95/110、`navigation.spec.ts` L20/116/138/154、`search.spec.ts` L21、`standards.spec.ts` L20/38/59 —— 选择器/断言与现行 DOM 及 i18n 键漂移 | nightly E2E 门禁红，前端回归不可判读 | 已修复 4 个 spec：按现行 DOM 结构/i18n 键校正选择器与断言 | 已修，**待 nightly CI 核验** |
 | 27 | **nightly 连续 8 次红（35534687472…36349065678）的结构性归因**：三红结构 = Chart Render（脚本 `set -e` 下 grep 无命中即退出，属脚本缺陷，已在 `f8d673d1` 修复）+ K3s Suite（构建上下文路径漂移，修复在本分支待核验）+ Playwright E2E（见 #26）。即"三红"并非三个独立产品缺陷，其中一个为 CI 脚本缺陷、两个为测试资产漂移 | nightly 长期红致信号疲劳，真实回归被淹没 | 逐项修复后以 nightly 实跑复核 | 脚本缺陷已修（`f8d673d1`）；K3s/Playwright 修复**待 nightly 核验** |
-| 28 | **CodeQL 告警 7798/7799（`py/call-to-non-callable`，`platform/batch-pipeline/batch_pipeline/stages/_dispatch.py:68,70`）经复核为误报**：两处为函数引用传递（call site 传入 callable），非调用空值 | 告警噪声，干扰 CodeQL 真信号判读 | **裁决项**：①在 GitHub 侧 dismiss（理由 false positive）并留痕；②或改写成 CodeQL 可识别的形式（如显式包装函数）消除告警。二者均可，倾向①（改动零风险、留痕可审计） | 待裁决，未动代码 |
+| 28 | **CodeQL 告警 7798/7799（`py/call-to-non-callable`，`platform/batch-pipeline/batch_pipeline/stages/_dispatch.py:68,70`）经复核为误报**：两处为函数引用传递（call site 传入 callable），非调用空值 | 告警噪声，干扰 CodeQL 真信号判读 | **裁决项**：①在 GitHub 侧 dismiss（理由 false positive）并留痕；②或改写成 CodeQL 可识别的形式（如显式包装函数）消除告警。二者均可，倾向①（改动零风险、留痕可审计） | 待裁决，未动代码。**2026-09-29 复核（check-run 109047756326 全部 57 条注记的线级归属）**：57 = **13 条落在本 PR 新增行 + 44 条与新增行无关（含全部 4 条 failure 级）** —— 4 条 failure 的创建时间均早于本 PR（alerts API 实测：`_dispatch.py` 7798/7799 = 2026-09-03 且该文件**不在本 PR diff 内**、`metrics_docs.py:36` py/polynomial-redos = 2026-08-26、query-api `auth.go` ×3 = 2026-08-07/08），即 GitHub 把整次分析的新告警都归到超大 PR 上属归属噪声，7798/7799 误报判定不因此改变。13 条 PR 行内 notice：9 条为 industry-templates 各模板 DAG 的 Airflow `t1 >> t2 >> t3` 依赖声明（CodeQL "Statement has no effect"，非缺陷、留置）；4 条本可清理项已修（`test_api.py:24` 同模块 import/import-from、`test_spark_iceberg.py:44` 未用导入、`services/__init__.py:149` 未用局部变量、`count-source-lines.py:30` 空 except）；另 2 条由本 PR 真实引入（`test_realtime_governance.py` fixture 混合 return + 空 except，线级工具因锚点行漂移漏计、经 `git diff -U0` 证实为 PR 新增行所致）也已修 —— 合计**本 PR 引入的 15 条 notice 已清 6、留置 9**（留置项均属 Airflow 惯用法，不建议为 notice 级别改业务语义） |
 | 29 | **Trivy fs 扫出 78 MEDIUM（17 个唯一包-CVE 组合，run 36378306945 job 108788567998，产物 10951668978，exit 1 于日志 L463）**：均为依赖版本问题，非本仓代码缺陷 | Security 工作流红；78 条中多数属同一批传递依赖 | **裁决项**（三选一）：①逐批抬版（工作量最大、最彻底）；②按 severity 收窄门禁口径（如仅 `HIGH,CRITICAL` 阻断，MEDIUM 出报告不阻断）；③`.trivyignore` 逐条豁免并附理由（须防盗用） | 待裁决；事实清单：17 个唯一组合 |
 | 30 | **Kind Smoke Test（job 108788910547）拉不到镜像**：`unexpected status from HEAD request to https://docker.m.daocloud.io/v2/sq-sql-gateway/manifests/0.1.0: 403 Forbidden`，另一源 `harbor.shuqing.io` 不可达；Chart 硬编码 `docker.m.daocloud.io/sq-*:0.1.0`。该 job 带 `continue-on-error`，故工作流仍绿 | 冒烟测试未真正验证集群部署成功；"绿"是假绿 | **裁决项**：①把 Chart 镜像源改为 CI 内可推送的本地 registry（kind load 镜像）；②或换用可用的公共镜像源并钉 digest；③或最简：把 `continue-on-error` 去掉使失败可见，先如实红 | 待裁决，未动配置 |
 | 31 | **Markdown Lint 本轮为"潜在红"（job 因 `needs: integration-test` 被 skip，从未真正执行；首跑必红）**：实测 README.md exit 1、CONVENTIONS.md exit 1、`docs/**/*.md` 2212 违例 / 73 文件（默认规则集） | 一旦 IT 转绿，Markdown Lint 将成为下一块红牌（顺序性假绿掩盖） | 已修复：新增 `.markdownlint.json`（MD013 中文行宽/MD029 跨小节连续编号/MD033 内联 HTML/MD034 裸 URL/MD036 粗体当标题/MD040 无语言围栏——均按本仓文档惯例豁免；MD024 `siblings_only`；MD050 星号风格）+ `--fix` 66 文件 + 8 处手工修复（README、治理闭环修复草案、升级指南、审计报告、 remediation 方案组A、图样规范、docs/README、api-reference） | 已修，本地三条 lint 命令全部 exit 0，**待 CI 核验** |
+| 32 | **K3s burn-in 组件 CrashLoop 根因（一类碰撞 + 一个独立项）**：① **K8s Service Link 端口注入碰撞（6 组件同型）** —— kubelet 会向 Pod 注入同命名空间各 Service 的 `<SVC>_PORT=tcp://IP:PORT` 链接变量；Python 组件（nl2sql/asset-exchange/industry-templates/llmops）的 pydantic-settings `env_prefix` 恰等于自身 Service 名 → `NL2SQL_PORT` 等被按整数解析而启动崩（burn-in 实测 run 36457429792/job 109047224953：门禁报 `未在期限内 Ready: nl2sql knowledge-engine`，nl2sql/KE/industry-templates 三 Pod 均 CrashLoopBackOff（重启 6 次）；nl2sql 容器日志 `ValidationError: port ... input_value='tcp://10.43.161.101:8093'`；本地对 4 个 Python 组件逐一注入同型值复现成功）。Go 组件（catalog/vector-engine）读 `os.Getenv("CATALOG_PORT")`/`VECTOR_ENGINE_PORT`（`platform/catalog/main.go:40,117`、`platform/vector-engine/main.go:47,76`、`internal/config/config.go:66`）后 `":"+port` 传 ListenAndServe，注入值使地址非法 → `log.Fatalf`（此前被 ImagePullBackOff 掩盖未暴露）；open-api-catalog 前缀 `OPENAPI_CATALOG_` 与注入名 `OPEN_API_CATALOG_PORT` 不同名，本地实测**不碰撞**（已剔除出修复范围）。② knowledge-engine 属独立根因：默认 storeType=nebula 强制要求 `NEBULA_USER`，无 Nebula 的 burn-in 栈启动即崩（日志 `nebulaUser 不能为空...`） | burn-in 链路组件大面积起不来，"K3s Suite" 长期红且不可归因；该碰撞类同样会击中任何按组件名设 env_prefix 的部署 | 已修复：7 个 k3s manifest（6 补 `enableServiceLinks: false` + KE 补 `KE_STORETYPE/KE_EXTRACTORTYPE=mock`，与 tests/integration/conftest.py 既有取值一致，生产仍走 Chart 的 nebula 凭证 Secret 路径）+ 6 个生产 Chart 同补 `enableServiceLinks: false`（组件间寻址均走 Service DNS/显式 URL，全仓无代码依赖链接变量；独立安装 Release=Chart 名会碰撞、umbrella 因 release 前缀侥幸避开 —— 统一关闭注入抹平两路径差异） | 已修，**待下次 nightly K3s 实跑核验**；Chart 侧 `helm lint/template` 全绿（纯插入），manifest 侧结构校验通过；约 16 个 ImagePullBackOff Pod 属 #30 镜像源口径，不在本条范围 |
 
 ---
 
@@ -241,3 +242,4 @@ mvn package -Dmaven.test.skip=true -q
 | 2026-09-15 | Java 编译错误5个已修复清零 | AI 审查流水线 |
 | 2026-09-26 | vue-tsc 类型错误全部清零（Drawer/Modal 改函数式 `:ref`）；IT 红项分诊（#20）；okhttp 排除（#21）；Serverless 路径修正（#18） | AI 审查流水线 |
 | 2026-09-29 | 头部日期与计数刷新；新增 #24–#31（CI 红项分诊：QuotaController 角色、Dockerfile 预装、Playwright 13 例、nightly 结构性归因、CodeQL 误报、Trivy fs、Kind Smoke、Markdown Lint）；#23 标记已解决；#20 追加 2026-09-29 收敛明细 | AI 审查流水线 |
+| 2026-09-29 | 同日续：新增 #32（K3s Service Link 端口注入碰撞：6 组件同型、7 manifest + 6 Chart 修复，待 nightly 核验）；#28 追加 57 条注记线级归属复核（本 PR 引入 15 条 notice 已清 6 / 留置 9）；头部计数 33→34 | AI 审查流水线 |
