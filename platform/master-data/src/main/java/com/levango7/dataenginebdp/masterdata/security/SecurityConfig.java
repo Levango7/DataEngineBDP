@@ -66,6 +66,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
+                        // 容器错误派发放行：sendError() 以 ERROR dispatch 重入过滤链时认证
+                        // 过滤器已被跳过（SecurityContext 已清空），若 /error 要求认证会把
+                        // 真实 4xx/5xx 统一改写成 403。
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)

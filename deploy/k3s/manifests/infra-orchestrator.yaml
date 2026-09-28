@@ -34,6 +34,18 @@ spec:
         # 生产请走 helm charts（Secret 注入）。
         - name: JWT_SECRET
           value: "it-test-jwt-secret-at-least-32-bytes-long"
+        # Provider base URL 覆盖：application.yml 默认端口 8090-8093，
+        # 与本目录 Provider Service 端口（xinchang 8081 / baremetal 8080 /
+        # cloud 8084 / private 8084）不一致，且集群内不存在 8090-8093 的监听，
+        # 表现为 WebClient 连接黑洞（list_clusters 读超时）。
+        - name: XINCHANG_PROVIDER_URL
+          value: "http://infra-provider-xinchang:8081"
+        - name: BAREMETAL_PROVIDER_URL
+          value: "http://infra-provider-baremetal:8080"
+        - name: CLOUD_PROVIDER_URL
+          value: "http://infra-provider-cloud:8084"
+        - name: PRIVATE_PROVIDER_URL
+          value: "http://infra-provider-private:8084"
         readinessProbe:
           httpGet:
             path: /actuator/health

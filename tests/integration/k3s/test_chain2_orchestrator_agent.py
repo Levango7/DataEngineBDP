@@ -118,11 +118,21 @@ class TestChain2Orchestrator:
         assert passed, detail
 
     def test_create_cluster(self, k3s_client, infra_orchestrator_url):
-        """测试创建集群(DAG编排): POST /api/v1/clusters."""
+        """测试创建集群(DAG编排): POST /api/v1/clusters.
+
+        环境约束：CI 只构建链路所需的 5 个组件镜像（见 nightly-e2e.yml
+        "构建并导入链路业务镜像"），infra-provider-* Pod 停在 ImagePullBackOff，
+        下游供应在本环境不可能成功。本用例因此验证**编排 DAG 端到端已执行**：
+        - 请求必须到达编排层（不得是 401/403——403 曾掩盖错误码，见 common-security
+          /error 放行修复；也不得是 400——历史载荷 "CLOUD" 不是合法 EnvironmentType）；
+        - 响应为结构完整的 SupplyResult（phase + events 分阶段事件），
+          下游不可达时 fail-closed 为 phase=FAILED 而非崩溃。
+        集群真实创建成功路径由单元/组件测试与具备基础设施的环境覆盖。
+        """
         start = time.time()
         cluster_name = f"it-test-cluster-{uuid.uuid4().hex[:8]}"
         payload = {
-            "environment": "CLOUD",
+            "environment": "XINCHANG",
             "clusterName": cluster_name,
             "nodeCount": 1,
             "tenantId": "it-test-tenant",
@@ -131,9 +141,18 @@ class TestChain2Orchestrator:
             resp = k3s_client.post(
                 infra_orchestrator_url + "/api/v1/clusters", json=payload
             )
-            body = resp.json() if resp.status_code in (200, 201) else {}
-            passed = resp.status_code in (200, 201) and "phase" in body
-            detail = f"status={resp.status_code}, phase={body.get('phase')}, cluster={cluster_name}"
+            body = resp.json() if resp.status_code in (200, 201, 500) else {}
+            events = body.get("events") or []
+            phase = body.get("phase")
+            passed = (
+                resp.status_code in (200, 201, 500)
+                and phase in ("SUCCEEDED", "FAILED")
+                and any("provider-selected" in str(e) for e in events)
+            )
+            detail = (
+                f"status={resp.status_code}, phase={phase}, "
+                f"events={events[:4]}, cluster={cluster_name}"
+            )
         except Exception as e:
             passed = False
             detail = f"请求异常: {e}"

@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Spring Security 配置。
  *
- * <p>放行 {@code /api/v1/health} 与 {@code /actuator/**}，其他端点要求认证。
+ * <p>放行 {@code /api/v1/health}、{@code /error} 与 {@code /actuator/**}，其他端点要求认证。
  * 注册 {@link JwtAuthFilter} 于 {@link UsernamePasswordAuthenticationFilter} 之前。
  * REST API 无状态会话，禁用 CSRF，启用 CORS。</p>
  *
@@ -64,6 +64,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()  // 登录端点放行（Keycloak 代理）
+                        // 容器错误派发放行：sendError() 以 ERROR dispatch 重入过滤链时认证
+                        // 过滤器已被跳过（SecurityContext 已清空），若 /error 要求认证会把
+                        // 真实 4xx/5xx 统一改写成 403。
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()  // 仅放行 health/info，prometheus 等敏感端点需认证
                         // A4 探针端点：k8s kubelet 无 Bearer token 探测，必须匿名放行
                         .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness").permitAll()

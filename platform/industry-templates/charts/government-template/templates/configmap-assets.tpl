@@ -25,22 +25,22 @@ metadata:
     shuqing.io/iotdb: "true"
 data:
 {{- range $path, $_ := .Files.Glob "ddl/**" }}
-  {{ $path }}: |-
+  {{ $path | replace "/" "_" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dag/**" }}
-  {{ $path }}: |-
+  {{ $path | replace "/" "_" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dashboards/**" }}
-  {{ $path }}: |-
+  {{ $path | replace "/" "_" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "iotdb/**" }}
-  {{ $path }}: |-
+  {{ $path | replace "/" "_" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "rbac/**" }}
-  {{ $path }}: |-
+  {{ $path | replace "/" "_" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
