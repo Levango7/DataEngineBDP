@@ -197,11 +197,21 @@ jobs:
               echo "::warning::$comp 未找到 Dockerfile，跳过"
               continue
             fi
-            # 构建上下文必须是仓库根：这些 Dockerfile 里是 COPY platform/<组件>/src ...
-            # （与 docker-compose.yml 的 context: ../.. + dockerfile: platform/x/Dockerfile 一致）。
-            # 用组件目录作上下文会报 "/platform/<组件>/src: not found"（实测）。
-            echo "构建 sq/$comp:0.1.0（dockerfile $dir/Dockerfile，上下文 .）"
-            if docker build -q -t "sq/$comp:0.1.0" -f "$dir/Dockerfile" .; then
+            # 构建上下文自适应（两种 Dockerfile 形态并存，硬编码任一种都会打断另一类）：
+            # - Java 组件：Dockerfile 内 `COPY platform/<模块>/...`（多模块 Maven），
+            #   必须用仓库根为上下文，否则报 "/platform/<组件>/src: not found"（实测）；
+            # - Python/Go 组件：COPY requirements.txt ./main.py 等组件内相对路径，
+            #   必须用组件目录为上下文，根上下文会报 "/requirements.txt: not found"、
+            #   "/main.py: not found"（本 job 实测，run 36378306993）。
+            # 判定法与 docker-compose.yml 的 context 约定一致（Java=../..，Python=组件目录）。
+            if grep -q "COPY platform/" "$dir/Dockerfile"; then
+              echo "构建 sq/$comp:0.1.0（Java 组件，上下文=仓库根）"
+              build_args=(-f "$dir/Dockerfile" .)
+            else
+              echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
+              build_args=("$dir")
+            fi
+            if docker build -q -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               images="$images sq/$comp:0.1.0"
             else
               echo "::warning::$comp 构建失败，跳过导入"

@@ -337,17 +337,20 @@ def _start_python_component(name: str) -> subprocess.Popen:
     )
     log_path = log_file.name
     log_file.close()
-    proc = subprocess.Popen(
-        [sys.executable, "main.py"],
-        cwd=str(comp_dir),
-        env=env,
-        stdout=open(log_path, "w", encoding="utf-8"),
-        stderr=subprocess.STDOUT,
-        # Windows 下创建新进程组，便于整组终止
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-        if sys.platform == "win32"
-        else 0,
-    )
+    # with 块托管日志句柄：Popen 返回后父进程句柄即关闭，
+    # 子进程持有独立副本，可继续写入；避免句柄泄漏
+    with open(log_path, "w", encoding="utf-8") as log_handle:
+        proc = subprocess.Popen(
+            [sys.executable, "main.py"],
+            cwd=str(comp_dir),
+            env=env,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            # Windows 下创建新进程组，便于整组终止
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            if sys.platform == "win32"
+            else 0,
+        )
     proc._log_file_path = log_path  # type: ignore[attr-defined]
     return proc
 

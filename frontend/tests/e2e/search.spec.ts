@@ -20,7 +20,7 @@ test.describe('检索门户（/search）', () => {
 
   test('检索门户页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('检索门户')
-    await expect(page.locator('.sub')).toContainText('统一检索入口')
+    await expect(page.locator('.page-header__subtitle')).toContainText('统一检索入口')
   })
 
   test('检索输入框存在', async ({ page }) => {

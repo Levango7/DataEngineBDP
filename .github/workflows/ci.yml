@@ -1939,11 +1939,18 @@ jobs:
       - name: 运行 pytest 集成测试
         # 能执行到本步骤说明 compose 已就绪（上一步失败已直接阻断）；
         # pytest 退出码非零即 job 失败（默认行为，无 continue-on-error）
+        #
+        # --ignore=k3s：k3s/ 需要真实集群（kubectl/helm），本泳道的 compose 栈里没有，
+        #   收集进去会因 T-05 严格模式（部署失败→ERROR）产生 38 个 ERROR + 1 FAILED。
+        #   其专用泳道：nightly-e2e.yml 的 K3s burn-in 与 it-k3s.yml（每周）。
+        # --ignore=perf：perf/ 是压测套件（单用例 2000~20000 请求），本泳道不适跑；
+        #   且当前用例打 GET /api/v1/tenants 用的是 USER token（403）并触发限流（429）。
+        #   见 docs/KNOWN-FAILURES.md 台账（专用压测泳道待建）。
         if: env.it_skip != 'true'
         working-directory: tests/integration
         run: |
-          echo "运行集成测试..."
-          python -m pytest -v --tb=short --html=test-report.html --self-contained-html
+          echo "运行集成测试（排除需真实 K8s 的 k3s/ 与压测套件 perf/）..."
+          python -m pytest -v --tb=short --ignore=k3s --ignore=perf --html=test-report.html --self-contained-html
           echo "集成测试执行完成"
 
       - name: 失败时抓取容器日志（定位 5xx/4xx 真因）

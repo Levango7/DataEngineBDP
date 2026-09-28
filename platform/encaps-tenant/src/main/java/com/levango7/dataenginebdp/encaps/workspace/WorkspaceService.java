@@ -4,6 +4,7 @@ import com.levango7.dataenginebdp.encaps.security.Decrypt;
 import com.levango7.dataenginebdp.encaps.security.Encrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -37,10 +38,15 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final K8sWorkspaceTranslator k8sTranslator;
 
+    /** K8s mock 模式（app.k8s.mock-enabled=true 时跳过全部 K8s 翻译调用）。 */
+    private final boolean k8sMockEnabled;
+
     public WorkspaceService(WorkspaceRepository workspaceRepository,
-                            K8sWorkspaceTranslator k8sTranslator) {
+                            K8sWorkspaceTranslator k8sTranslator,
+                            @Value("${app.k8s.mock-enabled:false}") boolean k8sMockEnabled) {
         this.workspaceRepository = workspaceRepository;
         this.k8sTranslator = k8sTranslator;
+        this.k8sMockEnabled = k8sMockEnabled;
     }
 
     /**
@@ -76,10 +82,16 @@ public class WorkspaceService {
         Workspace saved = workspaceRepository.save(req);
 
         try {
-            k8sTranslator.createNamespace(saved);
-            k8sTranslator.createNetworkPolicy(saved);
-            k8sTranslator.createRBAC(saved);
-            k8sTranslator.createResourceQuota(saved);
+            if (k8sMockEnabled) {
+                // mock 模式下 K8sClientConfig 返回的是未连接真实集群的懒加载 client，
+                // 调用翻译会阻塞至读超时；此处直接跳过并视为翻译成功
+                log.info("K8s mock 模式：跳过 workspace {} 的 K8s 翻译", saved.getId());
+            } else {
+                k8sTranslator.createNamespace(saved);
+                k8sTranslator.createNetworkPolicy(saved);
+                k8sTranslator.createRBAC(saved);
+                k8sTranslator.createResourceQuota(saved);
+            }
             saved.setStatus(Workspace.WorkspaceStatus.ACTIVE);
         } catch (K8sWorkspaceTranslator.K8sTranslationException e) {
             log.error("K8s translation failed for workspace {}: {}", saved.getId(), e.getMessage(), e);
@@ -108,7 +120,11 @@ public class WorkspaceService {
         workspaceRepository.save(ws);
 
         try {
-            k8sTranslator.deleteNamespace(ws);
+            if (k8sMockEnabled) {
+                log.info("K8s mock 模式：跳过 workspace {} 的 Namespace 删除", id);
+            } else {
+                k8sTranslator.deleteNamespace(ws);
+            }
         } catch (K8sWorkspaceTranslator.K8sTranslationException e) {
             log.error("K8s namespace deletion failed for workspace {}: {}", id, e.getMessage(), e);
         }
@@ -177,12 +193,16 @@ public class WorkspaceService {
      * 查询 Workspace 对应 K8s Namespace 的实时状态。
      *
      * @param id Workspace ID
-     * @return K8s Namespace 状态字符串；若 Workspace 不存在返回 {@code "NotFound"}
+     * @return K8s Namespace 状态字符串；若 Workspace 不存在返回 {@code "NotFound"}；
+     *         mock 模式下无集群可查，返回 {@code "Unknown"}
      */
     public String getK8sStatus(Long id) {
         Optional<Workspace> opt = workspaceRepository.findById(id);
         if (opt.isEmpty()) {
             return "NotFound";
+        }
+        if (k8sMockEnabled) {
+            return "Unknown";
         }
         return k8sTranslator.getNamespaceStatus(opt.get());
     }

@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
+import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import com.levango7.dataenginebdp.encaps.model.ProjectEntity;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
@@ -190,7 +191,7 @@ public class ProjectController {
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {
-            throw new IllegalStateException("缺少租户上下文");
+            throw new MissingTenantContextException();
         }
         return tenantId;
     }

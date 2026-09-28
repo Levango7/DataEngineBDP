@@ -578,7 +578,8 @@ def test_asset_registration_to_exchange(
         asset_exchange_url + "/api/v1/assets",
         json={
             "name": asset_name,
-            "type": "DATASET",
+            # type 枚举：table/api/model/dashboard/stream（服务端 422 实测反馈）
+            "type": "table",
             "description": "E2E 测试资产",
             "owner": "e2e-tenant",
             "price": 100.0,
@@ -649,8 +650,13 @@ def test_open_api_subscription_to_billing(
         params={"tenantId": "e2e-tenant"},
     )
     assert catalog_resp.status_code == 200, f"API 目录查询失败: {catalog_resp.text}"
-    apis_body = catalog_resp.json()
-    apis = apis_body.get("items") or apis_body.get("apis") or []
+    apis_body = _unwrap_response(catalog_resp.json())
+    # 服务端可能返回裸列表（实测）或 items/apis 键包裹的对象
+    apis = (
+        apis_body
+        if isinstance(apis_body, list)
+        else (apis_body.get("items") or apis_body.get("apis") or [])
+    )
     assert isinstance(apis, list), "API 列表应为数组"
 
     # 2. 订阅 API（detail design §7 契约：POST /apis/{apiId}/subscribe；Sprint 4.2

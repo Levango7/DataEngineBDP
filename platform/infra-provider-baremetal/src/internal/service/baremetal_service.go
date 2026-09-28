@@ -543,7 +543,9 @@ func (s *BareMetalService) provisionNodeAsync(n *model.BareMetalNode) {
 		n.State = model.NodeStateFailed
 		n.LastError = err.Error()
 		if saveErr := s.db.Save(n).Error; saveErr != nil {
-			s.logger.WithError(saveErr).WithField("node", n.Hostname).Warn("保存节点失败状态失败")
+			// 节点标识用服务端生成的 UUID：hostname 来自请求体，直接进日志
+			// 属日志注入面（CWE-117），不进日志字段
+			s.logger.WithError(saveErr).WithField("nodeUuid", n.UUID).Warn("保存节点失败状态失败")
 		}
 	}
 }

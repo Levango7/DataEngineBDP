@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
+import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
@@ -113,13 +114,13 @@ public class AccountController {
      * 非数字租户直接抛 403 FORBIDDEN，拒绝访问配额资源。</p>
      *
      * @return 当前租户的 Long 型 ID
-     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
      * @throws ResponseStatusException(403) 若租户 ID 非数字（无法映射到 Long 型配额键）
      */
     private Long tenantIdLong() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
-            throw new IllegalStateException("缺少租户上下文");
+            throw new MissingTenantContextException();
         }
         try {
             return Long.parseLong(tid);

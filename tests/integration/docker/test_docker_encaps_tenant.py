@@ -161,7 +161,7 @@ def test_project_crud_flow(api_client, encaps_tenant_url, numeric_tenant_token):
 
 
 def test_project_requires_tenant_context(api_client, encaps_tenant_url):
-    """验证缺少租户上下文（无 tenantId claim）时项目创建返回服务端错误（500），
+    """验证缺少租户上下文（无 tenantId claim）时项目创建返回 403，
     而非静默落库——ProjectController.requireTenant() 的防御行为。"""
     # api_client 默认 token 带 tenantId="docker-it-tenant"（非数字）
     # AccountController.tenantIdLong() 会容错为 0，但 ProjectController.requireTenant()
@@ -174,36 +174,45 @@ def test_project_requires_tenant_context(api_client, encaps_tenant_url):
         json={"name": "no-tenant", "domain": "x"},
         headers={"Authorization": f"Bearer {no_tenant_token}"},
     )
-    # 防御路径：缺租户上下文 → 500（IllegalStateException 由全局异常处理兜底）
-    assert resp.status_code in (400, 401, 500)
+    # 防御路径：缺租户上下文 → MissingTenantContextException → 403
+    # （GlobalExceptionHandler 独立映射；此前 IllegalStateException 被误映射为 409）
+    assert resp.status_code == 403
 
 
 # ---------------------------------------------------------------------------
 # 账户域
 # ---------------------------------------------------------------------------
-def test_account_plan(api_client, encaps_tenant_url):
-    """验证 GET /account/plan 返回 200 且含套餐字段（无配额时为免费版）。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/account/plan")
+def test_account_plan(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 GET /account/plan 返回 200 且含套餐字段（无配额时为免费版）。
+
+    用数字 tenantId 的 token：AccountController.tenantIdLong() 对非数字租户
+    fail-closed 抛 403（R10 安全修复），默认 api_client token 会命中该路径。
+    """
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
+    resp = api_client.get(encaps_tenant_url + "/api/v1/account/plan", headers=headers)
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert "plan" in body
     assert body["plan"] in ("free", "pro", "enterprise")
 
 
-def test_account_billing(api_client, encaps_tenant_url):
-    """验证 GET /account/billing 返回 200 且账单结构完整。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/account/billing")
+def test_account_billing(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 GET /account/billing 返回 200 且账单结构完整（数字 tenantId token）。"""
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
+    resp = api_client.get(encaps_tenant_url + "/api/v1/account/billing", headers=headers)
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert "items" in body
     assert "totalCost" in body
 
 
-def test_account_upgrade(api_client, encaps_tenant_url):
-    """验证 POST /account/upgrade 返回目标档费用与受理状态。"""
+def test_account_upgrade(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 POST /account/upgrade 返回目标档费用与受理状态（数字 tenantId token）。"""
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
     resp = api_client.post(
         encaps_tenant_url + "/api/v1/account/upgrade",
         json={"targetPlan": "pro"},
+        headers=headers,
     )
     assert resp.status_code == 200
     body = unwrap_response(resp.json())

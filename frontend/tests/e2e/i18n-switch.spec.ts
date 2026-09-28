@@ -8,7 +8,8 @@
  * - 切回中文恢复
  * - 英文模式下无"词条未翻译泄漏"（h1 不含 key 占位符 'xxx.' 前缀）
  *
- * 定位策略：语言切换器在侧边栏底部（.lang-switch 或含"中/EN"文本的按钮）；
+ * 定位策略：语言切换器在顶栏右侧 `.tb-locale` 二态按钮
+ * （中文态显 EN / 英文态显 中，TopBar.vue toggleLocale）；
  * 偏好存储 localStorage `sq_locale`（i18n/index.ts 约定）。
  */
 import { test, expect } from '@playwright/test'
@@ -17,11 +18,24 @@ import { ensureLoggedIn } from './helpers'
 /** localStorage 键（与 src/i18n/index.ts 的 STORAGE_KEY 一致） */
 const LOCALE_KEY = 'sq_locale'
 
-/** 通过侧边栏语言切换器（真实用户路径）切换语言。 */
-async function switchLocale(page: import('@playwright/test').Page, to: string): Promise<void> {
-  const select = page.locator('select.locale-switcher')
-  await select.waitFor({ state: 'visible', timeout: 10_000 })
-  await select.selectOption(to)
+/** 通过顶栏语言切换器（真实用户路径）切换到目标语言。 */
+async function switchLocale(
+  page: import('@playwright/test').Page,
+  to: 'zh-CN' | 'en-US'
+): Promise<void> {
+  const btn = page.locator('.tb-locale')
+  await btn.waitFor({ state: 'visible', timeout: 10_000 })
+  // 二态开关：按钮文案是"点击后将切换到的语言"（中文态显 EN / 英文态显 中），
+  // 即当前语言已是目标语言时，按钮显示的是另一种语言的文案
+  const achievedLabel = to === 'en-US' ? '中' : 'EN'
+  if ((await btn.textContent())?.trim() !== achievedLabel) {
+    await btn.click()
+    await expect(btn).toHaveText(achievedLabel, { timeout: 5_000 })
+  }
+  // 与 toggleLocale 的持久化行为对齐（persistLocale 写 sq_locale）
+  await expect
+    .poll(() => page.evaluate((key) => localStorage.getItem(key), LOCALE_KEY), { timeout: 5_000 })
+    .toBe(to)
 }
 
 test.describe('i18n 语言切换回归', () => {

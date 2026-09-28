@@ -120,10 +120,11 @@ class FinOpsUsageExporter:
         }
         headers = self._buildHeaders(jwtToken)
 
+        # period 来自请求体（ExportUsageRequest.period），直接进日志属日志注入面
+        # （CWE-117）；账期已在 payload 中传给下游，日志只保留条数。
         logger.info(
-            "导出 API 用量到 finops: tenant=%s, period=%s, items=%d",
+            "导出 API 用量到 finops: tenant=%s, items=%d",
             tenantId,
-            period,
             len(usageData or []),
         )
 

@@ -19,7 +19,7 @@ test.describe('数据标准（/standard）', () => {
 
   test('标准列表页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('数据标准')
-    await expect(page.locator('.sub')).toContainText('统一字段命名')
+    await expect(page.locator('.page-header__subtitle')).toContainText('统一字段命名')
     await expect(page.locator('.card')).toBeVisible()
   })
 
@@ -36,11 +36,12 @@ test.describe('数据标准（/standard）', () => {
   })
 
   test('标准列表显示暂无标准或数据行', async ({ page }) => {
-    await page.waitForSelector('table', { timeout: 15_000 })
+    // el-table 根节点：其内部原生 <table> 渲染为 header/body 两个，
+    // locator('table') 会触发 strict mode violation
+    const table = page.locator('.card .el-table')
+    await expect(table).toBeVisible({ timeout: 15_000 })
     // 等待 loading 结束
     await expect(page.locator('text=加载中…')).toHaveCount(0, { timeout: 15_000 })
-    const table = page.locator('table')
-    await expect(table).toBeVisible()
   })
 
   test('落标率标签显示', async ({ page }) => {
@@ -67,15 +68,19 @@ test.describe('数据标准（/standard）', () => {
     await expect(page.locator('input[placeholder*="user_id"]')).toBeVisible()
     await expect(page.locator('input[placeholder*="bigint"]')).toBeVisible()
 
-    // 类型下拉（限定弹窗内，排除侧边栏语言切换器 <select>）
-    const typeSelect = page.locator('.modal select, [role="dialog"] select')
+    // 类型下拉：Element Plus el-select（选项渲染到 body 的 .el-select-dropdown__item）
+    const typeSelect = page.locator('.modal .el-select, [role="dialog"] .el-select').first()
     await expect(typeSelect).toBeVisible()
-    const options = typeSelect.locator('option')
-    const optionTexts = await options.allTextContents()
+    await typeSelect.click()
+    const dropdownItems = page.locator('.el-select-dropdown__item')
+    await expect(dropdownItems.first()).toBeVisible({ timeout: 5_000 })
+    const optionTexts = await dropdownItems.allTextContents()
     expect(optionTexts).toContain('主键')
     expect(optionTexts).toContain('枚举')
     expect(optionTexts).toContain('字典')
     expect(optionTexts).toContain('金额')
+    // 选中"主键"收起下拉，还原界面后再取消弹窗
+    await dropdownItems.filter({ hasText: '主键' }).first().click()
 
     // 取消
     await page.locator('button', { hasText: '取消' }).click()

@@ -158,13 +158,18 @@ JWT_ISSUER = os.environ.get("JWT_ISSUER", "shuqing-bigdata")
 
 
 def generate_test_jwt(
-    tenant_id: str = "it-test-tenant", user_id: str = "it-tester"
+    tenant_id: str = "it-test-tenant",
+    user_id: str = "it-tester",
+    roles: tuple[str, ...] = ("USER",),
 ) -> str:
     """生成集成测试用 JWT Bearer token.
 
     Args:
         tenant_id: 租户 ID，写入 ``tenantId`` claim.
         user_id: 用户 ID，写入 ``sub`` claim.
+        roles:   写入 ``realm_access.roles`` 的角色列表，默认仅 USER
+                 （签名与 docker/e2e 的 conftest 保持一致：同名 import 在
+                 不同目录解析，签名不一致会触发 CodeQL 参数告警）.
 
     Returns:
         编码后的 JWT 字符串.
@@ -173,6 +178,7 @@ def generate_test_jwt(
         "iss": JWT_ISSUER,
         "sub": user_id,
         "tenantId": tenant_id,
+        "realm_access": {"roles": list(roles)},
         "iat": int(time.time()),
         "exp": int(time.time()) + 3600,
     }

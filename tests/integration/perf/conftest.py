@@ -61,12 +61,14 @@ except ImportError:  # pragma: no cover — 容错：直接运行 perf 目录时
         tenant_id: str = "perf-tenant",
         user_id: str = "perf-tester",
         expiry_seconds: int = 3600,
+        roles: tuple[str, ...] = ("USER",),
     ) -> str:
         now = int(time.time())
         payload = {
             "iss": "shuqing-bigdata",
             "sub": user_id,
             "tenantId": tenant_id,
+            "realm_access": {"roles": list(roles)},
             "iat": now,
             "exp": now + expiry_seconds,
         }

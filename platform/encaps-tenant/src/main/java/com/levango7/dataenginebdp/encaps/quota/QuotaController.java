@@ -40,8 +40,10 @@ import java.util.Map;
  *
  * <p>安全控制（R8 修复）：
  * <ul>
- *   <li>类级 {@code @PreAuthorize("hasRole('ADMIN')")}：配额管理是管理员操作，
- *       仅管理员可设置/更新/删除配额。</li>
+ *   <li>类级 {@code @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")}：
+ *       配额管理是管理员操作，仅管理员可设置/更新/删除配额。
+ *       角色目录（design/deploy/keycloak/sq-realm-roles.json）中不存在 ADMIN 角色，
+ *       与 #23 SQL_GATEWAY_WRITER 场景同法放宽：SUPER_ADMIN 作为管理员超集放行。</li>
  *   <li>租户隔离：list/get/update/delete 从 {@link TenantContext} 获取 tenantId 并注入查询条件，
  *       忽略请求参数中的 tenantId（防止跨租户访问）。</li>
  *   <li>setQuota 时从 TenantContext 注入 tenantId，忽略请求体中的 tenantId。</li>
@@ -50,7 +52,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "封装租户-配额管理", description = "Quota CRUD与用量查询")
 @RequestMapping("/api/v1/quotas")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
 public class QuotaController {
 
     private final QuotaService quotaService;

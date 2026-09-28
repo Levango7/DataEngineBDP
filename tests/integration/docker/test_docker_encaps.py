@@ -107,9 +107,12 @@ def test_create_tenant(api_admin_client, encaps_url):
         pass
 
 
-def test_list_tenants(api_client, encaps_url, sample_tenant):
-    """验证 GET /api/v1/tenants 返回 200 且为列表，包含已创建的租户。"""
-    resp = api_client.get(encaps_url + "/api/v1/tenants")
+def test_list_tenants(api_admin_client, encaps_url, sample_tenant):
+    """验证 GET /api/v1/tenants 返回 200 且为列表，包含已创建的租户。
+
+    用 admin 客户端：TenantController 类级要求 SUPER_ADMIN（同 sample_tenant 夹具）。
+    """
+    resp = api_admin_client.get(encaps_url + "/api/v1/tenants")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert isinstance(body, list)
@@ -118,10 +121,10 @@ def test_list_tenants(api_client, encaps_url, sample_tenant):
     assert sample_tenant["id"] in ids
 
 
-def test_get_tenant(api_client, encaps_url, sample_tenant):
-    """验证 GET /api/v1/tenants/{id} 返回 200 且字段与创建时一致。"""
+def test_get_tenant(api_admin_client, encaps_url, sample_tenant):
+    """验证 GET /api/v1/tenants/{id} 返回 200 且字段与创建时一致（SUPER_ADMIN）。"""
     tenant_id = sample_tenant["id"]
-    resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert body.get("id") == tenant_id
@@ -134,8 +137,8 @@ def test_get_tenant_not_found(api_admin_client, encaps_url):
     assert resp.status_code == 404
 
 
-def test_update_tenant(api_client, encaps_url, sample_tenant):
-    """验证 PUT /api/v1/tenants/{id} 更新租户返回 200 且字段已更新。"""
+def test_update_tenant(api_admin_client, encaps_url, sample_tenant):
+    """验证 PUT /api/v1/tenants/{id} 更新租户返回 200 且字段已更新（SUPER_ADMIN）。"""
     tenant_id = sample_tenant["id"]
     update_payload = {
         "name": sample_tenant["name"],
@@ -144,7 +147,7 @@ def test_update_tenant(api_client, encaps_url, sample_tenant):
         "quotaProfile": "large",
         "status": "ACTIVE",
     }
-    resp = api_client.put(
+    resp = api_admin_client.put(
         encaps_url + f"/api/v1/tenants/{tenant_id}", json=update_payload
     )
     assert resp.status_code == 200

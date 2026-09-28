@@ -856,9 +856,6 @@ class TestCoexistence:
         import requests
         import concurrent.futures
 
-        if not governance_available:
-            pytest.skip("Governance service not available")
-
         def trigger_pipeline(table_suffix: int) -> int:
             event = make_commit_event(table=f"default.concurrent_{table_suffix}")
             try:
@@ -938,11 +935,20 @@ class TestInfrastructure:
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def governance_available() -> bool:
-    """检查治理管道服务是否可用。"""
+    """治理管道服务可用性守卫：不可用则跳过全部依赖它的用例。
+
+    该服务（it-governance-pipeline）不在 docker-compose IT 栈内，且其原规划
+    端口 18090 已让渡给 encaps-tenant（见 tests/integration/e2e/conftest.py
+    端口表注释）——继续请求 18090 不再抛 ConnectionError，而是命中
+    encaps-tenant（401/403/404），各用例内 try/except 兜底失效。
+    因此在夹具层统一判定并 skip，避免把 encaps-tenant 的响应误当治理服务断言。
+    """
     import requests
 
     try:
         resp = requests.get(GOVERNANCE_URL + "/api/v1/health", timeout=5)
-        return resp.status_code == 200 and resp.json().get("status") == "UP"
+        if resp.status_code == 200 and resp.json().get("status") == "UP":
+            return True
     except (requests.ConnectionError, ValueError):
-        return False
+        pass
+    pytest.skip("Governance service not available")

@@ -200,7 +200,13 @@ def test_req_industry_template(
         params={"category": "industry"},
     )
     assert resp.status_code == 200, f"行业模板查询失败: {resp.text}"
-    templates = resp.json().get("items") or resp.json().get("templates") or []
+    body = _unwrap_response(resp.json())
+    # 服务端可能返回裸列表（实测）或 items/templates 键包裹的对象
+    templates = (
+        body
+        if isinstance(body, list)
+        else (body.get("items") or body.get("templates") or [])
+    )
     assert isinstance(templates, list)
 
 
