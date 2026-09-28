@@ -132,10 +132,7 @@ def test_referential_performance(orders_rules):
         {"customer_id": f"CUS-{i:06d}", "tier": "silver", "city": "上海", "join_date": "2022-01-01"}
         for i in range(1, 1001)
     ]
-    products = [
-        {"product_id": f"PRD-{i:06d}", "name": "p", "category": "数码", "cost": "10"}
-        for i in range(1, 201)
-    ]
+    products = [{"product_id": f"PRD-{i:06d}", "name": "p", "category": "数码", "cost": "10"} for i in range(1, 201)]
     ref = {"customers": customers, "products": products}
     rows = []
     for i in range(5000):
@@ -260,12 +257,8 @@ def test_uniqueness_null_key_exempt_polars(ref_data):
 def test_uniqueness_null_key_exempt_spark(ref_data, spark_session):
     """spark 路径与 python/polars 一致；且输出不残留 _row_idx 等辅助列。"""
     rules = {"uniqueness": {"columns": ["order_id"]}}
-    df = spark_session.createDataFrame(
-        [("",), ("",), (None,), ("ORD-00000001",), ("ORD-00000001",)], "order_id string"
-    )
-    good_df, bad_df, stats, _ = RuleEngine("orders", rules, ref_data).check(
-        df=df, spark=spark_session
-    )
+    df = spark_session.createDataFrame([("",), ("",), (None,), ("ORD-00000001",), ("ORD-00000001",)], "order_id string")
+    good_df, bad_df, stats, _ = RuleEngine("orders", rules, ref_data).check(df=df, spark=spark_session)
     assert good_df.count() == 4
     assert bad_df.count() == 1
     assert "duplicate_key:order_id" in bad_df.select("_reasons").collect()[0]["_reasons"]
@@ -302,9 +295,7 @@ def test_format_prefix_anchor_polars(ref_data):
 def test_format_prefix_anchor_spark(ref_data, spark_session):
     """spark 路径 rlike 已补前缀 ^ 锚定：中间匹配失败，前缀匹配通过。"""
     rules = {"format": {"order_id": "ORD-\\d{8}"}}
-    df = spark_session.createDataFrame(
-        [("XORD-12345678",), ("ORD-12345678-suffix",)], "order_id string"
-    )
+    df = spark_session.createDataFrame([("XORD-12345678",), ("ORD-12345678-suffix",)], "order_id string")
     good_df, bad_df, _, _ = RuleEngine("orders", rules, ref_data).check(df=df, spark=spark_session)
     assert good_df.count() == 1
     assert good_df.select("order_id").collect()[0]["order_id"] == "ORD-12345678-suffix"
@@ -350,9 +341,7 @@ def test_date_valid_second_precision_polars(ref_data):
 def test_date_valid_second_precision_spark(ref_data, spark_session):
     """spark 路径 to_timestamp 秒级边界：同日 23:59:59 被拦截（旧 to_date 会放行）。"""
     rules = {"date_valid": {"columns": ["order_date"], "max": "2026-01-15"}}
-    df = spark_session.createDataFrame(
-        [("2026-01-15",), ("2026-01-15T23:59:59",)], "order_date string"
-    )
+    df = spark_session.createDataFrame([("2026-01-15",), ("2026-01-15T23:59:59",)], "order_date string")
     good_df, bad_df, _, _ = RuleEngine("orders", rules, ref_data).check(df=df, spark=spark_session)
     assert good_df.count() == 1
     assert bad_df.count() == 1
@@ -372,9 +361,7 @@ def test_spark_empty_dataframe_no_crash(ref_data, spark_session):
         "uniqueness": {"columns": ["order_id"]},
     }
     df = spark_session.createDataFrame([], "order_id string, customer_id string")
-    good_df, bad_df, stats, _ = RuleEngine("orders", rules, ref_data).check(
-        df=df, spark=spark_session
-    )
+    good_df, bad_df, stats, _ = RuleEngine("orders", rules, ref_data).check(df=df, spark=spark_session)
     assert good_df.count() == 0
     assert bad_df.count() == 0
     assert "_row_idx" not in good_df.columns and "_row_idx" not in bad_df.columns

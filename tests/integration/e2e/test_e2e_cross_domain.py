@@ -66,6 +66,46 @@ def _skip_if_unavailable(resp):
         )
 
 
+def _register_and_publish_api(client, base_url: str) -> str:
+    """注册并发布一个 API（DRAFT→REVIEWING→APPROVED→RUNNING），返回 api_id。
+
+    open-api-catalog 的调用链要求 API 处于 RUNNING（api_call.py 的
+    call_api 首步校验状态机），故走完整生命周期；
+    载荷与 tests/integration/test_open_api_catalog.py::test_register_api
+    的可用载荷同构（CI 实测 201）。
+    """
+    reg_resp = client.post(
+        base_url + "/api/v1/apis",
+        json={
+            "name": f"e2e-api-{uuid.uuid4().hex[:8]}",
+            "version": "1.0.0",
+            "description": "E2E 跨域链路测试 API",
+            "category": "e2e",
+            "method": "GET",
+            "path": "/e2e/data-query",
+            "authType": "api_key",
+            "upstream": {
+                "type": "http",
+                "url": "http://e2e-upstream:8080/api/v1/data",
+                "method": "GET",
+                "timeout": 30000,
+            },
+            "sla": "silver",
+            "costStrategy": "by_call",
+            "costUnitPrice": 0.01,
+            "status": "draft",
+            "providerTenantId": "e2e-tenant",
+        },
+    )
+    assert reg_resp.status_code == 201, f"E2E API 注册失败: {reg_resp.text}"
+    api_id = reg_resp.json()["id"]
+    # 发布流程：submit-review → approve → publish（publish 内部直接置 RUNNING）
+    for step in ("submit-review", "approve", "publish"):
+        step_resp = client.post(base_url + f"/api/v1/apis/{api_id}/{step}")
+        assert step_resp.status_code == 200, f"E2E API {step} 失败: {step_resp.text}"
+    return api_id
+
+
 # ---------------------------------------------------------------------------
 # 场景 1：NL2SQL → 联邦查询全链路
 # ---------------------------------------------------------------------------
@@ -574,13 +614,20 @@ def test_asset_registration_to_exchange(
 
     asset_name = _unique_id("e2e_asset")
     # 1. 注册资产
+    #    POST /api/v1/assets 是兼容旧接口（register+publish 等价），走
+    #    asset_service.list_asset 的**质量门槛**（qualityScore >= 60，
+    #    见 asset_service.py 的 list_asset）。CI 实测缺省 0.0 被拒：
+    #    {"error":"质量评分_0.0_<_60，不可上架"}，故显式给可用质量分，
+    #    与 tests/integration/test_asset_exchange.py 的可用载荷一致。
     reg_resp = e2e_api_client.post(
         asset_exchange_url + "/api/v1/assets",
         json={
             "name": asset_name,
-            "type": "DATASET",
+            # type 枚举：table/api/model/dashboard/stream（服务端 422 实测反馈）
+            "type": "table",
             "description": "E2E 测试资产",
             "owner": "e2e-tenant",
+            "qualityScore": 85.0,
             "price": 100.0,
         },
     )
@@ -590,12 +637,11 @@ def test_asset_registration_to_exchange(
     asset_id = asset_body.get("id") or asset_body.get("assetId") or asset_name
 
     try:
-        # 2. 发布资产
-        publish_resp = e2e_api_client.post(
-            asset_exchange_url + f"/api/v1/assets/{asset_id}/publish",
-            json={},
-        )
-        assert publish_resp.status_code in (200, 201, 404), f"资产发布失败: {publish_resp.text}"
+        # 2. （无独立发布步骤）兼容路由 POST /api/v1/assets 已是
+        #    register+publish 等价，注册后资产状态直接为 LISTED；
+        #    再调 POST /{id}/publish 会被 asset_service.publish 以
+        #    "资产当前状态 listed 不可上架"（422）拒绝（仅接受
+        #    DRAFT/PENDING_AUDIT/OFFLINE），本地实测确认，故不再调用。
 
         # 3. 发起交易
         trade_resp = e2e_api_client.post(
@@ -643,43 +689,75 @@ def test_open_api_subscription_to_billing(
         reason_prefix="开放API链路缺少服务",
     )
 
-    # 1. 查询 API 目录
+    # 1. 查询 API 目录（链路首环：浏览目录。不断言非空——CI 的
+    #    open-api-catalog 容器以空库启动，且 compose 未向 pytest 注入
+    #    OPEN_API_CATALOG_URL（docker/ 用例走 TestClient 不落库），目录必为空）
     catalog_resp = e2e_api_client.get(
         open_api_catalog_url + "/api/v1/apis",
         params={"tenantId": "e2e-tenant"},
     )
     assert catalog_resp.status_code == 200, f"API 目录查询失败: {catalog_resp.text}"
-    apis_body = catalog_resp.json()
-    apis = apis_body.get("items") or apis_body.get("apis") or []
+    apis_body = _unwrap_response(catalog_resp.json())
+    # 服务端可能返回裸列表（实测）或 items/apis 键包裹的对象
+    apis = (
+        apis_body
+        if isinstance(apis_body, list)
+        else (apis_body.get("items") or apis_body.get("apis") or [])
+    )
     assert isinstance(apis, list), "API 列表应为数组"
 
-    # 2. 订阅 API（detail design §7 契约：POST /apis/{apiId}/subscribe；Sprint 4.2
-    #    修正——原误写 POST /subscriptions 根路由，服务端不存在，nightly 必 fail）
-    target_api = apis[0].get("id") if apis else "data-query-api"
+    # 2. 自注册并发布一个 API：原实现 fallback "data-query-api" 在服务端并不
+    #    存在（apply_subscription 首步 get_api 即 404；CI 实测 body 校验修好后
+    #    仍会 404），且空目录无从订阅，故补齐 注册→发布 前置步骤
+    target_api = _register_and_publish_api(e2e_api_client, open_api_catalog_url)
+
+    # 3. 订阅 API（detail design §7 契约：POST /apis/{apiId}/subscribe；
+    #    SubscribeRequest 必填 subscriberId/subscriberTenantId/purpose/quotaExpect，
+    #    CI 实测缺 subscriberTenantId/quotaExpect 时 422）
     sub_resp = e2e_api_client.post(
         open_api_catalog_url + f"/api/v1/apis/{target_api}/subscribe",
-        json={"subscriberId": "e2e-subscriber", "purpose": "e2e 链路验证"},
+        json={
+            "subscriberId": "e2e-subscriber",
+            "subscriberTenantId": "e2e-tenant",
+            "purpose": "e2e 链路验证",
+            "quotaExpect": 100,
+        },
     )
     assert sub_resp.status_code in (200, 201), f"API 订阅失败: {sub_resp.text}"
     sub_body = _unwrap_response(sub_resp.json())
     sub_id = sub_body.get("id") or sub_body.get("subscriptionId")
 
     try:
-        # 3. 模拟调用并产生计量
-        usage_resp = e2e_api_client.post(
-            open_api_catalog_url + "/api/v1/usage",
-            json={"subscriptionId": sub_id, "calls": 10, "tenantId": "e2e-tenant"},
+        # 4. 审批订阅（PENDING→ACTIVE 并发放 AK/SK，供调用链路鉴权）
+        approve_resp = e2e_api_client.post(
+            open_api_catalog_url + f"/api/v1/subscriptions/{sub_id}/approve",
+            json={"approve": True, "grantedQuota": 100, "approver": "e2e-tester"},
         )
-        if usage_resp.status_code != 404:
-            assert usage_resp.status_code in (200, 201), (
-                f"计量上报失败: {usage_resp.text}"
-            )
+        assert approve_resp.status_code == 200, f"订阅审批失败: {approve_resp.text}"
+        keys = _unwrap_response(approve_resp.json())
+        access_key = keys.get("accessKey")
+        secret_key = keys.get("secretKey")
 
-        # 4. 查询计费记录（若 FinOps 可用）
+        # 5. 调用 API 并产生计量（AK/SK 鉴权 → 限流 → 转发 → 计量）。
+        #    原实现打 POST /api/v1/usage，服务端无此路由（404 被容忍成空步骤），
+        #    此处改用真实调用端点（invoke.py，upstream 为 Mock 转发，返回 200）
+        if access_key and secret_key:
+            call_resp = e2e_api_client.post(
+                open_api_catalog_url + f"/api/v1/apis/{target_api}/call",
+                json={"payload": {"rows": 10}},
+                headers={"X-API-Key": access_key, "X-API-Secret": secret_key},
+            )
+            assert call_resp.status_code == 200, f"API 调用失败: {call_resp.text}"
+            call_body = _unwrap_response(call_resp.json())
+            assert call_body.get("statusCode") == 200, f"API 调用状态异常: {call_body}"
+
+        # 6. 查询计费记录（若 FinOps 可用）。
+        #    端点对齐现实：cost-model 暴露的是 BillingController 的
+        #    GET /api/v1/finops/billing/tenant（租户取自 JWT claim + X-Tenant-Id），
+        #    原 /api/v1/billing 服务端不存在
         if e2e_services_ready.get("finops"):
             billing_resp = e2e_api_client.get(
-                finops_url + "/api/v1/billing",
-                params={"tenantId": "e2e-tenant", "source": "open-api"},
+                finops_url + "/api/v1/finops/billing/tenant",
             )
             assert billing_resp.status_code == 200, f"计费查询失败: {billing_resp.text}"
     finally:

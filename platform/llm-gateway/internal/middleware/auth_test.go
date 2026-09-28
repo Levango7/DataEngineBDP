@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -136,8 +137,8 @@ func TestValidateJWTSigningKey_ShortKeyFatal(t *testing.T) {
 	err := cmd.Run()
 	require.Error(t, err, "期望子进程因 log.Fatal 退出，但实际正常退出")
 
-	exitErr, ok := err.(*exec.ExitError)
-	require.True(t, ok, "期望 *exec.ExitError，实际错误: %v", err)
+	var exitErr *exec.ExitError
+	require.True(t, errors.As(err, &exitErr), "期望 *exec.ExitError，实际错误: %v", err)
 	assert.Equal(t, 1, exitErr.ExitCode(), "期望 log.Fatal 退出码 1，实际 %d", exitErr.ExitCode())
 }
 
@@ -157,7 +158,7 @@ func TestValidateJWTSigningKey_EmptyKeyFatal(t *testing.T) {
 	err := cmd.Run()
 	require.Error(t, err)
 
-	exitErr, ok := err.(*exec.ExitError)
-	require.True(t, ok, "期望 *exec.ExitError，实际错误: %v", err)
+	var exitErr *exec.ExitError
+	require.True(t, errors.As(err, &exitErr), "期望 *exec.ExitError，实际错误: %v", err)
 	assert.Equal(t, 1, exitErr.ExitCode(), "期望 log.Fatal 退出码 1，实际 %d", exitErr.ExitCode())
 }

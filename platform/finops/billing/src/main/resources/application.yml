@@ -19,10 +19,19 @@ spring:
     console:
       enabled: false
       path: /h2-console
+  # Flyway：仅生产/集成环境启用（prod profile 置 true）。
+  # dev 默认关闭：H2 + ddl-auto=update 零配置本地起库；
+  # 基线脚本是 PostgreSQL 方言（含 oid 等类型），不能在 H2 上执行。
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
   jackson:
     default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
+    # 不写 serialization.write-dates-as-timestamps：该键属 Jackson 2，
+    # Spring Boot 4（Jackson 3，tools.jackson）已无对应枚举，保留会导致属性绑定失败、
+    # 应用在任何 profile 下都无法启动。Jackson 3 默认即以 ISO-8601 输出 java.time。
 management:
   endpoints:
     web:

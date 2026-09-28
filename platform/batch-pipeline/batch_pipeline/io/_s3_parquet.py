@@ -28,9 +28,7 @@ def s3_credentials(cfg: dict[str, Any]) -> tuple[str, str]:
     if access and secret:
         return access, secret
     env_access = os.environ.get("MINIO_ROOT_USER") or os.environ.get("AWS_ACCESS_KEY_ID") or ""
-    env_secret = (
-        os.environ.get("MINIO_ROOT_PASSWORD") or os.environ.get("AWS_SECRET_ACCESS_KEY") or ""
-    )
+    env_secret = os.environ.get("MINIO_ROOT_PASSWORD") or os.environ.get("AWS_SECRET_ACCESS_KEY") or ""
     return access or env_access, secret or env_secret
 
 
@@ -261,16 +259,12 @@ def _table_write_parquet(
         rows = df_or_rows
         if fields is None:
             fields = list(rows[0].keys()) if rows else []
-        str_rows = [
-            {f: (str(r.get(f)) if r.get(f) is not None else "") for f in fields} for r in rows
-        ]
+        str_rows = [{f: (str(r.get(f)) if r.get(f) is not None else "") for f in fields} for r in rows]
         schema = pa.schema([(f, pa.string()) for f in fields])
         table = pa.Table.from_pylist(str_rows, schema=schema)
         if is_s3:
             s3fs = _get_s3_filesystem(cfg)
-            pq.write_table(
-                table, _s3_uri_to_bucket_key(target), filesystem=s3fs, compression=compression
-            )
+            pq.write_table(table, _s3_uri_to_bucket_key(target), filesystem=s3fs, compression=compression)
         else:
             pq.write_table(table, target, compression=compression)
         return len(rows)

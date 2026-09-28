@@ -95,16 +95,176 @@ ingress:
 # ---- 环境变量 ----
 env:
   LOG_LEVEL: info
-  JAVA_OPTS: ""
 
-# ---- ConfigMap 数据（骨架，按需扩展）----
+# ---- 启动参数与数据卷 ----
+# 说明：官方 prometheus 镜像默认需要 --config.file 指向配置文件；
+# 历史版本本 Chart 只挂了 configMapRef（环境变量），未提供配置文件，Pod 会启动失败。
+args:
+  - "--config.file=/etc/prometheus/prometheus.yml"
+  - "--storage.tsdb.path=/prometheus"
+  - "--storage.tsdb.retention.time=15d"
+  - "--web.enable-lifecycle"
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClassName: ""
+  # 非生产环境可置 emptyDir: true 避免依赖 PVC
+  emptyDir: false
+
+# ---- 告警规则来源 ----
+# 规则文件来自本 Chart 的 files/rules/ 目录（由 scripts/sync-alert-rules.sh 从
+# platform/observability/rules/*.yaml 同步，CI 校验一致性，避免两处漂移）。
+alertRules:
+  enabled: true
+  # 额外挂载已存在的 ConfigMap（高级用法；通常留空，用 Chart 内置规则）
+  existingConfigMap: ""
+
+# ---- ConfigMap 数据 ----
+# prometheus.yml：K8s 服务发现抓取 + namespace→tenant_id 标签注入 + 规则/告警接入。
+# tenant_id 注入是租户级计费（finops-billing）与租户级看板/告警的前提：
+# 平台创建的 namespace 形如 ws-<tenantId>-<slug> 且带 tenantId 标签。
 config:
-  application.conf: |
-    # prometheus 默认配置，完整配置请引用 design/deploy/values/prometheus-values.yaml
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+      evaluation_interval: 30s
+      external_labels:
+        cluster: shuqing-bigdata
+
+    rule_files:
+      - /etc/prometheus/rules/*.yaml
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ["alertmanager:9093"]
+
+    scrape_configs:
+      # ---- Prometheus 自监控（P0 规则依赖 scrape/eval 自监控指标）----
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      # ---- 业务 Pod：带 prometheus.io/scrape=true 注解即被抓取 ----
+      # 覆盖 Java（/actuator/prometheus）、Go（/metrics）、APISIX 等组件。
+      # 注解约定：prometheus.io/scrape、prometheus.io/port、prometheus.io/path
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          # 租户标签注入（关键）：namespace 标签 tenantId → tenant_id
+          # 平台命名空间由 K8sWorkspaceTranslator 打 tenantId 标签（ws-<tenantId>-<slug>）
+          - source_labels: [__meta_kubernetes_namespace_label_tenantId]
+            target_label: tenant_id
+          # 兜底（仅当 namespace 未带 tenantId 标签时启用，注意 slug 含 '-' 时可能截断）：
+          # - source_labels: [__meta_kubernetes_namespace]
+          #   regex: "ws-(.+)-.+"
+          #   replacement: "$1"
+          #   target_label: tenant_id
+
+      # ---- 业务 Service：带注解的 Service 被抓取（覆盖多端口/需要稳定地址的场景）----
+      - job_name: kubernetes-service-endpoints
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_namespace_label_tenantId]
+            target_label: tenant_id
+
+      # ---- kubelet / cAdvisor：容器与卷指标（计费与容器水位告警的来源）----
+      # container_cpu_usage_seconds_total / container_memory_working_set_bytes /
+      # kubelet_volume_stats_* 均由此 job 提供；缺失会导致 finops-billing 拒绝出账。
+      - job_name: kubelet
+        scheme: https
+        # 自签证书环境需跳过校验；生产建议改为挂载集群 CA（见运维手册 TLS 章节）
+        tls_config:
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+      - job_name: kubelet-resource
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/resource
+
+      # ---- kube-apiserver（P0 KubeAPIDown 规则依赖）----
+      - job_name: kube-apiserver
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: [default]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: kubernetes
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: https
 
 # ---- 引用提示 ----
-# 完整配置请通过 -f design/deploy/values/prometheus-values.yaml 覆盖
-# 渲染命令： helm template prometheus design/deploy/charts/prometheus -f design/deploy/values/prometheus-values.yaml
+# 环境覆盖：design/deploy/values/env/<env>/prometheus-values.yaml（如存在）
+# 渲染命令： helm template prometheus design/deploy/charts/prometheus
 
 # ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
 # 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站

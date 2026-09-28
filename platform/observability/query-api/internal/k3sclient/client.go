@@ -10,6 +10,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -48,18 +50,22 @@ type Client struct {
 }
 
 // NewFromKubeconfig 从 kubeconfig 路径创建客户端。
-// 环境变量 K3S_KUBECONFIG 指定路径；默认尝试常见位置。
+// 环境变量 K3S_KUBECONFIG 指定路径；未指定时按可移植的默认位置依次尝试。
+//
+// 此前这里的兜底列表含 "\\wsl$\Ubuntu-24.04\..." 与 "C:/Users/winge/.kube/config"
+// 两类开发者个人机器路径 —— 它们是真实的交付缺陷：容器/集群里必然不存在，
+// 却把个人用户名打进了镜像，且让"找不到 kubeconfig"退化成一次静默的相对选择。
+// 现在只保留通用位置，找不到就明确报错并指出该设哪个环境变量。
 func NewFromKubeconfig(path string) (*Client, error) {
 	if path == "" {
 		path = os.Getenv("K3S_KUBECONFIG")
 	}
 	if path == "" {
-		// 常见位置：Windows WSL 挂载 / Windows 本地 / 容器内
-		for _, p := range []string{
-			"/etc/rancher/k3s/k3s.yaml",
-			"\\\\wsl$\\Ubuntu-24.04\\etc\\rancher\\k3s\\k3s.yaml",
-			"C:/Users/winge/.kube/config",
-		} {
+		candidates := []string{"/etc/rancher/k3s/k3s.yaml"}
+		if home, err := os.UserHomeDir(); err == nil {
+			candidates = append(candidates, filepath.Join(home, ".kube", "config"))
+		}
+		for _, p := range candidates {
 			if _, err := os.Stat(p); err == nil {
 				path = p
 				break
@@ -67,7 +73,14 @@ func NewFromKubeconfig(path string) (*Client, error) {
 		}
 	}
 	if path == "" {
-		return nil, fmt.Errorf("未找到 kubeconfig（设置 K3S_KUBECONFIG 或放于常见位置）")
+		return nil, fmt.Errorf("未找到 kubeconfig：请设置环境变量 K3S_KUBECONFIG，" +
+			"或把文件放在 /etc/rancher/k3s/k3s.yaml 或 $HOME/.kube/config")
+	}
+	// 路径来自调用方/环境变量：规范化并拒绝上级跳出，
+	// 避免配置里一个 "../" 让服务去读部署目录之外的文件。
+	path = filepath.Clean(path)
+	if strings.Contains(path, ".."+string(filepath.Separator)) || path == ".." {
+		return nil, fmt.Errorf("kubeconfig 路径不合法（含上级跳出）: %q", path)
 	}
 
 	data, err := os.ReadFile(path)

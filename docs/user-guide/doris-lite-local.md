@@ -1,11 +1,13 @@
 # 轻量 Doris 本地实测环境（Windows + Docker Desktop / WSL2）
 
 ## 用途
+
 - 验证 sql-gateway → Doris 查询链路（JDBC 真实提交）
 - 验证 Doris 真实扫描字节采集（audit_log 指纹匹配，DorisScanStatsClient）
 - 统一运维台 / 成本计费联调
 
 ## 镜像
+
 ```
 docker.m.daocloud.io/apache/doris:doris-fe-2.1.7
 docker.m.daocloud.io/apache/doris:doris-be-2.1.7
@@ -33,6 +35,7 @@ docker run -d --name sq-doris-lite-be \
 ## ⚠️ 关键前置：WSL2 sysctl（Docker Desktop 必须）
 
 Doris BE 启动硬性要求：
+
 - `vm.max_map_count >= 2000000`（默认 1048576 会致 BE 退出）
 - 禁用 swap（`vm.swappiness=0`）
 
@@ -43,6 +46,7 @@ wsl -d docker-desktop -u root -- sysctl -w vm.swappiness=0
 ```
 
 **持久化**（避免每次手动）：在 Windows 用户目录创建 `%USERPROFILE%\.wslconfig`：
+
 ```ini
 [wsl2]
 # 如需持久 sysctl，可在 WSL 发行版内配置 /etc/sysctl.d/，
@@ -76,6 +80,7 @@ docker exec sq-doris-lite-fe mysql -uroot -P9030 -h127.0.0.1 \
 ```
 
 ## 故障排查
+
 | 症状 | 原因 | 处理 |
 |------|------|------|
 | BE 容器 Exited(0) | max_map_count 不足 | 执行 sysctl 修复后重启 BE |

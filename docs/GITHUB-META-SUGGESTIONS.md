@@ -33,6 +33,7 @@ open-source
 ```
 
 **选择理由**：
+
 - `big-data` / `data-platform` / `data-engineering` — 项目核心定位
 - `lakehouse` — 湖仓集一体架构关键词
 - `multi-tenant` / `kubernetes` — 核心技术特征

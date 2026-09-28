@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -71,14 +72,14 @@ func main() {
 		gormDB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	}
 	if err != nil {
-		log.Fatalf("failed to open database %s: %v", dbPath, err)
+		log.Fatalf("failed to open database %s: %v", strconv.Quote(dbPath), err)
 	}
 
 	// 自动迁移：根据 model 结构创建/更新表结构。
 	if err := gormDB.AutoMigrate(&model.Database{}, &model.Table{}); err != nil {
 		log.Fatalf("failed to auto migrate: %v", err)
 	}
-	log.Printf("[%s] database initialized at %s", serviceName, dbPath)
+	log.Printf("[%s] database initialized at %s", serviceName, strconv.Quote(dbPath))
 
 	// 初始化基于 GORM 的存储。
 	s := store.NewGormStore(gormDB)
@@ -121,7 +122,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[%s] version=%s listening on %s", serviceName, version, addr)
+		log.Printf("[%s] version=%s listening on %s", serviceName, strconv.Quote(version), strconv.Quote(addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v", err)
 		}

@@ -8,6 +8,7 @@
 用户确认范围：**栈真实化 + 页面覆盖**（优先补齐 nightly compose 栈 + Playwright 页面覆盖），Python 四服务入栈。
 
 前置发现（3.1.0 调研）：
+
 - nightly 栈 14 服务 vs vite 代理**不匹配**：Sprint 2.2 新增 12 个细粒度代理指向的原生端口（8081/8083/8082 等）在 compose 中是宿主机映射端口（18090/18083/18082），nightly Playwright 会 404；
 - vite 代理**默认端口多处错误**（历史单机逐个跑从未暴露）；
 - P2 三项 e2e 标注 skip「Phase 3 实现」；
@@ -44,6 +45,7 @@
 playwright.config.ts：webServer 注入全套 `VITE_*_TARGET`，**栈外服务（encaps-data/gateway/vector/ai/stream-batch/models）统一兜底 encaps-layer 18080**（stub Controller 提供契约响应）。
 
 新 spec（全部真实后端联调通过）：
+
 - encaps-tenant.spec.ts（租户管理/账户/运营后台，JWT 保护含 401 用例）
 - asset-market.spec.ts / business-portal.spec.ts / api-market.spec.ts / template-market.spec.ts（Python 域匿名可达）
 

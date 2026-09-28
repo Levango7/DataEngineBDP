@@ -69,12 +69,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// 提取 tenantId 与 userId(sub)。
-		tenantId, _ := claims["tenantId"].(string)
-		userId, _ := claims["sub"].(string)
+		tenantID, _ := claims["tenantId"].(string)
+		userID, _ := claims["sub"].(string)
 
 		// 写入 gin.Context，供后续 handler 通过 c.Get("tenantId") 获取。
-		c.Set("tenantId", tenantId)
-		c.Set("userId", userId)
+		c.Set("tenantId", tenantID)
+		c.Set("userId", userID)
 
 		c.Next()
 	}

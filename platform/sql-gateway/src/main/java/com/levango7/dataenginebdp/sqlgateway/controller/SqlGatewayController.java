@@ -110,7 +110,7 @@ public class SqlGatewayController {
      */
     @Operation(summary = "添加一条路由规则")
     @PostMapping("/routes")
-    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER')")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<RouteRule> addRoute(@Valid @RequestBody RouteRule rule) {
         String tenantId = requireTenant();
         RouteRule saved = routingService.addRoute(rule, tenantId);

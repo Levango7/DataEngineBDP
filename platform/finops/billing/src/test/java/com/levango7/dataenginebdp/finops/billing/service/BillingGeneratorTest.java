@@ -7,6 +7,7 @@ import com.levango7.dataenginebdp.finops.billing.model.BillingGenerateRequest;
 import com.levango7.dataenginebdp.finops.billing.model.BillingGenerateResponse;
 import com.levango7.dataenginebdp.finops.billing.model.BillingItem;
 import com.levango7.dataenginebdp.finops.billing.model.BillingModel;
+import com.levango7.dataenginebdp.finops.billing.model.UsageRecord;
 import com.levango7.dataenginebdp.finops.billing.repository.BillingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -338,36 +340,69 @@ class BillingGeneratorTest {
         assertThat(saved.getValue().getId()).isEqualTo("bill-existing");
     }
 
-    // ---------- 用例 8~9：Prometheus 降级路径 ----------
+    // ---------- 用例 8~9：数据源不可用时的拒绝出账（不再静默出 0 元账单） ----------
 
     @Test
-    void generate_degradesToZeroUsage_whenPrometheusUnavailable() {
+    void generate_rejectsBilling_whenPrometheusUnavailableAndNoUsageData() {
         when(prometheusClient.isAvailable()).thenReturn(false);
 
-        BillingGenerateResponse response = generator.generate(TENANT, request("2026-08"));
-
-        assertThat(response.getItems()).hasSize(5);
-        assertThat(response.getItems()).allSatisfy(i -> {
-            assertThat(i.getUsage()).isEqualTo(0.0);
-            assertThat(i.getAmount()).isEqualByComparingTo("0.0000");
-        });
-        assertThat(response.getTotalAmount()).isEqualByComparingTo("0.0000");
-        // 降级不中断出账：账单仍然落库
-        verify(billingRepository).save(any());
+        assertThatThrownBy(() -> generator.generate(TENANT, request("2026-08")))
+                .isInstanceOf(BillingDataUnavailableException.class)
+                .hasMessageContaining("拒绝生成 0 元账单");
+        // 拒绝出账：不落库
+        verify(billingRepository, never()).save(any());
         verify(prometheusClient, never()).rangeQuery(anyString(), anyLong(), anyLong(), any());
     }
 
     @Test
-    void generate_degradesToZeroUsage_whenRangeQueryThrows() {
+    void generate_rejectsBilling_whenRangeQueryAlwaysThrows() {
         when(prometheusClient.isAvailable()).thenReturn(true);
         when(prometheusClient.rangeQuery(anyString(), anyLong(), anyLong(), any()))
                 .thenThrow(new IllegalStateException("Prometheus 500"));
 
+        assertThatThrownBy(() -> generator.generate(TENANT, request("2026-08")))
+                .isInstanceOf(BillingDataUnavailableException.class);
+        verify(billingRepository, never()).save(any());
+    }
+
+    @Test
+    void generate_generatesDegradedBill_whenPrometheusUnavailableButUsageDataProvided() {
+        when(prometheusClient.isAvailable()).thenReturn(false);
+
+        BillingGenerateRequest req = BillingGenerateRequest.builder()
+                .billingPeriod("2026-08")
+                .start(PERIOD_START)
+                .end(PERIOD_END)
+                .usageData(List.of(UsageRecord.builder()
+                        .resourceType("API_CALL")
+                        .usage(100.0)
+                        .unitPrice(new BigDecimal("0.01"))
+                        .amount(new BigDecimal("1.00"))
+                        .sourceRef("api-1")
+                        .build()))
+                .build();
+
+        BillingGenerateResponse response = generator.generate(TENANT, req);
+
+        // 降级但不静默：状态与备注显式标注，金额只含计量汇入项
+        assertThat(response.getStatus()).isEqualTo("GENERATED_DEGRADED");
+        assertThat(response.getNote()).contains("降级生成").contains("计量汇入");
+        assertThat(response.getItems()).extracting(BillingItem::getResourceType).contains("API_CALL");
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("1.0000");
+        verify(billingRepository).save(any());
+    }
+
+    @Test
+    void generate_allowsZeroBill_whenAllowEmptyUsageExplicitlyEnabled() {
+        generator.allowEmptyUsage = true;
+        when(prometheusClient.isAvailable()).thenReturn(true);
+        when(prometheusClient.rangeQuery(anyString(), anyLong(), anyLong(), any()))
+                .thenReturn(responseOf(List.of()));
+
         BillingGenerateResponse response = generator.generate(TENANT, request("2026-08"));
 
         assertThat(response.getTotalAmount()).isEqualByComparingTo("0.0000");
-        assertThat(response.getStatus()).isEqualTo("GENERATED");
-        assertThat(response.getItems()).hasSize(5);
+        assertThat(response.getStatus()).isEqualTo("GENERATED_DEGRADED");
     }
 
     // ---------- 用例 10~12：响应结构异常与标签隔离 ----------
@@ -408,21 +443,173 @@ class BillingGeneratorTest {
     }
 
     @Test
-    void generate_returnsZeroUsage_whenResponseShapeInvalid() {
+    void generate_rejectsBilling_whenResponseShapeInvalid() {
         when(prometheusClient.isAvailable()).thenReturn(true);
-        // 依次返回：响应为 null / data 不是 Map / result 不是 List
+        // 依次返回：响应为 null / data 不是 Map / result 不是 List —— 均视为"无任何匹配时序"
         when(prometheusClient.rangeQuery(anyString(), anyLong(), anyLong(), any()))
                 .thenReturn(null,
                         Map.of("data", "not-a-map"),
                         Map.of("data", Map.of("result", "not-a-list")));
 
         // 每次 generate 会触发 5 次 rangeQuery，三次调用分别消费上面三种畸形响应
-        assertThat(generator.generate(TENANT, request("2026-01")).getTotalAmount())
-                .isEqualByComparingTo("0.0000");
-        assertThat(generator.generate(TENANT, request("2026-02")).getTotalAmount())
-                .isEqualByComparingTo("0.0000");
-        assertThat(generator.generate(TENANT, request("2026-03")).getTotalAmount())
-                .isEqualByComparingTo("0.0000");
+        assertThatThrownBy(() -> generator.generate(TENANT, request("2026-01")))
+                .isInstanceOf(BillingDataUnavailableException.class);
+        assertThatThrownBy(() -> generator.generate(TENANT, request("2026-02")))
+                .isInstanceOf(BillingDataUnavailableException.class);
+        assertThatThrownBy(() -> generator.generate(TENANT, request("2026-03")))
+                .isInstanceOf(BillingDataUnavailableException.class);
+    }
+
+    // ---------- 用例 12b：租户标签键（tenant_id 优先，兼容历史 tenant） ----------
+
+    @Test
+    void generate_readsTenantIdLabel_whenPrometheusRelabelInjected() {
+        when(prometheusClient.isAvailable()).thenReturn(true);
+        when(prometheusClient.rangeQuery(anyString(), anyLong(), anyLong(), any()))
+                .thenAnswer(inv -> {
+                    Map<String, String> metric = new LinkedHashMap<>();
+                    metric.put("tenant_id", TENANT);
+                    metric.put("namespace", NS);
+                    return responseOf(List.of(series(metric, samples(usageFor(inv.getArgument(0))))));
+                });
+
+        BillingGenerateResponse response = generator.generate(TENANT, BillingGenerateRequest.builder()
+                .billingPeriod("2026-08")
+                .start(PERIOD_START)
+                .end(PERIOD_END)
+                .namespace(NS)
+                .build());
+
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("24.0000");
+        assertThat(response.getStatus()).isEqualTo("GENERATED");
+    }
+
+    // ---------- 用例 18~21：计量汇入（usageData）计价与契约 ----------
+
+    @Test
+    void generate_pricesUsageDataWithAuthoritativeAmount_andMergesWithInfraItems() {
+        givenUsagesCollected();
+        BillingGenerateRequest req = BillingGenerateRequest.builder()
+                .billingPeriod("2026-08")
+                .start(PERIOD_START)
+                .end(PERIOD_END)
+                .namespace(NS)
+                .usageData(List.of(
+                        UsageRecord.builder().resourceType("API_CALL").usage(200.0)
+                                .amount(new BigDecimal("2.50")).sourceRef("api-1").build(),
+                        UsageRecord.builder().resourceType("SCANNED_DATA").usage(3.0)
+                                .unitPrice(new BigDecimal("1.5")).build()))
+                .build();
+
+        BillingGenerateResponse response = generator.generate(TENANT, req);
+
+        assertThat(response.getItems()).extracting(BillingItem::getResourceType)
+                .containsExactly("CPU", "MEMORY", "STORAGE", "GPU", "NETWORK", "API_CALL", "SCANNED_DATA");
+        // API_CALL 以 amount 为权威金额：不按用量二次计价
+        assertThat(itemOf(response.getItems(), "API_CALL").getAmount()).isEqualByComparingTo("2.5000");
+        assertThat(itemOf(response.getItems(), "API_CALL").getUsage()).isEqualTo(200.0);
+        // 反推单价仅用于展示：2.50 / 200 = 0.0125
+        assertThat(itemOf(response.getItems(), "API_CALL").getUnitPrice()).isEqualByComparingTo("0.0125");
+        // SCANNED_DATA 未给 amount：3.0 × 1.5 = 4.5
+        assertThat(itemOf(response.getItems(), "SCANNED_DATA").getAmount()).isEqualByComparingTo("4.5000");
+        // 24.0（资源维度）+ 2.5 + 4.5 = 31.0
+        assertThat(response.getTotalAmount()).isEqualByComparingTo("31.0000");
+        assertThat(response.getNote()).contains("计量汇入");
+    }
+
+    @Test
+    void generate_usesBuiltinPriceTable_whenUsageDataOmitsUnitPrice() {
+        givenUsagesCollected();
+
+        BillingGenerateResponse response = generator.generate(TENANT, BillingGenerateRequest.builder()
+                .billingPeriod("2026-08").start(PERIOD_START).end(PERIOD_END).namespace(NS)
+                .usageData(List.of(UsageRecord.builder().resourceType("MEMORY").usage(2.0)
+                        .sourceRef("meter-1").build()))
+                .build());
+
+        // 计量项与 Prometheus 采集项按 sourceRef 区分（同一资源类型可同时出现两条明细）
+        BillingItem metered = response.getItems().stream()
+                .filter(i -> "meter-1".equals(i.getSourceRef()))
+                .findFirst().orElseThrow();
+        assertThat(metered.getResourceType()).isEqualTo("MEMORY");
+        assertThat(metered.getUnitPrice()).isEqualByComparingTo("0.5");
+        assertThat(metered.getAmount()).isEqualByComparingTo("1.0000");
+        assertThat(response.getItems()).extracting(BillingItem::getResourceType)
+                .containsExactly("CPU", "MEMORY", "STORAGE", "GPU", "NETWORK", "MEMORY");
+    }
+
+    @Test
+    void generate_rejectsUsageRecord_whenUnpriceable() {
+        givenUsagesCollected();
+        BillingGenerateRequest req = BillingGenerateRequest.builder()
+                .billingPeriod("2026-08").start(PERIOD_START).end(PERIOD_END).namespace(NS)
+                .usageData(List.of(UsageRecord.builder().resourceType("MYSTERY").usage(5.0).build()))
+                .build();
+
+        assertThatThrownBy(() -> generator.generate(TENANT, req))
+                .isInstanceOf(BillingRequestInvalidException.class)
+                .hasMessageContaining("无法计价");
+        verify(billingRepository, never()).save(any());
+    }
+
+    @Test
+    void generate_rejectsUnsupportedPricingConfigName() {
+        givenUsagesCollected();
+        BillingGenerateRequest req = BillingGenerateRequest.builder()
+                .billingPeriod("2026-08").start(PERIOD_START).end(PERIOD_END).namespace(NS)
+                .pricingConfigName("enterprise-gold")
+                .build();
+
+        assertThatThrownBy(() -> generator.generate(TENANT, req))
+                .isInstanceOf(BillingRequestInvalidException.class)
+                .hasMessageContaining("不支持的定价配置");
+        verify(billingRepository, never()).save(any());
+    }
+
+    /**
+     * 契约测试：上游（open-api-catalog）实际发送的 usageData 形状必须能反序列化并计价。
+     *
+     * <p>字段名漂移会在此失败——历史缺陷正是上游字段与 Java 侧模型不一致且被静默忽略。</p>
+     */
+    @Test
+    void generate_deserializesUpstreamUsageDataContract() throws Exception {
+        givenUsagesCollected();
+        String upstreamPayload = """
+                {
+                  "billingPeriod": "2026-08",
+                  "overwrite": false,
+                  "usageData": [
+                    {"resourceType": "API_CALL", "usage": 1234.0, "unitPrice": 0.01,
+                     "amount": 12.34, "namespace": null, "gpuModel": null, "sourceRef": "api-abc"}
+                  ]
+                }
+                """;
+
+        BillingGenerateRequest req = new ObjectMapper()
+                .readValue(upstreamPayload, BillingGenerateRequest.class);
+
+        assertThat(req.getUsageData()).singleElement().satisfies(r -> {
+            assertThat(r.getResourceType()).isEqualTo("API_CALL");
+            assertThat(r.getUsage()).isEqualTo(1234.0);
+            assertThat(r.getAmount()).isEqualByComparingTo("12.34");
+            assertThat(r.getSourceRef()).isEqualTo("api-abc");
+        });
+
+        BillingGenerateResponse response = generator.generate(TENANT, req);
+        assertThat(itemOf(response.getItems(), "API_CALL").getAmount()).isEqualByComparingTo("12.3400");
+    }
+
+    @Test
+    void request_deserialization_rejectsUnknownUsageDataField() {
+        String driftedPayload = """
+                {"usageData": [{"resourceType": "API_CALL", "usage": 1.0, "amount": 1.0,
+                                "callCountRenamed": 42}]}
+                """;
+
+        // 上游改名后必须立即失败，而不是被静默丢弃
+        assertThatThrownBy(() -> new ObjectMapper()
+                .readValue(driftedPayload, BillingGenerateRequest.class))
+                .isInstanceOf(com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.class);
     }
 
     @Test

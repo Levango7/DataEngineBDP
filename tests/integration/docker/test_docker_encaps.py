@@ -83,7 +83,7 @@ def test_unauthorized_with_invalid_token(encaps_url):
 # ---------------------------------------------------------------------------
 # 租户 CRUD
 # ---------------------------------------------------------------------------
-def test_create_tenant(api_client, encaps_url):
+def test_create_tenant(api_admin_client, encaps_url):
     """验证 POST /api/v1/tenants 创建租户返回 201，且响应体含 id 与请求字段。"""
     payload = {
         "name": "docker-it-create-tenant",
@@ -92,7 +92,7 @@ def test_create_tenant(api_client, encaps_url):
         "quotaProfile": "small",
         "status": "ACTIVE",
     }
-    resp = api_client.post(encaps_url + "/api/v1/tenants", json=payload)
+    resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=payload)
     assert resp.status_code == 201
     body = unwrap_response(resp.json())
     assert "id" in body
@@ -102,14 +102,17 @@ def test_create_tenant(api_client, encaps_url):
 
     # 清理：删除刚创建的租户，避免污染后续测试。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{body['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{body['id']}")
     except Exception:
         pass
 
 
-def test_list_tenants(api_client, encaps_url, sample_tenant):
-    """验证 GET /api/v1/tenants 返回 200 且为列表，包含已创建的租户。"""
-    resp = api_client.get(encaps_url + "/api/v1/tenants")
+def test_list_tenants(api_admin_client, encaps_url, sample_tenant):
+    """验证 GET /api/v1/tenants 返回 200 且为列表，包含已创建的租户。
+
+    用 admin 客户端：TenantController 类级要求 SUPER_ADMIN（同 sample_tenant 夹具）。
+    """
+    resp = api_admin_client.get(encaps_url + "/api/v1/tenants")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert isinstance(body, list)
@@ -118,24 +121,24 @@ def test_list_tenants(api_client, encaps_url, sample_tenant):
     assert sample_tenant["id"] in ids
 
 
-def test_get_tenant(api_client, encaps_url, sample_tenant):
-    """验证 GET /api/v1/tenants/{id} 返回 200 且字段与创建时一致。"""
+def test_get_tenant(api_admin_client, encaps_url, sample_tenant):
+    """验证 GET /api/v1/tenants/{id} 返回 200 且字段与创建时一致（SUPER_ADMIN）。"""
     tenant_id = sample_tenant["id"]
-    resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert body.get("id") == tenant_id
     assert body.get("name") == sample_tenant["name"]
 
 
-def test_get_tenant_not_found(api_client, encaps_url):
+def test_get_tenant_not_found(api_admin_client, encaps_url):
     """验证 GET /api/v1/tenants/{id} 对不存在的 id 返回 404。"""
-    resp = api_client.get(encaps_url + "/api/v1/tenants/999999")
+    resp = api_admin_client.get(encaps_url + "/api/v1/tenants/999999")
     assert resp.status_code == 404
 
 
-def test_update_tenant(api_client, encaps_url, sample_tenant):
-    """验证 PUT /api/v1/tenants/{id} 更新租户返回 200 且字段已更新。"""
+def test_update_tenant(api_admin_client, encaps_url, sample_tenant):
+    """验证 PUT /api/v1/tenants/{id} 更新租户返回 200 且字段已更新（SUPER_ADMIN）。"""
     tenant_id = sample_tenant["id"]
     update_payload = {
         "name": sample_tenant["name"],
@@ -144,7 +147,7 @@ def test_update_tenant(api_client, encaps_url, sample_tenant):
         "quotaProfile": "large",
         "status": "ACTIVE",
     }
-    resp = api_client.put(
+    resp = api_admin_client.put(
         encaps_url + f"/api/v1/tenants/{tenant_id}", json=update_payload
     )
     assert resp.status_code == 200
@@ -154,7 +157,7 @@ def test_update_tenant(api_client, encaps_url, sample_tenant):
     assert body.get("quotaProfile") == "large"
 
 
-def test_delete_tenant(api_client, encaps_url):
+def test_delete_tenant(api_admin_client, encaps_url):
     """验证 DELETE /api/v1/tenants/{id} 删除租户返回 204。"""
     # 先创建一个待删除的租户。
     payload = {
@@ -162,23 +165,23 @@ def test_delete_tenant(api_client, encaps_url):
         "namespace": "ns-docker-it-delete",
         "quotaProfile": "small",
     }
-    create_resp = api_client.post(encaps_url + "/api/v1/tenants", json=payload)
+    create_resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=payload)
     assert create_resp.status_code == 201
     tenant_id = unwrap_response(create_resp.json())["id"]
 
     # 删除。
-    resp = api_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    resp = api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert resp.status_code == 204
 
     # 验证已删除：再次 GET 应返回 404。
-    verify_resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    verify_resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert verify_resp.status_code == 404
 
 
 # ---------------------------------------------------------------------------
 # 端到端 CRUD 流程
 # ---------------------------------------------------------------------------
-def test_tenant_crud_flow(api_client, encaps_url):
+def test_tenant_crud_flow(api_admin_client, encaps_url):
     """端到端验证租户 CRUD 完整流程：创建 → 查询 → 更新 → 删除。"""
     # 1. 创建
     create_payload = {
@@ -188,41 +191,45 @@ def test_tenant_crud_flow(api_client, encaps_url):
         "quotaProfile": "medium",
         "status": "ACTIVE",
     }
-    create_resp = api_client.post(encaps_url + "/api/v1/tenants", json=create_payload)
+    create_resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=create_payload)
     assert create_resp.status_code == 201
     tenant = unwrap_response(create_resp.json())
     tenant_id = tenant["id"]
 
     try:
         # 2. 查询
-        get_resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+        get_resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
         assert get_resp.status_code == 200
         assert unwrap_response(get_resp.json())["name"] == create_payload["name"]
 
         # 3. 更新
         update_payload = {**create_payload, "quotaProfile": "large"}
-        update_resp = api_client.put(
+        update_resp = api_admin_client.put(
             encaps_url + f"/api/v1/tenants/{tenant_id}", json=update_payload
         )
         assert update_resp.status_code == 200
         assert unwrap_response(update_resp.json())["quotaProfile"] == "large"
 
         # 4. 列表包含
-        list_resp = api_client.get(encaps_url + "/api/v1/tenants")
+        list_resp = api_admin_client.get(encaps_url + "/api/v1/tenants")
         assert list_resp.status_code == 200
         list_body = unwrap_response(list_resp.json())
         assert tenant_id in [t["id"] for t in list_body]
     finally:
         # 4. 清理
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def sample_tenant(api_client, encaps_url):
+def sample_tenant(api_admin_client, encaps_url):
     """创建一个示例租户，测试结束后自动删除。
+
+    用 admin 客户端而非 api_client：TenantController 类级要求 SUPER_ADMIN，
+    USER 角色建租户会 403 并让所有依赖本 fixture 的用例直接 ERROR
+    （#1248 实测 test_list_tenants / test_get_tenant / test_update_tenant 即此因）。
 
     Yields:
         创建后的租户字典（含 id 等字段）。
@@ -234,7 +241,7 @@ def sample_tenant(api_client, encaps_url):
         "quotaProfile": "small",
         "status": "ACTIVE",
     }
-    resp = api_client.post(encaps_url + "/api/v1/tenants", json=payload)
+    resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=payload)
     assert resp.status_code == 201
     tenant = unwrap_response(resp.json())
 
@@ -242,6 +249,6 @@ def sample_tenant(api_client, encaps_url):
 
     # 清理。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
     except Exception:
         pass

@@ -55,19 +55,29 @@ REGISTRY_URL = os.environ.get("REGISTRY_URL", "")
 HTTP_MODE = bool(LOOP_URL)
 
 # 闭环服务项目根目录
+# 组件已于 2026-09-12 降级为规划（platform/model-finetuning -> design/planned/...）。
 _LOOP_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "..", "..", "..",
-        "platform", "model-finetuning", "loop",
+        "design", "planned", "model-finetuning", "loop",
     )
 )
 # 模型仓库项目根目录
 _REGISTRY_ROOT = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), "..", "..", "..",
-        "platform", "registry",
+        "design", "planned", "registry",
     )
 )
+
+# 路径漂移守卫：若根目录不存在，sys.path.insert 会插入空目录，
+# 于是 `from app.main import app` 会静默导入到同名的其它 app 包
+# （实测曾导入 evaluation/app，读出其 EVAL_DEV_MODE/JWT_SECRET 校验并抛 RuntimeError，
+#  把 60 个用例变成无法归因的红）。这里改为显式跳过，暴露真实原因。
+if not HTTP_MODE and not os.path.isdir(_LOOP_ROOT):
+    pytest.skip(f"闭环编排组件缺失：{_LOOP_ROOT}", allow_module_level=True)
+if not HTTP_MODE and not os.path.isdir(_REGISTRY_ROOT):
+    pytest.skip(f"模型仓库组件缺失：{_REGISTRY_ROOT}", allow_module_level=True)
 
 
 # ============================================================

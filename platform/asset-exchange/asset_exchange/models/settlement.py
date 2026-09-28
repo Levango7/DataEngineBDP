@@ -101,6 +101,7 @@ class AllocateRequest(BaseModel):
     providerAccountId: Optional[str] = Field(default=None, description="提供方账户 ID")
     platformAccountId: Optional[str] = Field(default=None, description="平台账户 ID")
 
+
 # ---- 出账闭环：基于 finops 账单的结算 ----
 
 
@@ -115,12 +116,8 @@ class BillingSettlementRequest(BaseModel):
         default=None,
         description="关联资产 ID（可选，用于分账到具体资产提供方）",
     )
-    providerShare: Optional[float] = Field(
-        default=None, ge=0, le=1, description="提供方分成比例（不传用配置默认值）"
-    )
-    platformShare: Optional[float] = Field(
-        default=None, ge=0, le=1, description="平台分成比例（不传用配置默认值）"
-    )
+    providerShare: Optional[float] = Field(default=None, ge=0, le=1, description="提供方分成比例（不传用配置默认值）")
+    platformShare: Optional[float] = Field(default=None, ge=0, le=1, description="平台分成比例（不传用配置默认值）")
 
 
 class BillingSettlementResponse(BaseModel):

@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.encaps.common;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -141,6 +143,32 @@ public class GlobalExceptionHandler {
         log.warn("缺少租户上下文: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.fail(ErrorCode.FORBIDDEN, e.getMessage()));
+    }
+
+    /**
+     * 控制器显式声明的响应状态（ResponseStatusException）→ 透传其状态码。
+     *
+     * <p>此前无专用处理器，会落入兜底 Exception 处理器被吞成 500：例如
+     * AccountController 对非数字租户抛出的 403（R10 fail-closed）在响应上
+     * 表现为 500，掩盖真实语义。</p>
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException e) {
+        HttpStatusCode status = e.getStatusCode();
+        ErrorCode code = switch (status.value()) {
+            case 400 -> ErrorCode.PARAM_INVALID;
+            case 401 -> ErrorCode.UNAUTHORIZED;
+            case 403 -> ErrorCode.FORBIDDEN;
+            case 404 -> ErrorCode.NOT_FOUND;
+            case 409 -> ErrorCode.CONFLICT;
+            case 429 -> ErrorCode.RATE_LIMITED;
+            default -> ErrorCode.INTERNAL_ERROR;
+        };
+        log.warn("响应状态异常: {} {}", status.value(), e.getReason());
+        ApiResponse<Void> body = e.getReason() == null
+                ? ApiResponse.fail(code)
+                : ApiResponse.fail(code, e.getReason());
+        return ResponseEntity.status(status).body(body);
     }
 
     /**

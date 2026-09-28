@@ -159,7 +159,7 @@ func (h *ClusterHandler) Pods(c *gin.Context) {
 			"nodeName":     p.Spec.NodeName,
 			"status":       strings.ToLower(p.Status.Phase),
 			"restartCount": restarts,
-			"cpuRequest":   sumCpuRequest(p),
+			"cpuRequest":   sumCPURequest(p),
 			"memRequest":   sumMemRequestMi(p),
 			"workloadKind": ownerKind(p),
 			"workloadName": ownerName(p),
@@ -263,7 +263,7 @@ func cpuUsedOnNode(pods *k3sclient.PodList, node string) float64 {
 	sum := 0.0
 	for _, p := range pods.Items {
 		if p.Spec.NodeName == node {
-			sum += sumCpuRequest(p)
+			sum += sumCPURequest(p)
 		}
 	}
 	return sum
@@ -279,7 +279,7 @@ func memUsedOnNode(pods *k3sclient.PodList, node string) float64 {
 	return sum
 }
 
-func sumCpuRequest(p k3sclient.PodItem) float64 {
+func sumCPURequest(p k3sclient.PodItem) float64 {
 	sum := 0.0
 	for _, c := range p.Spec.Containers {
 		cpu := c.Resources.Requests.CPU

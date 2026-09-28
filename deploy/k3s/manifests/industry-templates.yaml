@@ -16,6 +16,13 @@ spec:
       labels:
         app: industry-templates
     spec:
+      # k8s 会为同命名空间的 Service 向 Pod 注入 服务名_PORT=tcp://IP:PORT 形式的链接变量；
+      # 本组件配置前缀恰为 INDUSTRY_TEMPLATES_（config/settings.py 的 env_prefix），
+      # 于是 INDUSTRY_TEMPLATES_PORT 被当成端口解析而启动崩溃（本地复现 ValidationError:
+      # port Input should be a valid integer, input_value='tcp://10.43.161.101:8093'，
+      # 同型根因已在 burn-in 集群 nl2sql 上实测）。关闭服务链接注入
+      # （组件间寻址走 Service DNS / 显式 URL，不依赖这些变量）。
+      enableServiceLinks: false
       containers:
       - name: industry-templates
         image: sq/industry-templates:0.1.0

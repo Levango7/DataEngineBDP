@@ -58,4 +58,11 @@ def test_get_builtin_templates_returns_seven():
     templates = get_builtin_templates()
     assert len(templates) == 9
     ids = {t.meta.id for t in templates}
-    assert {"med-emr-quality", "trans-traffic-flow", "edu-student-profile", "agri-crop-yield", "energy-iot-monitor", "gov-public-services"} <= ids
+    assert {
+        "med-emr-quality",
+        "trans-traffic-flow",
+        "edu-student-profile",
+        "agri-crop-yield",
+        "energy-iot-monitor",
+        "gov-public-services",
+    } <= ids

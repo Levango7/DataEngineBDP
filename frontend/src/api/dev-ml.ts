@@ -249,41 +249,46 @@ export function getTrainJobLogs(id: string): Promise<string> {
 /* API 方法（模型仓库，专用 ML 端点）                                   */
 /* ================================================================== */
 
-// 2026-09-02：端点映射已落实（模型=ml-platform /api/v1/models*；
-// 推理服务=model-registry /api/v1/registry/deployments*），不再悬空 TODO。
+// 模型端点对齐 ml-platform 真实路由（routers/models.py，前缀 /models）：
+//   GET /api/v1/models、POST /api/v1/models、DELETE /api/v1/models/{modelId}
+// 此前这里写成 `${BASE_ML_MODELS}/models`（即 /api/v1/models/models），与本文件注释
+// 自相矛盾且必然 404 —— 契约生成器按首段前缀匹配，所以一直没报出来。
 
 /**
  * 列出模型仓库
- * GET /ml/models
+ * GET /api/v1/models
  */
 export function listModels(
   params: { keyword?: string; algorithm?: string } = {}
 ): Promise<MlModel[]> {
-  return get<MlModel[]>(`${BASE_ML_MODELS}/models`, params)
+  return get<MlModel[]>(BASE_ML_MODELS, params)
 }
 
 /**
  * 注册模型
- * POST /ml/models
+ * POST /api/v1/models
  */
 export function registerModel(req: ModelRegisterRequest): Promise<MlModel> {
-  return post<MlModel>(`${BASE_ML_MODELS}/models`, req)
+  return post<MlModel>(BASE_ML_MODELS, req)
 }
 
 /**
  * 列出模型版本
- * GET /ml/models/{name}/versions
+ *
+ * ⚠ 后端缺口：ml-platform 只有 GET /api/v1/models/{modelId}（详情，含版本信息），
+ * 没有 /versions 子资源。保留此调用是为待后端补齐后即用，当前会 404 ——
+ * 已登记 docs/KNOWN-FAILURES.md §6（模型版本子资源缺失），调用方需容错。
  */
 export function listModelVersions(name: string): Promise<ModelVersion[]> {
-  return get<ModelVersion[]>(`${BASE_ML_MODELS}/models/${encodeURIComponent(name)}/versions`)
+  return get<ModelVersion[]>(`${BASE_ML_MODELS}/${encodeURIComponent(name)}/versions`)
 }
 
 /**
  * 删除模型
- * DELETE /ml/models/{id}
+ * DELETE /api/v1/models/{modelId}
  */
 export function deleteModel(id: string): Promise<void> {
-  return del<void>(`${BASE_ML_MODELS}/models/${id}`)
+  return del<void>(`${BASE_ML_MODELS}/${id}`)
 }
 
 /* ================================================================== */

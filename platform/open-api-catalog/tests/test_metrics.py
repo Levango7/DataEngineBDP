@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from openapi_catalog.models import (
     CostStrategy,
 )
-import pytest
 
 
 class TestMetering:

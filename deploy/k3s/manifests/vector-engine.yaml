@@ -16,6 +16,12 @@ spec:
       labels:
         app: vector-engine
     spec:
+      # k8s 会为同命名空间的 Service 向 Pod 注入 VECTOR_ENGINE_PORT=tcp://IP:PORT
+      # 形式的链接变量；main.go 与 internal/config 均读取 os.Getenv("VECTOR_ENGINE_PORT")，
+      # 该值经 ":"+port 传给 ListenAndServe 会因地址非法使 log.Fatalf 启动即退出
+      # （同型根因已在 burn-in 集群 nl2sql 上实测 ValidationError）。
+      # 关闭服务链接注入（组件间寻址走 Service DNS / 显式 URL，不依赖这些变量）。
+      enableServiceLinks: false
       containers:
       - name: vector-engine
         image: sq/vector-engine:0.1.0

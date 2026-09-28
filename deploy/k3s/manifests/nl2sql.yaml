@@ -16,6 +16,12 @@ spec:
       labels:
         app: nl2sql
     spec:
+      # k8s 会为同命名空间的 Service 向 Pod 注入 服务名_PORT=tcp://IP:PORT 形式的链接变量；
+      # 本组件配置前缀恰为 NL2SQL_（config/settings.py 的 env_prefix），于是
+      # NL2SQL_PORT 被当成端口解析而启动崩溃（实测 ValidationError:
+      # port Input should be a valid integer, input_value='tcp://10.43.161.101:8093'）。
+      # 关闭服务链接注入（组件间寻址走 Service DNS / 显式 URL，不依赖这些变量）。
+      enableServiceLinks: false
       containers:
       - name: nl2sql
         image: sq/nl2sql:0.1.0
@@ -28,6 +34,11 @@ spec:
           value: "8093"
         - name: PORT
           value: "8093"
+        # jwt_auth.py 在 K8s 内未显式 AUTH_MODE 时会 fail-fast 抛 RuntimeError
+        # （防生产匿名 admin 放行）。k3s 冒烟路径与集成测试一致走匿名放行，
+        # 故显式设为 none；生产请使用 helm charts（AUTH_MODE=jwt + Secret 注入）。
+        - name: AUTH_MODE
+          value: "none"
         readinessProbe:
           httpGet:
             path: /api/v1/health

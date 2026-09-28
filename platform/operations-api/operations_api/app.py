@@ -10,6 +10,7 @@ P-04 合同交付实体 — API 应用骨架。
     AUTH_MODE=jwt  生产强制鉴权（缺 JWT_SECRET 时 fail-fast）
     AUTH_MODE=none 本地/测试匿名放行（K8s 环境下拒绝启动）
 """
+
 from __future__ import annotations
 
 import logging

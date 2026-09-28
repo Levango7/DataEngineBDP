@@ -62,7 +62,8 @@
       "codeRequired": "请输入邀请码",
       "codeInvalid": "邀请码无效",
       "submitFailed": "注册失败",
-      "invalidInvite": "邀请码状态异常，请重新验证"
+      "invalidInvite": "邀请码状态异常，请重新验证",
+      "loginRequired": "邀请码校验需要登录平台账号后才能进行，请先登录再完成注册"
     }
   }
 }

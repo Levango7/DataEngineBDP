@@ -149,7 +149,7 @@ func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, pa
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Redfish请求失败: %w", err)
+		return nil, fmt.Errorf("请求 Redfish 失败: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -165,7 +165,7 @@ func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, pa
 		if msg == "" {
 			msg = string(respBody)
 		}
-		return respBody, fmt.Errorf("Redfish返回错误: HTTP %d: %s", resp.StatusCode, msg)
+		return respBody, fmt.Errorf("收到 Redfish 错误: HTTP %d: %s", resp.StatusCode, msg)
 	}
 
 	return respBody, nil

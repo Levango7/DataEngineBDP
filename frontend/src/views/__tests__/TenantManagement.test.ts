@@ -1,19 +1,113 @@
 /**
- * TenantManagement.vue 单元测试（2026-09-07 重写）
+ * TenantManagement.vue 单元测试（2026-09-17 重写：localStorage 假后端 → 真 API 层）。
  *
- * 测试策略：store 驱动。
- * - 旧版依赖 mock @/api/tenant 返回值，已不适用（新版改用 useTenantAdminStore）
- * - 新版覆盖：挂载、平台四联指标、列表渲染、操作对话框、邀请生成
+ * 测试策略：mock @/api/tenantAdminApi（真实调用断言），页面与 store 走真实逻辑。
+ * - 旧版断言 localStorage 持久化（seed/resetSeed/persist）已全部随假后端移除
+ * - 覆盖：挂载加载（listTenants/listRegistrations/listInvites）、指标卡、加载失败提示、
+ *   创建租户 + 首账号邀请码的提交字段（不再提交 type/storageQuotaGb/invitedBy）
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
-import ElementPlus from 'element-plus'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
+import ElementPlus, { ElMessage } from 'element-plus'
+import { createI18n } from 'vue-i18n'
 import tenantZh from '@/i18n/locales/modules/tenantManagement.zh-CN.json'
 import tenantEn from '@/i18n/locales/modules/tenantManagement.en-US.json'
-import { createI18n } from 'vue-i18n'
 import TenantManagement from '../TenantManagement.vue'
 import { useTenantAdminStore } from '@/stores/tenantAdmin'
+
+/** mock 整个 API 层（store 唯一数据来源） */
+const { api } = vi.hoisted(() => ({
+  api: {
+    listTenants: vi.fn(),
+    createTenant: vi.fn(),
+    updateTenant: vi.fn(),
+    deleteTenant: vi.fn(),
+    listInvites: vi.fn(),
+    createInvite: vi.fn(),
+    cancelInvite: vi.fn(),
+    previewInvite: vi.fn(),
+    listRegistrations: vi.fn(),
+    submitRegistration: vi.fn(),
+    decideRegistration: vi.fn()
+  }
+}))
+
+vi.mock('@/api/tenantAdminApi', () => api)
+
+const TENANTS = [
+  {
+    id: 1,
+    name: 'platform',
+    displayName: '平台自营',
+    namespace: 'platform-system',
+    quotaProfile: 'xlarge',
+    status: 'ACTIVE',
+    createdAt: '2026-09-01T08:00:00',
+    updatedAt: '2026-09-10T08:00:00'
+  },
+  {
+    id: 2,
+    name: 'huadong',
+    displayName: '华东生产集群',
+    namespace: 'huadong-prod',
+    quotaProfile: 'large',
+    status: 'ACTIVE',
+    createdAt: '2026-09-02T08:00:00',
+    updatedAt: '2026-09-11T08:00:00'
+  },
+  {
+    id: 3,
+    name: 'huabei',
+    displayName: '华北测试集群',
+    namespace: 'huabei-staging',
+    quotaProfile: 'medium',
+    status: 'SUSPENDED',
+    createdAt: '2026-09-03T08:00:00',
+    updatedAt: '2026-09-12T08:00:00'
+  }
+]
+
+const INVITE_PAGE = {
+  items: [
+    {
+      id: 1001,
+      code: 'KX7M2HQ9',
+      tenantId: 2,
+      role: 'USER',
+      invitedBy: 'admin',
+      note: '数据分析岗',
+      status: 'PENDING',
+      activatedAt: null,
+      activatedBy: null,
+      createdAt: '2026-09-15T08:00:00',
+      expiresAt: '2099-09-22T08:00:00'
+    }
+  ],
+  total: 1,
+  totalPages: 1,
+  page: 0,
+  pageSize: 200
+}
+
+const REGS = [
+  {
+    id: 2001,
+    username: 'zhangsan',
+    email: 'zhangsan@huadong.com',
+    fullName: '张三',
+    department: '数据科学部',
+    employeeId: 'E10023',
+    role: 'USER',
+    tenantId: 2,
+    inviteCode: 'KX7M2HQ9',
+    status: 'PENDING',
+    approvedBy: null,
+    approveNote: null,
+    createdAt: '2026-09-16T08:00:00',
+    approvedAt: null
+  }
+]
 
 const i18n = createI18n({
   legacy: false,
@@ -24,204 +118,139 @@ const i18n = createI18n({
   }
 })
 
-function mountComponent(): VueWrapper {
+function mountComponent(pinia: Pinia): VueWrapper {
   return mount(TenantManagement, {
     global: {
-      plugins: [createPinia(), i18n, ElementPlus]
+      plugins: [pinia, i18n, ElementPlus]
     }
   })
 }
 
-describe('TenantManagement.vue', () => {
+describe('TenantManagement.vue（API 层 mock）', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    // 清掉 localStorage 持久化，确保每次从 seed 开始
-    try {
-      localStorage.removeItem('sq_tenant_admin_v1')
-    } catch {
-      /* 忽略 */
-    }
-    // 在 mount 之前把 store 初始化到种子状态（持久化清掉后 store 不会自动 reload）
-    const store = useTenantAdminStore()
-    store.resetSeed()
+    vi.clearAllMocks()
+    api.listTenants.mockResolvedValue(structuredClone(TENANTS))
+    api.listRegistrations.mockResolvedValue(structuredClone(REGS))
+    // 邀请码按 tenantId 返回（模拟后端租户隔离；本次数据仅租户 2 有邀请码）
+    api.listInvites.mockImplementation((params?: { tenantId?: number }) =>
+      Promise.resolve(
+        params?.tenantId === 2
+          ? structuredClone(INVITE_PAGE)
+          : { items: [], total: 0, totalPages: 0, page: 0, pageSize: 200 }
+      )
+    )
   })
 
-  it('应正确挂载并渲染标题', async () => {
-    const wrapper = mountComponent()
+  it('挂载时应通过 API 加载租户/注册/邀请数据', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mountComponent(pinia)
     await flushPromises()
+
+    expect(api.listTenants).toHaveBeenCalledTimes(1)
+    expect(api.listRegistrations).toHaveBeenCalledTimes(1)
+    // 邀请码为分页且平台超管无法全域查询：逐租户拉取（3 个租户 → 3 次）
+    expect(api.listInvites).toHaveBeenCalledTimes(3)
+    expect(api.listInvites).toHaveBeenCalledWith({ tenantId: 2, pageSize: 200 })
+
+    const store = useTenantAdminStore()
+    expect(store.allTenants).toHaveLength(3)
+    expect(store.registrations).toHaveLength(1)
+    expect(wrapper.text()).toContain('租户管理')
+  })
+
+  it('指标卡应派生自 API 数据（总数/活跃/待激活邀请/待审注册）', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mountComponent(pinia)
+    await flushPromises()
+
+    const store = useTenantAdminStore()
+    expect(store.totalTenantCount).toBe(3)
+    expect(store.activeTenantCount).toBe(2)
+    expect(store.pendingInviteCount).toBe(1)
+    expect(store.pendingRegCount).toBe(1)
     const text = wrapper.text()
-    expect(text).toContain('租户管理')
+    expect(text).toContain('3')
+    expect(text).toContain('2')
   })
 
-  it('应展示四联平台指标卡（store getters）', async () => {
+  it('列表加载失败时应提示错误（不静默）', async () => {
+    api.listTenants.mockRejectedValue(new Error('network down'))
     const pinia = createPinia()
     setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    // seed：3 个租户（其中 2 活跃）、4 张邀请码（3 pending）、1 个待审注册
-    expect(store.totalTenantCount).toBeGreaterThanOrEqual(3)
-    expect(store.activeTenantCount).toBeGreaterThanOrEqual(2)
-    expect(store.pendingInviteCount).toBeGreaterThanOrEqual(3)
-    expect(store.pendingRegCount).toBeGreaterThanOrEqual(1)
-  })
-
-  it('应渲染租户列表表格', async () => {
-    const wrapper = mountComponent()
+    mountComponent(pinia)
     await flushPromises()
-    // EP el-table 在 happy-dom 下 stub 不渲染 slot 数据，只校验容器存在
-    const html = wrapper.html()
-    expect(html).toContain('el-table')
-    expect(html).toContain('el-table-column')
-  })
 
-  it('应显示状态与类型的 StatusTag 徽章', async () => {
-    const wrapper = mountComponent()
-    await flushPromises()
-    const html = wrapper.html()
-    expect(html).toContain('el-tag')
-    expect(html).toContain('活跃')
-  })
-
-  it('创建租户应能写入 store 并生成首账号邀请码', async () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
+    expect(ElMessage.error).toHaveBeenCalled()
     const store = useTenantAdminStore()
-    const before = store.allTenants.length
-    const beforeInv = store.allTenants.flatMap((t) => store.invitesByTenant(t.id)).length
+    expect(store.allTenants).toHaveLength(0)
+  })
 
-    const tenant = store.createTenant({
+  it('创建租户 + 首账号邀请码应走 API，且不提交后端不存在的字段', async () => {
+    api.createTenant.mockResolvedValue({
+      id: 9,
       name: 'beijing-new',
       displayName: '北京新租户',
-      type: 'PRIVATE',
+      namespace: 'beijing-new',
       quotaProfile: 'small',
-      storageQuotaGb: 50
+      status: 'ACTIVE',
+      createdAt: '2026-09-17T08:00:00',
+      updatedAt: '2026-09-17T08:00:00'
     })
-    expect(store.allTenants.length).toBe(before + 1)
-    expect(tenant.id).toBeGreaterThan(0)
-    expect(tenant.status).toBe('ACTIVE')
+    api.createInvite.mockResolvedValue({
+      id: 1005,
+      code: 'BT4N8WL3',
+      tenantId: 9,
+      role: 'TENANT_ADMIN',
+      invitedBy: 'admin',
+      note: '首账号',
+      status: 'PENDING',
+      activatedAt: null,
+      activatedBy: null,
+      createdAt: '2026-09-17T08:00:00',
+      expiresAt: '2026-09-24T08:00:00'
+    })
 
-    // createTenant 本身不自动生成邀请码（UI 流程才会）
-    // 这里手动验证：业务上层可以独立创建邀请码
-    const inv = store.createInvite({
-      tenantId: tenant.id,
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    mountComponent(pinia)
+    await flushPromises()
+
+    const store = useTenantAdminStore()
+    const tenant = await store.createTenant({
+      name: 'beijing-new',
+      displayName: '北京新租户',
+      quotaProfile: 'small'
+    })
+    expect(api.createTenant).toHaveBeenCalledWith({
+      name: 'beijing-new',
+      displayName: '北京新租户',
+      namespace: 'beijing-new',
+      quotaProfile: 'small',
+      status: 'ACTIVE'
+    })
+    // 后端不接受 type / storageQuotaGb
+    const payload = api.createTenant.mock.calls[0][0] as Record<string, unknown>
+    expect(payload).not.toHaveProperty('type')
+    expect(payload).not.toHaveProperty('storageQuotaGb')
+    expect(tenant.id).toBe(9)
+    expect(store.allTenants).toHaveLength(4)
+
+    const invite = await store.createInvite({
+      tenantId: 9,
       role: 'TENANT_ADMIN',
       note: '首账号',
-      invitedBy: 'platform-admin'
+      ttlDays: 7
     })
-    expect(inv.code).toMatch(/^[A-Z0-9]{8}$/)
-    expect(store.invitesByTenant(tenant.id).length).toBeGreaterThanOrEqual(1)
-    expect(store.allTenants.flatMap((t) => store.invitesByTenant(t.id)).length).toBe(beforeInv + 1)
-  })
-
-  it('邀请码预检：合法 PENDING 码应返回 ok=true 并带租户', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    // seed 中存在 'KX7M2HQ9' 为 PENDING
-    const preview = store.previewInvite('KX7M2HQ9')
-    expect(preview.ok).toBe(true)
-    expect(preview.invite?.role).toBe('USER')
-    expect(preview.tenant?.displayName).toBe('华东生产集群')
-  })
-
-  it('邀请码预检：不存在 / 已用 / 过期 / 撤销 都被拒绝', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    expect(store.previewInvite('ZZZZZZZZ').ok).toBe(false)
-    // AX8B2GD7 seed 为 ACTIVE（已用）
-    expect(store.previewInvite('AX8B2GD7').ok).toBe(false)
-  })
-
-  it('注册提交：消耗 PENDING 码 → 创建 PENDING 注册', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    const beforeReg = store.registrations.length
-    const result = store.submitRegistration({
-      code: 'KX7M2HQ9',
-      username: 'lisi',
-      email: 'lisi@huadong.com',
-      fullName: '李四',
-      department: '工程部',
-      employeeId: 'E10099'
+    // code 由后端生成、invitedBy 从 JWT 取：均不得出现在请求体
+    expect(api.createInvite).toHaveBeenCalledWith({
+      tenantId: 9,
+      role: 'TENANT_ADMIN',
+      note: '首账号',
+      ttlDays: 7
     })
-    expect(result.ok).toBe(true)
-    expect(store.registrations.length).toBe(beforeReg + 1)
-    // 邀请码应被消耗
-    const preview2 = store.previewInvite('KX7M2HQ9')
-    expect(preview2.ok).toBe(false)
-  })
-
-  it('审批：通过应把状态变 APPROVED 且租户 userCount + 1', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    const pending = store.registrations.find((r) => r.status === 'PENDING')
-    if (!pending) return // 极端 case skip
-    const tenant = store.allTenants.find((t) => t.id === pending.tenantId)
-    const before = tenant?.userCount ?? 0
-    const result = store.decideRegistration(pending.id, true, 'platform-admin', 'OK')
-    expect(result.ok).toBe(true)
-    expect(tenant?.userCount).toBe(before + 1)
-    expect(store.registrations.find((r) => r.id === pending.id)?.status).toBe('APPROVED')
-  })
-
-  it('审批：拒绝应把状态变 REJECTED 且 userCount 不变', () => {
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    // 注入一个临时 PENDING 申请
-    const reg = store.submitRegistration({
-      code: 'BT4N8WL3',
-      username: 'test-reject',
-      email: 't@x.com',
-      fullName: '测试',
-      department: 'X',
-      employeeId: 'E1'
-    })
-    if (!reg.ok) return
-    const tenant = store.allTenants.find((t) => t.id === reg.reg!.tenantId)
-    const before = tenant?.userCount ?? 0
-    const result = store.decideRegistration(reg.reg!.id, false, 'platform-admin', '信息不全')
-    expect(result.ok).toBe(true)
-    expect(tenant?.userCount).toBe(before)
-    expect(store.registrations.find((r) => r.id === reg.reg!.id)?.status).toBe('REJECTED')
-  })
-
-  it('本地存储持久化：写入后能从 localStorage 还原', () => {
-    // happy-dom 默认无 localStorage，用内存 Map stub
-    const map = new Map<string, string>()
-    const stub = {
-      getItem: (k: string) => map.get(k) ?? null,
-      setItem: (k: string, v: string) => {
-        map.set(k, v)
-      },
-      removeItem: (k: string) => {
-        map.delete(k)
-      },
-      clear: () => map.clear(),
-      key: () => null,
-      length: 0
-    } as unknown as Storage
-    vi.stubGlobal('localStorage', stub)
-
-    const pinia = createPinia()
-    setActivePinia(pinia)
-    const store = useTenantAdminStore()
-    store.resetSeed()
-    store.createTenant({
-      name: 'persisted-tenant',
-      displayName: '持久化测试',
-      type: 'INTERNAL',
-      quotaProfile: 'small',
-      storageQuotaGb: 10
-    })
-    store.persist()
-    const raw = (stub.getItem as (k: string) => string | null)('sq_tenant_admin_v1')
-    expect(raw).toBeTruthy()
-    const data = JSON.parse(raw!)
-    const hasNew = data.tenants.some((t: { name: string }) => t.name === 'persisted-tenant')
-    expect(hasNew).toBe(true)
-    vi.unstubAllGlobals()
+    expect(invite.code).toBe('BT4N8WL3')
+    expect(store.invitesByTenant(9)).toHaveLength(1)
   })
 })

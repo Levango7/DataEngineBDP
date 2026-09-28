@@ -53,7 +53,7 @@ def test_all_modules_healthy(encaps_url, sql_gateway_url, catalog_url, rule_engi
 # ---------------------------------------------------------------------------
 # 链路 1：封装层创建租户 → SQL 网关执行 SQL
 # ---------------------------------------------------------------------------
-def test_encaps_to_sql_gateway_chain(api_client, encaps_url, sql_gateway_url):
+def test_encaps_to_sql_gateway_chain(api_admin_client, encaps_url, sql_gateway_url):
     """验证封装层创建租户后，SQL 网关能在该租户上下文执行 SQL。
 
     链路：POST /api/v1/tenants → POST /api/v1/sql/execute
@@ -66,14 +66,14 @@ def test_encaps_to_sql_gateway_chain(api_client, encaps_url, sql_gateway_url):
         "quotaProfile": "small",
         "status": "ACTIVE",
     }
-    create_resp = api_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
+    create_resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
     assert create_resp.status_code == 201
     tenant = unwrap_response(create_resp.json())
 
     try:
         # 2. SQL 网关在该租户上下文执行 SQL（token 中已含 tenantId）。
         sql_payload = {"sql": "SELECT 1", "tenantId": "docker-it-tenant"}
-        sql_resp = api_client.post(
+        sql_resp = api_admin_client.post(
             sql_gateway_url + "/api/v1/sql/execute", json=sql_payload
         )
         assert sql_resp.status_code == 200
@@ -82,7 +82,7 @@ def test_encaps_to_sql_gateway_chain(api_client, encaps_url, sql_gateway_url):
         assert sql_body["status"] in ("SUCCESS", "DEGRADED", "FAILED")
     finally:
         # 清理租户。
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ def test_catalog_to_sql_gateway_chain(api_client, catalog_url, sql_gateway_url):
 # ---------------------------------------------------------------------------
 # 链路 3：封装层创建租户 → 规则引擎执行规则
 # ---------------------------------------------------------------------------
-def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
+def test_encaps_to_rule_engine_chain(api_admin_client, encaps_url, rule_engine_url):
     """验证封装层创建租户后，规则引擎能在该租户上下文创建并执行规则。
 
     链路：POST /api/v1/tenants → POST /api/v1/rules → POST /api/v1/rules/execute
@@ -138,7 +138,7 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
         "quotaProfile": "medium",
         "status": "ACTIVE",
     }
-    tenant_resp = api_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
+    tenant_resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
     assert tenant_resp.status_code == 201
     tenant = unwrap_response(tenant_resp.json())
 
@@ -151,13 +151,13 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
         "severity": "INFO",
         "enabled": True,
     }
-    rule_resp = api_client.post(rule_engine_url + "/api/v1/rules", json=rule_payload)
+    rule_resp = api_admin_client.post(rule_engine_url + "/api/v1/rules", json=rule_payload)
     assert rule_resp.status_code == 201
     rule = unwrap_response(rule_resp.json())
 
     try:
         # 3. 规则引擎执行规则。
-        exec_resp = api_client.post(
+        exec_resp = api_admin_client.post(
             rule_engine_url + "/api/v1/rules/execute",
             json={"ruleId": rule["id"], "context": {"value": 42}, "tenantId": "docker-it-tenant"},
         )
@@ -166,15 +166,20 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
         assert exec_body["ruleId"] == rule["id"]
     finally:
         # 清理规则与租户。
-        api_client.delete(rule_engine_url + f"/api/v1/rules/{rule['id']}")
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
+        api_admin_client.delete(rule_engine_url + f"/api/v1/rules/{rule['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant['id']}")
 
 
 # ---------------------------------------------------------------------------
 # 链路 4：全链路 - 创建租户 → 创建规则 → 执行规则 → 查询 Catalog → 执行 SQL
 # ---------------------------------------------------------------------------
 def test_full_chain_all_services(
-    api_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
+    api_client,
+    api_admin_client,
+    encaps_url,
+    sql_gateway_url,
+    catalog_url,
+    rule_engine_url,
 ):
     """验证全链路：4 个模块协同工作。
 
@@ -186,7 +191,10 @@ def test_full_chain_all_services(
     5. SQL 网关执行查询
     """
     # 1. 封装层创建租户。
-    tenant = unwrap_response(api_client.post(
+    # TenantController 类级要求 SUPER_ADMIN（见 TenantController.java:47），
+    # 用 USER 客户端会 403 → unwrap_response 后取 ['id'] 直接 KeyError（#1248 实测）。
+    # 后续步骤仍用 api_client：只有租户 CRUD 需要更高角色，不放大其余权限。
+    tenant = unwrap_response(api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json={
             "name": "docker-full-chain-tenant",
@@ -251,25 +259,25 @@ def test_full_chain_all_services(
 # 链路 5：JWT token 跨服务一致性
 # ---------------------------------------------------------------------------
 def test_jwt_token_consistency_across_services(
-    api_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
+    api_admin_client, encaps_url, sql_gateway_url, catalog_url, rule_engine_url
 ):
     """验证同一个 JWT token 能被 4 个模块同时接受。
 
-    使用 api_client fixture 中的统一 token，分别访问 4 个模块的受保护端点，
+    使用 api_admin_client fixture 中的统一 token，分别访问 4 个模块的受保护端点，
     全部应返回 200（非 401），证明 JWT 配置一致。
     """
     # 封装层。
-    resp = api_client.get(encaps_url + "/api/v1/tenants")
+    resp = api_admin_client.get(encaps_url + "/api/v1/tenants")
     assert resp.status_code == 200
 
     # SQL 网关。
-    resp = api_client.get(sql_gateway_url + "/api/v1/sql/routes")
+    resp = api_admin_client.get(sql_gateway_url + "/api/v1/sql/routes")
     assert resp.status_code == 200
 
     # Catalog。
-    resp = api_client.get(catalog_url + "/api/v1/catalog/tables")
+    resp = api_admin_client.get(catalog_url + "/api/v1/catalog/tables")
     assert resp.status_code == 200
 
     # 规则引擎。
-    resp = api_client.get(rule_engine_url + "/api/v1/rules")
+    resp = api_admin_client.get(rule_engine_url + "/api/v1/rules")
     assert resp.status_code == 200

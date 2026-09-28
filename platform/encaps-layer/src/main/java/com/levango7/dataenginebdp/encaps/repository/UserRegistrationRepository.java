@@ -17,5 +17,6 @@ public interface UserRegistrationRepository extends JpaRepository<UserRegistrati
 
     List<UserRegistration> findByTenantIdOrderByCreatedAtDesc(Long tenantId);
 
-    List<UserRegistration> findByStatusOrderByCreatedAtDesc(String status);
+    /** 全域按时间倒序（仅平台超管的待审 inbox 使用，调用方须自行完成角色校验）。 */
+    List<UserRegistration> findAllByOrderByCreatedAtDesc();
 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 import contextlib
 import functools
 import hashlib
@@ -14,7 +15,6 @@ import sys
 import threading
 import time
 import traceback
-from collections.abc import Callable
 from typing import Any, Optional
 
 try:
@@ -181,9 +181,7 @@ def _init_spark_session(cfg: dict[str, Any], logger) -> Any:
         builder = builder.config("spark.hadoop.fs.s3a.access.key", _access)
         builder = builder.config("spark.hadoop.fs.s3a.secret.key", _secret)
         builder = builder.config("spark.hadoop.fs.s3a.path.style.access", "true")
-        builder = builder.config(
-            "spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"
-        )
+        builder = builder.config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         # Windows Driver 端缺 hadoop.dll 时，S3A 默认 disk buffer 会触发
         # NativeIO$Windows.access0 → UnsatisfiedLinkError。改用内存 buffer 避免
         # 创建本地临时文件（Worker 在 Linux 容器中不受影响，内存 buffer 也可用）。
@@ -191,9 +189,7 @@ def _init_spark_session(cfg: dict[str, Any], logger) -> Any:
         builder = builder.config("spark.hadoop.fs.s3a.fast.upload.buffer", "array")
         # FileOutputCommitter v2 避免 commitJob 时 list _temporary/0（S3 eventual
         # consistency 可能导致 list 不到刚写入的 task 输出）。
-        builder = builder.config(
-            "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"
-        )
+        builder = builder.config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
         # 多机模式下，Worker 容器和 Driver 端都需要 hadoop-aws + aws-sdk JAR。
         # 前提：这些 JAR 已预装在 SPARK_HOME/jars/（Driver）和 Docker 容器的
         # /opt/spark/jars/（Worker）中。不使用 spark.jars 分发（aws-java-sdk-bundle
@@ -239,14 +235,10 @@ def _init_spark_session(cfg: dict[str, Any], logger) -> Any:
             builder = builder.config("spark.hadoop.fs.s3a.access.key", _access)
             builder = builder.config("spark.hadoop.fs.s3a.secret.key", _secret)
             builder = builder.config("spark.hadoop.fs.s3a.path.style.access", "true")
-            builder = builder.config(
-                "spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"
-            )
+            builder = builder.config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
             builder = builder.config("spark.hadoop.fs.s3a.fast.upload", "true")
             builder = builder.config("spark.hadoop.fs.s3a.fast.upload.buffer", "array")
-            builder = builder.config(
-                "spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2"
-            )
+            builder = builder.config("spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version", "2")
 
     spark = builder.getOrCreate()
     logger.info(
@@ -302,9 +294,7 @@ def _cleanup_stage_output(stage_name: str, run_dir: str, logger) -> None:
             continue
         try:
             shutil.rmtree(target)
-            logger.info(
-                "stage output cleaned for retry", extra={"stage": stage_name, "cleaned_dir": sub}
-            )
+            logger.info("stage output cleaned for retry", extra={"stage": stage_name, "cleaned_dir": sub})
         except Exception as exc:  # noqa: BLE001
             # 清理失败不应阻塞重试；记录 warning 后继续.
             logger.warning(
@@ -390,9 +380,7 @@ def _run_with_timeout(
         # （如工作线程在 finally 前被中断）。原实现取 ["value"] 抛 KeyError，
         # 调用方无法区分"stage 失败"与"基础设施故障"；显式 RuntimeError 后
         # 可进入重试/backoff 常规路径.
-        raise RuntimeError(
-            f"stage thread terminated without result (stage={stage_name}, batch={batch_id})"
-        )
+        raise RuntimeError(f"stage thread terminated without result (stage={stage_name}, batch={batch_id})")
     return result_holder["value"]
 
 
@@ -890,9 +878,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                     # 重置 manifest/ctx/metrics 为全新状态——恢复循环可能已把
                     # 前序 stage 写进 metrics，不重置会导致全量重跑后 stages 重复
                     manifest = Manifest(batch_id, digest, run_dir, tenant_id=tenant_id)
-                    ctx = PipelineContext(
-                        config=cfg, run_dir=run_dir, batch_id=batch_id, manifest=manifest
-                    )
+                    ctx = PipelineContext(config=cfg, run_dir=run_dir, batch_id=batch_id, manifest=manifest)
                     ctx.engine_backend = _get_engine_backend(cfg)
                     _warn_unknown_engine_backend(ctx.engine_backend, logger)
                     metrics = MetricsRecorder(batch_id, tenant_id=tenant_id)
@@ -965,9 +951,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                     "staged watermark/snapshot restored from failed manifest",
                     extra={"stage": "pipeline", "batch": batch_id},
                 )
-            logger.info(
-                "incremental mode enabled", extra={"stage": "pipeline", "state_dir": state_dir}
-            )
+            logger.info("incremental mode enabled", extra={"stage": "pipeline", "state_dir": state_dir})
 
         # 任务 #74 C1 补丁：compute 被续跑跳过时，从 04_aggregates 磁盘产物
         # 重建 ctx.aggregates（output 直接消费该内存态）。必须放在 spark 会
@@ -980,9 +964,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
             )
 
         # 任务41 监控告警：加载 config/monitoring.json（缺省 disabled）.
-        monitoring_cfg = load_monitoring_config(
-            abs_path(cfg.get("monitoring_config", "config/monitoring.json"))
-        )
+        monitoring_cfg = load_monitoring_config(abs_path(cfg.get("monitoring_config", "config/monitoring.json")))
         monitoring_enabled = bool(monitoring_cfg.get("enabled", False))
         if monitoring_enabled:
             hc_cfg = monitoring_cfg.get("health_check", {}) or {}
@@ -1035,9 +1017,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
         for name in STAGES:
             # 断点续跑：跳过已成功的 stage（output 永不跳过）
             if resume_active and name in resumed_stages:
-                logger.info(
-                    "stage resumed (skipped)", extra={"stage": "pipeline", "resumed_stage": name}
-                )
+                logger.info("stage resumed (skipped)", extra={"stage": "pipeline", "resumed_stage": name})
                 if emitter is not None:
                     emitter.stage_event(name, "COMPLETE")
                 continue
@@ -1048,9 +1028,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
             if fail_at == name:
                 overall = "failed"
                 error_msg = "demo failure injected at stage " + name
-                with StageLog(
-                    os.path.join(run_dir, log_path), batch_id=batch_id, stage=name
-                ) as slog:
+                with StageLog(os.path.join(run_dir, log_path), batch_id=batch_id, stage=name) as slog:
                     slog.error(error_msg, injected=True)
                 manifest.add_stage(name, "failed", 0, 0, 0, log_path, error_msg)
                 metrics.record_stage(name, "failed", 0, 0, 0)
@@ -1061,9 +1039,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
             stage_mod = load_stage(name)
             start = time.monotonic()
             try:
-                with StageLog(
-                    os.path.join(run_dir, log_path), batch_id=batch_id, stage=name
-                ) as slog:
+                with StageLog(os.path.join(run_dir, log_path), batch_id=batch_id, stage=name) as slog:
                     # 任务39 错误处理加固：用 _run_stage_with_retry 包装 stage 执行，
                     # 提供 try-except + 重试 + 超时 + 幂等清理.
                     # max_retries=0（缺省）时行为与原 pipeline 完全一致.
@@ -1110,9 +1086,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                 overall = "failed"
                 error_msg = f"{type(exc.original_error).__name__}: {exc.original_error}"
                 trace_tail = exc.traceback_str.splitlines()[-8:] if exc.traceback_str else []
-                with StageLog(
-                    os.path.join(run_dir, log_path), batch_id=batch_id, stage=name
-                ) as slog:
+                with StageLog(os.path.join(run_dir, log_path), batch_id=batch_id, stage=name) as slog:
                     slog.error(
                         "stage failed",
                         error=error_msg,
@@ -1140,9 +1114,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                 overall = "failed"
                 error_msg = f"{type(exc).__name__}: {str(exc)}"
                 trace_tail = traceback.format_exc().splitlines()[-8:]
-                with StageLog(
-                    os.path.join(run_dir, log_path), batch_id=batch_id, stage=name
-                ) as slog:
+                with StageLog(os.path.join(run_dir, log_path), batch_id=batch_id, stage=name) as slog:
                     slog.error("stage failed", error=error_msg, trace=trace_tail)
                 dur = int((time.monotonic() - start) * 1000)
                 manifest.add_stage(name, "failed", 0, 0, dur, log_path, error_msg)
@@ -1239,16 +1211,12 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                         },
                     )
                 if alerts:
-                    logger.warning(
-                        "alerts triggered", extra={"stage": "pipeline", "alert_count": len(alerts)}
-                    )
+                    logger.warning("alerts triggered", extra={"stage": "pipeline", "alert_count": len(alerts)})
                 else:
                     logger.info("no alerts", extra={"stage": "pipeline"})
             except Exception:  # noqa: BLE001
                 # 监控失败不应影响 pipeline 主流程
-                logger.warning(
-                    "monitoring check failed, ignoring", extra={"stage": "pipeline"}, exc_info=True
-                )
+                logger.warning("monitoring check failed, ignoring", extra={"stage": "pipeline"}, exc_info=True)
 
         # OpenLineage 批次终态：与初始化窗口发出的 START 配对（runId 相同，
         # 下游按幂等去重后得到完整的 running→COMPLETE/FAILED 生命周期）。
@@ -1288,9 +1256,7 @@ def run_pipeline(cfg: dict[str, Any], batch_id: str, fail_at: str) -> int:
                 spark.stop()
                 logger.info("spark session stopped", extra={"stage": "pipeline", "batch": batch_id})
             except Exception:  # noqa: BLE001
-                logger.warning(
-                    "spark.stop() raised, ignoring", extra={"stage": "pipeline"}, exc_info=True
-                )
+                logger.warning("spark.stop() raised, ignoring", extra={"stage": "pipeline"}, exc_info=True)
         # 任务38：清理 root logger 上由 setup_logging 添加的 handler，
         # 避免 pytest 多次调用 run_pipeline 时 handler 累积导致重复输出.
         close_logging()
@@ -1353,9 +1319,7 @@ def _advance_and_merge(ctx: PipelineContext, store: StateStore, logger) -> None:
             if not _table_exists(batch_csv, ctx.config):
                 continue
             if ctx.engine_backend == "spark":
-                staged_path = _merge_aggregate_spark(
-                    ctx, store, name, fields, key_cols, batch_csv, logger
-                )
+                staged_path = _merge_aggregate_spark(ctx, store, name, fields, key_cols, batch_csv, logger)
                 if staged_path:
                     pending[name] = staged_path
                 continue
@@ -1373,9 +1337,7 @@ def _advance_and_merge(ctx: PipelineContext, store: StateStore, logger) -> None:
                     store.save_aggregate(name, fields, [])
                 continue
             # 任务 #74 C4：合并结果只写暂存文件，正式聚合不动.
-            merged_count, staged_path = store.merge_aggregate_staged(
-                name, fields, new_rows, key_cols
-            )
+            merged_count, staged_path = store.merge_aggregate_staged(name, fields, new_rows, key_cols)
             pending[name] = staged_path
             logger.info(
                 "aggregate merge staged",
@@ -1462,9 +1424,7 @@ def _merge_aggregate_spark(
         if not _table_exists(hist_path, ctx.config):
             empty_df = spark.createDataFrame([], delta_df.schema)
             table_write(hist_path, empty_df, ctx.config, spark=ctx.spark_session)
-        logger.info(
-            "aggregate merged (spark, empty delta)", extra={"stage": "compute", "agg": name}
-        )
+        logger.info("aggregate merged (spark, empty delta)", extra={"stage": "compute", "agg": name})
         return None
 
     non_key = [f for f in fields if f not in key_cols]

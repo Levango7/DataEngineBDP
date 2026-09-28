@@ -122,14 +122,14 @@ func (p *DownstreamProxy) Nl2Sql(ctx context.Context, query, dialect, tenantID s
 }
 
 // ExecuteSqlResult sql-gateway 执行结果。
-type ExecuteSqlResult struct {
+type ExecuteSQLResult struct {
 	Status  string          `json:"status"`
 	Columns []string        `json:"columns"`
 	Rows    [][]interface{} `json:"rows"`
 }
 
 // ExecuteSql 调用 sql-gateway 执行 SQL。
-func (p *DownstreamProxy) ExecuteSql(ctx context.Context, sql, dialect, tenantID string) (*ExecuteSqlResult, error) {
+func (p *DownstreamProxy) ExecuteSQL(ctx context.Context, sql, dialect, tenantID string) (*ExecuteSQLResult, error) {
 	payload := map[string]string{
 		"sql":      sql,
 		"dialect":  dialect,
@@ -138,7 +138,7 @@ func (p *DownstreamProxy) ExecuteSql(ctx context.Context, sql, dialect, tenantID
 	body, _ := json.Marshal(payload)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		p.cfg.SqlGatewayURL+"/api/v1/sql/execute", bytes.NewReader(body))
+		p.cfg.SQLGatewayURL+"/api/v1/sql/execute", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (p *DownstreamProxy) ExecuteSql(ctx context.Context, sql, dialect, tenantID
 		return nil, fmt.Errorf("sql-gateway 返回 %d", resp.StatusCode)
 	}
 
-	var out ExecuteSqlResult
+	var out ExecuteSQLResult
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, fmt.Errorf("解析 sql-gateway 响应失败: %w", err)
 	}

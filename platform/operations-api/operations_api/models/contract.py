@@ -19,6 +19,7 @@ P-04 合同交付实体 — 合同核心数据模型。
     signedAt:     签署时间
     approvedBy:   审批人
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone

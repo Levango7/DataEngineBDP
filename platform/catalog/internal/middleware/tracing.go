@@ -83,8 +83,8 @@ func TracingMiddleware(serviceName string) gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 
 		// 提取 traceId 写入 gin.Context，供日志中间件使用。
-		traceId := trace.SpanContextFromContext(ctx).TraceID().String()
-		c.Set("traceId", traceId)
+		traceID := trace.SpanContextFromContext(ctx).TraceID().String()
+		c.Set("traceId", traceID)
 
 		c.Next()
 

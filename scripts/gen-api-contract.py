@@ -283,6 +283,33 @@ def main() -> int:
     lines.append("- 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段")
     lines.append("")
 
+    # 字段级契约章节（A1）：该内容原本由 289a1f29 直接**手写**进生成物，
+    # 但未同步教本生成器产出 → 而 ci.yml 的「前后端 API 契约生成 + 漂移校验」
+    # 判定方式是「重新生成后 git status 必须干净」，于是该步**永久失败**。
+    # 现纳入模板使生成幂等；文案与手写版逐字一致。
+    lines.extend("""## 字段级契约（A1 补充）
+
+路由级契约由本表覆盖；**字段级**契约由 `scripts/check-api-schema-drift.py` 校验
+——对比 springdoc 产出的 OpenAPI schema（快照 `docs/api-contract-openapi.json`）与
+前端 `types.ts` 手写 interface 的字段集，同名类型字段漂移即 CI 阻断。
+
+**快照刷新流程**（后端 Entity/DTO 字段变更后执行）：
+
+```bash
+# 1. 启动 encaps-layer（local-auth 模式便于拿 token）
+java -jar platform/encaps-layer/target/encaps-layer-0.1.0-SNAPSHOT-exec.jar \\
+  --server.port=18099 --app.security.local-auth.enabled=true
+# 2. 登录拿 token（admin/admin）
+TOKEN=$(curl -s -X POST http://127.0.0.1:18099/api/v1/auth/login \\
+  -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin"}' | jq -r .data.token)
+# 3. 刷新快照并校验
+python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --token "$TOKEN" --refresh
+```
+
+同名不同义的已知冲突在脚本 `KNOWN_NAME_CLASHES` 显式豁免（须注明来源）。
+
+""".splitlines())
+
     unmatched_total = 0
     matched_total = 0
     for fname, calls in frontend.items():
@@ -312,6 +339,10 @@ def main() -> int:
         lines.append("> ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。")
         lines.append("")
 
+    # 末尾不留空行：markdownlint MD012 会把文件末尾的空行判为连续空行，
+    # 而 ci.yml 会重生成本文件并比对 git 状态，两者需同时满足
+    while lines and not lines[-1]:
+        lines.pop()
     content = "\n".join(lines) + "\n"
     if check_only:
         print(f"匹配 {matched_total}/{matched_total + unmatched_total}；未匹配 {unmatched_total} 条")

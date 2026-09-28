@@ -320,6 +320,7 @@ spec:
 #### 3.4.2 Grafana 看板
 
 内置看板：
+
 - 平台总览：CPU/内存/磁盘/网络、Pod 状态、QPS
 - SQL 网关：查询 QPS、延迟分位、路由命中、跨源查询统计
 - Doris：BE 负载、查询延迟、Compaction

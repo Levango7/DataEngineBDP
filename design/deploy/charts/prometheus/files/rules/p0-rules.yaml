@@ -1,0 +1,122 @@
+# P0 严重告警规则
+#
+# 用途：平台核心组件/数据丢失风险等严重故障，触发电话+短信通知。
+# 通知渠道：Alertmanager → p0-pager receiver → 电话网关 + 短信网关
+# 时效要求：7x24 立即通知，5 分钟重复
+#
+# 【指标来源约定】只允许引用 platform/observability/metric-contract.yaml 中 status=available 的指标，
+# 由 scripts/check-alert-metric-coverage.py 在 CI 校验。
+# 依赖 node-exporter / kube-state-metrics / 作业调度指标（DolphinScheduler、批流调度）的规则
+# 已移至 rules/pending/pending-rules.yaml —— 那些指标当前无组件发射，留在生效目录只会产生死规则。
+#
+# 模板变量（须由 scripts/render-tenant-alert-rules.py 渲染后才可交给 Prometheus）：
+#   {{tenant_id}}    — 租户 ID 正则片段（=~ 插值，具体 ID 与 ".+" 皆适用）
+#   {{threshold}}    — 不可达 Pod 数阈值，默认 0
+#
+# 使用方式：
+#   1. 平台侧（对全部租户生效）：渲染成 tenant_id=~".+" 并按 tenant_id 分组逐租户触发；
+#      scripts/sync-alert-rules.sh --sync 即按此方式生成 Prometheus Chart 的副本。
+#   2. 单租户定制：python3 scripts/render-tenant-alert-rules.py --tenant-id acme-corp
+#
+# ⚠ 未渲染的占位符不可直接加载：expr 中的 "{{tenant_id}}" 是合法 PromQL 字符串字面量，
+#   语法检查过得去但匹配不到任何序列，规则会永久静默（本文件此前的缺陷即在于此）。
+groups:
+  - name: p0-critical-platform
+    interval: 30s
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：核心数据库/存储组件抓取失败（不可达）
+      # 指标：up（Prometheus 每次抓取自动生成，job=kubernetes-pods 覆盖带 prometheus.io/scrape 注解的 Pod）
+      # 前提：数据库/存储组件 Pod 需带 prometheus.io/scrape=true 注解（见 charts/prometheus values 的 kubernetes-pods job）
+      # ---------------------------------------------------------------------------
+      - alert: DatabaseUnreachable
+        expr: |
+          up{job="kubernetes-pods", app=~"postgres|mysql|doris.*|minio|kafka"} == 0
+        for: 30s
+        labels:
+          severity: P0
+          component: database
+          category: data
+        annotations:
+          summary: "数据组件抓取失败（不可达）: {{ $labels.app }} @ {{ $labels.namespace }}"
+          description: "组件 {{ $labels.app }} ({{ $labels.pod }}) 抓取失败，可能已不可达，影响依赖它的服务。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/db-unreachable"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：Kubernetes API Server 不可用
+      # 指标：up（job=kube-apiserver，由本仓 prometheus 抓取配置提供）
+      # ---------------------------------------------------------------------------
+      - alert: KubeAPIDown
+        expr: up{job="kube-apiserver"} == 0
+        for: 30s
+        labels:
+          severity: P0
+          component: kubernetes
+          category: infrastructure
+        annotations:
+          summary: "Kubernetes API Server {{ $labels.instance }} 不可用"
+          description: "API Server 不可用将导致集群无法调度和管理，需立即处理。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/kube-api-down"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Prometheus 采集失败率过高（数据丢失风险）
+      # 指标：prometheus_scrape_samples_failed_total / prometheus_scrape_samples_posted_total（自监控，真实）
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusScrapeFailure
+        expr: |
+          (sum(rate(prometheus_scrape_samples_failed_total[5m])) by (job) /
+           sum(rate(prometheus_scrape_samples_posted_total[5m])) by (job)) > 0.1
+        for: 5m
+        labels:
+          severity: P0
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 采集失败率过高: {{ $labels.job }}"
+          description: "job={{ $labels.job }} 的采集失败率超过 10%，存在数据丢失风险。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/scrape-failure"
+
+      # ---------------------------------------------------------------------------
+      # 规则 4：Prometheus 目标失联（任一核心 job 抓取不上）
+      # 指标：up（自监控）
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusTargetDown
+        expr: |
+          up{job=~"kubernetes-pods|kubelet|kube-apiserver|prometheus"} == 0
+        for: 2m
+        labels:
+          severity: P0
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 抓取目标失联: {{ $labels.job }} @ {{ $labels.instance }}"
+          description: "目标 {{ $labels.instance }}（job={{ $labels.job }}）连续 2 分钟抓取失败，该目标的指标将缺失。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/target-down"
+
+      # ---------------------------------------------------------------------------
+      # 规则 5：租户工作空间 Pod 不可达（租户维度，可自定义阈值）
+      # 指标：up（job=kubernetes-pods）。tenant_id 标签由 prometheus.yml 的
+      #       __meta_kubernetes_namespace_label_tenantId → tenant_id relabel 注入，
+      #       命名空间形如 ws-<tenantId>-<slug>（K8sWorkspaceTranslator.buildNamespaceLabels）。
+      # 变量：{{tenant_id}} 租户正则片段；{{threshold}} 允许的不可达 Pod 数，默认 0。
+      # ---------------------------------------------------------------------------
+      - alert: TenantWorkspaceDown
+        expr: |
+          count by (tenant_id) (
+            up{job="kubernetes-pods", tenant_id=~".+"} == 0
+          ) > 0
+        for: 2m
+        labels:
+          severity: P0
+          component: tenant-workspace
+          category: multi-tenancy
+          tenant_id: ".+"
+        annotations:
+          summary: "租户 {{ $labels.tenant_id }} 有 {{ $value }} 个工作空间 Pod 不可达"
+          description: "租户 .+ 的工作空间连续 2 分钟存在抓取失败的 Pod，该租户部分业务指标将缺失。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-workspace-down"

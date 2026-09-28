@@ -856,9 +856,6 @@ class TestCoexistence:
         import requests
         import concurrent.futures
 
-        if not governance_available:
-            pytest.skip("Governance service not available")
-
         def trigger_pipeline(table_suffix: int) -> int:
             event = make_commit_event(table=f"default.concurrent_{table_suffix}")
             try:
@@ -910,12 +907,20 @@ class TestInfrastructure:
         except requests.ConnectionError:
             pytest.skip("Governance service not available")
 
-    def test_prometheus_metrics_endpoint(self, governance_available):
-        """Prometheus 指标端点暴露治理指标。"""
+    def test_prometheus_metrics_endpoint(self, governance_available, auth_token):
+        """Prometheus 指标端点暴露治理指标。
+
+        必须带 Bearer token：actuator 受 Spring Security 保护（show-details=when-authorized），
+        匿名访问返回 403 是**预期行为**，不是缺陷 —— 所以这里补上凭证而不是放宽断言。
+        """
         import requests
 
         try:
-            resp = requests.get(GOVERNANCE_URL + "/actuator/prometheus", timeout=10)
+            resp = requests.get(
+                GOVERNANCE_URL + "/actuator/prometheus",
+                timeout=10,
+                headers={"Authorization": f"Bearer {auth_token}"},
+            )
             assert resp.status_code == 200
             # 验证包含治理相关指标
             text = resp.text
@@ -930,11 +935,24 @@ class TestInfrastructure:
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def governance_available() -> bool:
-    """检查治理管道服务是否可用。"""
+    """治理管道服务可用性守卫：不可用则跳过全部依赖它的用例。
+
+    该服务（it-governance-pipeline）不在 docker-compose IT 栈内，且其原规划
+    端口 18090 已让渡给 encaps-tenant（见 tests/integration/e2e/conftest.py
+    端口表注释）——继续请求 18090 不再抛 ConnectionError，而是命中
+    encaps-tenant（401/403/404），各用例内 try/except 兜底失效。
+    因此在夹具层统一判定并 skip，避免把 encaps-tenant 的响应误当治理服务断言。
+    """
     import requests
 
+    available = False
     try:
         resp = requests.get(GOVERNANCE_URL + "/api/v1/health", timeout=5)
-        return resp.status_code == 200 and resp.json().get("status") == "UP"
+        if resp.status_code == 200 and resp.json().get("status") == "UP":
+            available = True
     except (requests.ConnectionError, ValueError):
-        return False
+        # 连接失败或响应非 JSON → 视为不可用，走下方统一 skip
+        pass
+    if not available:
+        pytest.skip("Governance service not available")
+    return available

@@ -1,0 +1,194 @@
+# P1 重要告警规则
+#
+# 用途：组件级可用性与资源异常，触发邮件+企业微信通知。
+# 通知渠道：Alertmanager → p1-email-im receiver → SMTP 邮件 + 企业微信 IM
+# 时效要求：30 秒聚合，30 分钟重复
+#
+# 【指标来源约定】本文件只允许引用 platform/observability/metric-contract.yaml 中
+# status=available 的指标；新增规则前先确认指标真的有组件发射（历史缺陷：规则引用了
+# 8 个从未被任何代码发射的 shuqing_* 指标 + 2 个不存在的 process_* 指标，全部是死规则）。
+# 校验：scripts/check-alert-metric-coverage.py（已挂 CI）。
+#
+# 模板变量（须由 scripts/render-tenant-alert-rules.py 渲染后才可交给 Prometheus）：
+#   {{tenant_id}}       — 租户 ID 正则片段（=~ 插值，具体 ID 与 ".+" 皆适用）
+#   {{latency_p95}}     — 延迟 P95 阈值，默认 5 秒
+#   {{disk_threshold}}  — 存储水位阈值，默认 0.8（80%）
+#   {{fail_threshold}}  — 请求失败率阈值，默认 0.1（10%）
+groups:
+  - name: p1-important-platform
+    interval: 30s
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：组件 CPU 使用率过高
+      # 指标：Java 组件 micrometer 发射 process_cpu_usage（0~1 比率）；
+      #       Go 组件 promhttp 默认发射 process_cpu_seconds_total（计数器）。
+      # ---------------------------------------------------------------------------
+      - alert: HighCPUUsage
+        expr: |
+          (process_cpu_usage > 0.8)
+          or
+          (rate(process_cpu_seconds_total[5m]) > 0.8)
+        for: 10m
+        labels:
+          severity: P1
+          component: "{{ $labels.job }}"
+          category: resource
+        annotations:
+          summary: "CPU 使用率过高: {{ $labels.job }} @ {{ $labels.instance }}"
+          description: "组件 {{ $labels.job }} ({{ $labels.instance }}) CPU 使用率持续 10 分钟超过 80%。"
+          value: "{{ $value | humanize }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-cpu"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：JVM 堆内存使用率过高
+      # 指标：micrometer 的 jvm_memory_used_bytes / jvm_memory_max_bytes（area="heap"）
+      # 说明：Go/Python 组件无 JVM 堆概念，容器级内存水位见 P2 规则。
+      # ---------------------------------------------------------------------------
+      - alert: HighJvmHeapUsage
+        expr: |
+          (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 10m
+        labels:
+          severity: P1
+          component: "{{ $labels.job }}"
+          category: resource
+        annotations:
+          summary: "JVM 堆内存使用率过高: {{ $labels.job }} @ {{ $labels.instance }}"
+          description: "组件 {{ $labels.job }} 堆内存使用率持续 10 分钟超过 85%，有 OOM 风险。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-memory"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Prometheus 抓取失败（自监控）
+      # 指标：Prometheus 自身发射的 prometheus_scrape_samples_failed_total
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusScrapeFailures
+        expr: |
+          rate(prometheus_scrape_samples_failed_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: P1
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 抓取失败: {{ $labels.job }}"
+          description: "抓取目标 {{ $labels.job }} ({{ $labels.instance }}) 持续失败，可能导致告警漏报。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/scrape-fail"
+
+      # ---------------------------------------------------------------------------
+      # 规则 4：Prometheus 规则评估失败（自监控）
+      # 指标：prometheus_rule_evaluation_failures_total（Prometheus 自身发射，真实存在）
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusRuleEvaluationFailures
+        expr: |
+          rate(prometheus_rule_evaluation_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: P1
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 规则评估失败: {{ $labels.rule_group }}"
+          description: "规则组 {{ $labels.rule_group }} 评估持续失败，可能导致告警漏报。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/rule-eval-fail"
+
+  # ---------------------------------------------------------------------------
+  # 统一 SQL 网关（指标真实存在：PerformanceMetrics.java 发射 sql_gateway_*）
+  # ---------------------------------------------------------------------------
+  - name: p1-sql-gateway
+    interval: 30s
+    rules:
+      # 规则 5：查询延迟 P95 过高
+      - alert: SqlGatewayQueryLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(sql_gateway_query_duration_seconds_bucket[5m]))
+          ) > 5
+        for: 10m
+        labels:
+          severity: P1
+          component: sql-gateway
+          category: performance
+        annotations:
+          summary: "SQL 网关查询 P95 延迟过高"
+          description: "SQL 网关查询 P95 延迟超过 5 秒，持续 10 分钟。"
+          value: "{{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/sql-latency"
+
+      # 规则 6：查询降级/失败比例过高
+      # 指标：sql_gateway_query_total{result="degraded"}（降级或失败）
+      - alert: SqlGatewayQueryDegradedRate
+        expr: |
+          (
+            sum(rate(sql_gateway_query_total{result="degraded"}[15m]))
+            /
+            sum(rate(sql_gateway_query_total[15m]))
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: P1
+          component: sql-gateway
+          category: availability
+        annotations:
+          summary: "SQL 网关查询降级率过高"
+          description: "SQL 网关查询降级/失败比例超过 10%，持续 10 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/sql-degraded"
+
+  # ---------------------------------------------------------------------------
+  # 租户级 P1 告警（namespace 约定 ws-<tenantId>-<slug>，由 kubelet/cAdvisor 指标承载）
+  # ---------------------------------------------------------------------------
+  - name: p1-important-tenant
+    interval: 30s
+    rules:
+      # 规则 7：租户存储水位超阈值
+      # 指标：kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes（kubelet 抓取）
+      - alert: TenantStorageHigh
+        expr: |
+          (
+            sum by (namespace) (kubelet_volume_stats_used_bytes{namespace=~"ws-.+-.*"})
+            /
+            sum by (namespace) (kubelet_volume_stats_capacity_bytes{namespace=~"ws-.+-.*"})
+          ) > 0.8
+        for: 30m
+        labels:
+          severity: P1
+          component: storage
+          category: tenant
+          tenant_id: ".+"
+        annotations:
+          summary: "租户 .+ 存储水位过高"
+          description: "租户 .+ 命名空间 {{ $labels.namespace }} 存储使用率超过 0.8，持续 30 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-storage"
+
+      # 规则 8：租户请求失败率超阈值（阈值可由租户自定义）
+      # 指标：http_server_requests_seconds_count（micrometer，Java 组件发射），
+      #       tenant_id 由 prometheus.yml 的 namespace label tenantId → tenant_id relabel 注入。
+      # 【命名与口径的诚实说明】alert 名沿用产品契约里的 TenantJobFailureRateHigh
+      #   （tests/integration/docker/test_grafana_dual_view.py 断言该名字），但作业维度
+      #   需要 shuqing_job_* 指标，当前无任何组件发射 —— 故本条实际度量**同步请求 5xx 占比**，
+      #   是先覆盖同一意图的替代口径。真正的批作业规则见 rules/pending/
+      #   （TenantBatchJobFailureRateHigh），补齐调度器指标后启用。
+      # 已知边界：Go 组件发的是 http_requests_total（无 outcome 标签），故只覆盖 Java 侧。
+      # 变量：{{tenant_id}} 租户正则片段；{{fail_threshold}} 失败率阈值，默认 0.1。
+      - alert: TenantJobFailureRateHigh
+        expr: |
+          (
+            sum by (tenant_id) (rate(http_server_requests_seconds_count{tenant_id=~".+", outcome="SERVER_ERROR"}[5m]))
+            /
+            sum by (tenant_id) (rate(http_server_requests_seconds_count{tenant_id=~".+"}[5m]))
+          ) > 0.1
+        for: 10m
+        labels:
+          severity: P1
+          component: tenant-workload
+          category: tenant
+          tenant_id: ".+"
+        annotations:
+          summary: "租户 .+ 请求失败率过高"
+          description: "租户 .+ 5 分钟窗口内 SERVER_ERROR 占比超过 0.1，持续 10 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-failure-rate"

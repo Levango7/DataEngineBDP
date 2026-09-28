@@ -35,7 +35,7 @@ def test_health_check(api_client, encaps_url):
 # ---------------------------------------------------------------------------
 # 租户 CRUD
 # ---------------------------------------------------------------------------
-def test_create_tenant(api_client, encaps_url):
+def test_create_tenant(api_admin_client, encaps_url):
     """验证 POST /api/v1/tenants 创建租户返回 201，且响应体含 id 与请求字段。"""
     payload = {
         "name": "it-create-tenant",
@@ -43,7 +43,7 @@ def test_create_tenant(api_client, encaps_url):
         "namespace": "ns-it-create",
         "quotaProfile": "small",
     }
-    resp = api_client.post(encaps_url + "/api/v1/tenants", json=payload)
+    resp = api_admin_client.post(encaps_url + "/api/v1/tenants", json=payload)
     assert resp.status_code == 201
     body = resp.json()
     assert "id" in body
@@ -52,7 +52,7 @@ def test_create_tenant(api_client, encaps_url):
 
     # 清理：删除刚创建的租户，避免污染后续测试。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{body['id']}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{body['id']}")
     except Exception:
         pass
 
@@ -112,10 +112,10 @@ def test_update_tenant_not_found(api_client, encaps_url):
     assert resp.status_code == 404
 
 
-def test_delete_tenant(api_client, encaps_url):
+def test_delete_tenant(api_admin_client, encaps_url):
     """验证 DELETE /api/v1/tenants/{id} 删除租户返回 204，再次删除返回 404。"""
     # 先创建一个待删除租户。
-    create_resp = api_client.post(
+    create_resp = api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json={
             "name": "it-delete-tenant",
@@ -128,21 +128,21 @@ def test_delete_tenant(api_client, encaps_url):
     tenant_id = create_resp.json()["id"]
 
     # 删除应返回 204。
-    del_resp = api_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    del_resp = api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert del_resp.status_code == 204
 
     # 再次删除应返回 404。
-    again_resp = api_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    again_resp = api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert again_resp.status_code == 404
 
 
-def test_tenant_crud_flow(api_client, encaps_url):
+def test_tenant_crud_flow(api_admin_client, encaps_url):
     """端到端 CRUD 流程：创建 → 获取 → 更新 → 删除 → 再获取（404）。
 
     本测试不依赖任何 fixture，自管理数据，验证完整生命周期。
     """
     # 1. 创建
-    create_resp = api_client.post(
+    create_resp = api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json={
             "name": "it-flow-tenant",
@@ -157,12 +157,12 @@ def test_tenant_crud_flow(api_client, encaps_url):
 
     try:
         # 2. 获取
-        get_resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+        get_resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
         assert get_resp.status_code == 200
         assert get_resp.json()["name"] == "it-flow-tenant"
 
         # 3. 更新
-        update_resp = api_client.put(
+        update_resp = api_admin_client.put(
             encaps_url + f"/api/v1/tenants/{tenant_id}",
             json={
                 "name": "it-flow-tenant-v2",
@@ -175,14 +175,14 @@ def test_tenant_crud_flow(api_client, encaps_url):
         assert update_resp.json()["name"] == "it-flow-tenant-v2"
 
         # 4. 列表中应包含该租户
-        list_resp = api_client.get(encaps_url + "/api/v1/tenants")
+        list_resp = api_admin_client.get(encaps_url + "/api/v1/tenants")
         assert list_resp.status_code == 200
         assert tenant_id in [t["id"] for t in list_resp.json()]
     finally:
         # 4. 删除（无论上面断言是否通过，都尝试清理）。
-        del_resp = api_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
+        del_resp = api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant_id}")
         assert del_resp.status_code == 204
 
     # 5. 删除后获取应 404
-    not_found_resp = api_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
+    not_found_resp = api_admin_client.get(encaps_url + f"/api/v1/tenants/{tenant_id}")
     assert not_found_resp.status_code == 404

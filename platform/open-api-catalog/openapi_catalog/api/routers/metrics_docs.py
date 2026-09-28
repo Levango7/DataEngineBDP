@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import APIMetrics
 from openapi_catalog.repositories import CatalogError

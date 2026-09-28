@@ -27,14 +27,17 @@
 ## 3. 关键发现
 
 ### 3.1 前端版本号不一致
+
 - package.json: `2.1.0-RC`
 - Sidebar 写死: `v2.1 GA`
 - 修复后：vite.config 读 package.json 注入 `__APP_VERSION__`，Sidebar 渲染该常量，单一来源。
 
 ### 3.2 /ops 路由孤立
+
 Router 注册但 Sidebar 无入口。`/ops` 是 observability query-api 后端的运维监控页（KPI：集群健康/运行作业/今日失败/平均延迟），与 Dashboard 同类，已加入「产品运营」分组。
 
 ### 3.3 工具约束（已记入项目记忆）
+
 - Edit/Write 仅限工作目录 F:\IDE\TraeWork CN
 - F:\Nexus\DataEngineBDP 改动需走 PowerShell 或 C# 脚本（PowerShell 多行 here-string 嵌套转义易踩坑）
 - 推荐模式：写临时 C# 文件 + Add-Type 编译，规避 PowerShell 转义陷阱

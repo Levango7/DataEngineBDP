@@ -51,9 +51,7 @@ def _make_spies() -> dict[str, _Spy]:
 
 def _dispatch(backend: Any, spies: dict[str, _Spy], *args: Any, **kwargs: Any) -> Any:
     """以三桩调用 dispatch_by_engine，与 batch_pipeline/stages/*.run() 的用法一致."""
-    return dispatch_by_engine(
-        backend, spies["python"], spies["polars"], spies["spark"], *args, **kwargs
-    )
+    return dispatch_by_engine(backend, spies["python"], spies["polars"], spies["spark"], *args, **kwargs)
 
 
 # ----------------------------------------------------------------------

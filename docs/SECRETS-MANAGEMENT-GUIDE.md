@@ -13,12 +13,14 @@ DataEngineBDP 项目在 Helm values 与 ArgoCD 告警配置中使用了 8 处 `R
 这些占位符是**安全设计**：禁止在 Git 仓库中填入真实凭证，必须通过外部 Secrets 管理机制在部署时注入。
 
 本指南目标：
+
 1. 列出全部占位符位置，便于审计与轮换；
 2. 提供 4 种生产级 Secrets 管理方案（A/B/C/D），含优缺点对比；
 3. 给出推荐方案与逐步替换操作指南；
 4. 提供可直接套用的 CRD 模板（见 `design/deploy/templates/`）。
 
 **重要原则：**
+
 - 本指南**不修改**任何现有占位符文件，它们是安全基线；
 - 真实凭证只允许存在于外部密钥管理系统（Vault / AWS SM / KMS 等）或 SealedSecret 加密产物中；
 - 任何情况下禁止将明文凭证提交到 Git。
@@ -71,6 +73,7 @@ DataEngineBDP 项目在 Helm values 与 ArgoCD 告警配置中使用了 8 处 `R
 **思路：** 用 `kubectl create secret generic` 手工创建 Secret，绕过 Git。
 
 **操作示例：**
+
 ```bash
 # 1. 创建 finance-template 凭据 Secret
 kubectl create secret generic finance-template-secrets \
@@ -90,10 +93,12 @@ kubectl create secret generic argocd-notifications-secret \
 ```
 
 **优点：**
+
 - 零依赖，K8s 内置能力；
 - 操作简单，适合临时验证、dev 环境。
 
 **缺点：**
+
 - **无法 GitOps**：Secret 不在 Git，漂移检测困难；
 - **无版本控制**：轮换无历史可查；
 - **无加密静态存储**（除非开启 etcd encryption at rest）；
@@ -108,11 +113,13 @@ kubectl create secret generic argocd-notifications-secret \
 **思路：** 用 `kubeseal` 以非对称私钥加密 Secret，得到 `SealedSecret` CRD，可安全入库 Git；集群内 controller 解密还原为原生 Secret。
 
 **核心组件：**
+
 - `sealed-secrets-controller`（部署于 kube-system）；
 - 私钥对（RSA 4096），controller 持有私钥，CI/开发者持公钥；
 - `kubeseal` CLI。
 
 **操作示例：**
+
 ```bash
 # 1. 安装 controller
 helm install sealed-secrets sealed-secrets/sealed-secrets \
@@ -132,12 +139,14 @@ kubectl apply -f finance-template-sealed.yaml
 ```
 
 **优点：**
+
 - **GitOps 友好**：加密产物可入库 Git，ArgoCD 可直接同步；
 - **静态加密**：即使仓库泄露，无 controller 私钥无法解密；
 - **轮换可追溯**：Git 历史记录每次轮换；
 - 部署简单，单一 controller。
 
 **缺点：**
+
 - 私钥泄露即全盘失守，需严格保护 controller 私钥（建议 HSM/KMS 托管）；
 - 轮换私钥需 re-seal 全部 SealedSecret，运维成本高；
 - 跨集群需共享私钥或各自独立私钥；
@@ -154,11 +163,13 @@ kubectl apply -f finance-template-sealed.yaml
 **思路：** 真实凭证存放在外部密钥管理系统（HashiCorp Vault / AWS Secrets Manager / GCP Secret Manager / Azure Key Vault）；集群内 `External Secrets Operator`（ESO）拉取并生成原生 Secret。Git 中只存 `ExternalSecret` CRD（引用指针，无敏感数据）。
 
 **核心组件：**
+
 - `external-secrets-operator`；
 - `SecretStore` / `ClusterSecretStore`：指向外部系统并配置认证；
 - `ExternalSecret`：声明需要哪些 key、映射到 K8s Secret 的哪些字段。
 
 **操作示例（Vault）：**
+
 ```bash
 # 1. 在 Vault 写入凭证
 vault kv put secret/finance-template \
@@ -178,6 +189,7 @@ vault kv put secret/argocd-notifications \
 ```
 
 **优点：**
+
 - **凭证单一真相源**：Vault/SM 为权威，K8s 仅缓存；
 - **动态密钥支持**：可对接 Vault 动态生成 DB 凭证，自动轮换；
 - **审计完善**：Vault/SM 自带访问审计日志；
@@ -186,6 +198,7 @@ vault kv put secret/argocd-notifications \
 - 细粒度权限（Vault policy / IAM）。
 
 **缺点：**
+
 - 依赖外部系统可用性，需高可用部署 Vault；
 - 学习曲线与运维成本较高；
 - 需要为 ESO 配置外部系统认证（JWT/OIDC/静态 token）；
@@ -202,11 +215,13 @@ vault kv put secret/argocd-notifications \
 **思路：** 用 Mozilla SOPS 加密 YAML/JSON 文件中的敏感字段（保留 key 明文，仅加密 value），加密文件入库 Git；部署时用 Helm secrets / ArgoCD KSOPS 解密。
 
 **核心组件：**
+
 - `sops` CLI；
 - `age` 或 `GPG` 作为加密后端；
 - `helm-secrets` 插件 或 ArgoCD `ksops` plugin。
 
 **操作示例（age）：**
+
 ```bash
 # 1. 生成 age 密钥对
 age-keygen -o age-key.txt   # 私钥妥善保管，公钥 age1... 入库
@@ -224,12 +239,14 @@ helm secrets upgrade finance-template ./charts/finance-template \
 ```
 
 **优点：**
+
 - **GitOps 友好**：加密文件入库 Git，结构可读（key 明文）；
 - **细粒度加密**：可只加密部分字段；
 - **多接收者**：age 支持多公钥，团队多人解密；
 - 无需集群内 controller，解密在 CI/ArgoCD 侧。
 
 **缺点：**
+
 - 私钥泄露即全盘失守；
 - ArgoCD 集成需 KSOPS plugin，配置略复杂；
 - 无动态密钥、无审计；
@@ -260,12 +277,14 @@ helm secrets upgrade finance-template ./charts/finance-template \
 ### 5.1 生产环境首选：方案 C（External Secrets Operator + Vault）
 
 **理由：**
+
 - 凭证单一真相源，便于轮换与审计；
 - 支持动态密钥（DB 临时凭证），安全上限最高；
 - 多集群天然支持，无需 re-seal；
 - 与 ArgoCD GitOps 完美兼容（ExternalSecret CRD 入库 Git）。
 
 **配套：**
+
 - Vault 高可用部署（Raft storage）；
 - 用 K8s ServiceAccount JWT 认证 Vault（无静态 token）；
 - ExternalSecret 设置 `refreshInterval: 1h`，自动同步轮换。
@@ -273,6 +292,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
 ### 5.2 GitOps 简化场景：方案 B（SealedSecrets）
 
 **理由：**
+
 - 无需运维 Vault，部署成本低；
 - 加密产物入库 Git，ArgoCD 直接同步；
 - 适合中小规模或 Vault 未就绪的过渡阶段。
@@ -294,6 +314,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
 ### 6.1 生产环境替换为 External Secrets（方案 C，推荐）
 
 **前置条件：**
+
 - 已部署 External Secrets Operator（`external-secrets` namespace）；
 - 已部署 Vault 并配置 KV v2 secrets engine；
 - 已配置 Vault JWT auth + policy 允许 finance / argocd 两个 namespace 的 ServiceAccount 读取对应路径。
@@ -301,6 +322,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
 **步骤：**
 
 1. **在 Vault 写入真实凭证**
+
    ```bash
    vault kv put secret/finance-template \
      doris-password='<生产口令>' \
@@ -316,6 +338,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
    ```
 
 2. **创建 SecretStore**（每个 namespace 一个，指向 Vault）
+
    ```yaml
    apiVersion: external-secrets.io/v1beta1
    kind: SecretStore
@@ -337,6 +360,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
    ```
 
 3. **应用 ExternalSecret**（见模板 `design/deploy/templates/external-secret-example.yaml`）
+
    ```bash
    kubectl apply -f design/deploy/templates/external-secret-example.yaml -n argocd
    # finance namespace 同理
@@ -348,11 +372,13 @@ helm secrets upgrade finance-template ./charts/finance-template \
    - 在 chart 模板中引用 ESO 生成的 Secret 名称（如 `finance-template-secrets`）。
 
 5. **验证**
+
    ```bash
    kubectl get externalsecret -n finance
    kubectl get secret finance-template-secrets -n finance -o yaml
    kubectl get secret argocd-notifications-secret -n argocd -o yaml
    ```
+
    确认 `STATUS: Ready` 且 Secret 已生成。
 
 6. **ArgoCD 同步**：ExternalSecret CRD 入库 Git，ArgoCD 自动同步。
@@ -364,6 +390,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
 **步骤：**
 
 1. **生成明文 Secret（dry-run）**
+
    ```bash
    kubectl create secret generic finance-template-secrets \
      --namespace=finance \
@@ -375,6 +402,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
    ```
 
 2. **kubeseal 加密**
+
    ```bash
    kubeseal --format=yaml \
      --controller-namespace=kube-system \
@@ -382,6 +410,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
    ```
 
 3. **入库 Git 并 apply**（见模板 `design/deploy/templates/sealed-secret-example.yaml`）
+
    ```bash
    kubectl apply -f design/deploy/templates/finance-template-sealed.yaml
    ```
@@ -389,6 +418,7 @@ helm secrets upgrade finance-template ./charts/finance-template \
 4. **修改 Helm values**：`secret.create: false`，chart 引用 controller 还原的 Secret。
 
 5. **验证**
+
    ```bash
    kubectl get sealedsecret -n finance
    kubectl get secret finance-template-secrets -n finance
@@ -404,6 +434,7 @@ kubectl create secret generic finance-template-secrets \
   --from-literal=superset-token='dev-superset-token' \
   --from-literal=keycloak-admin-password='dev-keycloak-pwd'
 ```
+
 dev 环境可保留 `values-dev.yaml` 的 `secret.create: true` 占位 Secret 用于冒烟；生产环境必须切换到 6.1 或 6.2。
 
 ---
@@ -418,6 +449,7 @@ dev 环境可保留 `values-dev.yaml` 的 `secret.create: true` 占位 Secret �
 | D SOPS | 重新 `sops --encrypt --in-place`，提交 Git |
 
 **轮换频率建议：**
+
 - `dolphinscheduler.token` / `superset.token`：每 90 天；
 - `keycloak.adminPassword`：每 180 天；
 - `doris.password`：每 180 天或人员变动时；

@@ -444,6 +444,7 @@ kubectl create configmap frontend-dist --from-file=dist/ -n shuqing-system
 - 查看组件日志：`kubectl logs -n <namespace> <pod-name>`
 - 查看事件：`kubectl get events -n <namespace> --sort-by=.lastTimestamp`
 - 提交 Issue：https://github.com/Levango7/DataEngineBDP/issues
+
 ## 生产环境安全加固清单
 
 生产部署前必须完成以下检查，缺失任一项都可能导致严重的安全风险：

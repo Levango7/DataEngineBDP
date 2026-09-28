@@ -140,9 +140,7 @@ class RuleEngine:
         # Precompute referential key sets once (outside the row loop).
         # Previously _ref_keys was called per row, rebuilding the same set
         # O(rows x ref_table_size) times. Now it is O(ref_table_size) once.
-        refer_keys: dict[str, set] = {
-            col: self._ref_keys(*target.split(".")) for col, target in refer.items()
-        }
+        refer_keys: dict[str, set] = {col: self._ref_keys(*target.split(".")) for col, target in refer.items()}
 
         counters: dict[str, dict[str, int]] = {}
 
@@ -311,9 +309,7 @@ class RuleEngine:
 
     def _polars_collect_masks(
         self, df: Any, rconf: dict[str, Any]
-    ) -> tuple[
-        list[tuple[str, Any]], dict[str, list[bool]], list[tuple[str, str]], dict[str, list[str]]
-    ]:
+    ) -> tuple[list[tuple[str, Any]], dict[str, list[bool]], list[tuple[str, str]], dict[str, list[str]]]:
         """Polars 路径：构建各规则 fail mask.
 
         遍历 completeness/uniqueness/range/allowed_values/referential/format/date_valid
@@ -389,14 +385,10 @@ class RuleEngine:
             vs = pl.col(col).cast(pl.Utf8)
             non_empty = (~vs.is_null()) & (vs.str.strip_chars() != "")
             if ref_rows:
-                ref_keys = [
-                    str(r.get(ref_col)) for r in ref_rows if r.get(ref_col) not in (None, "")
-                ]
+                ref_keys = [str(r.get(ref_col)) for r in ref_rows if r.get(ref_col) not in (None, "")]
                 ref_keys_df = pl.DataFrame({"__k": ref_keys}).unique()
                 keys_df = df.select(vs.alias("__k"))
-                orphan_keys = (
-                    keys_df.join(ref_keys_df, on="__k", how="anti").get_column("__k").to_list()
-                )
+                orphan_keys = keys_df.join(ref_keys_df, on="__k", how="anti").get_column("__k").to_list()
                 expr = vs.is_in(orphan_keys) & non_empty
             else:
                 expr = non_empty
@@ -410,9 +402,7 @@ class RuleEngine:
         for col, pat in (rconf.get("format", {}) or {}).items():
             pat_re = re.compile(pat)
             vals = _col_to_str_series(df, col).fill_null("").to_series().to_list()
-            mask_list = [
-                not (str(v).strip() == "" or pat_re.match(str(v)) is not None) for v in vals
-            ]
+            mask_list = [not (str(v).strip() == "" or pat_re.match(str(v)) is not None) for v in vals]
             add_list_mask("format", "format_violation:" + col, mask_list)
 
         # date_valid (python 逐行算 mask; 多格式解析 polars 不擅长)
@@ -562,9 +552,7 @@ class RuleEngine:
         if bad_df.height > 0:
             bad_idx = [i for i, b in enumerate(bad_mask.to_list()) if b]
             reason_mask_cols = list(dict.fromkeys(mc for _, mc in reason_specs))
-            reason_values = {
-                mc: dfm.select(pl.col(mc)).to_series().to_list() for mc in reason_mask_cols
-            }
+            reason_values = {mc: dfm.select(pl.col(mc)).to_series().to_list() for mc in reason_mask_cols}
             bad_rows = bad_df.to_dicts()
             enriched = []
             for row_idx, row in zip(bad_idx, bad_rows):
@@ -623,14 +611,10 @@ class RuleEngine:
         # 0.5 referential 孤儿标记物化（broadcast join 小参考键表）。与 clean 阶段
         # is_anomaly 的修复同理：旧实现把孤儿键 collect 回 driver 后 isin——孤儿键
         # 恰是质量校验的目标产出，量大时 driver 内存 + 每 task 序列化双重爆炸。
-        df_indexed, orphan_markers, orphan_drop_cols = self._spark_referential_markers(
-            df_indexed, rconf, spark
-        )
+        df_indexed, orphan_markers, orphan_drop_cols = self._spark_referential_markers(df_indexed, rconf, spark)
 
         # 1. 各规则 fail mask（Spark Expr）
-        expr_masks, reason_specs, rule_masks = self._spark_collect_masks(
-            df_indexed, rconf, spark, orphan_markers
-        )
+        expr_masks, reason_specs, rule_masks = self._spark_collect_masks(df_indexed, rconf, spark, orphan_markers)
 
         # 2. 把 mask 加到 df，合并 bad_mask
         dfm, all_mask_cols = self._spark_apply_masks(df_indexed, expr_masks)
@@ -642,9 +626,7 @@ class RuleEngine:
         counters = self._spark_counters(dfm, rule_masks, n, rconf, outlier_count)
 
         # 5. good / bad + reason 文本（df 原样传入仅作 bad 为空时的 schema 兜底）
-        good_df, bad_df = self._spark_good_bad(
-            df, dfm, all_mask_cols, reason_specs, extra_drop=orphan_drop_cols
-        )
+        good_df, bad_df = self._spark_good_bad(df, dfm, all_mask_cols, reason_specs, extra_drop=orphan_drop_cols)
 
         stats = self._build_stats(counters)
         return good_df, bad_df, stats, outlier_indices
@@ -684,9 +666,7 @@ class RuleEngine:
                 continue
             ref_name = f"__ref_rk{i}"
             marker_name = f"__orphan_rk{i}"
-            ref_df = spark.createDataFrame(
-                [(k,) for k in set(ref_keys)], "k string"
-            ).withColumnRenamed("k", ref_name)
+            ref_df = spark.createDataFrame([(k,) for k in set(ref_keys)], "k string").withColumnRenamed("k", ref_name)
             vs = F.col(col).cast("string")
             non_empty = ~vs.isNull() & (F.trim(vs) != "")
             df = df.join(F.broadcast(ref_df), vs == F.col(ref_name), "left")
@@ -1100,9 +1080,7 @@ class RuleEngine:
         return (q1 - factor * iqr, q3 + factor * iqr)
 
 
-def quality_summary(
-    stats_by_dataset: dict[str, list[dict[str, Any]]], quarantined: dict[str, int]
-) -> dict[str, Any]:
+def quality_summary(stats_by_dataset: dict[str, list[dict[str, Any]]], quarantined: dict[str, int]) -> dict[str, Any]:
     all_rules = []
     for ds, stats in stats_by_dataset.items():
         for s in stats:
@@ -1125,19 +1103,13 @@ def render_markdown_report(summary: dict[str, Any]) -> str:
     lines = []
     lines.append("# 数据质量报告")
     lines.append("")
-    lines.append(
-        "- DQ Score（全部规则检查项简单平均通过率）: **{:.2%}**".format(summary["dq_score"])
-    )
+    lines.append("- DQ Score（全部规则检查项简单平均通过率）: **{:.2%}**".format(summary["dq_score"]))
     lines.append(
         "- 规则检查项: {} 项（通过 {} / 失败 {}）".format(
             summary["checks_total"], summary["checks_passed"], summary["checks_failed"]
         )
     )
-    lines.append(
-        "- 隔离行数: {}".format(
-            ", ".join(f"{k}={v}" for k, v in summary["quarantined_rows"].items()) or "无"
-        )
-    )
+    lines.append("- 隔离行数: {}".format(", ".join(f"{k}={v}" for k, v in summary["quarantined_rows"].items()) or "无"))
     lines.append("")
     lines.append("## 规则明细")
     lines.append("")

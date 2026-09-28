@@ -1,9 +1,9 @@
 package com.levango7.dataenginebdp.encaps.workspace;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -37,8 +37,17 @@ class WorkspaceServiceTest {
     @Mock
     private K8sWorkspaceTranslator k8sTranslator;
 
-    @InjectMocks
     private WorkspaceService workspaceService;
+
+    /**
+     * 显式构造：构造函数含 boolean k8sMockEnabled，Mockito 无法为原始类型参数
+     * 自动注入（曾致 14 个用例全部报 "no default constructor"）。mock 模式下
+     * 跳过 K8s 翻译的行为由 WorkspaceServiceMockModeTest 单独覆盖。
+     */
+    @BeforeEach
+    void setUp() {
+        workspaceService = new WorkspaceService(workspaceRepository, k8sTranslator, false);
+    }
 
     private Workspace sampleCreateRequest() {
         Workspace ws = new Workspace();

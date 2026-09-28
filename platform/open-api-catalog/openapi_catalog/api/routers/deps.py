@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import Request
+
 from openapi_catalog.repositories import (
     APIAlreadyExistsError,
     APINotFoundError,

@@ -70,7 +70,7 @@ def test_unauthorized_with_invalid_token(encaps_tenant_url):
 # ---------------------------------------------------------------------------
 # 租户 CRUD（与 encaps-layer 的 tenants 端点契约一致——跨进程复用同前缀）
 # ---------------------------------------------------------------------------
-def test_tenant_crud_flow(api_client, encaps_tenant_url):
+def test_tenant_crud_flow(api_admin_client, encaps_tenant_url):
     """端到端验证租户 CRUD：创建(201) → 查询(200) → 列表包含 → 更新(200) → 删除(204)。"""
     payload = {
         "name": "docker-it-encaps-tenant-crud",
@@ -78,38 +78,38 @@ def test_tenant_crud_flow(api_client, encaps_tenant_url):
         "namespace": "ns-it-encaps-tenant",
         "quotaProfile": "small",
     }
-    create_resp = api_client.post(encaps_tenant_url + "/api/v1/tenants", json=payload)
+    create_resp = api_admin_client.post(encaps_tenant_url + "/api/v1/tenants", json=payload)
     assert create_resp.status_code == 201
     tenant = unwrap_response(create_resp.json())
     tenant_id = tenant["id"]
 
     try:
         # 查询详情
-        get_resp = api_client.get(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
+        get_resp = api_admin_client.get(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
         assert get_resp.status_code == 200
         assert unwrap_response(get_resp.json())["name"] == payload["name"]
 
         # 列表包含
-        list_resp = api_client.get(encaps_tenant_url + "/api/v1/tenants")
+        list_resp = api_admin_client.get(encaps_tenant_url + "/api/v1/tenants")
         assert list_resp.status_code == 200
         ids = [t.get("id") for t in unwrap_response(list_resp.json())]
         assert tenant_id in ids
 
         # 更新
         update_payload = {**payload, "quotaProfile": "large"}
-        update_resp = api_client.put(
+        update_resp = api_admin_client.put(
             encaps_tenant_url + f"/api/v1/tenants/{tenant_id}", json=update_payload
         )
         assert update_resp.status_code == 200
         assert unwrap_response(update_resp.json()).get("quotaProfile") == "large"
     finally:
         # 清理
-        api_client.delete(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
+        api_admin_client.delete(encaps_tenant_url + f"/api/v1/tenants/{tenant_id}")
 
 
-def test_tenant_not_found(api_client, encaps_tenant_url):
+def test_tenant_not_found(api_admin_client, encaps_tenant_url):
     """验证 GET 不存在的租户 id 返回 404。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/tenants/999999")
+    resp = api_admin_client.get(encaps_tenant_url + "/api/v1/tenants/999999")
     assert resp.status_code == 404
 
 
@@ -161,7 +161,7 @@ def test_project_crud_flow(api_client, encaps_tenant_url, numeric_tenant_token):
 
 
 def test_project_requires_tenant_context(api_client, encaps_tenant_url):
-    """验证缺少租户上下文（无 tenantId claim）时项目创建返回服务端错误（500），
+    """验证缺少租户上下文（无 tenantId claim）时项目创建返回 403，
     而非静默落库——ProjectController.requireTenant() 的防御行为。"""
     # api_client 默认 token 带 tenantId="docker-it-tenant"（非数字）
     # AccountController.tenantIdLong() 会容错为 0，但 ProjectController.requireTenant()
@@ -174,36 +174,45 @@ def test_project_requires_tenant_context(api_client, encaps_tenant_url):
         json={"name": "no-tenant", "domain": "x"},
         headers={"Authorization": f"Bearer {no_tenant_token}"},
     )
-    # 防御路径：缺租户上下文 → 500（IllegalStateException 由全局异常处理兜底）
-    assert resp.status_code in (400, 401, 500)
+    # 防御路径：缺租户上下文 → MissingTenantContextException → 403
+    # （GlobalExceptionHandler 独立映射；此前 IllegalStateException 被误映射为 409）
+    assert resp.status_code == 403
 
 
 # ---------------------------------------------------------------------------
 # 账户域
 # ---------------------------------------------------------------------------
-def test_account_plan(api_client, encaps_tenant_url):
-    """验证 GET /account/plan 返回 200 且含套餐字段（无配额时为免费版）。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/account/plan")
+def test_account_plan(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 GET /account/plan 返回 200 且含套餐字段（无配额时为免费版）。
+
+    用数字 tenantId 的 token：AccountController.tenantIdLong() 对非数字租户
+    fail-closed 抛 403（R10 安全修复），默认 api_client token 会命中该路径。
+    """
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
+    resp = api_client.get(encaps_tenant_url + "/api/v1/account/plan", headers=headers)
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert "plan" in body
     assert body["plan"] in ("free", "pro", "enterprise")
 
 
-def test_account_billing(api_client, encaps_tenant_url):
-    """验证 GET /account/billing 返回 200 且账单结构完整。"""
-    resp = api_client.get(encaps_tenant_url + "/api/v1/account/billing")
+def test_account_billing(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 GET /account/billing 返回 200 且账单结构完整（数字 tenantId token）。"""
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
+    resp = api_client.get(encaps_tenant_url + "/api/v1/account/billing", headers=headers)
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
     assert "items" in body
     assert "totalCost" in body
 
 
-def test_account_upgrade(api_client, encaps_tenant_url):
-    """验证 POST /account/upgrade 返回目标档费用与受理状态。"""
+def test_account_upgrade(api_client, encaps_tenant_url, numeric_tenant_token):
+    """验证 POST /account/upgrade 返回目标档费用与受理状态（数字 tenantId token）。"""
+    headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
     resp = api_client.post(
         encaps_tenant_url + "/api/v1/account/upgrade",
         json={"targetPlan": "pro"},
+        headers=headers,
     )
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
@@ -272,17 +281,17 @@ def test_workspace_create_and_list(api_client, encaps_tenant_url, numeric_tenant
 # ---------------------------------------------------------------------------
 # Quota（校验必填字段契约；K8s mock 下状态容忍）
 # ---------------------------------------------------------------------------
-def test_quota_validation_and_list(api_client, encaps_tenant_url, numeric_tenant_token):
+def test_quota_validation_and_list(api_admin_client, encaps_tenant_url, numeric_tenant_token):
     """验证 POST /quotas 缺 workspaceId 返回 400（Bean Validation 契约）。"""
     headers = {"Authorization": f"Bearer {numeric_tenant_token}"}
     # 缺 workspaceId/tenantId/cpuLimit 等必填字段
-    resp = api_client.post(
+    resp = api_admin_client.post(
         encaps_tenant_url + "/api/v1/quotas", json={"name": "invalid"}, headers=headers
     )
     assert resp.status_code == 400
 
     # 列表端点可用
-    list_resp = api_client.get(
+    list_resp = api_admin_client.get(
         encaps_tenant_url + "/api/v1/quotas", headers=headers
     )
     assert list_resp.status_code == 200
@@ -303,4 +312,4 @@ def numeric_tenant_token() -> str:
     """
     from conftest import generate_test_jwt
 
-    return generate_test_jwt(tenant_id="1")
+    return generate_test_jwt(tenant_id="1", roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"))

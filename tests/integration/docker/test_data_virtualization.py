@@ -38,7 +38,7 @@ Java/Spring Boot，主机端口 18081 → 容器 8081。
 设计要点：
 - 虚拟表注册使用模拟连接配置，不依赖真实外部数据源；
 - 查询/连接测试端点在外部源不可达时返回错误，属预期行为；
-- 物化刷新在无真实数据时返回 rows=0，属预期行为。
+- 物化刷新在外部源不可达时 fail-loud 返回 500，源可达但无数据时返回 rows=0，属预期行为。
 """
 
 from __future__ import annotations
@@ -357,8 +357,9 @@ def test_09_materialization_full_refresh(api_client, sql_gateway_url):
     refresh_resp = api_client.post(
         sql_gateway_url + "/api/v1/virtual-tables/vt_mat_full/refresh"
     )
-    # 物化刷新可能因权限或租户上下文返回 403，属预期行为
-    assert refresh_resp.status_code in (200, 403), f"期望 200 或 403，实际 {refresh_resp.status_code}"
+    # 模拟 REST 源（localhost:8080）不可达，刷新 fail-loud 返回 500，属预期；
+    # 源可达时返回 200 + rows（与 test_06 查询口径一致）。
+    assert refresh_resp.status_code in (200, 500), f"期望 200 或 500，实际 {refresh_resp.status_code}"
     if refresh_resp.status_code == 200:
         body = refresh_resp.json()
         assert body.get("refreshed") is True
@@ -380,8 +381,8 @@ def test_10_materialization_incremental_refresh(api_client, sql_gateway_url):
     refresh_resp = api_client.post(
         sql_gateway_url + "/api/v1/virtual-tables/vt_mat_incremental/refresh"
     )
-    # 物化刷新可能因权限或租户上下文返回 403，属预期行为
-    assert refresh_resp.status_code in (200, 403), f"期望 200 或 403，实际 {refresh_resp.status_code}"
+    # 模拟 REST 源不可达，刷新 fail-loud 返回 500，属预期；源可达时返回 200
+    assert refresh_resp.status_code in (200, 500), f"期望 200 或 500，实际 {refresh_resp.status_code}"
 
 
 def test_11_materialization_manual_refresh(api_client, sql_gateway_url):
@@ -399,8 +400,8 @@ def test_11_materialization_manual_refresh(api_client, sql_gateway_url):
     refresh_resp = api_client.post(
         sql_gateway_url + "/api/v1/virtual-tables/vt_mat_manual/refresh"
     )
-    # 物化刷新可能因权限或租户上下文返回 403，属预期行为
-    assert refresh_resp.status_code in (200, 403), f"期望 200 或 403，实际 {refresh_resp.status_code}"
+    # 模拟 REST 源不可达，刷新 fail-loud 返回 500，属预期；源可达时返回 200
+    assert refresh_resp.status_code in (200, 500), f"期望 200 或 500，实际 {refresh_resp.status_code}"
 
 
 # ---------------------------------------------------------------------------

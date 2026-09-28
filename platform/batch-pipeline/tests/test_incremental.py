@@ -14,11 +14,11 @@ state 目录和数据目录，run_dir 用唯一 batch_id 隔离。
 from __future__ import annotations
 
 import copy
+from datetime import datetime, timedelta
 import logging
 import os
-import uuid
-from datetime import datetime, timedelta
 from typing import Any
+import uuid
 
 from batch_pipeline.helpers import PipelineContext, abs_path, csv_read, csv_write, json_load
 from batch_pipeline.lineage import Manifest
@@ -128,12 +128,8 @@ def test_incremental_first_run_equals_full(inc_env):
     assert "customers" in state["tables"]
     expected_orders_wm = _max_col(env["orders_path"], "order_date")
     expected_cust_wm = _max_col(env["customers_path"], "join_date")
-    assert state["tables"]["orders"]["watermark_value"] == expected_orders_wm, (
-        "orders 水位应为 max(order_date)"
-    )
-    assert state["tables"]["customers"]["watermark_value"] == expected_cust_wm, (
-        "customers 水位应为 max(join_date)"
-    )
+    assert state["tables"]["orders"]["watermark_value"] == expected_orders_wm, "orders 水位应为 max(order_date)"
+    assert state["tables"]["customers"]["watermark_value"] == expected_cust_wm, "customers 水位应为 max(join_date)"
 
     # 产物行数与全量模式一致
     inc_final = _csv_count(os.path.join(run_dir_inc, "05_output", "orders_final.csv"))
@@ -221,9 +217,7 @@ def test_incremental_append_new_data(inc_env):
 
     n_new = 10
     base_date = _next_date(wm1)  # wm1 + 1 天，确保 > 水位
-    new_orders = _make_new_orders(
-        n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00"
-    )
+    new_orders = _make_new_orders(n_new, start_id=100001, cid=cid, pid=pid, base_date=base_date, unit_price="100000.00")
     _append_orders(env["orders_path"], new_orders)
 
     # 第二次增量运行（处理新增行）
@@ -242,17 +236,13 @@ def test_incremental_append_new_data(inc_env):
 
     # daily_sales 行数增加（新增 10 个日期桶）
     n_daily2 = _csv_count(daily_path)
-    assert n_daily2 == n_daily1 + n_new, (
-        f"daily_sales 行数应增加 {n_new}，实际 {n_daily1} -> {n_daily2}"
-    )
+    assert n_daily2 == n_daily1 + n_new, f"daily_sales 行数应增加 {n_new}，实际 {n_daily1} -> {n_daily2}"
 
     # 新日期都在 daily_sales 中
     daily_rows2, _ = csv_read(daily_path)
     daily_dates = {r["order_date"] for r in daily_rows2}
     for o in new_orders:
-        assert o["order_date"] in daily_dates, "新日期 {} 应在 daily_sales 中".format(
-            o["order_date"]
-        )
+        assert o["order_date"] in daily_dates, "新日期 {} 应在 daily_sales 中".format(o["order_date"])
 
     # customer_value 累加正确（cid 的 orders 累加 n_new）
     # unit_price=100000 让 cid 的增量 revenue = 10*5*100000 = 5,000,000，
@@ -292,9 +282,7 @@ def test_incremental_failure_idempotent(inc_env):
 
     n_new = 5
     base_date = _next_date(wm1)
-    new_orders = _make_new_orders(
-        n_new, start_id=200001, cid=cid, pid=pid, base_date=base_date, unit_price="100.00"
-    )
+    new_orders = _make_new_orders(n_new, start_id=200001, cid=cid, pid=pid, base_date=base_date, unit_price="100.00")
     _append_orders(env["orders_path"], new_orders)
 
     # 失败运行（fail_at=output：ingest/validate/clean/compute 已成功，output 注入失败）
@@ -315,9 +303,7 @@ def test_incremental_failure_idempotent(inc_env):
     # 水位推进到正确值
     state_retry = _read_state(state_dir)
     expected_new_wm = max(o["order_date"] for o in new_orders)
-    assert state_retry["tables"]["orders"]["watermark_value"] == expected_new_wm, (
-        "重跑后水位应推进到新 max"
-    )
+    assert state_retry["tables"]["orders"]["watermark_value"] == expected_new_wm, "重跑后水位应推进到新 max"
 
 
 # ----------------------------------------------------------------------
@@ -387,9 +373,7 @@ def test_resume_incremental_watermark_advance_once(inc_env):
     state_path = os.path.join(state_dir, "state.json")
     if os.path.exists(state_path):
         state_fail = _read_state(state_dir)
-        assert not state_fail.get("tables", {}).get("orders", {}).get("watermark_value"), (
-            "失败时水位不得推进"
-        )
+        assert not state_fail.get("tables", {}).get("orders", {}).get("watermark_value"), "失败时水位不得推进"
 
     expected_wm = _max_col(env["orders_path"], "order_date")
 
@@ -399,9 +383,7 @@ def test_resume_incremental_watermark_advance_once(inc_env):
     state2 = _read_state(state_dir)
     info2 = state2["tables"]["orders"]
     assert info2["watermark_value"] == expected_wm, "续跑应把 staged 水位正式提升（C2）"
-    assert info2["cumulative_row_count"] == info2["last_seen_row_count"] > 0, (
-        "水位恰好推进一次（无丢失、无双提交）"
-    )
+    assert info2["cumulative_row_count"] == info2["last_seen_row_count"] > 0, "水位恰好推进一次（无丢失、无双提交）"
     assert bid in state2.get("merged_batches", []), "台账应登记批次（C4）"
     daily1, _ = csv_read(daily_path)
     n_daily1 = len(daily1)
@@ -426,12 +408,9 @@ def test_resume_incremental_watermark_advance_once(inc_env):
 
     state3 = _read_state(state_dir)
     info3 = state3["tables"]["orders"]
-    assert info3["watermark_value"] == max(o["order_date"] for o in new_orders), (
-        "第三批应只从续跑后的新水位起读增量"
-    )
+    assert info3["watermark_value"] == max(o["order_date"] for o in new_orders), "第三批应只从续跑后的新水位起读增量"
     assert (
-        info3["cumulative_row_count"]
-        == info2["cumulative_row_count"] + info3["last_seen_row_count"]
+        info3["cumulative_row_count"] == info2["cumulative_row_count"] + info3["last_seen_row_count"]
     ), "第三批只见新增行（修复前会重读第二批增量）"
 
     daily2, _ = csv_read(daily_path)

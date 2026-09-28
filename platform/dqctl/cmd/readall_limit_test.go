@@ -68,7 +68,7 @@ func TestReadLimitedBody_SmallLimit(t *testing.T) {
 	// 101 字节，超限
 	payload = strings.Repeat("e", 101)
 	body = bytes.NewReader([]byte(payload))
-	got, err = readLimitedBody(body, smallLimit)
+	_, err = readLimitedBody(body, smallLimit) // 超限路径只断言错误，got 未使用
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrResponseBodyTooLarge)
 }

@@ -9,8 +9,9 @@ Usage:
 
 from __future__ import annotations
 
-from openapi_catalog.config.settings import get_settings
 import uvicorn
+
+from openapi_catalog.config.settings import get_settings
 
 
 def main() -> None:

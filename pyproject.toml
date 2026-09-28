@@ -9,7 +9,7 @@
 # ============================================================
 [tool.black]
 line-length = 120
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py310', 'py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -40,10 +40,12 @@ known_first_party = [
     "business_portal",
     "industry_templates",
     "asset_exchange",
-    "open_api_catalog",
+    "openapi_catalog",
     "ml_platform",
     "knowledge_engine",
     "llmops",
+    "batch_pipeline",
+    "operations_api",
 ]
 known_third_party = [
     "fastapi",

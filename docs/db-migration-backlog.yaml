@@ -1,0 +1,71 @@
+# 数据库迁移待补清单（机器可读，由 scripts/check-db-migration-coverage.py 校验）
+#
+# 背景：本仓 17 个含 JPA 实体的 Java 模块，生产 profile 一律 ddl-auto=validate，
+# 而全仓原本 0 个迁移框架、0 份建表 DDL —— 意思是"生产环境没人建表"，
+# 服务连上 PostgreSQL 就会因缺表启动失败或运行期报错。
+#
+# 已接入 Flyway 的模块（不在本清单内）：encaps-layer、finops/billing。
+# 补一个模块的步骤（详见 docs/数据库迁移指南.md）：
+#   1. bash scripts/gen-db-baseline.sh platform/<模块>
+#   2. 模块 pom.xml 加 spring-boot-flyway + flyway-core + flyway-database-postgresql
+#   3. application.yml 加 flyway.enabled=${FLYWAY_ENABLED:false}
+#      application-prod.yml 加 flyway.enabled=true / schemas / create-schemas=true
+#   4. 把该模块从本清单删除，跑 python scripts/check-db-migration-coverage.py
+#
+# 说明：type 标注该模块是否真的会独立部署（无 chart 的模块暂不建表也没意义）。
+awaiting_migration:
+  # —— 已部署为服务，优先补 ——
+  - module: platform/sql-gateway
+    entities: 4
+    priority: high
+    note: 统一 SQL 网关，查询审计/结果缓存表
+  - module: platform/rule-engine
+    entities: 1
+    priority: high
+    note: 规则与质量结果落库
+  - module: platform/encaps-tenant
+    entities: 2
+    priority: high
+    note: 租户/工作空间表（注意与 encaps-layer 的同名表要用独立 schema 隔离）
+  - module: platform/finops/cost-model
+    entities: 1
+    priority: high
+    note: 计费口径与定价配置表，与 billing 同属出账链路
+  - module: platform/governance/metadata-collector
+    entities: 2
+    priority: high
+    note: prod 现为 ddl-auto=none，既不建表也不校验，风险最高
+  - module: platform/governance/lineage-analyzer
+    entities: 3
+    priority: high
+    note: 血缘默认 H2 内存，重启即丢，必须落库
+  - module: platform/stream-batch-scheduler
+    entities: 2
+    priority: medium
+  - module: platform/tag-engine
+    entities: 2
+    priority: medium
+  - module: platform/master-data
+    entities: 2
+    priority: medium
+    note: 该模块无 Helm chart，建表前需先确认可部署
+  - module: platform/data-standard
+    entities: 2
+    priority: medium
+    note: 该模块无 Helm chart
+  - module: platform/finops/dashboard
+    entities: 1
+    priority: medium
+  - module: platform/infra-provider-cloud
+    entities: 1
+    priority: low
+  - module: platform/infra-provider-private
+    entities: 1
+    priority: low
+  - module: platform/infra-provider-xinchang
+    entities: 1
+    priority: low
+  - module: platform/common-security
+    entities: 2
+    priority: low
+    note: 库形态组件（被其它服务引用），表由引用方 schema 承载，需单独定策略

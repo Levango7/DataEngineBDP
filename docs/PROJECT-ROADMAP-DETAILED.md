@@ -3,6 +3,7 @@
 > 版本：2026-09-13
 > 状态：V2.0 已发布 RC（Release Candidate，GA 勘误见 releases/v2.0.0/ERRATUM.md）；V2.1.0-RC 已发布（2026-08-27，22 组件 GA 就绪 + 10 组件 Experimental，见 releases/v2.1.0-RC/RELEASE-NOTES.md）；进入 V2.1 GA 加固期
 > **完成度口径**（三维度统一表述，全仓文档共用）：
+>
 > - **80% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`）
 > - **100% 本地基础功能**：22 个核心组件本地可运行（H2/SQLite 默认持久层，见 `docs/component-maturity.md`）
@@ -33,10 +34,12 @@
 ## 二、待办里程碑（按依赖与价值排序）
 
 ### P1 · 前端全量 E2E 页面覆盖（Playwright 扩面）
+
 **目标**：把 Playwright 从"核心页面"扩展到全量业务页。
 **背景**：当前 spec 覆盖约 14 页（auth/navigation/projects/standards/govern/search/api-format/assets/ops-quality/template/asset/api/business-portal/encaps-tenant），仍有 10+ 页无 E2E。
 **待覆盖页面**：`/cluster` `/datasources` `/vector` `/kb` `/llmops` `/gateway` `/sec` `/lineage` `/data-lineage` `/sql-workbench` `/workspace-management` `/quota-management`。
 **验收**：
+
 - 每页 ≥3 用例（页面加载 + 标题/关键控件断言 + 1 条主 API 可达）
 - 全量 Playwright 在 nightly 栈上全绿
 - 新 spec 纳入 CI 门禁（失败阻断）
@@ -44,9 +47,11 @@
 **前置**：M10（本地 4 服务栈可复用）
 
 ### P2 · 行业模板 helm 真部署演练（K3s）
+
 **目标**：`INDUSTRY_TEMPLATES_DEPLOY_MODE=helm` 走真实 helm install 完成端到端演练。
 **背景**：Sprint 4.2 已修 chart 映射（chartRef 三级回退）+ 9 个行业 chart 归位，但 helm 路径从未在真实 K8s 集群上跑通（现有测试全用 FakeHelmExecutor / 本地直启 mock）。
 **验收**：
+
 - K3s nightly 栈拉起，9 个行业模板至少各 1 次 `helm upgrade --install` 成功
 - chart 产物（ConfigMap 打包模板资产）被平台 Job 成功导入
 - `helm list` / `helm status` / 卸载闭环验证
@@ -55,9 +60,11 @@
 **前置**：P1（若先扩面则 infra 更稳）；独立可并行
 
 ### P3 · 跨语言路由冲突扫描器
+
 **目标**：把 `check-api-route-conflict.py` 从"仅 Java @RestController"扩展到 Python FastAPI / Go gin 路由，自动化发现跨服务前缀冲突。
 **背景**：Sprint 4.2 的订阅前缀冲突（asset-exchange vs open-api-catalog 同抢 `/api/v1/subscriptions`）暴露了该盲区——Python 服务靠人工契约审查。
 **验收**：
+
 - 扫描覆盖所有 Python `APIRouter(prefix=...)` 与 Go `gin.RouterGroup` 声明
 - 输出跨进程同前缀冲突报告（含 verb+path），复用 KNOWN_CROSS_PROCESS_ROUTES 豁免机制
 - 纳入 CI 门禁（新增冲突阻断）
@@ -66,9 +73,11 @@
 **前置**：无（独立）
 
 ### P4 · ROADMAP 落地为自动化追踪
+
 **目标**：把本文件的 P 里程碑与 CI/nightly 门禁关联，每个里程碑有可运行的验收脚本/Job。
 **背景**：当前门禁（contract 校验/路由扫描/vite 校验/helm-lint/smoke-local）散落在各 workflow，里程碑验收靠人工对照。
 **验收**：
+
 - 每个已达成里程碑（M1~M10）有对应回归 Job（已在 CI 或 nightly 中可一键触发）
 - 每个待办里程碑（P1~P3）立项时有独立 job/标签
 - 里程碑清单可从 CI 侧读（如 workflow_dispatch 下拉）
@@ -76,9 +85,11 @@
 **前置**：P1~P3 至少完成 1 个后落地更有意义
 
 ### P5 · 前端"待接入"占位清理
+
 **目标**：把侧边栏/页面上标记为"待接入"/pending 的交互接入真实后端。
 **背景**：V2.0 阶段为诚实曾把一批假交互标记为 pending（sidebar honesty，11 页 real + 16 placeholder）；i18n 扫尾后建议逐页接入。
 **验收**：
+
 - 全仓库搜索 `待接入|pending` 占位标记，列出清单
 - 优先级最高的一批（有真实后端契约的）接入真实 API，删除占位
 - 接入页纳入 P1 的 E2E 覆盖

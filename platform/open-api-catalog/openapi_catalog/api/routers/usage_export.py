@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -21,7 +21,11 @@ from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext
 from openapi_catalog.api.routers.deps import get_registry
 from openapi_catalog.config.settings import Settings
 from openapi_catalog.models import APIFilter
-from openapi_catalog.services.finops_exporter import FinOpsExportError, FinOpsUsageExporter
+from openapi_catalog.services.finops_exporter import (
+    FinOpsExportError,
+    FinOpsUsageExporter,
+    toFinopsUsageRecords,
+)
 from openapi_catalog.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/billing", tags=["出账闭环-计量汇入"])
@@ -104,9 +108,7 @@ async def exportUsage(
     period = req.period or datetime.now(timezone.utc).strftime("%Y-%m")
 
     # 2. 列出当前租户的 API
-    apis = await registry.apiRegistryService.list_apis(
-        APIFilter(providerTenantId=tenantId)
-    )
+    apis = await registry.apiRegistryService.list_apis(APIFilter(providerTenantId=tenantId))
 
     # 3. 聚合每个 API 的计量数据
     items: list[UsageItem] = []
@@ -115,9 +117,7 @@ async def exportUsage(
 
     for api in apis:
         try:
-            metrics = await registry.meteringService.get_metrics(
-                api.id, range_str=req.range, consumer_tenant_id=None
-            )
+            metrics = await registry.meteringService.get_metrics(api.id, range_str=req.range, consumer_tenant_id=None)
         except Exception:
             # 单个 API 计量查询失败不影响整体导出
             metrics = None
@@ -143,18 +143,20 @@ async def exportUsage(
     if totalCalls > 0:
         exporter = FinOpsUsageExporter(settings)
         authHeader = request.headers.get("Authorization", "")
-        jwtToken = authHeader[len("Bearer "):] if authHeader.startswith("Bearer ") else None
+        jwtToken = authHeader[len("Bearer ") :] if authHeader.startswith("Bearer ") else None
 
         try:
             result = await exporter.exportUsage(
                 tenantId=tenantId,
                 period=period,
-                usageData=[item.model_dump() for item in items],
+                # 映射为下游 Java UsageRecord 契约（resourceType/usage/unitPrice/amount/sourceRef），
+                # 字段名不一致会被下游以 400 拒绝而不是静默丢弃
+                usageData=toFinopsUsageRecords([item.model_dump() for item in items]),
                 jwtToken=jwtToken,
             )
             finopsBillingId = result.get("id")
             finopsTotalAmount = result.get("totalAmount")
-        except FinOpsExportError as exc:
+        except FinOpsExportError:
             # finops 导出失败不阻断计量聚合结果返回，标记状态为 FAILED
             exportStatus = "FAILED"
     else:

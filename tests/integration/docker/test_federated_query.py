@@ -40,15 +40,9 @@ import requests
 # Federated Query 服务 URL（Java/Spring Boot，端口 8094）
 FEDERATED_QUERY_URL = os.environ.get("FEDERATED_QUERY_URL", "http://localhost:8094")
 
-# Mock 集群端口（避开真实 8091/8092/8093，使用 18091/18092/18093）
-MOCK_CLUSTER_PORTS = {
-    "xinchang-cluster": 18091,
-    "local-cluster": 18092,
-    "cce-cluster": 18093,
-}
-
-# Mock Catalog 端口（避开 docker-compose 使用的 18080-18089）
-MOCK_CATALOG_PORT = 18094
+# Mock 集群名称。端口不再写死：由 fixture 用 bind(0) 让内核分配空闲端口，
+# 因为写死端口会与 docker-compose 发布到宿主机的端口冲突（曾撞在 18093/18094）。
+MOCK_CLUSTER_NAMES = ("xinchang-cluster", "local-cluster", "cce-cluster")
 
 # HTTP 请求默认超时
 DEFAULT_TIMEOUT = 10
@@ -130,6 +124,16 @@ class MockClusterHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args) -> None:
         pass
+
+
+def _start_mock_server(handler) -> ThreadingHTTPServer:
+    """在 127.0.0.1 上以内核分配的空闲端口启动 mock server（bind 端口 0）。
+
+    实际端口经 ``server.server_address[1]`` 读回，供 fixture 拼 URL。
+    """
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
 
 
 def _make_cluster_handler(cluster_name: str):
@@ -232,18 +236,20 @@ def _build_mock_catalog_tables() -> Dict[str, dict]:
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def mock_clusters():
-    """启动 3 个 mock 成员集群 HTTP server。"""
-    servers = {}
-    threads = {}
-    for name, port in MOCK_CLUSTER_PORTS.items():
-        handler = _make_cluster_handler(name)
-        server = ThreadingHTTPServer(("127.0.0.1", port), handler)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
-        servers[name] = server
-        threads[name] = thread
+    """启动 3 个 mock 成员集群 HTTP server。
 
-    yield {name: f"http://127.0.0.1:{port}" for name, port in MOCK_CLUSTER_PORTS.items()}
+    端口由内核分配（bind 0）：写死端口会与 docker-compose 发布到宿主机的端口撞车，
+    导致 session 级 fixture 抛 EADDRINUSE、整模块用例全部 error（原实测 14 个）。
+    """
+    servers = {
+        name: _start_mock_server(_make_cluster_handler(name))
+        for name in MOCK_CLUSTER_NAMES
+    }
+
+    yield {
+        name: f"http://127.0.0.1:{server.server_address[1]}"
+        for name, server in servers.items()
+    }
 
     for server in servers.values():
         server.shutdown()
@@ -251,13 +257,11 @@ def mock_clusters():
 
 @pytest.fixture(scope="session")
 def mock_catalog():
-    """启动 mock catalog HTTP server。"""
+    """启动 mock catalog HTTP server（端口由内核分配，理由同 mock_clusters）。"""
     MockCatalogHandler.tables = _build_mock_catalog_tables()
-    server = ThreadingHTTPServer(("127.0.0.1", MOCK_CATALOG_PORT), MockCatalogHandler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    server = _start_mock_server(MockCatalogHandler)
 
-    yield f"http://127.0.0.1:{MOCK_CATALOG_PORT}"
+    yield f"http://127.0.0.1:{server.server_address[1]}"
 
     server.shutdown()
 
@@ -570,7 +574,7 @@ class TestMergeScenario:
         assert len(all_rows) == 9
         # 每个集群的行都应出现
         cluster_ids = {row["cluster"] for row in all_rows}
-        assert cluster_ids == set(MOCK_CLUSTER_PORTS.keys())
+        assert cluster_ids == set(MOCK_CLUSTER_NAMES)
 
     def test_union_merge_deduplicates(self, mock_clusters):
         """验证 UNION 归并去重。"""

@@ -180,6 +180,79 @@ jobs:
           kubectl wait --for=condition=Ready node --all --timeout=300s
           kubectl get nodes -o wide
 
+      - name: 构建并导入链路业务镜像
+        # 为什么补这一步：本 job 此前只装集群不部署服务，于是五链路用例整体 SKIPPED
+        # ——即"绿但空跑"（见本 job 开头注释与 run_k3s_integration.py 的退出码语义）。
+        # 导入方式沿用仓库自己验证过的路子（deploy/k3s/deployment_verification_report.md:26）：
+        # docker build → docker save | k3s ctr images import，构建上下文用组件目录
+        # （与 deploy/k3s/build_all.ps1 的 `docker build -t $image $path` 一致）。
+        # 只构建五链路真正需要的组件；其余 manifest 的 Pod 会停在 ImagePullBackOff，
+        # 由 conftest 的 ensure_k3s_services_deployed() 自身容忍 wait 超时，不拖红。
+        run: |
+          set -uo pipefail
+          images=""
+          for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates; do
+            dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
+            if [ -z "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
+              echo "::warning::$comp 未找到 Dockerfile，跳过"
+              continue
+            fi
+            # 构建上下文自适应（两种 Dockerfile 形态并存，硬编码任一种都会打断另一类）：
+            # - Java 组件：Dockerfile 内 `COPY platform/<模块>/...`（多模块 Maven），
+            #   必须用仓库根为上下文，否则报 "/platform/<组件>/src: not found"（实测）；
+            # - Python/Go 组件：COPY requirements.txt ./main.py 等组件内相对路径，
+            #   必须用组件目录为上下文，根上下文会报 "/requirements.txt: not found"、
+            #   "/main.py: not found"（本 job 实测，run 36378306993）。
+            # 判定法与 docker-compose.yml 的 context 约定一致（Java=../..，Python=组件目录）。
+            if grep -q "COPY platform/" "$dir/Dockerfile"; then
+              echo "构建 sq/$comp:0.1.0（Java 组件，上下文=仓库根）"
+              build_args=(-f "$dir/Dockerfile" .)
+            else
+              echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
+              build_args=("$dir")
+            fi
+            if docker build -q -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+              images="$images sq/$comp:0.1.0"
+            else
+              echo "::warning::$comp 构建失败，跳过导入"
+            fi
+          done
+          if [ -n "$images" ]; then
+            # shellcheck disable=SC2086
+            # k3s 的 containerd socket 归 root，非 sudo 直连会 permission denied（实测）
+            docker save $images | sudo k3s ctr images import -
+            kubectl apply -f deploy/k3s/manifests/namespace.yaml
+            kubectl apply -f deploy/k3s/manifests/ || echo "::warning::部分 manifest apply 失败（未构建的组件预期如此）"
+            # 链路所需 5 个组件必须真的 Ready：此处原先只发 warning，导致 chain1-4
+            # 全部在 fixture setup 阶段 ERROR 却不报"谁没起来"，把基础设施问题伪装成用例问题
+            # （run 36345945597 实测）。改为硬失败并打印现场。
+            echo "等待链路组件 Deployment 可用（每个最多 300s）"
+            notready=""
+            for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine; do
+              if ! kubectl -n shuqing wait --for=condition=Available "deployment/${comp}" --timeout=300s; then
+                notready="$notready $comp"
+              fi
+            done
+            # chain5 的 helm install 需要目标命名空间预先存在，否则报
+            # namespaces "energy" not found（run 36345945597 实测）
+            kubectl create namespace energy --dry-run=client -o yaml | kubectl apply -f -
+            if [ -n "$notready" ]; then
+              echo "::error::以下链路组件未在期限内 Ready:$notready"
+              kubectl -n shuqing get pods -o wide || true
+              for comp in $notready; do
+                echo "--- $comp 详情 ---"
+                kubectl -n shuqing describe deployment "$comp" | tail -20 || true
+                for pod in $(kubectl -n shuqing get pods -l "app=$comp" -o name 2>/dev/null | head -2); do
+                  kubectl -n shuqing describe "$pod" | tail -25 || true
+                  kubectl -n shuqing logs "$pod" --tail=60 || true
+                done
+              done
+              exit 1
+            fi
+            kubectl -n shuqing get pods -o wide | head -40
+          fi
+          kubectl -n shuqing get pods -o wide | head -40
+
       - name: 安装集成测试依赖
         run: pip install -r tests/integration/requirements.txt -q
 

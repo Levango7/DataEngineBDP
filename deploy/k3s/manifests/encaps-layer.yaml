@@ -26,6 +26,16 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8080"
+        # application.yml 中 app.security.jwt.secret / app.encrypt.encrypt-key
+        # 均为无默认值的占位符：缺失时 JwtAuthFilterAutoConfiguration 的守卫条件
+        # 不成立 → 无 JwtAuthFilter Bean → 启动失败（k3s burn-in 实测报
+        # PlaceholderResolutionException）。此处仅供 burn-in 使用，
+        # 取值与 tests/integration/k3s/conftest.py、docker-compose 的测试密钥一致；
+        # 生产请走 helm charts（Secret 注入）。
+        - name: JWT_SECRET
+          value: "it-test-jwt-secret-at-least-32-bytes-long"
+        - name: ENCRYPT_KEY
+          value: "0123456789abcdef0123456789abcdef"
         readinessProbe:
           httpGet:
             path: /actuator/health

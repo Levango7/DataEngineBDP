@@ -4,6 +4,7 @@ P-04 合同交付实体 — 数据持久化抽象。
 
 当前为内存存储骨架，生产环境应替换为 PostgreSQL/MySQL 实现。
 """
+
 from __future__ import annotations
 
 import logging
@@ -66,8 +67,7 @@ class ContractRepository:
         TODO: 添加排序支持（按创建时间/到期时间等）
         """
         results = [
-            c for c in self._store.values()
-            if c.tenantId == tenant_id and (status is None or c.status == status)
+            c for c in self._store.values() if c.tenantId == tenant_id and (status is None or c.status == status)
         ]
         return results[offset : offset + limit]
 
@@ -83,6 +83,7 @@ class ContractRepository:
         # 部分更新
         updated = contract.model_copy(update=updates)
         from datetime import datetime, timezone
+
         updated.updatedAt = datetime.now(timezone.utc)
         self._store[contract_id] = updated
         logger.info("合同已更新: id=%s", contract_id)

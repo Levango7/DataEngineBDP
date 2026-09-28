@@ -5,7 +5,7 @@ type: application
 version: 1.0.0
 appVersion: "2.4.3"
 home: https://nacos.io/
-mainters:
+maintainers:
   - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:

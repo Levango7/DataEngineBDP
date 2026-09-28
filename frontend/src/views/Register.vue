@@ -70,13 +70,13 @@
         <div class="reg-banner">
           <div class="reg-banner-row">
             <span>{{ t('register.step2.tenant') }}</span>
-            <b>{{ preview.tenant?.displayName }}</b>
-            <code>{{ preview.tenant?.name }}</code>
+            <b>{{ previewInfo?.tenantName }}</b>
+            <code>{{ previewInfo?.tenantCode }}</code>
           </div>
           <div class="reg-banner-row">
             <span>{{ t('register.step2.inviteRole') }}</span>
-            <b>{{ roleLabel(preview.invite?.role) }}</b>
-            <span class="reg-banner-tip">{{ preview.invite?.note }}</span>
+            <b>{{ roleLabel(previewInfo?.role) }}</b>
+            <span class="reg-banner-tip">{{ previewInfo?.note }}</span>
           </div>
         </div>
 
@@ -139,7 +139,7 @@
             </li>
             <li>
               {{ t('register.step3.labelTenant') }}
-              <b>{{ preview.tenant?.displayName }}</b>
+              <b>{{ previewInfo?.tenantName }}</b>
             </li>
             <li>
               {{ t('register.step3.labelTime') }}
@@ -164,20 +164,23 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessage, type FormInstance } from 'element-plus'
-import { useTenantAdminStore, type AdminInvite, type AdminTenant } from '@/stores/tenantAdmin'
+import { useTenantAdminStore } from '@/stores/tenantAdmin'
+import { useAuthStore } from '@/stores/auth'
+import type { InvitePreview } from '@/api/tenantAdminApi'
 
 const { t, locale } = useI18n()
-const router = useRouter()
 const route = useRoute()
 const admin = useTenantAdminStore()
+const auth = useAuthStore()
 
 const step = ref<1 | 2 | 3>(1)
 const step1 = reactive({ code: '' })
 const step1Err = ref('')
 const validating = ref(false)
-const preview = ref<{ invite?: AdminInvite; tenant?: AdminTenant }>({})
+/** 后端 preview 返回 {code,role,tenantId,tenantName,tenantCode,note,expiresAt}，不含完整租户对象 */
+const previewInfo = ref<InvitePreview | null>(null)
 
 const step2FormRef = ref<FormInstance>()
 const step2 = reactive({
@@ -228,24 +231,36 @@ onMounted(() => {
   }
 })
 
-function validateCode() {
+/**
+ * 预校验/提交都走 encaps-layer 的 /api/v1/**，需要 JWT 登录态。
+ * 注册页是公开页，未登录时不发请求而是给出明确提示（避免 401 后静默失败）。
+ */
+function requireLogin(): boolean {
+  if (auth.isAuthenticated) return true
+  step1Err.value = t('register.messages.loginRequired')
+  return false
+}
+
+async function validateCode() {
   step1Err.value = ''
   if (!step1.code.trim()) {
     step1Err.value = t('register.messages.codeRequired')
     return
   }
+  if (!requireLogin()) return
   validating.value = true
-  setTimeout(() => {
-    const result = admin.previewInvite(step1.code.trim())
-    if (!result.ok) {
+  try {
+    const result = await admin.previewInvite(step1.code.trim())
+    if (!result.ok || !result.preview) {
+      previewInfo.value = null
       step1Err.value = result.error || t('register.messages.codeInvalid')
-      validating.value = false
       return
     }
-    preview.value = { invite: result.invite, tenant: result.tenant }
-    validating.value = false
+    previewInfo.value = result.preview
     step.value = 2
-  }, 250)
+  } finally {
+    validating.value = false
+  }
 }
 
 /** 联系支持：预留接入客服/邮件入口 */
@@ -257,15 +272,18 @@ async function submitForm() {
   if (!step2FormRef.value) return
   const valid = await step2FormRef.value.validate().catch(() => false)
   if (!valid) return
-  submitting.value = true
-  // 安全检查：preview.value.invite 可能为 null（邀请码未验证或状态异常）
-  const inviteCode = preview.value.invite?.code
+  // 安全检查：previewInfo 可能为 null（邀请码未验证或状态异常）
+  const inviteCode = previewInfo.value?.code
   if (!inviteCode) {
-    submitting.value = false
     ElMessage.error(t('register.messages.invalidInvite'))
     return
   }
-  const result = admin.submitRegistration({
+  if (!requireLogin()) {
+    ElMessage.error(t('register.messages.loginRequired'))
+    return
+  }
+  submitting.value = true
+  const result = await admin.submitRegistration({
     code: inviteCode,
     ...step2
   })

@@ -28,6 +28,7 @@ docker compose -f docker-compose.core.yml up -d
 ```
 
 启动 5 个核心服务：
+
 - PostgreSQL 16（端口 5432，含 12 个数据库）
 - MinIO（端口 9000/9001）
 - Trino（端口 8080）

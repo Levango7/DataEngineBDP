@@ -63,7 +63,10 @@ def client(app):
 # API 路径常量
 PREFIX = "/api/v1"
 ASSETS = PREFIX + "/assets"
-SUBS = PREFIX + "/subscriptions"
+# 订阅资源前缀：产品侧为 /asset-subscriptions（subscriptions.py:42 的 router prefix）。
+# 原写 /subscriptions 不匹配任何路由，命中的是 FastAPI 默认 404 体
+# {"detail":"Not Found"}（与业务 404 的 {error,message} 体可区分，据此定位）。
+SUBS = PREFIX + "/asset-subscriptions"
 AUDIT = PREFIX + "/audit-logs"
 HEALTH = PREFIX + "/health"
 

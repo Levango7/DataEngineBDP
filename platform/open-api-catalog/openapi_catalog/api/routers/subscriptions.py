@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
     APISubscription,

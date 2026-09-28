@@ -225,16 +225,16 @@ const ROUTE_MODULE_MAP: Record<string, string[]> = {
 /**
  * 根据路由 path 预加载对应模块的语言包。
  *
- * <p>在 router.afterEach 中调用，实现路由切换时按需加载词条。
- * 不阻塞导航（异步加载，加载完成后词条自动生效）。</p>
+ * <p>在 router.afterEach 中调用，实现路由切换时按需加载词条。加载不阻塞导航，
+ * 但返回 Promise 供调用方在词条就绪后补做依赖翻译的动作（如 document.title：
+ * 若在加载完成前就翻译，会回退显示原始 key）。</p>
  *
  * @param path 路由 path
+ * @returns 所有模块词条加载完成（含失败）时 resolve
  */
-export function preloadRouteI18n(path: string): void {
+export function preloadRouteI18n(path: string): Promise<PromiseSettledResult<void>[]> {
   const modules = ROUTE_MODULE_MAP[path]
-  if (!modules) return
-  // 并行加载，不 await（不阻塞导航）
-  for (const m of modules) {
-    void loadModuleI18n(m)
-  }
+  if (!modules || modules.length === 0) return Promise.resolve([])
+  // 并行加载；allSettled 保证某个模块失败也不影响其余词条生效
+  return Promise.allSettled(modules.map((m) => loadModuleI18n(m)))
 }

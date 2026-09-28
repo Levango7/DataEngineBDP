@@ -186,7 +186,17 @@ def test_categories(client):
     body = resp.json()
     assert len(body) == 9
     industries = {c["industry"] for c in body}
-    assert industries == {"finance", "retail", "manufacturing", "medical", "transportation", "education", "agriculture", "energy", "government"}
+    assert industries == {
+        "finance",
+        "retail",
+        "manufacturing",
+        "medical",
+        "transportation",
+        "education",
+        "agriculture",
+        "energy",
+        "government",
+    }
 
 
 # ---------- 部署记录 ----------

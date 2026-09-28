@@ -1,0 +1,32 @@
+# ============================================================
+# Python lint / 静态检查工具 —— 锁定版本（唯一真源）
+# ============================================================
+# 用途：由 .github/workflows/ci.yml 的 `python-lint` job 安装：
+#       pip install -r requirements-lint.txt -q
+#       （原为 `pip install pylint black isort flake8 mypy -q`，不锁版本）
+#
+# 为什么要锁：
+#   2026-09-24 CI python-lint 失败 29 项（约 10 个模块 black/isort/flake8 集体失败），
+#   根因是"外部工具版本浮动"——CI 每次安装的都是当时最新版，工具一升级即造成
+#   全量重排或参数不兼容：
+#     · black 24+ 起对复杂切片表达式补空格：auth[len("Bearer "):] → auth[len("Bearer ") :]
+#     · black 的 target-version 含 py312 而 CI 解释器为 3.11 → 触发
+#       "Python 3.11 cannot parse code formatted for Python 3.12" 安全校验告警
+#     · pylint 的 `logging-format-style` 历史取值 fstr 已被移除 → pylint 拒绝启动
+#   锁版本后，工具行为在 CI 与本地之间一致，格式化结果可复现。
+#
+# 版本口径：
+#   · 与 CI 运行解释器 Python 3.11 对齐（ci.yml python-version: '3.11'）
+#   · black 的 target-version 见根 pyproject.toml（[tool.black] target-version）
+#
+# 升级流程（必须成对执行）：
+#   1) 改本文件版本号；
+#   2) 本地用新版本跑 `black <模块>` / `isort <模块>` 对齐格式；
+#   3) 复跑 CI 的 python-lint 命令确认全绿后再合并。
+#   只改版本不对齐格式 = 全量重排红灯。
+# ============================================================
+black==26.5.1
+isort==9.0.1
+flake8==7.4.1
+mypy==2.3.1
+pylint==4.0.9

@@ -199,7 +199,5 @@ def batchQuality(
         raise HTTPException(status_code=404, detail=f"批次不存在: {batch_id}")
     quality = manifest.get("quality")
     if not quality:
-        raise HTTPException(
-            status_code=404, detail=f"批次 {batch_id} 尚无质量报告（validate 阶段未完成或失败）"
-        )
+        raise HTTPException(status_code=404, detail=f"批次 {batch_id} 尚无质量报告（validate 阶段未完成或失败）")
     return {"batch_id": batch_id, "tenant_id": tenant_id, "quality": quality}

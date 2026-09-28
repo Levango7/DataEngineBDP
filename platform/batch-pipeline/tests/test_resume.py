@@ -24,8 +24,8 @@ import json
 import os
 import shutil
 import tempfile
-import uuid
 from typing import Any
+import uuid
 
 import pytest
 
@@ -210,9 +210,7 @@ def test_missing_dir_returns_false(workdir):
 def test_lineage_decl_stored_in_stage_extra(workdir):
     """manifest.add_stage(extra={"lineage_decl": {...}}) 正确写入磁盘（平铺到顶层）."""
     m = Manifest("b-lineage", "d", workdir)
-    m.add_stage(
-        "validate", "success", 100, 90, 50, "", extra={"lineage_decl": {"orders": ["02_valid"]}}
-    )
+    m.add_stage("validate", "success", 100, 90, 50, "", extra={"lineage_decl": {"orders": ["02_valid"]}})
     m.finish("success")
     m.save()
     saved = json_load(os.path.join(workdir, "manifest.json"))
@@ -256,8 +254,8 @@ def test_e2e_resume_clean_data_with_openlineage(_same_drive_tmp_root, request):
     - 续跑 stage 带 resumed 标记；血缘边无重复；恢复 stage 计入 metrics
     - OL 批次级 START→FAILED / START→COMPLETE 配对完整
     """
-    import batch_pipeline.stages.compute as compute_mod
     from batch_pipeline.generator import main as gen_main
+    import batch_pipeline.stages.compute as compute_mod
 
     work_dir = tempfile.mkdtemp(prefix="resume_e2e_", dir=_same_drive_tmp_root)
     cfg = json_load(abs_path("config/pipeline_small.json"))
@@ -393,12 +391,12 @@ def test_resume_after_validate_failure_incremental(inc_env):
     # C2+C4：staged 水位恢复后提交恰好一次
     state = store.load()
     info = state["tables"]["orders"]
-    assert info["watermark_value"] == _max_order_date(env["orders_path"]), (
-        "续跑成功后 staged 水位应恢复并正式提升（修复前：staged 丢失、水位不推进）"
-    )
-    assert info["cumulative_row_count"] == info["last_seen_row_count"] > 0, (
-        "水位必须恰好推进一次（cumulative == 本批 seen，无双提交）"
-    )
+    assert info["watermark_value"] == _max_order_date(
+        env["orders_path"]
+    ), "续跑成功后 staged 水位应恢复并正式提升（修复前：staged 丢失、水位不推进）"
+    assert (
+        info["cumulative_row_count"] == info["last_seen_row_count"] > 0
+    ), "水位必须恰好推进一次（cumulative == 本批 seen，无双提交）"
     assert "new_watermark" not in info
     assert batch_id in state.get("merged_batches", []), "台账应登记批次"
     # C4：聚合从暂存替换进正式路径

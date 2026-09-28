@@ -620,6 +620,7 @@ const BASE = '/governance/assets'  // 原 '/assets'
 #### 8.1.2 新增 DevelopController
 
 在 `platform/encaps-layer` 新增 `DevelopController`，实现：
+
 - `GET /api/v1/develop/files` — 文件树
 - `GET /apiF1/develop/files/content` — 读文件
 - `POST /api/v1/develop/run` — 运行作业
@@ -629,6 +630,7 @@ const BASE = '/governance/assets'  // 原 '/assets'
 #### 8.1.3 新增 LLMOpsController
 
 在 `platform/encaps-layer` 新增 `LLMOpsController`（或复用 MLController 并扩展路径），实现：
+
 - `GET /api/v1/llmops/models`
 - `GET /api/v1/llmops/eval-metrics`
 - `POST /api/v1/llmops/finetune`
@@ -637,6 +639,7 @@ const BASE = '/governance/assets'  // 原 '/assets'
 #### 8.1.4 新增 GatewayController
 
 在 `platform/encaps-layer` 新增 `GatewayController`，实现：
+
 - `GET /api/v1/gateway/stats`
 - `GET /api/v1/gateway/keys`
 - `POST /api/v1/gateway/keys`
@@ -703,6 +706,7 @@ const BASE = '/governance/assets'  // 原 '/assets'
 #### 8.2.2 补充后端 Controller 缺失端点
 
 按 P1 问题清单（序号 15-31），在各后端 Controller 中补充前端调用但后端缺失的端点。优先级：
+
 1. JobController 补充列表/创建/cancel/logs/status
 2. QualityRuleController 补充列表/创建/check/summary
 3. ProjectController 补充 datasets/jobs/members 子资源

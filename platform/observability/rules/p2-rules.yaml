@@ -1,38 +1,64 @@
-# P2 一般告警规则模板
+# P2 一般告警规则
 #
-# 用途：慢查询/资源水位提醒/作业重试/配置变更等一般通知，触发钉钉+飞书通知。
+# 用途：性能退化/容器水位/网关错误率提醒，触发钉钉+飞书通知。
 # 通知渠道：Alertmanager → p2-dingtalk-feishu receiver → 钉钉 + 飞书 webhook
 # 时效要求：1 分钟聚合，4 小时重复
 #
+# 【指标来源约定】同 p1-rules.yaml：只允许引用 metric-contract.yaml 中 status=available 的指标，
+# 由 scripts/check-alert-metric-coverage.py 在 CI 校验。
+#
 # 模板变量（租户自定义时替换）：
-#   {{tenant_id}}        — 租户 ID
 #   {{slow_query_threshold}} — 慢查询阈值，默认 30 秒
-#   {{retry_threshold}}  — 重试次数阈值，默认 3
+#   {{mem_threshold}}        — 容器内存水位阈值，默认 0.85
 groups:
   - name: p2-normal-platform
     interval: 1m
     rules:
       # ---------------------------------------------------------------------------
-      # 规则 1：组件 GC 耗时过长
+      # 规则 1：JVM GC 耗时占比过高
+      # 指标：micrometer 的 jvm_gc_pause_seconds_sum（Timer 的 sum 侧）
       # ---------------------------------------------------------------------------
       - alert: HighGCTime
         expr: |
-          rate(process_gc_seconds_total[5m]) > 0.1
+          rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
         for: 15m
         labels:
           severity: P2
           component: "{{ $labels.job }}"
           category: performance
         annotations:
-          summary: "GC 耗时过长: {{ $labels.job }}"
-          description: "组件 {{ $labels.job }} GC 耗时占比超过 10%，可能影响吞吐。"
+          summary: "GC 耗时占比过高: {{ $labels.job }}"
+          description: "组件 {{ $labels.job }} 最近 5 分钟 GC 停顿时间占比超过 10%，可能影响吞吐。"
           value: "{{ $value | humanizePercentage }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/high-gc"
 
       # ---------------------------------------------------------------------------
-      # 规则 2：HTTP 5xx 错误率提醒
+      # 规则 2：Java 组件 HTTP 5xx 错误率
+      # 指标：micrometer 的 http_server_requests_seconds_count{outcome="SERVER_ERROR"}
       # ---------------------------------------------------------------------------
-      - alert: HTTP5xxRate
+      - alert: HttpServer5xxRateJava
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count[5m]))
+          ) > 0.01
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: availability
+        annotations:
+          summary: "HTTP 5xx 错误率提醒: {{ $labels.job }}"
+          description: "Java 组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/http-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Go 组件 HTTP 5xx 错误率
+      # 指标：catalog 等 Go 组件 promhttp 发射的 http_requests_total{status=...}
+      # ---------------------------------------------------------------------------
+      - alert: HttpServer5xxRateGo
         expr: |
           (
             sum(rate(http_requests_total{status=~"5.."}[5m]))
@@ -46,82 +72,74 @@ groups:
           category: availability
         annotations:
           summary: "HTTP 5xx 错误率提醒: {{ $labels.job }}"
-          description: "组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
+          description: "Go 组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
           value: "{{ $value | humanizePercentage }}"
           runbook_url: "https://wiki.shuqing.bigdata/runbook/http-5xx"
 
       # ---------------------------------------------------------------------------
-      # 规则 3：配置变更通知（Grafana datasource 变更）
+      # 规则 4：APISIX 网关 5xx 错误率（统一入口可用性）
+      # 指标：APISIX prometheus 插件发射的 apisix_http_status{code=...}
       # ---------------------------------------------------------------------------
-      - alert: GrafanaConfigChanged
+      - alert: Apisix5xxRate
         expr: |
-          increase(grafana_config_reload_total[1h]) > 0
-        for: 0m
+          (
+            sum(rate(apisix_http_status{code=~"5.."}[5m]))
+            /
+            sum(rate(apisix_http_status[5m]))
+          ) > 0.01
+        for: 15m
         labels:
           severity: P2
-          component: grafana
-          category: config
+          component: apisix
+          category: availability
         annotations:
-          summary: "Grafana 配置已变更"
-          description: "Grafana provisioning 配置在过去 1 小时内发生重载。"
-          value: "{{ $value }}"
-          runbook_url: "https://wiki.shuqing.bigdata/runbook/grafana-config-change"
+          summary: "APISIX 网关 5xx 错误率提醒"
+          description: "统一入口 APISIX 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/apisix-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 5：容器内存接近 limit
+      # 指标：kubelet/cAdvisor 的 container_memory_working_set_bytes / container_spec_memory_limit_bytes
+      # 说明：覆盖 Go/Python 等非 JVM 组件（JVM 堆水位见 P1 HighJvmHeapUsage）。
+      # ---------------------------------------------------------------------------
+      - alert: ContainerMemoryHigh
+        expr: |
+          (
+            sum by (namespace, pod, container) (container_memory_working_set_bytes)
+            /
+            sum by (namespace, pod, container) (container_spec_memory_limit_bytes > 0)
+          ) > {{mem_threshold}}
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.container }}"
+          category: resource
+        annotations:
+          summary: "容器内存接近 limit: {{ $labels.namespace }}/{{ $labels.pod }}"
+          description: "容器 {{ $labels.container }} 内存使用量达到 limit 的 {{mem_threshold}} 以上，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/container-memory"
 
   # ---------------------------------------------------------------------------
-  # 租户级 P2 告警（租户可基于本 group 自定义阈值）
+  # 慢查询（指标真实存在：sql_gateway_query_duration_seconds）
   # ---------------------------------------------------------------------------
-  - name: p2-normal-tenant
+  - name: p2-normal-query
     interval: 1m
     rules:
-      # 规则 4：租户慢查询提醒
-      - alert: TenantSlowQuery
+      # 规则 6：查询延迟 P99 过高
+      - alert: SqlGatewayQueryLatencyP99
         expr: |
           histogram_quantile(0.99,
-            sum by (le) (rate(shuqing_query_duration_seconds_bucket{tenant_id="{{tenant_id}}"}[5m]))
+            sum by (le) (rate(sql_gateway_query_duration_seconds_bucket[5m]))
           ) > {{slow_query_threshold}}
         for: 15m
         labels:
           severity: P2
-          component: query
-          category: tenant
-          tenant_id: "{{tenant_id}}"
+          component: sql-gateway
+          category: performance
         annotations:
-          summary: "租户 {{tenant_id}} 慢查询提醒"
-          description: "租户 {{tenant_id}} 查询 P99 延迟超过 {{slow_query_threshold}} 秒，持续 15 分钟。"
+          summary: "SQL 网关查询 P99 延迟过高"
+          description: "SQL 网关查询 P99 延迟超过 {{slow_query_threshold}} 秒，持续 15 分钟。"
           value: "{{ $value | humanizeDuration }}"
-          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-slow-query"
-
-      # 规则 5：租户作业重试提醒
-      - alert: TenantJobRetry
-        expr: |
-          increase(shuqing_job_retry_total{tenant_id="{{tenant_id}}"}[1h]) > {{retry_threshold}}
-        for: 5m
-        labels:
-          severity: P2
-          component: job
-          category: tenant
-          tenant_id: "{{tenant_id}}"
-        annotations:
-          summary: "租户 {{tenant_id}} 作业重试提醒"
-          description: "租户 {{tenant_id}} 作业 1 小时内重试超过 {{retry_threshold}} 次。"
-          value: "{{ $value }}"
-          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-retry"
-
-      # 规则 6：租户 API 配额使用率提醒
-      - alert: TenantQuotaUsage
-        expr: |
-          shuqing_tenant_api_calls_total{tenant_id="{{tenant_id}}"}
-          /
-          shuqing_tenant_api_quota{tenant_id="{{tenant_id}}"}
-          > 0.8
-        for: 30m
-        labels:
-          severity: P2
-          component: quota
-          category: tenant
-          tenant_id: "{{tenant_id}}"
-        annotations:
-          summary: "租户 {{tenant_id}} API 配额使用率提醒"
-          description: "租户 {{tenant_id}} API 配额使用率超过 80%，持续 30 分钟。"
-          value: "{{ $value | humanizePercentage }}"
-          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-quota"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/slow-query"

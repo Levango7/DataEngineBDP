@@ -182,6 +182,7 @@
     "breadcrumbNav": "面包屑导航",
     "envBadge": "当前环境标识",
     "notificationPanel": "通知与动态面板",
+    "demoDataBanner": "示例数据：通知中心的真实数据源尚未提供（后端无 notifications 接口），以下条目仅用于展示面板样式，请勿据此判断系统状态。",
     "panelTabs": "面板标签页",
     "closePanel": "关闭面板",
     "noticeList": "通知列表",
@@ -244,12 +245,19 @@
       "notFound": "邀请码不存在",
       "cancelled": "邀请码已撤销",
       "used": "邀请码已被使用",
-      "expired": "邀请码已过期"
+      "expired": "邀请码已过期或不可用"
     },
     "reg": {
       "usernameExists": "该用户名在租户内已存在",
       "notFound": "申请不存在",
-      "alreadyDecided": "该申请已审批"
+      "alreadyDecided": "该申请已审批",
+      "conflict": "邀请码已被使用或撤销，或用户名已存在"
+    },
+    "tenant": {
+      "notFound": "租户不存在或已被删除"
+    },
+    "common": {
+      "requestFailed": "操作失败，请稍后重试"
     }
   }
 }

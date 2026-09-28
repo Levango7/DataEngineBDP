@@ -12,8 +12,8 @@ vi.mock('@/stores/auth', () => ({
 
 const { authGuard } = await import('@/router/index')
 
-function fakeRoute(path: string, fullPath?: string) {
-  return { path, fullPath: fullPath ?? path } as never
+function fakeRoute(path: string, fullPath?: string, meta: Record<string, unknown> = {}) {
+  return { path, fullPath: fullPath ?? path, meta } as never
 }
 
 describe('authGuard 鉴权守卫（纯函数）', () => {
@@ -45,5 +45,42 @@ describe('authGuard 鉴权守卫（纯函数）', () => {
   it('已登录访问 /login → 跳回 /dashboard', () => {
     const result = authGuard(fakeRoute('/login'), true) as Record<string, unknown>
     expect(result.path).toBe('/dashboard')
+  })
+})
+
+/**
+ * 角色守卫：把后端已声明的 @PreAuthorize 限制在进页面前拦掉。
+ * 后端 RegistrationController 用的是 hasAnyRole('SUPER_ADMIN','TENANT_ADMIN')，
+ * /approvals 路由据此声明 requiresRole —— 两边必须一致。
+ */
+describe('authGuard 角色守卫', () => {
+  const adminMeta = { requiresRole: ['SUPER_ADMIN', 'TENANT_ADMIN'] }
+
+  it('角色命中 → 放行', () => {
+    expect(
+      authGuard(fakeRoute('/approvals', '/approvals', adminMeta), true, null, ['SUPER_ADMIN'])
+    ).toBe(true)
+  })
+
+  it('只读角色访问受限页 → 回 /dashboard 并带 denied 标记', () => {
+    const result = authGuard(fakeRoute('/approvals', '/approvals', adminMeta), true, null, [
+      'USER'
+    ]) as Record<string, unknown>
+    expect(result.path).toBe('/dashboard')
+    expect((result.query as { denied: string }).denied).toBe('/approvals')
+  })
+
+  it('无任何角色（token 有效但缺角色声明）→ 同样拦截', () => {
+    const result = authGuard(
+      fakeRoute('/approvals', '/approvals', adminMeta),
+      true,
+      null,
+      []
+    ) as Record<string, unknown>
+    expect(result.path).toBe('/dashboard')
+  })
+
+  it('未声明 requiresRole 的路由不受角色影响（避免前端比后端更严）', () => {
+    expect(authGuard(fakeRoute('/jobs'), true, null, [])).toBe(true)
   })
 })

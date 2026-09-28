@@ -48,8 +48,7 @@ def validate_tenant_id(tenant_id: str) -> str:
     tid = (tenant_id or "").strip()
     if not _TENANT_RE.match(tid):
         raise TenantError(
-            f"invalid tenant id {tenant_id!r}: expected 1-63 chars of "
-            "[a-z0-9-], starting/ending alphanumeric"
+            f"invalid tenant id {tenant_id!r}: expected 1-63 chars of " "[a-z0-9-], starting/ending alphanumeric"
         )
     return tid
 
@@ -127,9 +126,7 @@ def apply_tenant(cfg: dict[str, Any], tenant_id: str) -> dict[str, Any]:
     pipeline_cfg["run_dir"] = _append_segment(str(pipeline_cfg.get("run_dir", "run") or "run"), tid)
 
     incremental_cfg = out.setdefault("incremental", {})
-    incremental_cfg["state_dir"] = _append_segment(
-        str(incremental_cfg.get("state_dir", "state") or "state"), tid
-    )
+    incremental_cfg["state_dir"] = _append_segment(str(incremental_cfg.get("state_dir", "state") or "state"), tid)
 
     storage_cfg = out.setdefault("storage", {})
     prefix = str(storage_cfg.get("prefix", "") or "").strip("/")

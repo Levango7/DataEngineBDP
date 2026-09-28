@@ -16,6 +16,9 @@ spec:
       labels:
         app: open-api-catalog
     spec:
+      # 不设 enableServiceLinks:false：本组件 env_prefix=OPENAPI_CATALOG_，而 kubelet 对
+      # Service open-api-catalog 注入的变量名为 OPEN_API_CATALOG_PORT（kind 实测），两者
+      # 不同名，pydantic 实测不解析注入值（port 保持默认 8090），无反注入碰撞。
       containers:
       - name: open-api-catalog
         image: sq/open-api-catalog:0.1.0

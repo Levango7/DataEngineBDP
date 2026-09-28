@@ -37,15 +37,15 @@ from __future__ import annotations
 
 import argparse
 import copy
+from datetime import datetime
 import os
 import shutil
 import sys
 import tempfile
 import time
 import tracemalloc
-import uuid
-from datetime import datetime
 from typing import Any, Optional
+import uuid
 
 # 把项目根加入 sys.path，使 batch_pipeline.* 可导入
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -79,9 +79,9 @@ def _load_base_config() -> dict[str, Any]:
     return json_load(abs_path(_BASE_CONFIG))
 
 
-def _make_combination_cfg(base: dict[str, Any], engine: str, storage: str,
-                          data_dir: str, run_root: str,
-                          warehouse_dir: str) -> dict[str, Any]:
+def _make_combination_cfg(
+    base: dict[str, Any], engine: str, storage: str, data_dir: str, run_root: str, warehouse_dir: str
+) -> dict[str, Any]:
     """从基础配置派生指定组合的配置。
 
     Args:
@@ -139,18 +139,22 @@ def _generate_data(base: dict[str, Any], work_dir: str, scale: int) -> str:
     # 关闭 bad_date 缺陷，避免污染水位（与 conftest.parquet_env 一致）
     cfg["generator"]["defect_rates"]["bad_date"] = 0.0
     from batch_pipeline.generator import main as gen_main
+
     meta = gen_main(cfg)
-    print("[benchmark] 生成数据(scale={}): orders={} customers={} products={}".format(
-        scale, meta["rows"]["orders"], meta["rows"]["customers"], meta["rows"]["products"]))
+    print(
+        "[benchmark] 生成数据(scale={}): orders={} customers={} products={}".format(
+            scale, meta["rows"]["orders"], meta["rows"]["customers"], meta["rows"]["products"]
+        )
+    )
     return data_dir
 
 
 # ----------------------------------------------------------------------
 # 单组合运行
 # ----------------------------------------------------------------------
-def _run_one_combination(engine: str, storage: str,
-                         cfg: dict[str, Any], batch_id: str
-                         ) -> tuple[int, str, Optional[dict[str, Any]]]:
+def _run_one_combination(
+    engine: str, storage: str, cfg: dict[str, Any], batch_id: str
+) -> tuple[int, str, Optional[dict[str, Any]]]:
     """跑一个组合的完整 pipeline。
 
     Returns:
@@ -164,8 +168,7 @@ def _run_one_combination(engine: str, storage: str,
     return rc, run_dir, metrics
 
 
-def _measure_combination(engine: str, storage: str, cfg: dict[str, Any]
-                         ) -> dict[str, Any]:
+def _measure_combination(engine: str, storage: str, cfg: dict[str, Any]) -> dict[str, Any]:
     """跑一个组合并采集耗时 / 内存峰值 / metrics。
 
     返回结构：
@@ -237,32 +240,35 @@ def _measure_combination(engine: str, storage: str, cfg: dict[str, Any]
             total_rows_out += rows_out
             # 吞吐量：rows_out / duration_s；duration=0 时记为 0
             throughput = round(rows_out / (dur_ms / 1000), 1) if dur_ms > 0 else 0.0
-            stages.append({
-                "name": s.get("name"),
-                "status": s.get("status"),
-                "duration_ms": dur_ms,
-                "rows_in": rows_in,
-                "rows_out": rows_out,
-                "throughput_rows_per_sec": throughput,
-            })
+            stages.append(
+                {
+                    "name": s.get("name"),
+                    "status": s.get("status"),
+                    "duration_ms": dur_ms,
+                    "rows_in": rows_in,
+                    "rows_out": rows_out,
+                    "throughput_rows_per_sec": throughput,
+                }
+            )
     result["total_rows_in"] = total_rows_in
     result["total_rows_out"] = total_rows_out
     result["stages"] = stages
     # 整体吞吐量：total_rows_out / wall_time_s
     wall_s = wall_ms / 1000
-    result["overall_throughput_rows_per_sec"] = round(
-        total_rows_out / wall_s, 1) if wall_s > 0 else 0.0
+    result["overall_throughput_rows_per_sec"] = round(total_rows_out / wall_s, 1) if wall_s > 0 else 0.0
 
-    print("[benchmark] 结果: status={} wall={}ms peak_mem={}MB total_rows_out={}".format(
-        result["status"], wall_ms, result["peak_memory_mb"], total_rows_out))
+    print(
+        "[benchmark] 结果: status={} wall={}ms peak_mem={}MB total_rows_out={}".format(
+            result["status"], wall_ms, result["peak_memory_mb"], total_rows_out
+        )
+    )
     return result
 
 
 # ----------------------------------------------------------------------
 # 报告生成
 # ----------------------------------------------------------------------
-def _generate_reports(results: list[dict[str, Any]], scales: list[int],
-                      started_at: str, finished_at: str) -> None:
+def _generate_reports(results: list[dict[str, Any]], scales: list[int], started_at: str, finished_at: str) -> None:
     """生成 Markdown 报告（report.md）和 JSON 原始数据（report.json）."""
     # --- JSON 原始数据 ---
     json_doc = {
@@ -287,17 +293,23 @@ def _generate_reports(results: list[dict[str, Any]], scales: list[int],
     else:
         lines.append(f"- **规模扫描**: {', '.join(str(s) for s in scales)} 行")
     lines.append(f"- **组合数**: {len(results)}")
-    lines.append("- **内存说明**: `peak_memory_mb` 为 tracemalloc 采集的 Python 堆峰值，"
-                 "不包含 polars/pyspark 的 native（Rust/JVM）内存；对 python 后端最准确。")
+    lines.append(
+        "- **内存说明**: `peak_memory_mb` 为 tracemalloc 采集的 Python 堆峰值，"
+        "不包含 polars/pyspark 的 native（Rust/JVM）内存；对 python 后端最准确。"
+    )
     lines.append("")
 
     # 概览表
     lines.append("## 1. 组合概览")
     lines.append("")
-    lines.append("| engine | storage | rows | status | wall(ms) | pipeline(ms) | "
-                 "peak_mem(MB) | total_rows_out | throughput(rows/s) | dq_score |")
-    lines.append("|--------|---------|------|--------|----------|-------------|"
-                 "--------------|----------------|--------------------|----------|")
+    lines.append(
+        "| engine | storage | rows | status | wall(ms) | pipeline(ms) | "
+        "peak_mem(MB) | total_rows_out | throughput(rows/s) | dq_score |"
+    )
+    lines.append(
+        "|--------|---------|------|--------|----------|-------------|"
+        "--------------|----------------|--------------------|----------|"
+    )
     for r in results:
         lines.append(
             "| {engine} | {storage} | {rows} | {status} | {wall} | {pdur} | "
@@ -319,19 +331,26 @@ def _generate_reports(results: list[dict[str, Any]], scales: list[int],
     # 每阶段明细表
     lines.append("## 2. 每阶段耗时与吞吐量")
     lines.append("")
-    lines.append("| engine | storage | rows | stage | status | duration(ms) | "
-                 "rows_in | rows_out | throughput(rows/s) |")
-    lines.append("|--------|---------|------|-------|--------|-------------|"
-                 "---------|---------|--------------------|")
+    lines.append(
+        "| engine | storage | rows | stage | status | duration(ms) | " "rows_in | rows_out | throughput(rows/s) |"
+    )
+    lines.append(
+        "|--------|---------|------|-------|--------|-------------|" "---------|---------|--------------------|"
+    )
     for r in results:
         for s in r.get("stages", []):
             lines.append(
                 "| {eng} | {stor} | {rows} | {name} | {st} | {dur} | "
                 "{ri} | {ro} | {tp} |".format(
-                    eng=r["engine"], stor=r["storage"], rows=r.get("rows", "N/A"),
-                    name=s["name"], st=s["status"],
-                    dur=s["duration_ms"], ri=s["rows_in"],
-                    ro=s["rows_out"], tp=s["throughput_rows_per_sec"],
+                    eng=r["engine"],
+                    stor=r["storage"],
+                    rows=r.get("rows", "N/A"),
+                    name=s["name"],
+                    st=s["status"],
+                    dur=s["duration_ms"],
+                    ri=s["rows_in"],
+                    ro=s["rows_out"],
+                    tp=s["throughput_rows_per_sec"],
                 )
             )
     lines.append("")
@@ -342,9 +361,11 @@ def _generate_reports(results: list[dict[str, Any]], scales: list[int],
     lines.append("| engine | storage | rows | peak_memory(MB) | wall(ms) |")
     lines.append("|--------|---------|------|-----------------|----------|")
     for r in results:
-        lines.append("| {} | {} | {} | {} | {} |".format(
-            r["engine"], r["storage"], r.get("rows", "N/A"),
-            r["peak_memory_mb"], r["wall_time_ms"]))
+        lines.append(
+            "| {} | {} | {} | {} | {} |".format(
+                r["engine"], r["storage"], r.get("rows", "N/A"), r["peak_memory_mb"], r["wall_time_ms"]
+            )
+        )
     lines.append("")
 
     # 失败组合
@@ -353,8 +374,7 @@ def _generate_reports(results: list[dict[str, Any]], scales: list[int],
         lines.append("## 4. 失败组合")
         lines.append("")
         for r in failed:
-            lines.append("- **{}/{}**: {}".format(
-                r["engine"], r["storage"], r.get("error", "unknown")))
+            lines.append("- **{}/{}**: {}".format(r["engine"], r["storage"], r.get("error", "unknown")))
         lines.append("")
 
     lines.append("## 5. 原始数据")
@@ -384,17 +404,20 @@ def _cleanup_run_dirs(run_root: str) -> None:
 # ----------------------------------------------------------------------
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="batch-pipeline 性能基准测试")
-    parser.add_argument("--rows", type=int, default=None,
-                        help="覆盖 generator.rows（默认用 pipeline_small.json 的 5000）")
-    parser.add_argument("--scales", type=str, default=None,
-                        help="逗号分隔的多规模扫描（如 10000,50000,200000），"
-                             "每个规模独立生成数据并跑全部组合；与 --rows 互斥")
-    parser.add_argument("--combinations", nargs="+", default=None,
-                        help="指定组合（形如 python/local_csv），默认跑全部 4 个")
-    parser.add_argument("--no-cleanup", action="store_true",
-                        help="保留 bench-* run_dir 与自动创建的 work_dir 用于排查")
-    parser.add_argument("--work-dir", default=None,
-                        help="工作目录（默认自动创建临时目录，跑完自动清理）")
+    parser.add_argument(
+        "--rows", type=int, default=None, help="覆盖 generator.rows（默认用 pipeline_small.json 的 5000）"
+    )
+    parser.add_argument(
+        "--scales",
+        type=str,
+        default=None,
+        help="逗号分隔的多规模扫描（如 10000,50000,200000），" "每个规模独立生成数据并跑全部组合；与 --rows 互斥",
+    )
+    parser.add_argument(
+        "--combinations", nargs="+", default=None, help="指定组合（形如 python/local_csv），默认跑全部 4 个"
+    )
+    parser.add_argument("--no-cleanup", action="store_true", help="保留 bench-* run_dir 与自动创建的 work_dir 用于排查")
+    parser.add_argument("--work-dir", default=None, help="工作目录（默认自动创建临时目录，跑完自动清理）")
     args = parser.parse_args(argv)
 
     # 解析规模列表
@@ -453,7 +476,7 @@ def main(argv: list[str]) -> int:
 
     results: list[dict[str, Any]] = []
     try:
-        for scale in (scales or [int(base["generator"]["rows"])]):
+        for scale in scales or [int(base["generator"]["rows"])]:
             base["generator"]["rows"] = scale
 
             # 1. 生成本规模的共享数据
@@ -465,18 +488,21 @@ def main(argv: list[str]) -> int:
 
             # 2. 跑每个组合
             for engine, storage in combos:
-                cfg = _make_combination_cfg(
-                    base, engine, storage, data_dir, run_root, warehouse_dir)
+                cfg = _make_combination_cfg(base, engine, storage, data_dir, run_root, warehouse_dir)
                 try:
                     r = _measure_combination(engine, storage, cfg)
                 except Exception as exc:  # noqa: BLE001
                     r = {
-                        "engine": engine, "storage": storage,
+                        "engine": engine,
+                        "storage": storage,
                         "status": "failed",
                         "error": f"{type(exc).__name__}: {str(exc)}",
-                        "wall_time_ms": 0, "peak_memory_mb": 0,
-                        "total_rows_in": 0, "total_rows_out": 0,
-                        "stages": [], "overall_throughput_rows_per_sec": 0.0,
+                        "wall_time_ms": 0,
+                        "peak_memory_mb": 0,
+                        "total_rows_in": 0,
+                        "total_rows_out": 0,
+                        "stages": [],
+                        "overall_throughput_rows_per_sec": 0.0,
                         "batch_id": "n/a",
                     }
                     print(f"[benchmark] 组合 {engine}/{storage} 异常: {exc}")

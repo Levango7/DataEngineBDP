@@ -54,7 +54,9 @@
     },
     "messages": {
       "approved": "已批准",
-      "rejected": "已拒绝"
+      "rejected": "已拒绝",
+      "loadFailed": "注册申请加载失败，请重试",
+      "decisionFailed": "审批提交失败，请重试"
     }
   }
 }

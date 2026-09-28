@@ -1,4 +1,4 @@
-﻿"""pytest 集成测试公共配置与 fixtures。
+"""pytest 集成测试公共配置与 fixtures。
 
 本模块是数据引擎大数据平台（DataEngineBDP）集成测试的入口配置：
 - 集中维护各组件 REST API 基础 URL；
@@ -139,7 +139,11 @@ JWT_SECRET = os.environ.get(
 JWT_ISSUER = os.environ.get("JWT_ISSUER", "shuqing-bigdata")
 
 
-def _generate_test_jwt(tenant_id: str = "it-test-tenant", user_id: str = "it-tester") -> str:
+def _generate_test_jwt(
+    tenant_id: str = "it-test-tenant",
+    user_id: str = "it-tester",
+    roles: tuple[str, ...] = ("USER",),
+) -> str:
     """生成集成测试用 JWT Bearer token。
 
     使用与各组件相同的 HMAC-SHA 密钥与 issuer 签发，确保后端能验证通过。
@@ -147,14 +151,21 @@ def _generate_test_jwt(tenant_id: str = "it-test-tenant", user_id: str = "it-tes
     Args:
         tenant_id: 租户 ID，写入 ``tenantId`` claim。
         user_id:  用户 ID，写入 ``sub`` claim。
+        roles: 写入 ``realm_access.roles`` 的角色列表，默认仅 USER。
 
     Returns:
         编码后的 JWT 字符串。
+
+    角色必须放 ``realm_access.roles``：encaps-layer 的 JwtAuthFilter 只认这个位置，
+    缺该声明即兜底 ROLE_USER，于是所有 @PreAuthorize 端点对无角色 token 一律 403
+    —— 集成测试里那一整片 403 的根因。默认保持最小权限，需要高权的用例显式用
+    ``api_admin_client``，这样"越权应被拒"类断言仍然有效。
     """
     payload = {
         "iss": JWT_ISSUER,
         "sub": user_id,
         "tenantId": tenant_id,
+        "realm_access": {"roles": list(roles)},
         "iat": int(time.time()),
         "exp": int(time.time()) + 3600,
     }
@@ -326,17 +337,20 @@ def _start_python_component(name: str) -> subprocess.Popen:
     )
     log_path = log_file.name
     log_file.close()
-    proc = subprocess.Popen(
-        [sys.executable, "main.py"],
-        cwd=str(comp_dir),
-        env=env,
-        stdout=open(log_path, "w", encoding="utf-8"),
-        stderr=subprocess.STDOUT,
-        # Windows 下创建新进程组，便于整组终止
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-        if sys.platform == "win32"
-        else 0,
-    )
+    # with 块托管日志句柄：Popen 返回后父进程句柄即关闭，
+    # 子进程持有独立副本，可继续写入；避免句柄泄漏
+    with open(log_path, "w", encoding="utf-8") as log_handle:
+        proc = subprocess.Popen(
+            [sys.executable, "main.py"],
+            cwd=str(comp_dir),
+            env=env,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            # Windows 下创建新进程组，便于整组终止
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            if sys.platform == "win32"
+            else 0,
+        )
     proc._log_file_path = log_path  # type: ignore[attr-defined]
     return proc
 
@@ -424,6 +438,14 @@ def api_client():
     return _ApiClient()
 
 
+@pytest.fixture
+def api_admin_client():
+    """带 TENANT_ADMIN/SUPER_ADMIN 角色的客户端（租户 CRUD 等受保护端点用）。
+    用法与 ``api_client`` 完全一致，只是 token 里多了角色声明。
+    """
+    return _ApiClient(roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"))
+
+
 class _ApiClient:
     """轻量 HTTP 客户端封装。
 
@@ -431,14 +453,15 @@ class _ApiClient:
     健康检查等 permitAll 端点不受影响。
     """
 
-    def __init__(self):
+    def __init__(self, roles: tuple[str, ...] = ("USER",)):
+        self._roles = roles
         self._token: str | None = None
 
     @property
     def auth_header(self) -> Dict[str, str]:
         """返回携带 Bearer token 的请求头。"""
         if self._token is None:
-            self._token = _generate_test_jwt()
+            self._token = _generate_test_jwt(roles=self._roles)
         return {"Authorization": f"Bearer {self._token}"}
 
     def get(self, url, **kwargs):
@@ -584,8 +607,11 @@ def _python_components_finalizer():
 # 测试数据 fixtures（创建后自动清理，保证测试相互独立）
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def sample_tenant(api_client, encaps_url):
+def sample_tenant(api_admin_client, encaps_url):
     """创建一个示例租户，测试结束后自动删除。
+
+    必须用 admin 客户端：TenantController 类级要求 SUPER_ADMIN，
+    USER 角色 POST /api/v1/tenants 会 403（docker 腿实测同类问题）。
 
     Yields:
         dict: 已创建租户的 JSON 表示（含 id）。
@@ -596,7 +622,7 @@ def sample_tenant(api_client, encaps_url):
         "namespace": "ns-it-test",
         "quotaProfile": "medium",
     }
-    resp = api_client.post(
+    resp = api_admin_client.post(
         encaps_url + "/api/v1/tenants",
         json=payload,
     )
@@ -606,7 +632,7 @@ def sample_tenant(api_client, encaps_url):
 
     # 清理：删除创建的租户（若仍存在）。
     try:
-        api_client.delete(encaps_url + f"/api/v1/tenants/{tenant.get('id')}")
+        api_admin_client.delete(encaps_url + f"/api/v1/tenants/{tenant.get('id')}")
     except requests.RequestException:
         pass
 

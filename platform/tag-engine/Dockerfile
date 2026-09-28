@@ -13,6 +13,11 @@ WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn -B -q install -N
 
+# 安装内部依赖库 common-security（dependency:go-offline 需能从本地仓库解析）
+COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
+COPY platform/common-security/src ./platform/common-security/src
+RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
+
 # 复制模块 pom.xml 并下载依赖（利用层缓存）
 COPY platform/tag-engine/pom.xml ./
 RUN mvn -B -e -DskipTests dependency:go-offline -f pom.xml

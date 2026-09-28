@@ -209,6 +209,12 @@
       },
       "roleTenantAdmin": "Tenant Admin"
     },
+    "inviteStatus": {
+      "PENDING": "Pending",
+      "ACTIVE": "Activated",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
+    },
     "rules2": {
       "codeRequired": "Tenant code is required",
       "codePattern": "Lowercase letters/digits/hyphens, 3-31 chars",
@@ -220,6 +226,12 @@
       "codeExists": "Tenant code already exists",
       "defaultNote": "Auto-generated first-account invite for tenant creation",
       "createdWithInvite": "Tenant \"{name}\" created. Invite code {code} (first account)",
+      "createdNoInvite": "Tenant \"{name}\" created, but the first-account invite code failed to generate. Please retry later",
+      "createFailed": "Failed to create tenant",
+      "inviteFailed": "Failed to generate invite code",
+      "suspendFailed": "Failed to suspend tenant",
+      "resumeFailed": "Failed to enable tenant",
+      "deleteFailed": "Failed to delete tenant",
       "copyDenied": "Browser denied clipboard access, please copy manually",
       "suspendConfirm": "Suspend tenant \"{name}\"?",
       "suspendTitle": "Suspend Tenant",

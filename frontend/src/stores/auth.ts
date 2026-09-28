@@ -95,7 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
             nickname: t('app.devMockNickname'),
             email: 'admin@example.com',
             tenantId: 'platform-admin',
-            roles: ['admin'],
+            // 与平台 realm 角色词表一致（Keycloak realm 导入的角色是 SUPER_ADMIN/TENANT_ADMIN/USER）；
+            // 原先写 'admin' 不在词表内，会让本地开发时角色守卫一律判无权限。
+            roles: ['SUPER_ADMIN'],
             status: 'active'
           }
           user.value = mockUser

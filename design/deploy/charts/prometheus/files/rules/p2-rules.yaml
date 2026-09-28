@@ -1,0 +1,145 @@
+# P2 一般告警规则
+#
+# 用途：性能退化/容器水位/网关错误率提醒，触发钉钉+飞书通知。
+# 通知渠道：Alertmanager → p2-dingtalk-feishu receiver → 钉钉 + 飞书 webhook
+# 时效要求：1 分钟聚合，4 小时重复
+#
+# 【指标来源约定】同 p1-rules.yaml：只允许引用 metric-contract.yaml 中 status=available 的指标，
+# 由 scripts/check-alert-metric-coverage.py 在 CI 校验。
+#
+# 模板变量（租户自定义时替换）：
+#   {{slow_query_threshold}} — 慢查询阈值，默认 30 秒
+#   {{mem_threshold}}        — 容器内存水位阈值，默认 0.85
+groups:
+  - name: p2-normal-platform
+    interval: 1m
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：JVM GC 耗时占比过高
+      # 指标：micrometer 的 jvm_gc_pause_seconds_sum（Timer 的 sum 侧）
+      # ---------------------------------------------------------------------------
+      - alert: HighGCTime
+        expr: |
+          rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: performance
+        annotations:
+          summary: "GC 耗时占比过高: {{ $labels.job }}"
+          description: "组件 {{ $labels.job }} 最近 5 分钟 GC 停顿时间占比超过 10%，可能影响吞吐。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-gc"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：Java 组件 HTTP 5xx 错误率
+      # 指标：micrometer 的 http_server_requests_seconds_count{outcome="SERVER_ERROR"}
+      # ---------------------------------------------------------------------------
+      - alert: HttpServer5xxRateJava
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count[5m]))
+          ) > 0.01
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: availability
+        annotations:
+          summary: "HTTP 5xx 错误率提醒: {{ $labels.job }}"
+          description: "Java 组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/http-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Go 组件 HTTP 5xx 错误率
+      # 指标：catalog 等 Go 组件 promhttp 发射的 http_requests_total{status=...}
+      # ---------------------------------------------------------------------------
+      - alert: HttpServer5xxRateGo
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.01
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: availability
+        annotations:
+          summary: "HTTP 5xx 错误率提醒: {{ $labels.job }}"
+          description: "Go 组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/http-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 4：APISIX 网关 5xx 错误率（统一入口可用性）
+      # 指标：APISIX prometheus 插件发射的 apisix_http_status{code=...}
+      # ---------------------------------------------------------------------------
+      - alert: Apisix5xxRate
+        expr: |
+          (
+            sum(rate(apisix_http_status{code=~"5.."}[5m]))
+            /
+            sum(rate(apisix_http_status[5m]))
+          ) > 0.01
+        for: 15m
+        labels:
+          severity: P2
+          component: apisix
+          category: availability
+        annotations:
+          summary: "APISIX 网关 5xx 错误率提醒"
+          description: "统一入口 APISIX 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/apisix-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 5：容器内存接近 limit
+      # 指标：kubelet/cAdvisor 的 container_memory_working_set_bytes / container_spec_memory_limit_bytes
+      # 说明：覆盖 Go/Python 等非 JVM 组件（JVM 堆水位见 P1 HighJvmHeapUsage）。
+      # ---------------------------------------------------------------------------
+      - alert: ContainerMemoryHigh
+        expr: |
+          (
+            sum by (namespace, pod, container) (container_memory_working_set_bytes)
+            /
+            sum by (namespace, pod, container) (container_spec_memory_limit_bytes > 0)
+          ) > 0.9
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.container }}"
+          category: resource
+        annotations:
+          summary: "容器内存接近 limit: {{ $labels.namespace }}/{{ $labels.pod }}"
+          description: "容器 {{ $labels.container }} 内存使用量达到 limit 的 0.9 以上，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/container-memory"
+
+  # ---------------------------------------------------------------------------
+  # 慢查询（指标真实存在：sql_gateway_query_duration_seconds）
+  # ---------------------------------------------------------------------------
+  - name: p2-normal-query
+    interval: 1m
+    rules:
+      # 规则 6：查询延迟 P99 过高
+      - alert: SqlGatewayQueryLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(sql_gateway_query_duration_seconds_bucket[5m]))
+          ) > 2
+        for: 15m
+        labels:
+          severity: P2
+          component: sql-gateway
+          category: performance
+        annotations:
+          summary: "SQL 网关查询 P99 延迟过高"
+          description: "SQL 网关查询 P99 延迟超过 2 秒，持续 15 分钟。"
+          value: "{{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/slow-query"

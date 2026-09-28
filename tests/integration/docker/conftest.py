@@ -114,6 +114,7 @@ def generate_test_jwt(
     tenant_id: str = "docker-it-tenant",
     user_id: str = "docker-it-tester",
     expiry_seconds: int = 3600,
+    roles: tuple[str, ...] = ("USER",),
 ) -> str:
     """生成 Docker 集成测试用 JWT Bearer token。
 
@@ -124,15 +125,23 @@ def generate_test_jwt(
         tenant_id: 租户 ID，写入 ``tenantId`` claim。
         user_id:  用户 ID，写入 ``sub`` claim。
         expiry_seconds: token 有效期秒数，默认 1 小时。
+        roles: 写入 ``realm_access.roles`` 的角色列表，默认仅 USER。
 
     Returns:
         编码后的 JWT 字符串。
+
+    角色必须放在 ``realm_access.roles`` 里：encaps-layer 的鉴权链只认这个位置
+    （JwtAuthFilter 缺该声明时兜底成 ROLE_USER），所以带 @PreAuthorize 的端点
+    用不带角色的 token 调用必然 403 —— 这是集成测试里那一整片 403 的根因。
+    需要管理员权限的用例请显式用 ``api_admin_client``，不要抬高本函数的默认角色：
+    默认保持最小权限，才能让"越权应被拒"这类断言继续有意义。
     """
     now = int(time.time())
     payload = {
         "iss": JWT_ISSUER,
         "sub": user_id,
         "tenantId": tenant_id,
+        "realm_access": {"roles": list(roles)},
         "iat": now,
         "exp": now + expiry_seconds,
     }
@@ -248,6 +257,31 @@ def auth_token() -> str:
     所有测试共享同一个 token，避免重复签发开销。
     """
     return generate_test_jwt()
+
+
+@pytest.fixture(scope="session")
+def admin_token() -> str:
+    """带 realm_access.roles 的管理员 token（租户 CRUD 等受 @PreAuthorize 保护的端点用）。"""
+    return generate_test_jwt(roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"))
+
+
+@pytest.fixture(scope="session")
+def api_admin_client(admin_token) -> requests.Session:
+    """管理员版 api_client：同 HMAC 密钥签发，但带 TENANT_ADMIN/SUPER_ADMIN 角色。
+
+    用法与 api_client 一致；只在确实需要更高角色时用，普通用例继续用 api_client，
+    这样"越权应被拒"的断言仍然有效。
+    """
+    session = requests.Session()
+    session.headers.update(
+        {
+            "Authorization": f"Bearer {admin_token}",
+            "Content-Type": "application/json",
+        }
+    )
+    session.request = _request_with_timeout(session.request, DEFAULT_TIMEOUT)
+    yield session
+    session.close()
 
 
 @pytest.fixture(scope="session")

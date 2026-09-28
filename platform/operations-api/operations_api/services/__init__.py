@@ -5,10 +5,11 @@ P-04 合同交付实体 — 业务逻辑骨架。
 本模块定义合同管理的业务逻辑接口，当前为骨架实现，
 完整逻辑待后续 Sprint 补充。
 """
+
 from __future__ import annotations
 
-import logging
 from datetime import date, datetime, timezone
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -16,7 +17,6 @@ from ..models.contract import (
     Contract,
     ContractCreateRequest,
     ContractStatus,
-    ContractType,
     ContractUpdateRequest,
 )
 from ..repositories import contract_repo
@@ -77,18 +77,14 @@ class ContractService:
         """查询合同列表."""
         return await contract_repo.list_by_tenant(tenant_id, status, offset, limit)
 
-    async def update_contract(
-        self, contract_id: str, req: ContractUpdateRequest
-    ) -> Contract | None:
+    async def update_contract(self, contract_id: str, req: ContractUpdateRequest) -> Contract | None:
         """更新合同.
 
         TODO: 添加状态机校验（如生效合同不可改金额）
         TODO: 添加审批权限校验
         """
         # 过滤 None 值，仅更新提供的字段
-        updates: dict[str, Any] = {
-            k: v for k, v in req.model_dump().items() if v is not None
-        }
+        updates: dict[str, Any] = {k: v for k, v in req.model_dump().items() if v is not None}
         if not updates:
             return await contract_repo.get_by_id(contract_id)
 
@@ -103,9 +99,7 @@ class ContractService:
 
         return await contract_repo.update(contract_id, updates)
 
-    async def sign_contract(
-        self, contract_id: str, approved_by: str
-    ) -> Contract | None:
+    async def sign_contract(self, contract_id: str, approved_by: str) -> Contract | None:
         """签署合同（草稿 → 生效）.
 
         TODO: 添加电子签章集成
@@ -140,9 +134,7 @@ class ContractService:
         if contract.status not in (ContractStatus.ACTIVE, ContractStatus.SUSPENDED):
             raise ValueError(f"合同状态不可终止: 当前状态={contract.status}")
 
-        return await contract_repo.update(
-            contract_id, {"status": ContractStatus.TERMINATED}
-        )
+        return await contract_repo.update(contract_id, {"status": ContractStatus.TERMINATED})
 
     async def check_expired(self) -> int:
         """检查到期合同并更新状态.
@@ -154,10 +146,10 @@ class ContractService:
         Returns:
             更新为到期状态的合同数量
         """
-        today = date.today()
+        today = date.today()  # TODO 实现到期遍历后使用（当前先记录检查日期）
         count = 0
         # TODO: 遍历所有生效合同，检查是否到期
-        logger.info("合同到期检查完成，更新 %d 份合同", count)
+        logger.info("合同到期检查完成（检查日期 %s），更新 %d 份合同", today, count)
         return count
 
 

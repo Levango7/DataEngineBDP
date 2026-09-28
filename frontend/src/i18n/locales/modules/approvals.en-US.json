@@ -54,7 +54,9 @@
     },
     "messages": {
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "loadFailed": "Failed to load registrations, please retry",
+      "decisionFailed": "Failed to submit decision, please retry"
     }
   }
 }

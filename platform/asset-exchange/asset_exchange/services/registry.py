@@ -28,6 +28,7 @@ from asset_exchange.services.asset_service import AssetService
 from asset_exchange.services.audit_service import AuditService
 from asset_exchange.services.billing_service import BillingService
 from asset_exchange.services.delivery_service import DeliveryService
+from asset_exchange.services.openapi_catalog_client import OpenApiCatalogClient
 from asset_exchange.services.settlement_service import SettlementService
 from asset_exchange.services.subscription_service import SubscriptionService
 
@@ -99,7 +100,13 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
 
     asset_service = AssetService(asset_repo, sub_repo)
     subscription_service = SubscriptionService(sub_repo, asset_service)
-    delivery_service = DeliveryService(delivery_repo, sub_repo)
+    # API 交付的真实凭证来源：open-api-catalog（配置了地址就注入，
+    # 不可达时交付会如实失败，不返回假 AK —— 见 delivery_service._deliver_via_api）
+    delivery_service = DeliveryService(
+        delivery_repo,
+        sub_repo,
+        catalog_client=OpenApiCatalogClient(settings),
+    )
     billing_service = BillingService(
         billing_repo,
         asset_service,

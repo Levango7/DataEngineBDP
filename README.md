@@ -9,27 +9,32 @@
 <!-- 项目徽章 -->
 ![Version](https://img.shields.io/badge/version-2.1.0--RC-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
-![Tests](https://img.shields.io/badge/tests-7%2C636-brightgreen)
+![Tests](https://img.shields.io/badge/tests-7%2C599-brightgreen)
 ![CI](https://img.shields.io/badge/CI-15%20workflows-blue)
-![Code](https://img.shields.io/badge/code-441K%20lines-orange)
+![Code](https://img.shields.io/badge/code-283K%20lines-orange)
 ![Language](https://img.shields.io/badge/lang-Java%20%7C%20Go%20%7C%20Python%20%7C%20Vue-blueviolet)
 
 <!-- 姊妹仓库导航 -->
 > 📌 **作者姊妹项目**：[Levango7/Corps](https://github.com/Levango7/Corps)（团队协作 SaaS）· [Levango7/Interaction](https://github.com/Levango7/Interaction)（本地优先 PWA）· **DataEngineBDP**（本项目 · 大数据平台）
-
+>
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
-> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **独立部署单元 42**（ADR-001，扣库形态组件）→ **platform/ 目录数 38**（一级子目录）。
+>
+> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **服务形态组件 42**（扣 4 个库形态：common-security / flink-cdc / storage-io / chunker）→ **有 Helm Chart 可部署单元 35**（另有 7 个服务无 Chart，详见口径文档第 6 节）→ **platform/ 目录数 38**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-RC（已发布）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
-- 工程成熟度：综合评分 72/100（B+），6830+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
+- 代码量（实测，2026-09-26）：后端非测试源码 **223,280 行**（Java 133,567 / Go 21,358 / Python 68,355）+ 前端 `src` **60,233 行**；含测试全量为 Java 207,454 / Python 106,297 行。口径与复现命令见 `scripts/count-source-lines.py`（按行计数，排除 `/src/test/`、`*_test.go`、`/tests/`、`/target/`、`/vendor/`）
+- 测试规模（实测，2026-09-26）：后端 **7,599** 例（Java `@Test` 4,426 / Go `func Test` 795 / Python `def test_` 2,378）+ 前端单测 370 例。**用例数不等于通过数**：CI 现状与已知缺口见 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md)
+- 工程成熟度：**不设综合评分** —— 此前"72/100（B+）"是自评，无公开可复现的评分方法，易被当作客观结论引用；改以可核验项替代：CI 各 job 结论、[组件成熟度矩阵](docs/component-maturity.md)、[KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
 > 2.1.0-RC 已发布（2026-08-27），基于 v2.0.0 RC 完成核心组件生产化加固（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
 > 22 组件 GA 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
 > **完成度口径**（三维度统一表述，全仓文档共用）：
-> - **80% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素（本口径用于 README/ROADMAP 总体状态描述）
+>
+> - ⚠️ **以下三项均为项目自评口径，无独立复现方法，不应作为客观结论引用**。独立复核以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账为准。
+> - **80% 端到端可用**：自评（含端到端联调、真实环境部署、外部依赖对接等因素的估计值；注：四环境验证目前 0/6 维度实测，见台账 #9）
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`），衡量功能模块完成程度
 > - **100% 本地基础功能**：22 个核心组件本地可运行（H2/SQLite 默认持久层，见 `docs/component-maturity.md`），基础 CRUD/API 可用
 > ⚠️ 勘误：v2.0.0 的 GA 定级已修订为 RC（候选版本），详见 [V2.0.0 勘误公告](releases/v2.0.0/ERRATUM.md)。
@@ -54,8 +59,8 @@
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.22+ / Python 3.11 |
-| 后端框架 | Spring Boot 3.2.x / Gin / FastAPI / Pydantic |
+| 后端语言 | Java 17 / Go 1.26.0 / Python 3.11（组件 `pyproject.toml` 声明 `>=3.10`） |
+| 后端框架 | Spring Boot **4.1.1**（`pom.xml` 实测）/ Gin / FastAPI / Pydantic |
 | 前端 | Vue 3.5 / TypeScript 5.6 strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5.3 / Flink 1.20.0 / Trino 460 / Doris 2.1.7 / Kafka 3.8.1 / IoTDB 2.0.2 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
@@ -300,6 +305,7 @@ bash scripts/poc/run-poc.sh
 | 指标 | 数值 |
 | --- | --- |
 | 自研组件目录 | 46 个（Java 24 / Go 10 / Python 12） |
+| 有 Chart 可部署单元 | 35 个（46 − 4 个库形态组件 − 7 个尚无 Helm Chart 的服务，口径见 [模块数口径定义](docs/模块数口径定义.md) §6） |
 | Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 52 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |
@@ -307,7 +313,7 @@ bash scripts/poc/run-poc.sh
 | 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
 | 前端视图页面 | 72 个 .vue（全部有实质内容，无占位页面） |
 | 支持环境 | 4 种（dev / staging / pre-prod / prod，均为配置模板） |
-| 框架基线 | Spring Boot 3.2.x / Spring Framework 6 / Java 17 / Go 1.22+ / Python 3.11 / Vue3+TS strict |
+| 框架基线 | Spring Boot 4.1.1 / Spring Framework 7.0.9 / Java 17 / Go 1.26.0 / Python 3.11 / Vue 3.5 + TS strict（均按 `mvn dependency:tree`、`go.mod`、`package.json` 实测） |
 | 工程成熟度 | 覆盖率门禁 Java≥40% / Go≥30% / Python≥55%（jacoco+pytest-cov 实测基线，2026-09-01） |
 
 ## 开发模式说明
@@ -321,4 +327,3 @@ bash scripts/poc/run-poc.sh
 ## 开源协议
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
-

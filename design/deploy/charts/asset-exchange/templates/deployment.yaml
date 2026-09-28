@@ -36,6 +36,12 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      # k8s 会为同命名空间的 Service 向 Pod 注入 服务名_PORT=tcp://IP:PORT 形式的链接变量；
+      # 独立安装（release 名=chart 名，APISIX 上游即按 chart 名）时 Service 名等于 chart 名，
+      # 与 asset_exchange/config/settings.py 的 env_prefix ASSET_EXCHANGE_ 同名 →
+      # ASSET_EXCHANGE_PORT 被当整数解析而启动崩溃（同型根因已在 burn-in 集群 nl2sql 实测）。
+      # 关闭服务链接注入（组件间寻址走 Service DNS / 显式 URL，不依赖这些变量）。
+      enableServiceLinks: false
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"

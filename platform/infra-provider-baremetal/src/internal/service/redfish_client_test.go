@@ -33,7 +33,8 @@ func newTestRedfishServer() *httptest.Server {
 				})
 			}
 		case "/redfish/v1/Systems/1":
-			if r.Method == http.MethodGet {
+			switch r.Method {
+			case http.MethodGet:
 				_ = json.NewEncoder(w).Encode(RedfishSystem{
 					ID:           "1",
 					Name:         "Test Server",
@@ -50,7 +51,7 @@ func newTestRedfishServer() *httptest.Server {
 						TotalSystemMemoryGiB: 64,
 					},
 				})
-			} else if r.Method == http.MethodPatch {
+			case http.MethodPatch:
 				w.WriteHeader(http.StatusNoContent)
 			}
 		case "/redfish/v1/Systems/1/Actions/ComputerSystem.Reset":

@@ -74,6 +74,18 @@ class Settings(BaseSettings):
         description="FinOps 账单服务请求超时（秒）",
     )
 
+    # ---- 开放 API 目录对接（API 交付的真实凭证来源） ----
+    openApiCatalogUrl: str = Field(
+        default="http://localhost:8090/api/v1",
+        description="open-api-catalog 服务地址（含 /api/v1 前缀）。"
+        "API 交付的 Access Key 由它发放并写入 APISIX key-auth",
+    )
+    openApiCatalogTimeout: float = Field(
+        default=10.0,
+        ge=0.1,
+        description="开放 API 目录请求超时（秒）",
+    )
+
     @field_validator("logLevel")
     @classmethod
     def _validate_log_level(cls, v: str) -> str:

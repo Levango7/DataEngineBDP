@@ -182,6 +182,7 @@
     "breadcrumbNav": "Breadcrumb navigation",
     "envBadge": "Current environment",
     "notificationPanel": "Notifications and activity panel",
+    "demoDataBanner": "Sample data: no real notification source yet (no backend notifications endpoint). The entries below only demonstrate the panel layout — do not use them to judge system state.",
     "panelTabs": "Panel tabs",
     "closePanel": "Close panel",
     "noticeList": "Notification list",
@@ -244,12 +245,19 @@
       "notFound": "Invite code not found",
       "cancelled": "Invite code cancelled",
       "used": "Invite code already used",
-      "expired": "Invite code expired"
+      "expired": "Invite code expired or unavailable"
     },
     "reg": {
       "usernameExists": "Username already exists in this tenant",
       "notFound": "Registration not found",
-      "alreadyDecided": "Registration already decided"
+      "alreadyDecided": "Registration already decided",
+      "conflict": "Invite code already used/cancelled, or the username already exists"
+    },
+    "tenant": {
+      "notFound": "Tenant not found or already deleted"
+    },
+    "common": {
+      "requestFailed": "Operation failed, please retry later"
     }
   }
 }

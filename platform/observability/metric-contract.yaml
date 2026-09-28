@@ -1,0 +1,137 @@
+# 监控指标契约（告警规则 / 看板的唯一指标真相源）
+#
+# 背景：本仓曾出现 8 个 shuqing_* 指标被 P0/P1/P2 规则与 Grafana 看板引用，但代码里
+# 从未有任何组件发射过它们（另有 process_memory_limit_bytes / process_gc_seconds_total
+# 两个不存在的指标），全部是"能加载、能评估、永不触发"的死规则 —— 监控看起来配好了，
+# 实际是空的。本文件把"哪些指标真的存在、由谁发射、依赖什么前置条件"显式化：
+#
+#   status: available  — 已有组件/采集器真实发射，规则可直接引用
+#   status: pending    — 尚无来源，规则必须放在 rules/pending/（不参与加载）
+#
+# 校验：scripts/check-alert-metric-coverage.py 解析 rules/*.yaml 的 expr，
+# 断言每个指标都能在本文件找到，且引用的 pending 指标会直接报错。
+#
+# 新增规则前：先确认指标真的被发射（grep 代码或看 /actuator/prometheus、/metrics），
+# 然后在本文件登记；否则请把规则放进 rules/pending/。
+
+available:
+  # ---- Java 组件：micrometer-registry-prometheus（/actuator/prometheus）----
+  - name: process_cpu_usage
+    source: micrometer
+    note: JVM 进程 CPU 使用率（0~1 比率），Java 组件通用
+  - name: jvm_memory_used_bytes
+    source: micrometer
+    note: 需配合 area/id 标签，规则用 area="heap"
+  - name: jvm_memory_max_bytes
+    source: micrometer
+    note: 堆上限，area="heap"
+  - name: jvm_gc_pause_seconds_sum
+    source: micrometer
+    note: GC 停顿 Timer 的 sum 侧（搭配 rate() 得停顿占比）
+  - name: http_server_requests_seconds_count
+    source: micrometer
+    note: 标签 outcome=SERVER_ERROR 表示 5xx
+  - name: sql_gateway_query_duration_seconds_bucket
+    source: sql-gateway
+    note: platform/sql-gateway/.../metering/PerformanceMetrics.java:74 发射
+  - name: sql_gateway_query_total
+    source: sql-gateway
+    note: 标签 result=success|degraded，用于降级率
+  - name: sql_gateway_cache_hit_total
+    source: sql-gateway
+    note: 缓存命中数（当前无规则引用，看板可用）
+  - name: sql_gateway_cache_miss_total
+    source: sql-gateway
+    note: 缓存未命中数
+  - name: sql_gateway_throughput_bytes_total
+    source: sql-gateway
+    note: 扫描字节总量
+  - name: sql_gateway_concurrent_queries
+    source: sql-gateway
+    note: 当前并发查询数（Gauge）
+
+  # ---- Go 组件：promhttp 默认注册表 ----
+  - name: process_cpu_seconds_total
+    source: go-promhttp
+    note: Go 组件计数器；与 Java 的 process_cpu_usage 语义不同，规则中两者 or 并列
+  - name: process_resident_memory_bytes
+    source: go-promhttp
+    note: Go 组件常驻内存
+  - name: http_requests_total
+    source: catalog
+    note: platform/catalog/internal/middleware/metrics.go:14 发射，标签 method/path/status
+
+  # ---- kubelet 采集（job=kubelet，cAdvisor 与 volume stats）----
+  - name: container_cpu_usage_seconds_total
+    source: kubelet-cadvisor
+    note: 计费 CPU 核时来源（finops-billing BillingGenerator 使用）
+  - name: container_memory_working_set_bytes
+    source: kubelet-cadvisor
+  - name: container_network_receive_bytes_total
+    source: kubelet-cadvisor
+  - name: container_network_transmit_bytes_total
+    source: kubelet-cadvisor
+  - name: container_spec_memory_limit_bytes
+    source: kubelet-cadvisor
+  - name: kubelet_volume_stats_used_bytes
+    source: kubelet
+    note: 租户存储水位（按 namespace ws-<tenantId>-* 过滤）
+  - name: kubelet_volume_stats_capacity_bytes
+    source: kubelet
+    note: 计费存储 GB·时来源
+
+  # ---- Prometheus 自监控 ----
+  - name: up
+    source: prometheus-self
+  - name: prometheus_scrape_samples_failed_total
+    source: prometheus-self
+  - name: prometheus_scrape_samples_posted_total
+    source: prometheus-self
+  - name: prometheus_rule_evaluation_failures_total
+    source: prometheus-self
+  - name: ALERTS
+    source: prometheus-self
+    note: 看板用（当前活跃告警）
+
+  # ---- APISIX 网关 ----
+  - name: apisix_http_status
+    source: apisix-prometheus-plugin
+    note: open-api-catalog 为路由开启 prometheus 插件（services/apisix_config.py:182）
+
+pending:
+  # 部署 node-exporter（DaemonSet）后可用；规则见 rules/pending/pending-rules.yaml
+  - name: node_filesystem_avail_bytes
+    requires: node-exporter
+  - name: node_filesystem_size_bytes
+    requires: node-exporter
+
+  # 部署 kube-state-metrics 后可用
+  - name: kube_pod_container_status_restarts_total
+    requires: kube-state-metrics
+
+  # GPU 用量（计费 GPU 卡时维度）：需部署 dcgm-exporter
+  # 注意：缺失时该维度恒为 0，而其余四维度正常 → 计费不会 fail-loud，属于"已知静默零值"
+  - name: DCGM_FI_DEV_GPU_UTIL
+    requires: dcgm-exporter
+
+  # 作业指标：需调度组件（DolphinScheduler / stream-batch-scheduler）发射
+  - name: shuqing_job_total
+    requires: 调度组件作业指标
+  - name: shuqing_job_failed_total
+    requires: 调度组件作业指标
+  - name: shuqing_job_running
+    requires: 调度组件作业指标
+  - name: shuqing_job_retry_total
+    requires: 调度组件作业指标
+
+  # 租户配额指标：需 open-api-catalog / APISIX 按租户维度发射
+  - name: shuqing_tenant_api_calls_total
+    requires: 租户级配额指标
+  - name: shuqing_tenant_api_quota
+    requires: 租户级配额指标
+
+  # 看板遗留：租户/查询维度的聚合指标（platform-org、tenant-org 看板在用）
+  - name: shuqing_tenant_active
+    requires: 租户级配额指标
+  - name: shuqing_query_total
+    requires: 租户级查询指标（或改用 sql_gateway_query_total）

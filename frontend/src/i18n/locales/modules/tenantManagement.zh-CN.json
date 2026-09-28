@@ -209,6 +209,12 @@
       },
       "roleTenantAdmin": "租户管理员"
     },
+    "inviteStatus": {
+      "PENDING": "待激活",
+      "ACTIVE": "已激活",
+      "EXPIRED": "已过期",
+      "CANCELLED": "已撤销"
+    },
     "rules2": {
       "codeRequired": "租户编码必填",
       "codePattern": "小写字母/数字/中划线，3-31 位",
@@ -220,6 +226,12 @@
       "codeExists": "租户编码已存在",
       "defaultNote": "租户创建自动生成的首账号邀请码",
       "createdWithInvite": "租户「{name}」创建成功，邀请码 {code}（首账号）",
+      "createdNoInvite": "租户「{name}」创建成功，但首账号邀请码生成失败，请稍后重试",
+      "createFailed": "租户创建失败",
+      "inviteFailed": "邀请码生成失败",
+      "suspendFailed": "暂停租户失败",
+      "resumeFailed": "启用租户失败",
+      "deleteFailed": "删除租户失败",
       "copyDenied": "浏览器拒绝复制，请手动选择",
       "suspendConfirm": "确认暂停租户「{name}」？",
       "suspendTitle": "暂停租户",

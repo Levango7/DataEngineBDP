@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
-import sys
 from datetime import datetime, timezone
+import json
 from pathlib import Path
+import sys
 from typing import Any, Optional
 
 
@@ -61,9 +61,7 @@ def _load_daily_sales(path: Path) -> list[dict[str, Any]]:
     if path.is_file():
         files = [path]
     elif path.is_dir():
-        files = sorted(
-            p for p in path.iterdir() if p.is_file() and not p.name.startswith(("_", "."))
-        )
+        files = sorted(p for p in path.iterdir() if p.is_file() and not p.name.startswith(("_", ".")))
     out: list[dict[str, Any]] = []
     for fp in files:
         try:
@@ -211,9 +209,7 @@ def build_data_object(run_dir: Path) -> dict[str, Any]:
     success = sum(1 for b in batches if b.get("status") == "success")
     failed = sum(1 for b in batches if b.get("status") not in ("success", "unknown"))
     dq_scores = [
-        b["quality"]["dqScore"]
-        for b in batches
-        if b.get("quality") and b["quality"].get("dqScore") is not None
+        b["quality"]["dqScore"] for b in batches if b.get("quality") and b["quality"].get("dqScore") is not None
     ]
     dq_avg = sum(dq_scores) / len(dq_scores) if dq_scores else 0.0
     return {
@@ -255,12 +251,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     default_run = here.parent / "run"
     default_out = here / "data.js"
     parser = argparse.ArgumentParser(description="生成 dashboard/data.js")
-    parser.add_argument(
-        "--run-dir", default=str(default_run), help=f"run 目录路径（默认 {default_run}）"
-    )
-    parser.add_argument(
-        "--out", default=str(default_out), help=f"输出 data.js 路径（默认 {default_out}）"
-    )
+    parser.add_argument("--run-dir", default=str(default_run), help=f"run 目录路径（默认 {default_run}）")
+    parser.add_argument("--out", default=str(default_out), help=f"输出 data.js 路径（默认 {default_out}）")
     args = parser.parse_args(argv)
 
     run_dir = Path(args.run_dir).resolve()

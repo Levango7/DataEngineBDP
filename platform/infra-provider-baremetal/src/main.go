@@ -155,6 +155,9 @@ func main() {
 		logger.Errorf("HTTP服务关闭失败: %v", err)
 	}
 
+	// 取消在途的异步硬件供应，避免 goroutine 带着已关闭的 DB 连接继续跑
+	svc.Shutdown()
+
 	if sqlDB, err := db.DB(); err == nil {
 		if err := sqlDB.Close(); err != nil {
 			logger.Warnf("关闭数据库连接失败: %v", err)

@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from openapi_catalog.api.jwt_auth import getAuthContext
 from openapi_catalog.api.routers import (
     apis,

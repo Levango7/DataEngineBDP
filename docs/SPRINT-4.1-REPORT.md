@@ -41,7 +41,7 @@ Industry 枚举新增 `ENERGY = "energy"`（已有 GOVERNMENT/IOT）。
 
 ### 2.4 注册与测试断言（模板数 7→9）
 
-- templates/__init__.py 注册两个新模板（get_builtin_templates 返回 9）
+- templates/**init**.py 注册两个新模板（get_builtin_templates 返回 9）
 - 更新断言（4 处文件）：
   - test_api.py：templateCount 7→9、列表长度 7→9、IDs 集合加 energy/gov、categories 行业集合加 energy/government
   - test_new_templates.py：param 表加 energy/gov、总数 7→9、IDs 集合
@@ -81,6 +81,7 @@ Sprint 4.1 交付时 P2 e2e 仅有 collect-only 验证。本节为对**本地真
 **结果**：`test_e2e_p2_landed.py` **3 passed**（P2-26 数据虚拟化 + P2-27 能源模板 + P2-28 政务模板，87s）。
 
 **排障过程中修复的环境问题**（对后续本地/CI 排障有复用价值）：
+
 1. sql-gateway fat jar 实为 `sql-gateway-0.1.0-exec.jar`（145MB），`-SNAPSHOT` 命名不存在；
 2. 端口覆盖需 `-Dserver.port=18081`（`-DSERVER_PORT` 作为系统属性不被 relaxed binding 识别，仅环境变量 `SERVER_PORT` 有效）；
 3. sql-gateway `JWT_SECRET` 无默认值且必填——必须注入与测试夹具一致的密钥（conftest 默认 `it-test-jwt-secret-at-least-32-bytes-long`），否则 401；

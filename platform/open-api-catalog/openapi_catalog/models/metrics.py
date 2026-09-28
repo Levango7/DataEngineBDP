@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from openapi_catalog.models.base import CostStrategy, utc_now
 from pydantic import BaseModel, Field
+
+from openapi_catalog.models.base import CostStrategy, utc_now
 
 
 class CallMetric(BaseModel):

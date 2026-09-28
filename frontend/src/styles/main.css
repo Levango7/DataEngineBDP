@@ -1201,12 +1201,10 @@ label {
   box-shadow: none !important;
   outline: none !important;
 }
-/* 仅聚焦态显示 outline 环（wrapper.is-focus 已有 box-shadow 焦点指示，
- * 此处 outline 作为辅助聚焦环，避免未聚焦时始终显示蓝色外框） */
-.el-input__inner:focus {
-  outline: 2px solid var(--ds-border-focus) !important;
-  outline-offset: 2px !important;
-}
+/* 内层 input 一律不画自己的焦点环：焦点指示由下面 .el-input__wrapper.is-focus 负责。
+ * 这里曾经额外写 `.el-input__inner:focus { outline: 2px + offset 2px }`（自称"辅助聚焦环"），
+ * 结果聚焦时在外框内部再套出一个圆角框 —— 双层边框是视觉缺陷，不是焦点样式。
+ * 删掉后焦点可见性不受影响（wrapper 的 1px focus 边框 + 3px 强调色外圈仍在）。 */
 .el-input__wrapper {
   padding: 1px 10px !important;
   /* v2：输入框边界是「控件边界」，受 WCAG 1.4.11 约束（≥3:1）。

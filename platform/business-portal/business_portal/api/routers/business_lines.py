@@ -8,13 +8,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from business_portal.api.jwt_auth import AuthContext, effectiveTenant, getAuthContext
 from business_portal.api.routers.deps import (
     get_current_tenant,
     get_current_user,
     get_registry,
     status_for_error,
 )
-from business_portal.api.jwt_auth import AuthContext, effectiveTenant, getAuthContext
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
     Budget,

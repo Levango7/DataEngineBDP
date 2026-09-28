@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
+import os
 
 from ..helpers import ROOT, abs_path
 

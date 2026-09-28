@@ -33,6 +33,27 @@ spec:
         - name: template-assets
           configMap:
             name: {{ .Values.configMap.namePrefix }}-assets
+            items:
+{{- range $path, $_ := .Files.Glob "ddl/**" }}
+              - key: {{ $path | replace "/" "_" }}
+                path: {{ $path }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "dag/**" }}
+              - key: {{ $path | replace "/" "_" }}
+                path: {{ $path }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "dashboards/**" }}
+              - key: {{ $path | replace "/" "_" }}
+                path: {{ $path }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "iotdb/**" }}
+              - key: {{ $path | replace "/" "_" }}
+                path: {{ $path }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "rbac/**" }}
+              - key: {{ $path | replace "/" "_" }}
+                path: {{ $path }}
+{{- end }}
       containers:
         - name: template-importer
           image: "{{ .Values.importJob.image.repository }}:{{ .Values.importJob.image.tag }}"

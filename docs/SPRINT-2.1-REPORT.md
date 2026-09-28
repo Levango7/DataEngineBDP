@@ -53,6 +53,7 @@
 ### 3.2 跨进程同前缀的豁免设计
 
 TenantController 双注册属**已知跨进程复用**，处理方式：
+
 1. 脚本白名单 `KNOWN_CROSS_PROCESS_ROUTES` 精确匹配 (verb, path)，输出 `::warning::` 可见但不阻断 CI；
 2. encaps-layer 侧守卫 `@ConditionalOnProperty` 保证未来若合并部署可配置关闭；
 3. 新增未知冲突仍会阻断 CI，新增豁免必须改脚本留痕（可审计）。

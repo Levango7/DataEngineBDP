@@ -10,11 +10,10 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import Optional
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, Field
 
 from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
 from asset_exchange.api.routers.deps import get_registry
@@ -65,7 +64,7 @@ async def settleByBilling(
 
     # 透传 JWT 给 finops（租户隔离）
     authHeader = request.headers.get("Authorization", "")
-    jwtToken = authHeader[len("Bearer "):] if authHeader.startswith("Bearer ") else None
+    jwtToken = authHeader[len("Bearer ") :] if authHeader.startswith("Bearer ") else None
 
     # 1. 拉取 finops 账单
     try:

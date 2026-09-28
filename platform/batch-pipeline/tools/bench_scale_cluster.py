@@ -22,13 +22,13 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
 import os
 import sys
 import time
-import uuid
-from datetime import datetime
 from typing import Any
+import uuid
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -150,8 +150,8 @@ def synth_orders_polars(
 
 def synth_reference_tables(n_customers: int, n_products: int, out_dir: str) -> None:
     """参考表直接复用项目生成器（规模小，纯 Python 循环可接受）."""
-    import random
     from datetime import datetime
+    import random
 
     from batch_pipeline.generator import gen_customers, gen_products
     from batch_pipeline.helpers import csv_write
@@ -167,9 +167,7 @@ def synth_reference_tables(n_customers: int, n_products: int, out_dir: str) -> N
 # ---------------------------------------------------------------------------
 # 上传到 MinIO
 # ---------------------------------------------------------------------------
-def upload_to_s3(
-    local_path: str, bucket: str, key: str, endpoint: str, access_key: str, secret_key: str
-) -> None:
+def upload_to_s3(local_path: str, bucket: str, key: str, endpoint: str, access_key: str, secret_key: str) -> None:
     """pyarrow 流式单文件上传（8GB 级不占额外内存）."""
     import pyarrow.fs as fs
 
@@ -370,12 +368,8 @@ def main(argv: list[str]) -> int:
         local_mode=args.local_mode,
         jvm_opts=args.jvm_opts,
     )
-    batch_id = (
-        f"bench-{'local' if args.local_mode else 'cluster'}-{args.rows}-{uuid.uuid4().hex[:6]}"
-    )
-    print(
-        f"[scale-bench] 启动 pipeline batch={batch_id} mode={'local' if args.local_mode else 'cluster'}"
-    )
+    batch_id = f"bench-{'local' if args.local_mode else 'cluster'}-{args.rows}-{uuid.uuid4().hex[:6]}"
+    print(f"[scale-bench] 启动 pipeline batch={batch_id} mode={'local' if args.local_mode else 'cluster'}")
 
     _bootstrap_driver_env()
     from batch_pipeline.pipeline import run_pipeline
@@ -395,9 +389,7 @@ def main(argv: list[str]) -> int:
         "source_size_gb": round(size_gb, 2),
         "engine": "spark",
         "mode": (
-            f"local({args.master}, {args.driver_memory})"
-            if args.local_mode
-            else "cluster(2 workers x 2 cores x 2g)"
+            f"local({args.master}, {args.driver_memory})" if args.local_mode else "cluster(2 workers x 2 cores x 2g)"
         ),
         "storage": "parquet/s3(minio)",
         "shuffle_partitions": args.shuffle_partitions,

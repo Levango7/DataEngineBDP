@@ -1,4 +1,4 @@
-﻿# 开发指南
+# 开发指南
 
 > 本指南描述数据引擎大数据平台的开发环境搭建、各语言构建命令、测试命令、代码规范与调试技巧。
 
@@ -71,7 +71,7 @@ DataEngineBDP/
 
 ### Java 组件
 
-Java 组件基于 Spring Boot 3.2.x + Maven 3.9，Java 17。
+Java 组件基于 Spring Boot 4.1.1 + Maven 3.9，Java 17。
 
 ```bash
 # 编译单个组件
@@ -107,7 +107,7 @@ docker build -t shuqing/encaps-layer:latest platform/encaps-layer/
 
 ### Go 组件
 
-Go 组件基于 Go 1.22+ + Gin / Cobra。
+Go 组件基于 Go 1.26+ + Gin / Cobra。
 
 ```bash
 # 下载依赖

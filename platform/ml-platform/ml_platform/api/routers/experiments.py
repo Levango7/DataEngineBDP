@@ -93,9 +93,7 @@ async def listExperiments(
         # 非 admin 用户必须有 tenantId，否则拒绝（防止空 tenantId 绕过过滤返回全部实验）
         if not ctx.tenantId:
             raise HTTPException(status_code=403, detail="缺少租户上下文")
-        experiments = [
-            e for e in experiments if getattr(e, "tenantId", None) == ctx.tenantId
-        ]
+        experiments = [e for e in experiments if getattr(e, "tenantId", None) == ctx.tenantId]
     return experiments
 
 

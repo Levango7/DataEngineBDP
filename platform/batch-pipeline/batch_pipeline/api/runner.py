@@ -11,10 +11,10 @@ API 提交的批次在服务内后台线程串行执行——串行是刻意约�
 
 from __future__ import annotations
 
-import threading
-import uuid
 from dataclasses import dataclass, field
+import threading
 from typing import Any, Optional
+import uuid
 
 from ..pipeline import run_pipeline
 
@@ -49,12 +49,10 @@ class BatchRunner:
 
     def __init__(self) -> None:
         self._records: dict[str, BatchRecord] = {}
-        self._lock = threading.Lock()       # 保护 _records 及 record 字段修改
+        self._lock = threading.Lock()  # 保护 _records 及 record 字段修改
         self._exec_lock = threading.Lock()  # 保证批次串行执行（不阻塞查询）
 
-    def submit(
-        self, config: dict[str, Any], tenant_id: str, batch_id: Optional[str] = None
-    ) -> BatchRecord:
+    def submit(self, config: dict[str, Any], tenant_id: str, batch_id: Optional[str] = None) -> BatchRecord:
         """登记批次并启动后台执行线程；立即返回记录.
 
         config 是服务端基础配置（可含请求体业务字段覆盖项，路由层已剔除
@@ -77,9 +75,7 @@ class BatchRunner:
                 config=config,
             )
             self._records[batch_id] = record
-        thread = threading.Thread(
-            target=self._execute, args=(record,), daemon=True, name=f"batch-{batch_id}"
-        )
+        thread = threading.Thread(target=self._execute, args=(record,), daemon=True, name=f"batch-{batch_id}")
         thread.start()
         return record
 

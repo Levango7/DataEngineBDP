@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from openapi_catalog.models import (
     APISubscription,
     ApproveRequest,
@@ -12,7 +14,6 @@ from openapi_catalog.repositories import (
     QuotaExceededError,
     RateLimitExceededError,
 )
-import pytest
 
 
 class TestSubscription:

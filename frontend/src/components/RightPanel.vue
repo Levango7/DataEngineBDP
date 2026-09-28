@@ -27,6 +27,11 @@
       </div>
 
       <div class="rp-body">
+        <!-- 示例数据标记：这些条目不是真实通知，必须让使用者看得见（后端接口尚未提供） -->
+        <p v-if="DEMO_DATA" class="rp-demo-banner" role="note">
+          {{ t('app.demoDataBanner') }}
+        </p>
+
         <!-- 通知中心 -->
         <div v-if="activeTab === 'notice'" role="tabpanel" :aria-label="t('app.noticeList')">
           <div v-for="n in notices" :key="n.id" class="rp-item" :class="{ unread: n.unread }">
@@ -71,10 +76,15 @@ type TabKey = 'notice' | 'activity'
 const activeTab = ref<TabKey>('notice')
 
 /**
- * 演示数据：通知中心/动态流的展示壳。
- * 数据源标注：真实通知中心后端尚未提供（数据源=前端内置），
- * 接入后端后替换为 API 拉取（预期 /api/v1/notifications）。
+ * 通知中心 / 动态流当前**没有后端数据源**：全仓（Java/Go/Python）与前端 api 层都
+ * 不存在 notifications / activities 端点，故下面是内置示例数据。
+ *
+ * 保持示例数据 + 显式标记（而不是静默展示，也不是删掉面板）的理由：
+ * 这些文案读起来就是真实告警（如"数据源 MySQL-生产库 连接恢复正常"），
+ * 不标注会让运维人员误以为故障已恢复 —— 那比"面板空着"危险得多。
+ * 后端接口就绪后：把 DEMO_DATA 置 false 并换成 api 拉取，无需改动模板结构。
  */
+const DEMO_DATA = true
 interface PanelItem {
   id: string
   title: string
@@ -231,6 +241,16 @@ const tabs = computed(() => [
   flex: 1;
   overflow-y: auto;
   padding: 6px 0;
+}
+.rp-demo-banner {
+  margin: 8px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-warning);
+  border-radius: var(--ds-radius-sm, 4px);
+  background: var(--ds-warning-soft);
+  color: var(--ds-text-primary);
+  font-size: var(--ds-font-size-xs, 12px);
+  line-height: 1.5;
 }
 .rp-item {
   display: flex;

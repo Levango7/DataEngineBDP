@@ -55,6 +55,7 @@ except ImportError:  # pragma: no cover — 容错：直接运行 e2e 目录时�
             "iss": "shuqing-bigdata",
             "sub": "e2e-tester",
             "tenantId": "e2e-tenant",
+            "realm_access": {"roles": list(kwargs.get("roles", ("USER",)))},
             "iat": now,
             "exp": now + 3600,
         }
@@ -115,6 +116,12 @@ E2E_BASE_URLS: Dict[str, str] = {
     "nl2sql": os.environ.get("NL2SQL_URL", "http://localhost:18098"),
     "finetuning": os.environ.get("FINETUNING_URL", "http://localhost:18099"),
     "materialized_view": os.environ.get("MATERIALIZED_VIEW_URL", "http://localhost:18100"),
+    # karmada / observability 的键必须存在：下方 karmada_url()/observability_url()
+    # fixture 直接按 E2E_BASE_URLS["karmada"] 取值，缺键即 KeyError，
+    # 会让"服务未部署本应跳过"的用例变成 13 个 error（实测）。
+    # 端口另起 18101/18102：18090/18093 已让渡给入栈的 encaps-tenant/business-portal。
+    "karmada": os.environ.get("KARMADA_URL", "http://localhost:18101"),
+    "observability": os.environ.get("OBSERVABILITY_URL", "http://localhost:18102"),
 }
 
 E2E_HEALTH_PATHS: Dict[str, str] = {
@@ -135,6 +142,10 @@ E2E_HEALTH_PATHS: Dict[str, str] = {
     "nl2sql": "/health",
     "finetuning": "/health",
     "materialized_view": "/api/v1/health",
+    # 有证据的健康端点：federated-query 见 FederatedQueryController.java:87，
+    # observability query-api 见 handler_test.go:35 注册的 /health。
+    "karmada": "/api/v1/federated/health",
+    "observability": "/health",
 }
 
 # 核心模块（封装层/SQL网关/Catalog/规则引擎）的基础 URL 与健康检查路径。
@@ -191,8 +202,16 @@ def is_e2e_service_available(name: str) -> bool:
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session")
 def e2e_auth_token() -> str:
-    """E2E 测试专用 JWT token（tenantId=e2e-tenant）。"""
-    return generate_test_jwt(tenant_id="e2e-tenant", user_id="e2e-tester")
+    """E2E 测试专用 JWT token（tenantId=e2e-tenant）。
+
+    E2E 场景要"建租户 → 发凭证 → 建项目 → 跑查询"整条链，全程需要管理端权限；
+    角色放 realm_access.roles（encaps-layer 的 JwtAuthFilter 只认这里）。
+    """
+    return generate_test_jwt(
+        tenant_id="e2e-tenant",
+        user_id="e2e-tester",
+        roles=("USER", "TENANT_ADMIN", "SUPER_ADMIN"),
+    )
 
 
 @pytest.fixture(scope="session")

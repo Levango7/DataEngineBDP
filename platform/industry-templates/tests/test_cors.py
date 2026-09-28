@@ -12,8 +12,8 @@
 
 from __future__ import annotations
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from industry_templates.api.app import create_app
 from industry_templates.config.settings import Settings, reset_settings
