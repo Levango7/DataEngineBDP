@@ -26,6 +26,15 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8080"
+        # burn-in 集群未部署 NebulaGraph 与 LLM 网关：storeType 默认 nebula 会在配置
+        # 校验期强制要求 KE_NEBULA_USER（实测启动即 ValidationError:
+        # nebulaUser 不能为空），故与集成测试的取值保持一致
+        # （tests/integration/conftest.py 中 KE_STORETYPE/KE_EXTRACTORTYPE = mock）；
+        # 生产请使用 helm charts（nebula 凭证走 Secret 注入，extractor 用 llm）。
+        - name: KE_STORETYPE
+          value: "mock"
+        - name: KE_EXTRACTORTYPE
+          value: "mock"
         # jwt_auth.py 在 K8s 内未显式 AUTH_MODE 时会 fail-fast 抛 RuntimeError。
         # k3s 冒烟路径与集成测试一致走匿名放行，故显式设为 none；
         # 生产请使用 helm charts（AUTH_MODE=jwt + Secret 注入）。
