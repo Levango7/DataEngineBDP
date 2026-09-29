@@ -41,10 +41,21 @@ ROUTES_FILE = CHARTS_DIR / "apisix" / "templates" / "configmap-routes.yaml"
 # 多服务声明同一前缀时的显式裁决（必须写明理由，否则脚本报冲突并退出）
 # key = 前缀，value = 承接该前缀的 chart 名
 #
-# 以下四条按"前端实际要调哪些端点 + 哪一侧真的实现了它们"取证，不按服务名猜测。
+# 以下各条按"前端实际要调哪些端点 + 哪一侧真的实现了它们"取证，不按服务名猜测。
 # 这类冲突的根因是同一业务域被两个服务各自实现，已作为架构债登记
-# （docs/KNOWN-FAILURES.md §6）。/api/v1/dashboards 两侧都实现了前端全部 6 个调用，
-# 无法用证据裁定，故意不裁（继续由本脚本报冲突、该前缀暂不经网关）。
+# （docs/KNOWN-FAILURES.md §6）。
+# 粗前缀 /api/v1 的处置结论：按二级段细化【不做】。取证如下：
+#   ① 细化后新增可路由的段（catalog / collections / chat / embeddings / providers /
+#      metrics / eval）在 frontend/src/api/** 里一个调用都没有（如 catalog 的
+#      platform/catalog/main.go:105,110 与 handler/catalog.go:29-42，前端无 /catalog 调用），
+#      即细化对前端可用能力零收益；
+#   ② 反而新造 3 个冲突：auth（encaps-layer AuthController.java:53 × baremetal
+#      health_handler.go:38,41）、clusters（orchestrator ClusterController.java:62 ×
+#      baremetal cluster_handler.go:37-42 × karmada api/main.go:133-136）、
+#      models（再拉进 llm-gateway handler.go:56 成三方）；karmada 各段仍因
+#      CHART_FALLBACK_DENY 不可路由。
+# 结论：保持 /api/v1 报冲突不路由（当前无任何前端调用依赖它），要解的是"缺 chart"
+# 与"后端未实现"两类真缺口（见 docs/KNOWN-FAILURES.md #1/#2 与 /api/v1/registry）。
 PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # encaps-layer 与 encaps-tenant 都声明 /api/v1/tenants：
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
@@ -58,6 +69,14 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     "/api/v1/templates": "industry-templates",
     # dev-ml.ts 注释明写"模型仓库端点对齐 ml-platform（/api/v1/models*）"。
     "/api/v1/models": "ml-platform",
+    # finops 与 business-portal 都声明 /api/v1/dashboards，按载荷契约裁定给 business-portal：
+    # 前端 analyze.ts:85-120 要 PagedResult{list,total,page,pageSize}（types.ts:25-34）与
+    # realtime{key,label,value,unit,latencySec}（analyze.ts:65-76，Analyze.vue:79/84 直接取键）；
+    # finops 侧 BiDashboardController.java:63/74 用 size 参数与 size 键、无 keyword、id 为 Long(:82)，
+    # 且 RealtimeMetricsService.java:45-51 返回 name/value/unit/timestamp 的随机数 —— 四项都不匹配；
+    # business-portal 的 dashboards.py:1-7 显式声明"对齐 analyze.ts 契约"，:72-74 收 page/pageSize/keyword，
+    # :82-101 逐字段映射 key/label/value/unit/latencySec。
+    "/api/v1/dashboards": "business-portal",
 }
 
 # 不对外经网关暴露的前缀（各服务都有，无区分度）
