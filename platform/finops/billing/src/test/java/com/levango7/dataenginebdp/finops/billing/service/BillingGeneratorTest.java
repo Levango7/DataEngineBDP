@@ -405,6 +405,32 @@ class BillingGeneratorTest {
         assertThat(response.getStatus()).isEqualTo("GENERATED_DEGRADED");
     }
 
+    @Test
+    void generate_marksDimensionUnmeasured_whenOnlyGpuSeriesAbsent() {
+        // dcgm-exporter 未部署的场景：GPU 查询正常返回但没有任何时序，其余四维度正常。
+        // 台账 #4 要求把"未被计量"与"用量真的是 0"区分开：金额仍按 0 计入
+        // （否则无 GPU 的租户无法出账），但账单备注必须写明该维度未计量。
+        when(prometheusClient.isAvailable()).thenReturn(true);
+        when(prometheusClient.rangeQuery(anyString(), anyLong(), anyLong(), any()))
+                .thenAnswer(inv -> {
+                    String query = inv.getArgument(0);
+                    if (query.contains("DCGM_FI_DEV_GPU_UTIL")) {
+                        return responseOf(List.of());
+                    }
+                    return responseOf(List.of(series(labels(TENANT, NS), samples(usageFor(query)))));
+                });
+
+        BillingGenerateResponse response = generator.generate(TENANT, request("2026-08"));
+
+        assertThat(response.getStatus()).isEqualTo("GENERATED");
+        assertThat(response.getNote())
+                .contains("未计量维度").contains("GPU")
+                .doesNotContain("降级生成");
+        assertThat(itemOf(response.getItems(), "GPU").getAmount()).isEqualByComparingTo("0.0000");
+        // 其余四维度的计价不受影响
+        assertThat(itemOf(response.getItems(), "CPU").getAmount()).isEqualByComparingTo("6.0000");
+    }
+
     // ---------- 用例 10~12：响应结构异常与标签隔离 ----------
 
     @Test

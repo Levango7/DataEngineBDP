@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Optional
 
 import httpx
@@ -18,6 +19,10 @@ import httpx
 from asset_exchange.config.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+# billingId 由结算请求体提供并直接拼进请求 URL，若不限制字符集，形如 `x/../../@evil`
+# 或 `//evil` 的入参会把带 JWT 的请求导向第三方主机（CodeQL py/partial-ssrf 告警 #7884）。
+_BILLING_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 
 
 class FinOpsBillingClient:
@@ -44,6 +49,9 @@ class FinOpsBillingClient:
         Raises:
             FinOpsBillingError: finops 服务返回非 200 或网络异常.
         """
+        if not _BILLING_ID_RE.match(billingId or ""):
+            raise FinOpsBillingError(f"账单 ID 格式非法: {billingId!r}", status_code=400)
+
         url = f"{self._baseUrl}/{billingId}"
         headers = self._buildHeaders(jwtToken)
         try:

@@ -182,7 +182,7 @@ public class BillingGenerator {
                 .generatedAt(Instant.now())
                 .periodStart(start)
                 .periodEnd(end)
-                .note(buildNote(items, degraded, hasUsageData))
+                .note(buildNote(items, degraded, hasUsageData, collected.unmeasuredDimensions()))
                 .build();
 
         if (degraded) {
@@ -234,7 +234,8 @@ public class BillingGenerator {
      * <p>{@code infraUsageMissing} 为 true 表示 Prometheus 不可用，或所有维度都没有
      * 任何一条匹配本租户的时序——此时用量不可信，需由调用方决定拒绝出账还是降级。</p>
      */
-    private record CollectionResult(List<BillingItem> items, boolean infraUsageMissing) {
+    private record CollectionResult(List<BillingItem> items, boolean infraUsageMissing,
+                                    List<String> unmeasuredDimensions) {
     }
 
     /**
@@ -252,30 +253,35 @@ public class BillingGenerator {
 
         // CPU 用量（核时）
         double cpuUsage = collectUsage(
+                "CPU",
                 "sum by (tenant_id,tenant,namespace)(rate(container_cpu_usage_seconds_total[1m]))",
                 tenant, ns, start, end, step, c);
         items.add(buildItem("CPU", ns, cpuUsage, PRICE_CPU, null));
 
         // 内存用量（GB·时）
         double memUsage = collectUsage(
+                "MEMORY",
                 "sum by (tenant_id,tenant,namespace)(container_memory_working_set_bytes / " + BYTES_PER_GB + ")",
                 tenant, ns, start, end, step, c);
         items.add(buildItem("MEMORY", ns, memUsage, PRICE_MEMORY, null));
 
         // 存储用量（GB·时）
         double storageUsage = collectUsage(
+                "STORAGE",
                 "sum by (tenant_id,tenant,namespace)(kubelet_volume_stats_capacity_bytes / " + BYTES_PER_GB + ")",
                 tenant, ns, start, end, step, c);
         items.add(buildItem("STORAGE", ns, storageUsage, PRICE_STORAGE, null));
 
         // GPU 用量（卡时，按型号差异化）—— 简化：用 default 单价
         double gpuUsage = collectUsage(
+                "GPU",
                 "sum by (tenant_id,tenant,namespace,gpu_model)(DCGM_FI_DEV_GPU_UTIL / 100)",
                 tenant, ns, start, end, step, c);
         items.add(buildItem("GPU", ns, gpuUsage, PRICE_GPU_DEFAULT, "default"));
 
         // 网络流量（GB）
         double netUsage = collectUsage(
+                "NETWORK",
                 "sum by (tenant_id,tenant,namespace)(rate(container_network_receive_bytes_total[1m])"
                         + " + rate(container_network_transmit_bytes_total[1m])) / " + BYTES_PER_GB,
                 tenant, ns, start, end, step, c);
@@ -286,8 +292,12 @@ public class BillingGenerator {
         } else if (c.matchedSeries == 0) {
             log.warn("未采集到租户 {} 的任何用量时序（检查 tenant_id 标签注入与 namespace 约定）；"
                     + "不匹配时序数={}", tenant, c.mismatchedSeries);
+        } else if (!c.unmeasuredDimensions.isEmpty()) {
+            log.warn("租户 {} 的部分维度未采集到任何时序，金额按 0 计入并在账单标注未计量: {}",
+                    tenant, c.unmeasuredDimensions);
         }
-        return new CollectionResult(items, !c.available || c.matchedSeries == 0);
+        return new CollectionResult(items, !c.available || c.matchedSeries == 0,
+                List.copyOf(c.unmeasuredDimensions));
     }
 
     /** 单次账单采集的跨维度计数：用于区分"真的没用量"与"标签/抓取配置坏了"。 */
@@ -295,6 +305,8 @@ public class BillingGenerator {
         private final boolean available;
         private int matchedSeries;
         private int mismatchedSeries;
+        /** Prometheus 可用但该维度一条时序都没匹配到 —— 与"用量为 0"必须可区分（台账 #4）。 */
+        private final List<String> unmeasuredDimensions = new ArrayList<>();
 
         private Collection(boolean available) {
             this.available = available;
@@ -306,20 +318,30 @@ public class BillingGenerator {
      *
      * <p>Prometheus 不可用或查询异常时返回 0，并把"无匹配时序"记录到 {@code c} 上，
      * 由 {@link #collectAndPrice} 汇总判断——不接受静默把故障当成 0 用量。</p>
+     *
+     * <p>{@code label} 用于逐维度登记"未计量"：某维度序列缺失（如 dcgm-exporter 未部署）
+     * 时金额只能按 0 计，但账单必须写明它没被计量，否则读账的人会把 0 当成真实用量。</p>
      */
     @SuppressWarnings("unchecked")
-    private double collectUsage(String query, String tenant, String namespace, Instant start, Instant end,
+    private double collectUsage(String label, String query, String tenant, String namespace,
+                                Instant start, Instant end,
                                 Duration step, Collection c) {
         if (!c.available) {
             log.debug("Prometheus 不可用，用量降级为 0");
             return 0.0;
         }
+        int matchedBefore = c.matchedSeries;
         try {
             Map<String, Object> resp = prometheusClient.rangeQuery(
                     query, start.getEpochSecond(), end.getEpochSecond(), step);
-            return extractAmount(resp, tenant, namespace, c);
+            double value = extractAmount(resp, tenant, namespace, c);
+            if (c.matchedSeries == matchedBefore) {
+                c.unmeasuredDimensions.add(label);
+            }
+            return value;
         } catch (Exception e) {
-            log.warn("采集用量失败: query={}, err={}", query, e.getMessage());
+            log.warn("采集用量失败: dimension={}, query={}, err={}", label, query, e.getMessage());
+            c.unmeasuredDimensions.add(label);
             return 0.0;
         }
     }
@@ -493,11 +515,13 @@ public class BillingGenerator {
     /**
      * 构建账单备注。
      *
-     * @param items        账单明细项
-     * @param degraded     是否降级生成（缺少资源用量时序）
-     * @param hasUsageData 是否含计量汇入项
+     * @param items                 账单明细项
+     * @param degraded              是否降级生成（缺少资源用量时序）
+     * @param hasUsageData          是否含计量汇入项
+     * @param unmeasuredDimensions  Prometheus 可用但无任何匹配时序的维度（未计量 ≠ 用量为 0）
      */
-    private String buildNote(List<BillingItem> items, boolean degraded, boolean hasUsageData) {
+    private String buildNote(List<BillingItem> items, boolean degraded, boolean hasUsageData,
+                             List<String> unmeasuredDimensions) {
         StringBuilder sb = new StringBuilder();
         sb.append("出账闭环账单：共 ").append(items.size()).append(" 个明细项；");
         sb.append("维度：");
@@ -508,6 +532,13 @@ public class BillingGenerator {
         }
         if (degraded) {
             sb.append("；⚠ 降级生成（未采集到资源用量时序，金额不含资源维度或全零）");
+        }
+        // 单维度序列缺失（如 dcgm-exporter 未部署）不能伪装成"该维度用量为 0"：金额仍按 0 计入
+        // （否则没有该资源的租户无法出账），但账单必须写明它未被计量（台账 #4）。
+        if (!degraded && !unmeasuredDimensions.isEmpty()) {
+            sb.append("；⚠ 未计量维度：")
+                    .append(String.join("、", unmeasuredDimensions))
+                    .append("（无匹配时序，金额按 0 计入，非真实零用量）");
         }
         return sb.toString();
     }

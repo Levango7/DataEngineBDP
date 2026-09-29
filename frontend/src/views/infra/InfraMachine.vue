@@ -257,7 +257,7 @@ import { Refresh } from '@element-plus/icons-vue'
 import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as infraApi from '@/api/infra'
-import type { ClusterInfo, ClusterStatus, ClusterCreateRequest } from '@/api/infra'
+import type { ClusterInfo, ClusterStatus, XinchangLegacyCreateRequest } from '@/api/infra'
 
 const { t, te } = useI18n()
 
@@ -361,7 +361,7 @@ async function handleCreate() {
     if (!valid) return
     submitting.value = true
     try {
-      const req: ClusterCreateRequest = {
+      const req: XinchangLegacyCreateRequest = {
         clusterName: createForm.clusterName,
         k8sVersion: createForm.k8sVersion,
         podCidr: createForm.podCidr,

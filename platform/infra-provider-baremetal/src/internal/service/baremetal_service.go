@@ -628,8 +628,8 @@ func validateCreateRequest(req *model.CreateClusterRequest) error {
 			return fmt.Errorf("节点hostname重复: %s", n.Hostname)
 		}
 		hostnames[n.Hostname] = struct{}{}
-		if n.BMC.Host == "" {
-			return fmt.Errorf("节点 %s 缺少BMC地址", n.Hostname)
+		if _, err := validateBMCBase(n.BMC.Host); err != nil {
+			return fmt.Errorf("节点 %s BMC 地址不合法: %w", n.Hostname, err)
 		}
 		if n.Role == model.NodeRoleControlPlane {
 			hasControlPlane = true
