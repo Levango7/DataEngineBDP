@@ -117,13 +117,10 @@ type RedfishError struct {
 	} `json:"error"`
 }
 
-// baseURL 构造BMC的Redfish根URL
-func baseURL(bmc model.BMCCredential) string {
-	host := bmc.Host
-	if !strings.HasPrefix(host, "https://") && !strings.HasPrefix(host, "http://") {
-		host = "https://" + host
-	}
-	return strings.TrimRight(host, "/") + "/redfish/v1"
+// baseURL 构造BMC的Redfish根URL。BMC 地址由请求载荷提供且随后会带上 Basic Auth 凭据，
+// 故在此统一门禁（详见 bmc_guard.go）。
+func baseURL(bmc model.BMCCredential) (string, error) {
+	return validateBMCBase(bmc.Host)
 }
 
 // doRequest 执行Redfish HTTP请求
@@ -187,7 +184,10 @@ func (c *RedfishClient) resolveCredentials(bmc model.BMCCredential) (string, str
 // ListSystems 列出BMC上所有系统
 // GET /redfish/v1/Systems
 func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential) ([]RedfishSystem, error) {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return nil, fmt.Errorf("列出Systems失败: %w", err)
+	}
 	user, pass := c.resolveCredentials(bmc)
 
 	body, err := c.doRequest(ctx, http.MethodGet, base+"/Systems", user, pass, nil)
@@ -200,12 +200,15 @@ func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential
 		return nil, fmt.Errorf("解析Systems集合失败: %w", err)
 	}
 
+	origin := strings.TrimSuffix(base, "/redfish/v1")
 	systems := make([]RedfishSystem, 0, col.MembersCount)
 	for _, m := range col.Members {
-		sysURL := strings.TrimRight(bmc.Host, "/") + m.ODataID
-		if !strings.HasPrefix(sysURL, "https://") && !strings.HasPrefix(sysURL, "http://") {
-			sysURL = "https://" + sysURL
+		if !strings.HasPrefix(m.ODataID, "/") {
+			// BMC 响应里的成员必须是本服务下的路径，绝对 URL 会把凭据带往第三方主机。
+			log.Printf("[redfish] list systems: skip member with non-path ODataID %q", m.ODataID)
+			continue
 		}
+		sysURL := origin + m.ODataID
 		sysBody, err := c.doRequest(ctx, http.MethodGet, sysURL, user, pass, nil)
 		if err != nil {
 			// 单个系统查询失败不应阻塞整个列表，但需记录便于排障。
@@ -226,7 +229,10 @@ func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential
 // GetSystem 获取单个系统详情
 // GET /redfish/v1/Systems/{id}
 func (c *RedfishClient) GetSystem(ctx context.Context, bmc model.BMCCredential, systemID string) (*RedfishSystem, error) {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return nil, fmt.Errorf("获取System失败: %w", err)
+	}
 	user, pass := c.resolveCredentials(bmc)
 
 	body, err := c.doRequest(ctx, http.MethodGet, fmt.Sprintf("%s/Systems/%s", base, systemID), user, pass, nil)
@@ -244,14 +250,17 @@ func (c *RedfishClient) GetSystem(ctx context.Context, bmc model.BMCCredential, 
 // ResetSystem 电源控制(开机/关机/重启)
 // POST /redfish/v1/Systems/{id}/Actions/ComputerSystem.Reset
 func (c *RedfishClient) ResetSystem(ctx context.Context, bmc model.BMCCredential, systemID string, resetType model.PowerState) error {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return fmt.Errorf("电源控制失败(type=%s): %w", resetType, err)
+	}
 	user, pass := c.resolveCredentials(bmc)
 
 	url := fmt.Sprintf("%s/Systems/%s/Actions/ComputerSystem.Reset", base, systemID)
 	payload := map[string]string{
 		"ResetType": string(resetType),
 	}
-	_, err := c.doRequest(ctx, http.MethodPost, url, user, pass, payload)
+	_, err = c.doRequest(ctx, http.MethodPost, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("电源控制失败(type=%s): %w", resetType, err)
 	}
@@ -261,7 +270,10 @@ func (c *RedfishClient) ResetSystem(ctx context.Context, bmc model.BMCCredential
 // SetBootSource 设置启动源(用于PXE启动)
 // PATCH /redfish/v1/Systems/{id}
 func (c *RedfishClient) SetBootSource(ctx context.Context, bmc model.BMCCredential, systemID string, target model.BootSourceType, override model.BootSourceOverride) error {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return fmt.Errorf("设置启动源失败(target=%s): %w", target, err)
+	}
 	user, pass := c.resolveCredentials(bmc)
 
 	url := fmt.Sprintf("%s/Systems/%s", base, systemID)
@@ -271,7 +283,7 @@ func (c *RedfishClient) SetBootSource(ctx context.Context, bmc model.BMCCredenti
 			"BootSourceOverrideTarget":  string(target),
 		},
 	}
-	_, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
+	_, err = c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("设置启动源失败(target=%s): %w", target, err)
 	}
@@ -281,14 +293,17 @@ func (c *RedfishClient) SetBootSource(ctx context.Context, bmc model.BMCCredenti
 // SetBIOSAttribute 设置BIOS属性
 // PATCH /redfish/v1/Systems/{id}/Bios/Settings
 func (c *RedfishClient) SetBIOSAttribute(ctx context.Context, bmc model.BMCCredential, systemID string, attributes map[string]string) error {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return fmt.Errorf("设置BIOS属性失败: %w", err)
+	}
 	user, pass := c.resolveCredentials(bmc)
 
 	url := fmt.Sprintf("%s/Systems/%s/Bios/Settings", base, systemID)
 	payload := map[string]interface{}{
 		"Attributes": attributes,
 	}
-	_, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
+	_, err = c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("设置BIOS属性失败: %w", err)
 	}
@@ -359,8 +374,11 @@ func (c *RedfishClient) PowerOffGracefully(ctx context.Context, bmc model.BMCCre
 
 // HealthCheck 检查BMC连通性
 func (c *RedfishClient) HealthCheck(ctx context.Context, bmc model.BMCCredential) error {
-	base := baseURL(bmc)
+	base, err := baseURL(bmc)
+	if err != nil {
+		return err
+	}
 	user, pass := c.resolveCredentials(bmc)
-	_, err := c.doRequest(ctx, http.MethodGet, base, user, pass, nil)
+	_, err = c.doRequest(ctx, http.MethodGet, base, user, pass, nil)
 	return err
 }

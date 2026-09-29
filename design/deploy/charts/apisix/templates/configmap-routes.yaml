@@ -230,6 +230,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/dashboards/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "business-portal:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/deployments/**",
           "upstream": {
             "type": "roundrobin",

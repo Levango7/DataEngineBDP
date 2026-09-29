@@ -11,8 +11,10 @@ import (
 	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
-// newTestRedfishServer 创建模拟BMC Redfish服务器
-func newTestRedfishServer() *httptest.Server {
+// newTestRedfishServer 创建模拟BMC Redfish服务器。
+// httptest 监听回环且走 http 明文，属实验室场景，故显式开启放行标记。
+func newTestRedfishServer(t *testing.T) *httptest.Server {
+	t.Setenv(envAllowInsecureBMC, "true")
 	mux := http.NewServeMux()
 
 	// /redfish/v1 根
@@ -71,7 +73,7 @@ func newTestRedfishServer() *httptest.Server {
 }
 
 func TestRedfishClient_ListSystems(t *testing.T) {
-	srv := newTestRedfishServer()
+	srv := newTestRedfishServer(t)
 	defer srv.Close()
 
 	client := NewRedfishClient(0, true, "admin", "admin")
@@ -94,7 +96,7 @@ func TestRedfishClient_ListSystems(t *testing.T) {
 }
 
 func TestRedfishClient_ResetSystem(t *testing.T) {
-	srv := newTestRedfishServer()
+	srv := newTestRedfishServer(t)
 	defer srv.Close()
 
 	client := NewRedfishClient(0, true, "admin", "admin")
@@ -106,7 +108,7 @@ func TestRedfishClient_ResetSystem(t *testing.T) {
 }
 
 func TestRedfishClient_SetBootSource(t *testing.T) {
-	srv := newTestRedfishServer()
+	srv := newTestRedfishServer(t)
 	defer srv.Close()
 
 	client := NewRedfishClient(0, true, "admin", "admin")
@@ -118,7 +120,7 @@ func TestRedfishClient_SetBootSource(t *testing.T) {
 }
 
 func TestRedfishClient_CollectHardwareInfo(t *testing.T) {
-	srv := newTestRedfishServer()
+	srv := newTestRedfishServer(t)
 	defer srv.Close()
 
 	client := NewRedfishClient(0, true, "admin", "admin")
@@ -140,7 +142,7 @@ func TestRedfishClient_CollectHardwareInfo(t *testing.T) {
 }
 
 func TestRedfishClient_HealthCheck(t *testing.T) {
-	srv := newTestRedfishServer()
+	srv := newTestRedfishServer(t)
 	defer srv.Close()
 
 	client := NewRedfishClient(0, true, "admin", "admin")
