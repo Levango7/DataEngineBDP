@@ -85,7 +85,7 @@ jobs:
           sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
           trivy version
 
-      - name: 扫描代码库依赖（fs 模式）
+      - name: 扫描代码库依赖（fs 模式，全量出报告不阻断）
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
@@ -93,7 +93,23 @@ jobs:
           format: 'sarif'
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '1'  # 发现 CRITICAL/HIGH/MEDIUM 漏洞时阻断 CI
+          # 2026-09-29 台账 #29 裁决②：MEDIUM 不再阻断，但**仍全量扫描并进 SARIF**，
+          # 保证 code-scanning 面板上的可见性不丢（原口径下 78 条 MEDIUM 把门禁长期
+          # 占红，真 HIGH/CRITICAL 反而被噪声淹没、也无法定位修复）。
+          # 阻断改由下一步的"依赖门禁"承担，口径与 ci.yml trivy-scan job 一致
+          # （CRITICAL/HIGH + ignore-unfixed）。
+          exit-code: '0'
+          ignore-unfixed: true
+
+      - name: 依赖门禁（仅 CRITICAL/HIGH 阻断）
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'json'
+          output: 'trivy-fs-gate.json'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
           ignore-unfixed: true
 
       # 2026-09-24：fs 扫描以 exit-code 1 阻断时，其后的步骤（含上传 SARIF
