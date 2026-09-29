@@ -42,19 +42,93 @@ export interface WorkerSpec {
 }
 
 /** 创建集群请求 */
+/**
+ * 编排层环境枚举名（对齐 `EnvironmentType` 的 `name()`，Jackson 大小写敏感）。
+ * UI 用 (环境, Provider) 二元选择，提交前须经 `toClusterEnvironment` 归一。
+ */
+export type ClusterEnvironment =
+  | 'XINCHANG'
+  | 'BAREMETAL'
+  | 'CLOUD_HUAWEI'
+  | 'CLOUD_ALI'
+  | 'CLOUD_TENCENT'
+  | 'PRIVATE_VSPHERE'
+  | 'PRIVATE_OPENSTACK'
+
+/** 统一节点规格，字段名对齐 `ClusterCreateRequest.NodeSpec`。 */
+export interface ClusterNodeSpec {
+  /** 节点角色：control-plane / worker */
+  role: 'control-plane' | 'worker'
+  /** 节点数量 */
+  count: number
+  /** CPU 核数 */
+  cpuCores: number
+  /** 内存（GB） */
+  memoryGb: number
+  /** 系统盘（GB） */
+  diskGb: number
+}
+
+/**
+ * 创建集群请求，字段集 = `ClusterCreateRequest.java` 的 `@Valid` 必填集。
+ *
+ * 编排层的 k8sVersion/podCidr/serviceCidr 带 `@NotBlank @Builder.Default`、nodes 带 `@NotEmpty`、
+ * skeEnabled 是原始类型 boolean —— 这些"文档上看着可选"的字段缺席即 400（见台账 #39①）。
+ */
 export interface ClusterCreateRequest {
-  /** 租户 ID（可选，由 token 推导） */
-  tenantId?: string
-  /** 集群名称 */
+  /** 目标环境，决定路由到哪个下游 Provider */
+  environment: ClusterEnvironment
+  /** 集群名称，3-63 字符 */
   clusterName: string
-  /** K8s 版本，如 v1.28 */
+  /** 租户 ID：服务端随后会用租户上下文覆盖，但校验先跑，必须显式带上 */
+  tenantId: string
+  /** K8s 版本，如 v1.28.9 */
   k8sVersion: string
   /** Pod CIDR，如 10.244.0.0/16 */
   podCidr: string
   /** Service CIDR，如 10.96.0.0/12 */
   serviceCidr: string
-  /** 工作节点规格列表 */
-  workers: WorkerSpec[]
+  /** 节点规格列表，至少 1 个 */
+  nodes: ClusterNodeSpec[]
+  /** SKE 定制配置（仅信创生效），原始 boolean，必须显式传 */
+  skeEnabled: boolean
+  /** 备注 */
+  description?: string
+  /** Provider 特定参数透传 */
+  providerParams?: Record<string, string>
+}
+
+/**
+ * 把 UI 的 (环境, Provider) 组合映射为编排层枚举名；组合不在枚举内则显式报错，
+ * 不静默挑一个（避免把集群建到用户没选的环境）。
+ */
+export function toClusterEnvironment(env: ClusterEnv, provider: ProviderKind): ClusterEnvironment {
+  if (env === 'xinchuang') {
+    if (provider === 'xinchang') {
+      return 'XINCHANG'
+    }
+    throw new Error(`信创环境不支持 Provider "${provider}"，可选 xinchang`)
+  }
+  if (env === 'cloud') {
+    switch (provider) {
+      case 'huawei':
+        return 'CLOUD_HUAWEI'
+      case 'ali':
+        return 'CLOUD_ALI'
+      case 'tencent':
+        return 'CLOUD_TENCENT'
+      default:
+        throw new Error(`公有云环境不支持 Provider "${provider}"，可选 huawei/ali/tencent`)
+    }
+  }
+  switch (provider) {
+    case 'vsphere':
+      return 'PRIVATE_VSPHERE'
+    case 'openstack':
+      return 'PRIVATE_OPENSTACK'
+    default:
+      throw new Error(`私有云环境不支持 Provider "${provider}"，可选 vsphere/openstack`)
+  }
 }
 
 /** 扩缩容请求 */
@@ -176,10 +250,33 @@ export function getXinchangCluster(clusterId: string): Promise<ClusterInfo> {
 }
 
 /**
- * 创建信创集群
+ * 旧版信创建群请求（`InfraMachine.vue` 在用）。
+ *
+ * ⚠ 契约不符，非笔误：`POST /api/v1/clusters/xinchang` 的 DTO
+ * （`platform/infra-provider-xinchang/.../model/ClusterCreateRequest.java` + `XinchangNodeSpec.java`）
+ * 要求 `nodes[]`，且每个节点必须有 `bmcIp` / `pxeMac` / `hostname`（`@NotBlank`）与
+ * `cpuArch` / `osType`（`@NotNull`），而该表单没有这些输入项 → 此调用当前必 400。
+ * 已登记台账 #43；解法是补节点录入 UI，或改走跨环境编排端点 `createCluster`。
+ * 这里如实保留旧形状，是为了让缺口留在类型与注释里，而不是假装它能用。
+ */
+export interface XinchangLegacyCreateRequest {
+  /** 集群名称 */
+  clusterName: string
+  /** K8s 版本 */
+  k8sVersion: string
+  /** Pod CIDR */
+  podCidr: string
+  /** Service CIDR */
+  serviceCidr: string
+  /** 旧字段名：后端实际收 `nodes`，且必填项远不止这些 */
+  workers: WorkerSpec[]
+}
+
+/**
+ * 创建信创集群（旧版专用端点，见 `XinchangLegacyCreateRequest` 的契约缺口说明）
  * @param req 创建请求
  */
-export function createXinchangCluster(req: ClusterCreateRequest): Promise<SupplyResult> {
+export function createXinchangCluster(req: XinchangLegacyCreateRequest): Promise<SupplyResult> {
   return post<SupplyResult>(XINCHANG_BASE, req)
 }
 
@@ -350,9 +447,7 @@ export function getCluster(env: ClusterEnv, clusterId: string): Promise<CrossEnv
  * 创建集群（请求体含 environment）
  * @param req 创建请求
  */
-export function createCluster(
-  req: ClusterCreateRequest & { environment: ClusterEnv; provider: ProviderKind }
-): Promise<SupplyResult> {
+export function createCluster(req: ClusterCreateRequest): Promise<SupplyResult> {
   return post<SupplyResult>(CLUSTER_BASE, req)
 }
 

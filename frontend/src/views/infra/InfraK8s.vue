@@ -396,6 +396,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Refresh } from '@element-plus/icons-vue'
 import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
+import { useAuthStore } from '@/stores/auth'
 import * as infraApi from '@/api/infra'
 import type {
   CrossEnvClusterInfo,
@@ -408,6 +409,7 @@ import type {
 } from '@/api/infra'
 
 const { t, te } = useI18n()
+const auth = useAuthStore()
 
 /* ------------------------------ 集群列表 ------------------------------ */
 
@@ -570,29 +572,29 @@ async function nextCreateStep() {
 async function handleCreate() {
   submitting.value = true
   try {
+    // 字段名与必填集严格对齐 ClusterCreateRequest.java：workers→nodes、cpu/memory/disk→
+    // cpuCores/memoryGb/diskGb，且 environment 用枚举名（由 provider 选择合成）、
+    // tenantId 与 skeEnabled 必须显式带上，否则 @Valid/@NotBlank 先跑直接 400（台账 #39）。
+    const spec = (role: 'control-plane' | 'worker', count: number) => ({
+      role,
+      count,
+      cpuCores: createForm.cpu,
+      memoryGb: createForm.memory,
+      diskGb: createForm.disk
+    })
     await infraApi.createCluster({
-      environment: createForm.environment,
-      provider: createForm.provider,
+      environment: infraApi.toClusterEnvironment(createForm.environment, createForm.provider),
       clusterName: createForm.clusterName,
+      tenantId: auth.user?.tenantId ?? '',
       k8sVersion: createForm.k8sVersion,
       podCidr: '10.244.0.0/16',
       serviceCidr: '10.96.0.0/12',
-      workers: [
-        {
-          role: 'master',
-          count: createForm.masterCount,
-          cpu: createForm.cpu,
-          memory: createForm.memory,
-          disk: createForm.disk
-        },
-        {
-          role: 'worker',
-          count: createForm.workerCount,
-          cpu: createForm.cpu,
-          memory: createForm.memory,
-          disk: createForm.disk
-        }
-      ]
+      nodes: [
+        spec('control-plane', createForm.masterCount),
+        spec('worker', createForm.workerCount)
+      ],
+      // UI 暂无 SKE 开关，按 DTO 默认值显式传 false（原始 boolean 缺席即 400）
+      skeEnabled: false
     })
     ElMessage.success(t('infraK8s.messages.created'))
     createDialogVisible.value = false
