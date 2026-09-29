@@ -369,6 +369,8 @@ func TestScaleCluster_ScaleOut_Error_RollbackStateRunning(t *testing.T) {
 
 func newRedfishTestServer(t *testing.T) *httptest.Server {
 	t.Helper()
+	// 夹具监听回环地址，需按实验室场景显式放行（生产默认拒绝 loopback BMC）。
+	t.Setenv(envAllowInsecureBMC, "true")
 	systemJSON := map[string]interface{}{
 		"Id":           "sys-1",
 		"Name":         "node1",
@@ -441,6 +443,8 @@ func TestCreateCluster_ProvisionSuccess_CleansProvisionMap(t *testing.T) {
 
 func TestCreateCluster_ProvisionFailure_CleansProvisionMap(t *testing.T) {
 	svc := newTestService(t)
+	// 故意指向无人监听的回环端口以走供应失败分支，故按实验室场景放行回环 BMC。
+	t.Setenv(envAllowInsecureBMC, "true")
 
 	req := &model.CreateClusterRequest{
 		Name: "prov-fail",
