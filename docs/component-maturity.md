@@ -1,6 +1,6 @@
 # 组件成熟度矩阵
 
-> 数据引擎大数据平台 `platform/` 全部 **46 个自研组件**（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 43 条；Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
+> 数据引擎大数据平台 `platform/` 全部 **46 个自研组件**（含子模块拆分：governance 3 + finops 3 + karmada 4，矩阵实列 41 条；Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
 >
 > **更新日期: 2026-09-15** — 5个预存Java编译错误已全部修复（BillSummary/CollectionSchedulerService/NebulaLineageGraphClient/FieldLineageTest/K8sClientService），`mvn package -Dmaven.test.skip=true` 全项目通过。R17-R23共7轮审查修复153个问题，6维度收敛。
 >
@@ -52,8 +52,8 @@
 | encaps-gateway | Java 17 · Spring Boot 4.1.1（封装层薄壳，复用 encaps-layer / common-security） | 服务级（薄壳） | H2 文件（`./data/encaps-gateway-db`），`DB_URL` 切 PostgreSQL | 能力依赖 encaps-layer，自身路由 / 聚合面较薄 |
 | ai-assistant | Go 1.26+ · Gin + GORM | 服务级 | 会话 SQLite（GORM） | 对话经 nl2sql / sql-gateway 下游代理；回复润色依赖 llm-gateway（失败回退规则文案） |
 | chunker | Python 3.11 库（多模态切片 + embedding 适配器 + RAG 混合检索） | 独立工具库（2026-09-01 决策） | 无持久化 | 定位为可独立引用的分块工具库（text/table/image/audio/asr 五模态 + rag 混合检索，516 测试）；不强行接入主链路——待 RAG 链路真实需求出现时由 knowledge-engine/chunker 按需集成 |
-| finops | Java 17 双服务 cost-model / dashboard（Spring Boot 4.1.1 + JPA）+ exporters 与 Prometheus 告警规则 YAML | 服务级（部分功能） | H2 文件（cost-model / dashboard 各自 `./data/*-db`），`DB_URL` 切 PostgreSQL | 成本归集依赖 Prometheus / Kubernetes 指标真实采集 |
-| operations-api | Python 3.11 · FastAPI + Pydantic（合同管理 CRUD，完整 MVC：models / repositories / services / api/routers） | 服务级 | 内存 dict（`ContractRepository` 骨架），TODO 替换 PostgreSQL | 内存存储骨架，生产需替换 PostgreSQL；缺鉴权中间件 / CORS / Prometheus 指标 |
+| finops | Java 17 三服务 billing / cost-model / dashboard（Spring Boot 4.1.1 + JPA）+ exporters 与 Prometheus 告警规则 YAML | 服务级（部分功能） | H2 文件（billing / cost-model / dashboard 各自 `./data/*-db`），`DB_URL` 切 PostgreSQL | 成本归集依赖 Prometheus / Kubernetes 指标真实采集 |
+| operations-api | Python 3.11 · FastAPI + Pydantic（合同管理 CRUD，完整 MVC：models / repositories / services / api/routers） | 服务级 | 内存 dict（`ContractRepository` 骨架），TODO 替换 PostgreSQL | 内存存储骨架，生产需替换 PostgreSQL；缺 CORS 中间件 / Prometheus 指标（**鉴权已接入**：`contracts.py:24,41,44` `getAuthContext` + `requireAdmin`） |
 
 ## 三、骨架 / Mock 默认（12 个，另有 3 个已降级为规划并移至 design/planned/）
 
@@ -61,10 +61,10 @@
 
 | 组件 | 技术栈 | 成熟度 | 默认持久层 | 关键缺口 | 处置决策（frozen-until-mvp） |
 | --- | --- | --- | --- | --- | --- |
-| vector-engine | Go 1.26+ · Gin（Milvus SDK v2 已引入） | 骨架（内存 Mock 默认） | 内存 Mock store；真实 Milvus 需 `-tags milvus_enabled` 编译启用（未启用自动回退并告警） | Milvus 生产实现需专用构建产物，默认构建不含 | **保留骨架**：Milvus 已接，默认 Mock 合理 |
+| vector-engine | Go 1.26+ · Gin（Milvus SDK v2 已引入） | 骨架（真实实现需 build tag） | **默认 `STORE_TYPE=milvus`**（`internal/config/config.go:52`）；真实 Milvus 实现需 `-tags milvus_enabled` 编译，未启用时 **fail-fast 报错**（不再静默回退 Mock） | Milvus 生产实现需专用构建产物，默认构建（无 tag）不可用 | **保留骨架**：Milvus 已接但需 build tag 产出 |
 | llm-gateway | Go 1.26+ · Gin（openai / qianwen / wenxin / zhipu / mock 五种 Provider 适配器） | 骨架（Provider 已备，默认 Mock 兜底） | 无持久化（路由 / 计量为内存态） | 未配置任何真实 Provider 时兜底 Mock，开箱响应非真实模型输出 | **优先激活**：v2.2 切真实 LLM Provider |
 | llm-gateway-evaluation | Python 3.11 · FastAPI（大模型网关评测子模块） | 骨架（评测脚手架） | 无持久化 | 评测指标采集与 llm-gateway 联调待完善 | **合并降维**：并入 llm-gateway |
-| llmops | Python 3.11 · FastAPI | 骨架（Mock 默认） | `LLMOPS_STORE_TYPE=mock` 默认 | 真实 MLflow 需显式配置注入 | **保留骨架**：维持现状 |
+| llmops | Python 3.11 · FastAPI | 骨架（真实实现需外部 MLflow） | **默认 `storeType=mlflow`**（`config/settings.py:54`），`LLMOPS_MLFLOW_URI` 默认 `http://localhost:5000`；Mock 为显式 opt-in（`AI_MODE=mock` 或 `LLMOPS_STORE_TYPE=mock`） | 默认指向 MLflow 后端，**MLflow 实例未就绪时服务不可用** | **保留骨架**：mlflow 已接但依赖外部实例 |
 | ml-platform | Python 3.11 · FastAPI（sklearn / Spark / MLflow 多后端设计） | 骨架（本地后端默认） | `ML_BACKEND_TYPE=sklearn` 默认；MLflow 总开关默认 false | 训练 / 实验 / 特征存储的真实规模运行需外部 MLflow / Spark 环境 | **保留骨架**：维持现状 |
 | knowledge-engine | Python 3.11 · FastAPI | 骨架（fail-fast，需真实 NebulaGraph） | Dockerfile 已改为 fail-fast（不烘焙 mock，未配置真实 NebulaGraph 时启动失败）；代码配置默认指向 nebula/llm | NebulaGraph 图谱与 LLM 抽取需显式配置真实环境并实测 | **优先激活**：v2.2 切真实 NebulaGraph 实现 |
 | model-finetuning | Python 3.11 · FastAPI（PEFT / LLaMA-Factory / DeepSpeed 适配器 + Volcano 调度配置模板） | 骨架（Mock 默认） | `FINETUNE_MOCK_MODE=true` 默认（任务态内存） | 真实微调需 GPU 节点池与训练框架环境 | **降级为规划**：移至 `design/planned/` |
@@ -84,12 +84,12 @@
 | 口径 | 数值 | 与本矩阵的关系 |
 | --- | --- | --- |
 | 设计模块数 | 49 | 产品原型 §3.3 逻辑模块清单（含未实现规划模块），本矩阵不含规划模块 |
-| 自研组件数 | 46 | 本矩阵组件数（含子模块拆分：governance 3 + finops 2 + karmada 3 + operations-api + data-standard + master-data + ai-assistant + observability/query-api） |
-| 矩阵实列 | 43 | 本矩阵表格数据行数（governance 3 合 1 + finops 2 合 1，−3 行；新增 ai-assistant + observability/query-api +2 行） |
+| 自研组件数 | 46 | 本矩阵组件数（含子模块拆分：governance 3 + finops 3 + karmada 4 + operations-api + data-standard + master-data + ai-assistant + observability/query-api） |
+| 矩阵实列 | 41 | 本矩阵表格数据行数（平台内，不含 3 行"降级为规划"项）：46 − 2（governance 3 合 1）− 2（finops 3 合 1）− 1（karmada failover 2 合 1）= **41** |
 | 独立部署单元 | 42 | ADR-001 定义（46 − 4 库形态组件：common-security / storage-io / flink-cdc / chunker） |
 | platform/ 目录数 | 38 | platform/ 一级子目录数（governance / finops / karmada 子模块嵌套，非一级目录） |
 
-映射链：**49** →（−3 规划未落地）→ **46** →（−2 governance 合并）→（−1 finops 合并）→ **43** 矩阵实列 →（−4 库形态）→ **42** 部署单元 / **38** 目录数
+映射链：**49** →（−3 规划未落地）→ **46** →（−2 governance 合并）→（−2 finops 合并）→（−1 karmada failover 合并）→ **41** 矩阵实列 →（−4 库形态）→ **42** 部署单元 / **38** 目录数
 
 ## 子模块拆分说明
 
@@ -98,13 +98,13 @@
 | 一级目录 | 子模块 | 构建文件 | 语言 | 矩阵中的表现 |
 | --- | --- | --- | --- | --- |
 | governance | metadata-collector / lineage-analyzer / real-time-pipeline | 各自 pom.xml | Java | 合并为 1 行（governance），因共享治理中台业务边界与 NebulaGraph 图存储依赖 |
-| finops | cost-model / dashboard | 各自 pom.xml | Java | 合并为 1 行（finops），因共享 FinOps 成本运营业务边界 |
-| karmada | api / federated-query / failover | go.mod / pom.xml / go.mod | Go + Java | 拆为 3 行（karmada-api / karmada-federated-query / karmada-failover），因分属不同语言与不同成熟度阶段 |
+| finops | billing / cost-model / dashboard | 各自 pom.xml | Java | 合并为 1 行（finops），因共享 FinOps 成本运营业务边界（billing 为计费与结算子模块） |
+| karmada | api / federated-query / failover（failover 下含 api / engine 两构建单元） | go.mod / pom.xml / go.mod ×2 | Go + Java | 拆为 3 行（karmada-api / karmada-federated-query / karmada-failover），因分属不同语言与不同成熟度阶段；failover 两单元合 1 行 |
 
 - governance 3 个子模块在矩阵中合并为 1 行，矩阵实列 −2。
-- finops 2 个服务在矩阵中合并为 1 行，矩阵实列 −1。
-- karmada 3 个子模块在矩阵中保持 3 行，矩阵实列不减。
-- 合计：46（自研组件）− 2（governance 合并）− 1（finops 合并）= **43 矩阵实列**。
+- finops 3 个子模块（billing / cost-model / dashboard）在矩阵中合并为 1 行，矩阵实列 −2。
+- karmada 4 个构建单元（api / federated-query / failover-api / failover-engine）在矩阵中为 3 行（failover 两子模块合并为 1 行），矩阵实列 −1。
+- 合计：46（自研组件）− 2（governance 合并）− 2（finops 合并）− 1（karmada failover 合并）= **41 矩阵实列**。
 
 ## 附：评级说明
 

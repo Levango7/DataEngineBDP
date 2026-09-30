@@ -37,7 +37,7 @@
 | --- | --- |
 | **设计模块数 49** | §3.3 产品能力全景图逐行清点的真实模块数（含未实现规划模块） |
 | **自研组件数 46** | platform/ 构建文件实测（含子模块拆分，含 operations-api） |
-| **矩阵实列 43** | component-maturity.md 矩阵实列数（governance/finops 合并显示） |
+| **矩阵实列 41** | component-maturity.md 矩阵实列数（governance 3合1、finops 3合1、karmada failover 2合1 后；另 3 行"降级为规划"不计入） |
 | **独立部署单元 42** | ADR-001 定义的独立部署单元数（扣库形态组件） |
 | **platform/ 目录数 38** | platform/ 下一级子目录数 |
 
