@@ -99,7 +99,7 @@
 | --- | --- | --- | --- | --- |
 | governance | metadata-collector / lineage-analyzer / real-time-pipeline | 各自 pom.xml | Java | 合并为 1 行（governance），因共享治理中台业务边界与 NebulaGraph 图存储依赖 |
 | finops | billing / cost-model / dashboard | 各自 pom.xml | Java | 合并为 1 行（finops），因共享 FinOps 成本运营业务边界（billing 为计费与结算子模块） |
-| karmada | api / federated-query / failover | go.mod / pom.xml / go.mod | Go + Java | 拆为 3 行（karmada-api / karmada-federated-query / karmada-failover），因分属不同语言与不同成熟度阶段 |
+| karmada | api / federated-query / failover（failover 下含 api / engine 两构建单元） | go.mod / pom.xml / go.mod ×2 | Go + Java | 拆为 3 行（karmada-api / karmada-federated-query / karmada-failover），因分属不同语言与不同成熟度阶段；failover 两单元合 1 行 |
 
 - governance 3 个子模块在矩阵中合并为 1 行，矩阵实列 −2。
 - finops 3 个子模块（billing / cost-model / dashboard）在矩阵中合并为 1 行，矩阵实列 −2。
