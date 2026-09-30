@@ -34,9 +34,13 @@
              属性名取自 spring-boot-dependencies:4.1.1（82/83 行
              jackson-2-bom.version / jackson-bom.version），Trivy 报的 2.18.10 只是
              另一条 LTS 线的修复版，不需要跨线降版。
-             两 BOM 均已确认存在于 Maven Central（HTTP 200）。 -->
-        <jackson-2-bom.version>2.21.6</jackson-2-bom.version>
-        <jackson-bom.version>3.1.6</jackson-bom.version>
+             两 BOM 均已确认存在于 Maven Central（HTTP 200）。
+              2026-09-30 续修（同日 Trivy 库刷新后新公告，非代码变更引出）：上述
+              2.21.6 / 3.1.6 被再次判定为 HIGH，官方修复版为 jackson2 线 2.21.7、
+              jackson3 线 3.1.7 —— 仍为同线 patch 级，兼容性风险同上；已确认
+              两 BOM 存在于 Maven Central（HTTP 200）。 -->
+        <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -50,7 +54,8 @@
                  的属性覆盖是有效的，解析到 11.0.25）。同 pom 内先声明的
                  dependencyManagement 优先，故在此钉到修复版。
                  CVE-2026-68497 / GHSA-q4xh-88c3-wmh7（high）修复版：jackson2 线 2.21.6、
-                 jackson3(tools.jackson) 线 3.1.6 —— 均为同线 patch 级。 -->
+                 jackson3(tools.jackson) 线 3.1.6 —— 均为同线 patch 级；
+                 2026-09-30 续修后为 2.21.7 / 3.1.7（同日新公告，仍为同线 patch 级）。 -->
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
