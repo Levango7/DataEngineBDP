@@ -23,7 +23,7 @@
         <flink.version>1.20.0</flink.version>
         <flink.cdc.version>3.0.1</flink.cdc.version>
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
-        <debezium.version>1.9.7.Final</debezium.version>
+        <debezium.version>3.6.1.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
         <!-- 2026-09-24 安全修复：CVE-2026-42198（HIGH），42.7.3 -> 42.7.11
              2026-09-26 再抬：CVE-2026-54513/54515（HIGH），42.7.11 -> 42.7.13。
