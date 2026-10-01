@@ -47,25 +47,25 @@ wait_pod_ready "app.kubernetes.io/name=open-api-catalog" 180
 # Java Spring Boot 服务：/actuator/health（Actuator 端点）
 # Go/Python 服务：/api/v1/health（自定义健康端点）
 log "启动临时 port-forward 进行健康检查..."
-kubectl port-forward -n "$NS" svc/encaps-layer 8080:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-encaps-layer 8080:8080 >/dev/null 2>&1 &
 PF1=$!
-kubectl port-forward -n "$NS" svc/sql-gateway 8081:8081 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-sql-gateway 8081:8080 >/dev/null 2>&1 &
 PF2=$!
-kubectl port-forward -n "$NS" svc/catalog 8082:8082 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-catalog 8082:8080 >/dev/null 2>&1 &
 PF3=$!
-kubectl port-forward -n "$NS" svc/rule-engine 8083:8083 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-rule-engine 8083:8080 >/dev/null 2>&1 &
 PF4=$!
-kubectl port-forward -n "$NS" svc/open-api-catalog 8084:8084 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-open-api-catalog 8084:8080 >/dev/null 2>&1 &
 PF5=$!
 sleep 3
 
 # Java Spring Boot 服务统一使用 /actuator/health
-curl -fsS http://localhost:8080/actuator/health >/dev/null && pass "encaps-layer" || fail "encaps-layer"
+curl -fsS http://localhost:8080/readyz >/dev/null && pass "encaps-layer" || fail "encaps-layer"
 curl -fsS http://localhost:8081/actuator/health >/dev/null && pass "sql-gateway" || fail "sql-gateway"
 # Go/Python 服务统一使用 /api/v1/health
 curl -fsS http://localhost:8082/api/v1/health >/dev/null && pass "catalog" || fail "catalog"
-curl -fsS http://localhost:8083/actuator/health >/dev/null && pass "rule-engine" || fail "rule-engine"
-curl -fsS http://localhost:8084/api/v1/health >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
+curl -fsS http://localhost:8083/api/v1/health >/dev/null && pass "rule-engine" || fail "rule-engine"
+curl -fsS http://localhost:8084/readyz >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
 
 # 清理 port-forward
 kill $PF1 $PF2 $PF3 $PF4 $PF5 2>/dev/null || true
@@ -78,10 +78,10 @@ for svc in encaps-layer sql-gateway catalog rule-engine open-api-catalog; do
 done
 
 # 5. 镜像版本验证
-log "验证镜像版本为 v2.1.0-RC..."
+log "验证镜像来源为 GHCR（build.yml 构建产物）..."
 for svc in encaps-layer sql-gateway catalog rule-engine open-api-catalog; do
   img=$(kubectl get pod -n "$NS" -l "app.kubernetes.io/name=$svc" -o jsonpath='{.items[0].spec.containers[0].image}' 2>/dev/null || echo "")
-  [[ "$img" == *"v2.1.0-RC"* ]] || log "WARN: $svc 镜像版本非 v2.1.0-RC: $img"
+  [[ "$img" == ghcr.io/levango7/sq-* ]] || log "WARN: $svc 镜像非 GHCR 自研源: $img"
 done
 
 # 6. 关键配置验证

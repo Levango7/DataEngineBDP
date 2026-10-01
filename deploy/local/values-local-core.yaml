@@ -179,6 +179,14 @@ infra-provider-xinchang:
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-encaps-layer
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -192,6 +200,14 @@ encaps-layer:
 
 sql-gateway:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-sql-gateway
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "1", memory: 1Gi }
@@ -206,6 +222,14 @@ sql-gateway:
 
 catalog:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-catalog
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -222,6 +246,14 @@ catalog:
 
 rule-engine:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-rule-engine
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "1", memory: 1Gi }
@@ -236,6 +268,14 @@ rule-engine:
 
 nl2sql:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-nl2sql
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -246,6 +286,14 @@ nl2sql:
 
 open-api-catalog:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-open-api-catalog
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
