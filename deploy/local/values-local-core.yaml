@@ -178,12 +178,18 @@ infra-provider-xinchang:
 
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
-  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  # 镜像内 appuser 已固化为 uid/gid=1001（见 platform/*/Dockerfile），此处与之对齐。
+  # /app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，只能靠 uid/gid 对齐；
+  # 若 runAsGroup 与镜像 gid 不一致，H2 建库会抛
+  # java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
+  # 注：更早版本此处曾为绕开 Logback 写盘问题设runAsUser: 0，那是错的方向——
+  # Logback 根因是/app/logs 目录不存在（已由 Dockerfile mkdir + chart logs 挂载修复），
+  # 以 root + runAsGroup:1000 运行反而对 /app/data 无写权。
   securityContext:
-    readOnlyRootFilesystem: false
-    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -215,21 +221,20 @@ encaps-layer:
     # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
     jwtSecretName: dataengine-catalog-auth
     jwtSecretKey: jwt-signing-key
-  auth:
-    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
-    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
-    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
-    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
-    jwtSecretName: dataengine-catalog-auth
-    jwtSecretKey: jwt-signing-key
 
 sql-gateway:
-  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  # 镜像内 appuser 已固化为 uid/gid=1001（见 platform/*/Dockerfile），此处与之对齐。
+  # /app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，只能靠 uid/gid 对齐；
+  # 若 runAsGroup 与镜像 gid 不一致，H2 建库会抛
+  # java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
+  # 注：更早版本此处曾为绕开 Logback 写盘问题设runAsUser: 0，那是错的方向——
+  # Logback 根因是/app/logs 目录不存在（已由 Dockerfile mkdir + chart logs 挂载修复），
+  # 以 root + runAsGroup:1000 运行反而对 /app/data 无写权。
   securityContext:
-    readOnlyRootFilesystem: false
-    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -255,13 +260,6 @@ sql-gateway:
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
     enabled: true
     mountPath: /app/logs
-  auth:
-    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
-    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
-    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
-    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
-    jwtSecretName: dataengine-catalog-auth
-    jwtSecretKey: jwt-signing-key
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -295,12 +293,18 @@ catalog:
     jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
 
 rule-engine:
-  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  # 镜像内 appuser 已固化为 uid/gid=1001（见 platform/*/Dockerfile），此处与之对齐。
+  # /app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，只能靠 uid/gid 对齐；
+  # 若 runAsGroup 与镜像 gid 不一致，H2 建库会抛
+  # java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
+  # 注：更早版本此处曾为绕开 Logback 写盘问题设runAsUser: 0，那是错的方向——
+  # Logback 根因是/app/logs 目录不存在（已由 Dockerfile mkdir + chart logs 挂载修复），
+  # 以 root + runAsGroup:1000 运行反而对 /app/data 无写权。
   securityContext:
-    readOnlyRootFilesystem: false
-    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -326,13 +330,6 @@ rule-engine:
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
     enabled: true
     mountPath: /app/logs
-  auth:
-    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
-    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
-    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
-    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
-    jwtSecretName: dataengine-catalog-auth
-    jwtSecretKey: jwt-signing-key
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），

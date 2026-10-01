@@ -35,9 +35,13 @@ LABEL org.opencontainers.image.title="sql-gateway" \
       org.opencontainers.image.description="数据引擎大数据平台 - 统一SQL网关" \
       org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
 
-# 创建非 root 用户
+# 创建非 root 用户。
+# uid/gid 必须显式固化：/app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，
+# 若 Chart 的 runAsGroup/fsGroup 与此处 gid 不一致，进程就对 /app/data 无写权，
+# H2 建库直接抛 java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
+# 三个 Java 服务统一为 1001，deploy/local/values-local-core.yaml 与之对齐。
 RUN groupadd --system --gid 1001 appgroup \
-    && useradd  --system --uid 1001 --gid appgroup --home /app appuser
+    && useradd --system --uid 1001 --gid 1001 --home /app appuser
 
 WORKDIR /app
 
