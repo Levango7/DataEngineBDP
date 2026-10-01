@@ -35,7 +35,14 @@ RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
 COPY --from=builder /workspace/target/encaps-layer-*-exec.jar /app/app.jar
 
 # 创建数据目录并赋权，确保 appuser 可写（H2 文件库 / 日志落盘）
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+# 创建数据目录、日志目录并赋权：
+#   /app/data  - H2 文件库（sql-gateway 的 sql-gateway-db.mv.db 等）
+#   /app/logs  - Logback RollingFileAppender 的输出目录。
+#                Logback 的 openFile() 不会创建父目录，若目录不存在会抛
+#                FileNotFoundException -> 'Logback configuration error detected'
+#                -> Spring 启动中止（见 platform/encaps-layer/src/main/resources/
+#                   logback-spring.xml 的 <file>logs/encaps-layer.log</file>）。
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appgroup /app
 
 # 暴露服务端口
 EXPOSE 8080

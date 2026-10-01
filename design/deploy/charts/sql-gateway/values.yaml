@@ -105,6 +105,16 @@ env:
   JAVA_OPTS: ""
 
 # ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+# ---- 应用日志目录 ----
+logs:
+  # 是否把容器内日志目录挂成 emptyDir。默认关闭（生产走日志采集/ PVC）。
+  # 打开后即使镜像未预建该目录也能写入，用于本地/CI 与应急场景。
+  enabled: false
+  # 容器内日志目录。需与应用的 Logback <file> 解析结果一致
+  # （WORKDIR=/app + 相对路径 logs/xxx.log => /app/logs）。
+  mountPath: /app/logs
+
+# ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
 auth:
   # 指向已存在的 Secret，其 jwtSecretKey 指定的键将作为 JWT_SECRET 注入容器。
   # 该值必须与 JWT 签发端（catalog 签发 / encaps-layer 签发 / Keycloak）一致，

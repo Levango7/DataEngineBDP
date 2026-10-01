@@ -203,6 +203,18 @@ encaps-layer:
   env:
     K8S_CLIENT_TIMEOUT: "30s"
     INFORMER_WATCH_CACHE: "true"
+  logs:
+    # 与 Dockerfile 里mkdir -p /app/logs 双保险：即使镜像未预建目录也能写。
+    # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
+    enabled: true
+    mountPath: /app/logs
+  auth:
+    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
+    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
+    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
+    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
+    jwtSecretName: dataengine-catalog-auth
+    jwtSecretKey: jwt-signing-key
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -238,6 +250,18 @@ sql-gateway:
     QUERY_CACHE_ENABLED: "true"
     QUERY_CACHE_TTL: "60s"
     QUERY_CACHE_MAX_SIZE: "1000"
+  logs:
+    # 与 Dockerfile 里mkdir -p /app/logs 双保险：即使镜像未预建目录也能写。
+    # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
+    enabled: true
+    mountPath: /app/logs
+  auth:
+    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
+    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
+    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
+    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
+    jwtSecretName: dataengine-catalog-auth
+    jwtSecretKey: jwt-signing-key
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -297,6 +321,18 @@ rule-engine:
     ASYNC_BATCH_ENABLED: "true"
     BATCH_SIZE: "100"
     RULE_DATASOURCE_TYPE: "h2"
+  logs:
+    # 与 Dockerfile 里mkdir -p /app/logs 双保险：即使镜像未预建目录也能写。
+    # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
+    enabled: true
+    mountPath: /app/logs
+  auth:
+    # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
+    # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
+    # 与 nl2sql / open-api-catalog 的 existingSecretName 同一模式。
+    # 不注入则 JwtAuthFilter Bean 缺失，容器启动即失败（详见 docs/KNOWN-FAILURES.md #30）。
+    jwtSecretName: dataengine-catalog-auth
+    jwtSecretKey: jwt-signing-key
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），

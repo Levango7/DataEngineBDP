@@ -36,6 +36,11 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
+      volumes:
+        - name: logs
+          emptyDir: {}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -81,6 +86,13 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
+          # 应用日志目录挂载。默认为空（不挂），生产请用宿主机/云盘日志采集或挂 PVC。
+          # 本地/CI 打开后即使镜像未建目录也能写；两者是双保险，不是二选一。
+          volumeMounts:
+            - name: logs
+              mountPath: {{ .Values.logs.mountPath }}
+          {{- end }}
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
