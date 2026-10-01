@@ -190,6 +190,7 @@ encaps-layer:
     runAsGroup: 1001
     fsGroup: 1001
     runAsNonRoot: true
+    readOnlyRootFilesystem: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -214,6 +215,12 @@ encaps-layer:
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
     enabled: true
     mountPath: /app/logs
+  tmp:
+    # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
+    # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
+    #   -> ApplicationContextException: Unable to start web server
+    enabled: true
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -235,6 +242,7 @@ sql-gateway:
     runAsGroup: 1001
     fsGroup: 1001
     runAsNonRoot: true
+    readOnlyRootFilesystem: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -260,6 +268,12 @@ sql-gateway:
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
     enabled: true
     mountPath: /app/logs
+  tmp:
+    # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
+    # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
+    #   -> ApplicationContextException: Unable to start web server
+    enabled: true
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -305,6 +319,7 @@ rule-engine:
     runAsGroup: 1001
     fsGroup: 1001
     runAsNonRoot: true
+    readOnlyRootFilesystem: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -330,6 +345,12 @@ rule-engine:
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
     enabled: true
     mountPath: /app/logs
+  tmp:
+    # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
+    # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
+    #   -> ApplicationContextException: Unable to start web server
+    enabled: true
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
