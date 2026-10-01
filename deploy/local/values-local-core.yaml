@@ -182,8 +182,8 @@ encaps-layer:
   securityContext:
     readOnlyRootFilesystem: false
     # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -209,8 +209,8 @@ sql-gateway:
   securityContext:
     readOnlyRootFilesystem: false
     # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -261,8 +261,8 @@ rule-engine:
   securityContext:
     readOnlyRootFilesystem: false
     # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
-    runAsUser: 0
-    runAsNonRoot: false
+    runAsUser: 1001
+    runAsNonRoot: true
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
