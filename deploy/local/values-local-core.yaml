@@ -178,7 +178,21 @@ infra-provider-xinchang:
 
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
+    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
+    runAsUser: 0
+    runAsNonRoot: false
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-encaps-layer
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -191,7 +205,21 @@ encaps-layer:
     INFORMER_WATCH_CACHE: "true"
 
 sql-gateway:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
+    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
+    runAsUser: 0
+    runAsNonRoot: false
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-sql-gateway
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "1", memory: 1Gi }
@@ -206,6 +234,14 @@ sql-gateway:
 
 catalog:
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-catalog
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -221,7 +257,21 @@ catalog:
     jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
 
 rule-engine:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
+    # 镜像 /app 目录 root 所有，runAsUser 65532 无法创建 /app/logs，本地/CI 冒烟以 root 运行
+    runAsUser: 0
+    runAsNonRoot: false
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-rule-engine
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "1", memory: 1Gi }
@@ -235,7 +285,20 @@ rule-engine:
     RULE_DATASOURCE_TYPE: "h2"
 
 nl2sql:
+  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  auth:
+    authMode: none
+    existingSecretName: dataengine-catalog-auth
+    jwtSecretKey: jwt-signing-key
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-nl2sql
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
@@ -245,7 +308,20 @@ nl2sql:
     port: 8080
 
 open-api-catalog:
+  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  auth:
+    authMode: none
+    existingSecretName: dataengine-catalog-auth
+    jwtSecretKey: jwt-signing-key
   enabled: true
+  # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
+  # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
+  #       harbor.shuqing.io/...），指向并不存在或不可达的自研镜像，且会覆盖 global.imageRegistry，
+  #       故此处必须逐服务显式覆盖 image.repository（详见 docs/KNOWN-FAILURES.md #30）。
+  image:
+    repository: ghcr.io/levango7/sq-open-api-catalog
+    tag: latest
+    pullPolicy: IfNotPresent
   replicaCount: 1
   resources:
     limits: { cpu: "500m", memory: 512Mi }
