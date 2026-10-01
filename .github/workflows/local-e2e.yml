@@ -87,9 +87,18 @@ jobs:
         run: |
           kubectl get pods -n dataengine -o wide
           kubectl describe pods -n dataengine
-          kubectl logs -n dataengine -l app.kubernetes.io/name=encaps-layer --tail=100
-          kubectl logs -n dataengine -l app.kubernetes.io/name=sql-gateway --tail=100
-          kubectl logs -n dataengine -l app.kubernetes.io/name=catalog --tail=100
+          #遍历全部核心服务采集日志。
+          #此前只硬编码 encaps-layer / sql-gateway / catalog 三个，
+          #导致 rule-engine / nl2sql / open-api-catalog 崩溃时日志完全缺失，
+          #无法判定根因（见 docs/KNOWN-FAILURES.md #30）。改为按标签全量采集。
+          for svc in encaps-layer sql-gateway rule-engine catalog nl2sql open-api-catalog; do
+            echo "===== logs: ${svc} ====="
+            kubectl logs -n dataengine -l "app.kubernetes.io/name=${svc}" --tail=200 \
+              || echo "(no logs for ${svc})"
+            # CrashLoop 的上一次崩溃日志在 --previous，不取会漏掉真正的异常栈
+            kubectl logs -n dataengine -l "app.kubernetes.io/name=${svc}" --tail=200 --previous \
+              || echo "(no previous logs for ${svc})"
+          done
 
   # ============================================================
   # 4. Karmada 多集群联邦测试（可选，手动触发）

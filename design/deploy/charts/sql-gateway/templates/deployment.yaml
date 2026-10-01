@@ -36,6 +36,11 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
+      volumes:
+        - name: logs
+          emptyDir: {}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -47,6 +52,20 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "sql-gateway.configmapName" . }}
+          {{- if and .Values.auth .Values.auth.jwtSecretName }}
+          # JWT_SECRET 经 Secret 注入，不写入 ConfigMap。
+          # 为何必需：application.yml 中 app.security.jwt.secret 为无默认值占位符（Relaxed 绑定
+          # 到 JWT_SECRET）。缺失时 JwtAuthFilterAutoConfiguration 的守卫条件不成立 -> 不注册
+          # JwtAuthFilter Bean -> SecurityConfig#securityFilterChain 硬依赖该 Bean 缺失 ->
+          # No qualifying bean of type 'JwtAuthFilter' -> APPLICATION FAILED TO START。
+          # 生产必须配置 auth.jwtSecretName；本地/CI 可留空并用 --set 覆盖。
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.jwtSecretName }}
+                  key: {{ .Values.auth.jwtSecretKey | default "jwt-secret" }}
+          {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -67,6 +86,13 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
+          # 应用日志目录挂载。默认为空（不挂），生产请用宿主机/云盘日志采集或挂 PVC。
+          # 本地/CI 打开后即使镜像未建目录也能写；两者是双保险，不是二选一。
+          volumeMounts:
+            - name: logs
+              mountPath: {{ .Values.logs.mountPath }}
+          {{- end }}
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}

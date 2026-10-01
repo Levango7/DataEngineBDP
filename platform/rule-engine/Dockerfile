@@ -28,14 +28,26 @@ RUN mvn -B -e -DskipTests clean package -f pom.xml
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
-# 创建非 root 用户（与其他 Java 组件保持一致）
-RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+# 创建非 root 用户。
+# uid/gid 必须显式固化为 1001：/app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，
+# 若 Chart 的 runAsGroup/fsGroup 与此处 gid 不一致，进程就对 /app/data 无写权，
+# H2 建库直接抛 java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
+# 三个 Java 服务统一为 1001，deploy/local/values-local-core.yaml 与之对齐。
+RUN groupadd --system --gid 1001 appgroup \
+    && useradd --system --uid 1001 --gid 1001 --home /app appuser
 
 # 从构建阶段复制产物
 COPY --from=builder /build/target/*.jar /app/app.jar
 
 # 创建数据目录并赋权，确保 appuser 可写（H2 文件库 / 日志落盘）
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+# 创建数据目录、日志目录并赋权：
+#   /app/data  - H2 文件库（sql-gateway 的 sql-gateway-db.mv.db 等）
+#   /app/logs  - Logback RollingFileAppender 的输出目录。
+#                Logback 的 openFile() 不会创建父目录，若目录不存在会抛
+#                FileNotFoundException -> 'Logback configuration error detected'
+#                -> Spring 启动中止（见 platform/encaps-layer/src/main/resources/
+#                   logback-spring.xml 的 <file>logs/encaps-layer.log</file>）。
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appgroup /app
 
 # 暴露服务端口
 EXPOSE 8083
