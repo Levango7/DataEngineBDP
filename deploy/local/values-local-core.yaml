@@ -218,7 +218,7 @@ encaps-layer:
   tmp:
     # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
     # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
-    #   FileSystemException: /tmp/tomcat.<port>.<random>: Read-only file system
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
   auth:
@@ -271,7 +271,7 @@ sql-gateway:
   tmp:
     # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
     # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
-    #   FileSystemException: /tmp/tomcat.<port>.<random>: Read-only file system
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
   auth:
@@ -348,7 +348,7 @@ rule-engine:
   tmp:
     # 保持 readOnlyRootFilesystem: true（不放弃安全加固），只把 /tmp 挂成 emptyDir。
     # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会直接导致启动失败：
-    #   FileSystemException: /tmp/tomcat.<port>.<random>: Read-only file system
+    #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
   auth:

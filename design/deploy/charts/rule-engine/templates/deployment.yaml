@@ -43,9 +43,9 @@ spec:
           emptyDir: {}
         {{- end }}
         {{- if and .Values.tmp ( .Values.tmp.enabled ) }}
-        # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录（tomcat.<port>.<random>）。
+        # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录（tomcat.PORT.RANDOM）。
         # readOnlyRootFilesystem: true 时 /tmp 只读，Tomcat 直接启动失败：
-        #   FileSystemException: /tmp/tomcat.8081.xxx: Read-only file system
+        #   FileSystemException: /tmp/tomcat.8081: Read-only file system
         #   -> ApplicationContextException: Unable to start web server
         # 用 emptyDir 挂出 /tmp，在保留只读根加固的前提下满足这一必需的可写点。
         - name: tmp

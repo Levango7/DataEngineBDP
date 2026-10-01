@@ -113,7 +113,7 @@ tmp:
   # 是否把 /tmp 挂成 emptyDir。默认关闭。
   # 需要与 securityContext.readOnlyRootFilesystem: true 同时使用：
   # 嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录，只读根会导致
-  # "FileSystemException: /tmp/tomcat.<port>.<random>: Read-only file system"
+  # "FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system"
   # -> "Unable to start web server"。
   # 生产同样建议开启（不损失只读根加固，只放开这一个必需的可写点）。
   enabled: false
