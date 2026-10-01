@@ -178,6 +178,9 @@ infra-provider-xinchang:
 
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -199,6 +202,9 @@ encaps-layer:
     INFORMER_WATCH_CACHE: "true"
 
 sql-gateway:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -245,6 +251,9 @@ catalog:
     jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
 
 rule-engine:
+  # 本地/CI 冒烟 profile：关掉只读根文件系统，否则 Logback 无法创建 /app/logs/*.log，启动即 CrashLoop
+  securityContext:
+    readOnlyRootFilesystem: false
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -267,6 +276,9 @@ rule-engine:
     RULE_DATASOURCE_TYPE: "h2"
 
 nl2sql:
+  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  auth:
+    authMode: none
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
@@ -285,6 +297,9 @@ nl2sql:
     port: 8080
 
 open-api-catalog:
+  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  auth:
+    authMode: none
   enabled: true
   # 镜像来源：GHCR（build.yml 主分支构建产物）。仓库为 public，包可匿名拉取（已实测 manifest OK）。
   # 注意：各 Chart 的 values.yaml 默认硬编码国内镜像源（docker.m.daocloud.io/sq-*、
