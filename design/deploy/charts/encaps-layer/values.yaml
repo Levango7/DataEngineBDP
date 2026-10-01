@@ -107,6 +107,16 @@ env:
   LOG_LEVEL: info
   JAVA_OPTS: ""
 
+# ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+auth:
+  # 指向已存在的 Secret，其 jwtSecretKey 指定的键将作为 JWT_SECRET 注入容器。
+  # 该值必须与 JWT 签发端（catalog 签发 / encaps-layer 签发 / Keycloak）一致，
+  # 否则接口全部 401。留空表示不注入——此时若运行环境未提供 JWT_SECRET，
+  # 容器将因缺少 JwtAuthFilter Bean 启动失败（见 templates/deployment.yaml 注释）。
+  # 本地/CI：复用 catalog chart 生成的 dataengine-catalog-auth（见 deploy/local/values-local-core.yaml）。
+  jwtSecretName: ""
+  jwtSecretKey: jwt-secret
+
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |
