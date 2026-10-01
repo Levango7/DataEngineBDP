@@ -16,9 +16,13 @@ replicaCount: 1
 # ---- Service 配置 ----
 service:
   type: ClusterIP
-  port: 8080
+  port: 8093
   # 容器端口
-  containerPort: 8080
+  # 容器实际监听端口由 Dockerfile ENV NL2SQL_PORT=8093 / EXPOSE 8093 决定。
+# 此处（含下方liveness/readiness 的 port）必须与之一致，否则探针打错端口永远
+# connection refused，liveness 会在应用启动成功后把进程杀掉，表现为
+# "Application startup complete" 紧跟 "Shutting down" 的 CrashLoop。
+  containerPort: 8093
 
 # ---- 资源配额（默认 standard 档）----
 resources:
@@ -49,7 +53,7 @@ probes:
     enabled: true
     httpGet:
       path: /api/v1/health
-      port: 8080
+      port: 8093
     initialDelaySeconds: 30
     periodSeconds: 10
     failureThreshold: 3
@@ -57,7 +61,7 @@ probes:
     enabled: true
     httpGet:
       path: /api/v1/health
-      port: 8080
+      port: 8093
     initialDelaySeconds: 10
     periodSeconds: 5
     failureThreshold: 3
