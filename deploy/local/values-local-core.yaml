@@ -359,7 +359,9 @@ nl2sql:
     requests: { cpu: "250m", memory: 256Mi }
   service:
     type: ClusterIP
-    port: 8080
+    # 容器实际监听 8093（Dockerfile ENV NL2SQL_PORT=8093 / EXPOSE 8093），
+    # Service 端口必须与之一致，否则 targetPort 打错端口永远 connection refused。
+    port: 8093
 
 open-api-catalog:
   # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
