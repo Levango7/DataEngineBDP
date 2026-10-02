@@ -5,13 +5,22 @@ spring:
   application:
     name: metadata-collector
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgres:5432/metadata_collector}
+    # 独立 schema：Flyway 建表与 Hibernate 校验都落在 metadata_collector（多服务同库避免撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/metadata_collector?currentSchema=metadata_collector}
     username: ${DB_USERNAME:metadata}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:metadata_collector}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
   jpa:
     hibernate:
-      ddl-auto: none
+      # 原为 none（既不建表也不校验，风险最高）；Flyway 接管建表后改为 validate
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
