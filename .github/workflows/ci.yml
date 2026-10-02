@@ -194,10 +194,17 @@ jobs:
             isort --check --diff "$mod_dir" 2>&1 || { echo "✗ $mod_name isort 检查失败"; fail_count=$((fail_count + 1)); }
             # flake8 风格检查
             (cd "$mod_dir" && flake8 --max-line-length=120 --extend-ignore=E203,W503 . 2>&1) || { echo "✗ $mod_name flake8 检查失败"; fail_count=$((fail_count + 1)); }
-            # pylint 静态分析（容忍度较高，不阻断 CI）
-            (cd "$mod_dir" && pylint --rcfile=../../.pylintrc --fail-under=7.0 . 2>&1) || echo "::warning::$mod_name pylint 分数低于阈值，仅警告"
-            # mypy 类型检查（可选，失败仅警告；从仓库根运行以继承根 [tool.mypy] 排除规则）
-            mypy --ignore-missing-imports "$mod_dir" 2>&1 || echo "::warning::$mod_name mypy 发现类型问题，仅警告"
+            # pylint 静态分析（阻断）：原写法 `... || echo "::warning::..."` 使 pylint
+            # 失败不计入 fail_count —— 与"pylint 因 .pylintrc 取值非法而从未真正执行、
+            # 却一直显示绿"属同型吞错。现改为计入 fail_count，与 black/isort/flake8 同口径。
+            # （历史 bug 本身已修：.pylintrc:231 logging-format-style 由非法的 fstr 改为 new）
+            (cd "$mod_dir" && pylint --rcfile=../../.pylintrc --fail-under=7.0 . 2>&1) || { echo "✗ $mod_name pylint 分数低于阈值"; fail_count=$((fail_count + 1)); }
+            # mypy 类型检查（保留为非阻断，但显式化原因、不静默）：
+            #   根 pyproject.toml [tool.mypy] 为 strict = true，本仓大量模块尚未按 strict
+            #   标注类型；若计入 fail_count 会在本批直接翻红且无法在一批内收敛（不是"修一个
+            #   bug"而是"给全仓补类型注解"的独立工程）。故维持仅警告，但把失败原因打印为
+            #   可见的 warning 计数，避免重蹈"静默吞错"。待全仓 strict 收敛后应改为阻断。
+            mypy --ignore-missing-imports "$mod_dir" 2>&1 || echo "::warning::$mod_name mypy 发现类型问题（非阻断：根 [tool.mypy] strict=true，全仓尚未收敛）"
           done < <(find platform -name pyproject.toml 2>/dev/null)
           if [ "$fail_count" -gt 0 ]; then
             echo "::error::共有 $fail_count 个 Python 组件 lint 失败"

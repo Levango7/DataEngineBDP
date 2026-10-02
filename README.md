@@ -2,7 +2,7 @@
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
-> **环境验证状态：已验证 2/4 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
+> **环境验证状态：四环境交付已验证 1/4**（仅"本地数据中心"；本地开发环境不计入四环境，单列）｜ [验证详情](docs/环境验证状态.md)
 >
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
@@ -30,13 +30,13 @@
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
 > 2.1.0-RC 已发布（2026-08-27），基于 v2.0.0 RC 完成核心组件生产化加固（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
-> 22 组件 GA 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
-> **完成度口径**（三维度统一表述，全仓文档共用）：
+> 22 组件 **RC 就绪（"真实可部署"，非 GA）** + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
+> **完成度口径**（三项分母不同、互不可比，全仓文档共用）：
 >
-> - ⚠️ **以下三项均为项目自评口径，无独立复现方法，不应作为客观结论引用**。独立复核以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账为准。
-> - **80% 端到端可用**：自评（含端到端联调、真实环境部署、外部依赖对接等因素的估计值；注：四环境验证目前 0/6 维度实测，见台账 #9）
-> - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`），衡量功能模块完成程度
-> - **100% 本地基础功能**：22 个核心组件本地可运行（H2/SQLite 默认持久层，见 `docs/component-maturity.md`），基础 CRUD/API 可用
+> - ⚠️ **以下三项均为项目自评口径，分母各异，不得横向相加或相互换算**。可核验的独立口径以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账为准。
+> - **80% 端到端可用** — 分母：无（估计值）｜来源：项目自评（含端到端联调、真实环境部署、外部依赖对接等因素）｜可复现性：无独立复现方法。相关实测：四环境交付验证 1/4（仅本地数据中心，见 [环境验证状态](docs/环境验证状态.md)）；GA 清单"四环境零改动"检查项 0/6 通过（台账 #9）
+> - **74.1% 功能模块完成** — 分母：54 项 GA 检查清单条目；分子：40 项通过｜来源：`releases/v2.0.0/ga-checklist.md`｜可复现性：可（按清单逐项核）
+> - **100% 本地基础功能** — 分母：22 个"真实可部署"组件（**不是 46 个自研组件**）｜来源：`docs/component-maturity.md` §一｜可复现性：可（按组件清单本地起服务）
 > ⚠️ 勘误：v2.0.0 的 GA 定级已修订为 RC（候选版本），详见 [V2.0.0 勘误公告](releases/v2.0.0/ERRATUM.md)。
 > 详见 [路线图](ROADMAP.md)。
 
@@ -46,14 +46,18 @@
 
 ## 核心特性
 
-- **多平台交付**：一套主代码，四环境（信创 / 本地数据中心 / 公有云 / 私有云）通过 Profile 差异化配置实现零改动交付。
-- **多租户隔离**：基于 K8s Namespace + ResourceQuota + NetworkPolicy 的三重隔离机制，配合 JWT 鉴权与租户上下文，实现租户间资源、网络、数据完全隔离。
-- **湖仓集一体**：统一存储（Iceberg）+ 批计算（Spark）+ 流计算（Flink）+ 交互查询（Trino）+ OLAP（Doris）协同落地"湖 → 仓 → 集"三级数据流转。
-- **智能数据层**：向量库（Milvus）+ 知识图谱服务 + LLMOps + 大模型网关，构成企业版差异化能力。
-- **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
-- **SKE 交付底座**：基于 kubeadm 封装的 K8s 交付底座，dev 模式基于 kind 节点镜像（烘焙 kubelet/Cilium 调优配置），prod 目标为自有 VM 镜像 / 裸金属 kubeadm 全量调优。当前为脚本封装 + 调优配置层（无自研 K8s 核心代码），详见 [ske/README.md](ske/README.md)。
-- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 优化器 + 手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询。
-- **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
+下表按「**自研 / 集成 / 规划**」三列区分能力来源 —— **自研** = 本仓 `platform/` 下自行实现的组件；**集成** = 封装/编排的第三方引擎与中间件；**规划** = 设计态或尚未落地的部分。
+
+| 核心特性 | 自研（`platform/` 组件） | 集成（第三方引擎 / 中间件） | 规划（设计态 / 待落地） |
+| --- | --- | --- | --- |
+| 多平台交付（四环境零改动） | 封装层（encaps-layer / encaps-gateway / encaps-tenant）、供给编排（infra-orchestrator）、四环境 Driver（infra-provider-xinchang / cloud / private / baremetal） | Kubernetes / Helm / 四环境 Profile 差异化配置 | 信创 / 公有云 / 私有云三环境的真实部署验证（四环境交付当前仅"本地数据中心"1/4 通过） |
+| 多租户隔离 | JWT 鉴权 + 租户上下文、common-security、套餐 → ResourceQuota 翻译（encaps-tenant） | K8s Namespace + ResourceQuota + NetworkPolicy 三重隔离 | — |
+| 湖仓集一体 | storage-io（对象存储 / 块存储抽象）、跨源归并引擎 | Iceberg（统一存储）+ Spark（批）+ Flink（流）+ Trino（交互查询）+ Doris（OLAP） | — |
+| 智能数据层 | knowledge-engine（知识图谱）、llmops、llm-gateway、nl2sql、vector-engine | Milvus / MLflow / Elasticsearch | 10 个 AI / 模型组件标注 Experimental（默认 Mock 模式，非 GA） |
+| SaaS 产品层 | industry-templates、business-portal、open-api-catalog、asset-exchange | Superset（BI）/ Eclipse Theia（IDE） | 主数据管理（L3.6）、安全合规（X2）为设计文档定义 |
+| SKE 交付底座 | kubeadm/kind 封装脚本 + 内核/系统调优配置（`ske/`；无自研 K8s 核心代码，详见 [ske/README.md](ske/README.md)） | kubeadm / kind / Cilium | prod 自有 VM 镜像 / 裸金属 kubeadm 全量调优 |
+| 统一 SQL 网关 | sql-gateway（手写 SQL 解析 + 跨源归并引擎） | Apache Calcite 优化器 | — |
+| 治理闭环 | metadata-collector / lineage-analyzer / real-time-pipeline、rule-engine、dqctl、catalog | NebulaGraph（默认关闭，内存图降级）/ OpenLineage | 主数据分发链路（L3.6） |
 
 ## 技术栈
 

@@ -158,7 +158,7 @@ L5 层将平台能力以多租户 SaaS 产品形态对外交付。
 
 | 模块 | 职责 | 关键组件 |
 | --- | --- | --- |
-| L5.1 统一控制台 | Vue3 前端、14 个核心视图页面、工作空间上下文切换 | frontend/ |
+| L5.1 统一控制台 | Vue3 前端、72 个视图页面组件（`frontend/src/views/**/*.vue`，其中顶层页面 37 个；`router/index.ts` 注册 55 个路由组件）、工作空间上下文切换 | frontend/ |
 | L5.2 运营后台 | 租户全生命周期管理、套餐 → ResourceQuota 翻译、账单计费、运营看板 | operations |
 | L5.3 行业应用模板 | Helm Chart 形式行业模板（DDL + DAG + Dashboard + RBAC） | industry-templates |
 | L5.4 业务线门户 | 业务线 → 团队 → 项目组织模型、内部结算 | business-portal |
