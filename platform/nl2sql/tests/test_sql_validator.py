@@ -85,6 +85,16 @@ class TestSqlValidator:
         # 关闭 select-only 后，INSERT 不再被拒绝（但仍可能因其他检查告警）
         assert not any(i.code == "NON_SELECT_STMT" for i in r.issues)
 
+    def test_unknown_statement_type_rejected(self, validator: SqlValidator) -> None:
+        # fail-closed 回归：无法识别语句类型（既非 SELECT 也非已知 DML/DDL）时，
+        # 必须按 ERROR 拒绝，避免未知语句绕过 SELECT-only 护栏。
+        r = validator.validate("foo bar baz;")
+        assert r.valid is False
+        assert any(
+            i.code == "UNKNOWN_STMT_TYPE" and i.level == ValidationLevel.ERROR
+            for i in r.issues
+        )
+
     def test_multi_statement_rejected(self, validator: SqlValidator) -> None:
         r = validator.validate("SELECT 1; SELECT 2;")
         assert r.valid is False

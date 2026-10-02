@@ -32,7 +32,8 @@ func NewDownstreamProxy(cfg *config.Config) *DownstreamProxy {
 	}
 }
 
-// LlmChatRequest llm-gateway 对话请求（对齐其 /v1/chat 契约）。
+// LlmChatRequest llm-gateway 对话请求（对齐其 OpenAI 兼容端点
+// POST /api/v1/chat/completions）。
 type LlmChatRequest struct {
 	Messages []ChatMessageIn `json:"messages"`
 	Model    string          `json:"model,omitempty"`
@@ -46,8 +47,23 @@ type ChatMessageIn struct {
 }
 
 // ChatResult llm-gateway 对话响应。
+//
+// 对齐 llm-gateway/internal/provider.ChatResponse（OpenAI 兼容协议）：
+// 回复文本位于 choices[0].message.content，而非扁平字段 reply。
 type ChatResult struct {
-	Reply string `json:"reply"`
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+}
+
+// reply 提取首个候选回复的文本内容。
+func (r ChatResult) reply() string {
+	if len(r.Choices) == 0 {
+		return ""
+	}
+	return r.Choices[0].Message.Content
 }
 
 // LlmChat 调用 llm-gateway 完成一次对话。
@@ -56,7 +72,7 @@ func (p *DownstreamProxy) LlmChat(ctx context.Context, messages []ChatMessageIn,
 	body, _ := json.Marshal(req)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		p.cfg.LlmGatewayURL+"/v1/chat", bytes.NewReader(body))
+		p.cfg.LlmGatewayURL+"/api/v1/chat/completions", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +91,11 @@ func (p *DownstreamProxy) LlmChat(ctx context.Context, messages []ChatMessageIn,
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return "", fmt.Errorf("解析 llm-gateway 响应失败: %w", err)
 	}
-	return out.Reply, nil
+	reply := out.reply()
+	if reply == "" {
+		return "", fmt.Errorf("llm-gateway 响应缺少 choices[0].message.content")
+	}
+	return reply, nil
 }
 
 // Nl2SqlResult nl2sql 服务响应。

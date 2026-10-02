@@ -37,8 +37,13 @@ import java.util.List;
  */
 public class ExecutionPlanGenerator {
 
-    private static final DecimalFormat ROW_FMT = new DecimalFormat("#,##0.0");
-    private static final DecimalFormat COST_FMT = new DecimalFormat("#,##0.0");
+    // DecimalFormat 非线程安全（NumberFormat 内部持有可变状态）：
+    // 作为 static 共享字段被并发调用时会产出错误格式化结果。
+    // 改用 ThreadLocal 为每个线程持有独立实例，输出保持不变且线程安全。
+    private static final ThreadLocal<DecimalFormat> ROW_FMT =
+            ThreadLocal.withInitial(() -> new DecimalFormat("#,##0.0"));
+    private static final ThreadLocal<DecimalFormat> COST_FMT =
+            ThreadLocal.withInitial(() -> new DecimalFormat("#,##0.0"));
 
     /**
      * 生成完整执行计划文本。
@@ -65,8 +70,8 @@ public class ExecutionPlanGenerator {
         }
 
         sb.append("\n== Estimated Cost ==\n");
-        sb.append("  rows=").append(ROW_FMT.format(relNode.getEstimatedRows()))
-                .append("  cost=").append(COST_FMT.format(relNode.getEstimatedCost())).append('\n');
+        sb.append("  rows=").append(ROW_FMT.get().format(relNode.getEstimatedRows()))
+                .append("  cost=").append(COST_FMT.get().format(relNode.getEstimatedCost())).append('\n');
 
         return sb.toString();
     }
@@ -150,7 +155,7 @@ public class ExecutionPlanGenerator {
             sb.append("  // ").append(node.getRemark());
         }
         if (node.getEstimatedRows() > 0) {
-            sb.append("  [rows=").append(ROW_FMT.format(node.getEstimatedRows())).append(']');
+            sb.append("  [rows=").append(ROW_FMT.get().format(node.getEstimatedRows())).append(']');
         }
         return sb.toString();
     }

@@ -62,13 +62,17 @@ public class ProjectController {
                 ? repository.findByTenantIdOrderByCreatedAtDesc(tenantId)
                 : repository.findByTenantIdAndDomainOrderByCreatedAtDesc(tenantId, domain);
         int total = all.size();
-        int start = Math.min((page - 1) * size, total);
-        int end = Math.min(start + size, total);
+        // 分页参数 clamp（page>=1、size∈[1,100]）：防 page=0/负数或 (page-1)*size 溢出
+        // 使 start/end 为负导致 subList 抛 IndexOutOfBoundsException（HTTP 500）。
+        int safePage = Math.max(1, Math.min(page, 1000));
+        int safeSize = Math.max(1, Math.min(size, 100));
+        int start = Math.min((safePage - 1) * safeSize, total);
+        int end = Math.min(start + safeSize, total);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("list", all.subList(start, end).stream().map(this::toView).toList());
         result.put("total", total);
-        result.put("page", page);
-        result.put("size", size);
+        result.put("page", safePage);
+        result.put("size", safeSize);
         return ResponseEntity.ok(result);
     }
 

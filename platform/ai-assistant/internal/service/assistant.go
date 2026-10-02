@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/config"
@@ -121,7 +122,12 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 
 	// ② NL→SQL（默认开；传入 tenantId 实现租户隔离）
 	if req.EnableNl2Sql {
-		if nl2sql, err := a.proxy.Nl2Sql(ctx, req.Message, "", req.TenantID); err == nil && nl2sql != nil && strings.TrimSpace(nl2sql.SQL) != "" {
+		nl2sql, err := a.proxy.Nl2Sql(ctx, req.Message, "", req.TenantID)
+		switch {
+		case err != nil:
+			// 高风险静默吞错：NL→SQL 失败会被降级为「无 SQL」模板回复，用户无从察觉。
+			slog.Warn("nl2sql 生成失败，降级为无 SQL 回复", slog.String("error", err.Error()))
+		case nl2sql != nil && strings.TrimSpace(nl2sql.SQL) != "":
 			resp.SQL = nl2sql.SQL
 		}
 	}
@@ -137,19 +143,36 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 			}
 			return resp, nil
 		}
-		if execResult, err := a.proxy.ExecuteSQL(ctx, resp.SQL, "ANSI", req.TenantID); err == nil {
+		if execResult, err := a.proxy.ExecuteSQL(ctx, resp.SQL, "ANSI", req.TenantID); err != nil {
+			// 高风险静默吞错：执行失败时 resp.Executed=false，但回复仍称「已生成 SQL」，
+			// 用户会误以为查询成功；补日志保证链路可观测。
+			slog.Warn("SQL 执行失败", slog.String("error", err.Error()))
+		} else {
 			resp.Executed = true
 			_ = execResult // 结果用于后续解读（P1 扩展）
 		}
 	}
 
-	// ④ 汇总回复：优先 llm-gateway，失败回退规则文案
-	reply := a.buildReply(req.Message, resp.SQL, resp.Executed)
-	if reply == "" {
-		if llmReply, err := a.proxy.LlmChat(ctx,
-			[]ChatMessageIn{{Role: "user", Content: req.Message}}, ""); err == nil {
+	// ④ 汇总回复：优先 llm-gateway 润色，失败回退规则文案。
+	//
+	// 修复：旧实现先调 buildReply，再以 `if reply == ""` 判断是否调用 LLM，
+	// 但 buildReply 的两个分支都必然返回非空串（见下方实现），判空恒假，
+	// 导致 LLM 分支是死代码、回复永远是模板拼装。
+	// 现改为显式条件（llm-gateway 已配置）下优先调用 LLM，
+	// 调用失败或返回空串时再回退到规则文案，保证链路可用且可观测。
+	reply := ""
+	if a.cfg.LlmGatewayURL != "" {
+		llmReply, err := a.proxy.LlmChat(ctx,
+			[]ChatMessageIn{{Role: "user", Content: req.Message}}, a.cfg.LlmModel)
+		switch {
+		case err != nil:
+			slog.Warn("llm-gateway 对话失败，回退规则文案", slog.String("error", err.Error()))
+		case strings.TrimSpace(llmReply) != "":
 			reply = llmReply
 		}
+	}
+	if reply == "" {
+		reply = a.buildReply(req.Message, resp.SQL, resp.Executed)
 	}
 	resp.Reply = reply
 
@@ -161,6 +184,9 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 }
 
 // buildReply 组装回复（无 LLM 时也能给出可读结果）。
+//
+// 注意：本方法两个分支都会返回非空字符串，调用方不得再用 `reply == ""`
+// 判断「是否需要 LLM」——那会使 LLM 分支成为死代码（历史缺陷已修复）。
 func (a *AssistantService) buildReply(msg, sql string, executed bool) string {
 	var b strings.Builder
 	if sql != "" {
