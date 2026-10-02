@@ -15,7 +15,7 @@ test.describe('API 网关（/gateway）', () => {
 
   test('API 网关页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('大模型网关')
-    await expect(page.locator('.sub')).toContainText('统一 API 入口')
+    await expect(page.locator('.page-header__subtitle')).toContainText('统一 API 入口')
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 15_000 }).catch(() => {})
   })
 

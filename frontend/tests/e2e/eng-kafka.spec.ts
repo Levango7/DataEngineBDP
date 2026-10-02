@@ -15,7 +15,10 @@ test.describe('Kafka 引擎管理（/eng-kafka）', () => {
 
   test('Kafka 引擎页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('OLAP/消息（Kafka）')
-    await expect(page.locator('.sub')).toContainText('消息队列')
+    // EngKafka.vue 副标题使用 engines.kafka.page.subtitle
+    // （"Broker · Topic · 消费组 · Lag 监控 · 10 秒自动刷新"），
+    // 旧断言 '消息队列' 取自未使用的 engines.kafka.subtitle，已按当前视图同步
+    await expect(page.locator('.sub')).toContainText('Broker')
     await expect(page.locator('.card').first()).toBeVisible({ timeout: 15_000 })
   })
 

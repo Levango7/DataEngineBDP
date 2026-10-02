@@ -36,8 +36,8 @@ test.describe('账户与配额（/account）', () => {
   test('计费明细表格存在', async ({ page }) => {
     // 计费明细卡片（含 h3"计费明细"）
     await expect(page.locator('h3', { hasText: '计费明细' })).toBeVisible({ timeout: 15_000 })
-    // el-table 渲染（计费明细表格）
-    await expect(page.locator('el-table').first()).toBeVisible({ timeout: 15_000 })
+    // el-table 渲染为 .el-table 容器（标签选择器永不匹配）
+    await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('账户套餐 API 返回 200（Bearer 认证）', async ({ request }) => {

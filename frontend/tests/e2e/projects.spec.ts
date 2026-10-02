@@ -19,7 +19,7 @@ test.describe('项目管理（/projects）', () => {
 
   test('项目列表页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('数据项目')
-    await expect(page.locator('.sub')).toContainText('工作空间')
+    await expect(page.locator('.page-header__subtitle')).toContainText('工作空间')
     await expect(page.locator('.card')).toBeVisible()
   })
 
@@ -37,7 +37,8 @@ test.describe('项目管理（/projects）', () => {
 
   test('项目列表显示暂无项目或数据行', async ({ page }) => {
     await page.waitForSelector('table', { timeout: 15_000 })
-    const table = page.locator('table')
+    // el-table 内部含 header/body 两个 <table>，locator('table') 会触发 strict mode violation
+    const table = page.locator('.el-table').first()
     await expect(table).toBeVisible()
     // 等待 loading 结束（"加载中…"消失）
     await expect(page.locator('text=加载中…')).toHaveCount(0, { timeout: 15_000 })
@@ -62,10 +63,11 @@ test.describe('项目管理（/projects）', () => {
   })
 
   test('状态筛选下拉存在', async ({ page }) => {
-    const select = page.locator('.toolbar select')
+    // Projects.vue toolbar #filters 使用 Element Plus <el-select>（渲染为 .el-select，
+    // 无原生 <select>），默认项"全部状态"以 placeholder 呈现
+    const select = page.locator('.toolbar .el-select')
     await expect(select.first()).toBeVisible()
-    const option = select.first().locator('option')
-    await expect(option.first()).toContainText('全部状态')
+    await expect(select.first()).toContainText('全部状态')
   })
 
   test('新建项目弹窗打开与关闭', async ({ page }) => {

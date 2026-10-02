@@ -29,11 +29,12 @@ test.describe('调度运维（/scheduler-ops）', () => {
 
   test('状态筛选 tabs 与运行历史表格存在', async ({ page }) => {
     // 状态筛选 tabs（全部/成功/失败/运行中，4 个 tab-pane）
-    await expect(page.locator('el-tabs')).toBeVisible({ timeout: 15_000 })
-    const tabCount = await page.locator('el-tab-pane').count()
+    // Element Plus 组件渲染为带类名的 <div>（.el-tabs/.el-tab-pane），标签选择器永不匹配
+    await expect(page.locator('.el-tabs')).toBeVisible({ timeout: 15_000 })
+    const tabCount = await page.locator('.el-tab-pane').count()
     expect(tabCount).toBeGreaterThanOrEqual(4)
-    // 运行历史表格（el-table）
-    await expect(page.locator('el-table').first()).toBeVisible({ timeout: 15_000 })
+    // 运行历史表格（el-table 渲染为 .el-table 容器）
+    await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('查询与补数据按钮存在', async ({ page }) => {

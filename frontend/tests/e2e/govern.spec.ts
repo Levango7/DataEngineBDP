@@ -31,8 +31,9 @@ test.describe('治理中台·资产目录（/govern）', () => {
     })
     // 搜索框
     await expect(page.locator('.toolbar input[placeholder*="搜索"]')).toBeVisible()
-    // 资产表格（el-table 渲染为 table）
-    await expect(page.locator('.card table')).toBeVisible({ timeout: 15_000 })
+    // 资产表格（el-table 渲染为 .el-table 容器，内部含 header/body 两个 <table>，
+    // .card table 会命中 2 个元素触发 strict mode violation）
+    await expect(page.locator('.card .el-table').first()).toBeVisible({ timeout: 15_000 })
     // 表头列：资产名 / 分层 / 负责人 / 质量分 / 敏感 / 详情
     const headers = page.locator('.card thead th')
     const count = await headers.count()

@@ -39,7 +39,10 @@ test.describe('知识工程（/kb）', () => {
     })
     expect(resp.status()).toBe(200)
     const json = await resp.json()
-    expect(json.data).toHaveProperty('list')
+    // 后端 encaps-layer KnowledgeController#list 返回 List<Map>（经 ApiResponse 包装为
+    // data: [...]），前端 api/knowledge.ts#listKnowledgeBases 亦按数组消费；
+    // 旧断言 data.list（分页结构）与实际形状不符
+    expect(Array.isArray(json.data)).toBe(true)
   })
 
   test('知识库 API 未认证返回 401', async ({ request }) => {

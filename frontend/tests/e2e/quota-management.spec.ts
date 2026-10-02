@@ -15,7 +15,7 @@ test.describe('配额管理（/quota-management）', () => {
 
   test('配额管理页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('配额管理')
-    await expect(page.locator('.sub')).toContainText('ResourceQuota')
+    await expect(page.locator('.page-header__subtitle')).toContainText('ResourceQuota')
     await expect(page.locator('.toolbar')).toBeVisible({ timeout: 15_000 })
   })
 
@@ -23,7 +23,8 @@ test.describe('配额管理（/quota-management）', () => {
     await page.waitForTimeout(1_500)
     const btn = page.locator('.toolbar button', { hasText: '设置配额' })
     await expect(btn.first()).toBeVisible({ timeout: 10_000 })
-    await expect(page.locator('input[placeholder*="筛选"]').first()).toBeVisible()
+    // 筛选框为 Element Plus <el-select>（渲染为 .el-select，placeholder 文本而非 input 属性）
+    await expect(page.locator('.toolbar .el-select').first()).toBeVisible()
   })
 
   test('配额列表表格与刷新按钮存在', async ({ page }) => {

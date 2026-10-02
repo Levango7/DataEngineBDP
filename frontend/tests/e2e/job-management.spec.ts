@@ -29,16 +29,17 @@ test.describe('作业管理（/jobs）', () => {
 
   test('状态筛选 tabs 与作业列表表格存在', async ({ page }) => {
     // 状态筛选 tabs（全部/运行中/成功/失败/等待，5 个 tab-pane）
-    await expect(page.locator('el-tabs')).toBeVisible({ timeout: 15_000 })
-    const tabCount = await page.locator('el-tab-pane').count()
+    // Element Plus 组件渲染为带类名的 <div>（.el-tabs/.el-tab-pane），标签选择器永不匹配
+    await expect(page.locator('.el-tabs')).toBeVisible({ timeout: 15_000 })
+    const tabCount = await page.locator('.el-tab-pane').count()
     expect(tabCount).toBeGreaterThanOrEqual(5)
-    // 作业列表表格（el-table，aria-label 含"作业列表"）
-    await expect(page.locator('el-table').first()).toBeVisible({ timeout: 15_000 })
+    // 作业列表表格（el-table 渲染为 .el-table 容器）
+    await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('分页与提交作业按钮存在', async ({ page }) => {
-    // 分页控件 el-pagination 存在
-    await expect(page.locator('el-pagination')).toBeVisible({ timeout: 15_000 })
+    // 分页控件 el-pagination 存在（Element Plus 渲染为 .el-pagination）
+    await expect(page.locator('.el-pagination')).toBeVisible({ timeout: 15_000 })
     // 提交作业按钮（Toolbar create 按钮，文案"+ 提交作业"）
     const submitBtn = page.locator('button', { hasText: '提交作业' })
     await expect(submitBtn.first()).toBeVisible({ timeout: 15_000 })

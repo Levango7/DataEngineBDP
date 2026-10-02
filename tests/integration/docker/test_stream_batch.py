@@ -71,11 +71,19 @@ class MockIcebergSnapshotManager:
 
     def lock_batch_snapshot(self, table: str, snapshot_id: Optional[int] = None) -> Dict[str, Any]:
         if snapshot_id is None:
+            # 与真实实现 IcebergSnapshotManager.lockBatchSnapshot(table) 对齐：
+            # 锁定快照沿用「该 snapshot 自身」的时间戳，而非「锁定时刻」的新墙钟。
+            # 若用新墙钟，verify_snapshot_isolation 计算 (流ts - 批ts) 时会在两次
+            # 取钟跨毫秒边界的情况下得到负值，使隔离校验随机判失败（flaky）。
             latest = self.get_latest_snapshot(table)
             snapshot_id = latest["snapshotId"]
+            locked_timestamp_ms = latest["timestampMs"]
+        else:
+            # EXPLICIT 模式：与 lockBatchSnapshot(table, snapshotId) 一致，使用当前时间
+            locked_timestamp_ms = int(time.time() * 1000)
         locked = {
             "snapshotId": snapshot_id,
-            "timestampMs": int(time.time() * 1000),
+            "timestampMs": locked_timestamp_ms,
             "latest": False,
         }
         self._locked_batch_snapshots[table] = locked

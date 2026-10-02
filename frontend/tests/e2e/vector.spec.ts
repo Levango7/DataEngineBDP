@@ -15,7 +15,7 @@ test.describe('向量引擎（/vector）', () => {
 
   test('向量引擎页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('向量库')
-    await expect(page.locator('.sub')).toContainText('Milvus')
+    await expect(page.locator('.page-header__subtitle')).toContainText('Milvus')
     await expect(page.locator('.card')).toBeVisible({ timeout: 15_000 })
   })
 

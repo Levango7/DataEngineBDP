@@ -15,7 +15,7 @@ test.describe('LLMOps（/llmops）', () => {
 
   test('LLMOps 页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('LLMOps')
-    await expect(page.locator('.sub')).toContainText('大模型运营')
+    await expect(page.locator('.page-header__subtitle')).toContainText('大模型运营')
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 15_000 }).catch(() => {})
   })
 

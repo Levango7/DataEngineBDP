@@ -15,7 +15,7 @@ test.describe('安全脱敏（/sec）', () => {
 
   test('安全脱敏页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('安全脱敏')
-    await expect(page.locator('.sub')).toContainText('脱敏策略')
+    await expect(page.locator('.page-header__subtitle')).toContainText('脱敏策略')
     await expect(page.locator('.toolbar')).toBeVisible({ timeout: 15_000 })
   })
 
@@ -27,7 +27,11 @@ test.describe('安全脱敏（/sec）', () => {
 
   test('权限申请审批流区块存在', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('安全脱敏')
-    await expect(page.locator('text=权限申请审批流')).toBeVisible({ timeout: 10_000 })
+    // "权限申请审批流"同时出现在 PageHeader 副标题与区块标题中，
+    // text= 会命中 2 个元素触发 strict mode violation；改为精确定位区块标题
+    await expect(page.locator('.section-title', { hasText: '权限申请审批流' })).toBeVisible({
+      timeout: 10_000
+    })
   })
 
   test('安全策略 API 返回 200（Bearer 认证）', async ({ request }) => {
