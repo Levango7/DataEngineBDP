@@ -1,5 +1,25 @@
 <template>
-  <div>
+  <!-- C-2 导航合并：/quality 已并入本页（原 Quality.vue），用 tab 切换「数据标准/数据质量」 -->
+  <div class="page-tabs" role="group" :aria-label="t('nav.items.standard')">
+    <button
+      type="button"
+      class="page-tab"
+      :class="{ active: activeTab === 'standard' }"
+      @click="switchTab('standard')"
+    >
+      {{ t('nav.items.standard') }}
+    </button>
+    <button
+      type="button"
+      class="page-tab"
+      :class="{ active: activeTab === 'quality' }"
+      @click="switchTab('quality')"
+    >
+      {{ t('nav.items.quality') }}
+    </button>
+  </div>
+
+  <template v-if="activeTab === 'standard'">
     <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
     <Toolbar
       :show-create="true"
@@ -68,16 +88,21 @@
         </el-button>
       </template>
     </Modal>
-  </div>
+  </template>
+
+  <!-- 数据质量：原 /quality 页（Quality.vue）完整内容，作为本页第二个 tab -->
+  <Quality v-else />
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
+import Quality from '@/views/Quality.vue'
 import * as standardApi from '@/api/standard'
 import type { Standard, StandardSummary, StandardType } from '@/api/standard'
 import type { PagedResult } from '@/api/types'
@@ -86,6 +111,27 @@ const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
+
+/* ------------------------------ 导航合并 tab ------------------------------ */
+
+// /quality 重定向到 /standard?tab=quality；当前 tab 由路由 query 派生
+const route = useRoute()
+const router = useRouter()
+type MergedTab = 'standard' | 'quality'
+
+/** 解析当前 tab（无 router 注入时回退 standard，兼容组件单测） */
+function tabFromQuery(): MergedTab {
+  return route?.query?.tab === 'quality' ? 'quality' : 'standard'
+}
+
+const activeTab = computed(tabFromQuery)
+
+/** 切换 tab：更新 URL query（保留可直达链接语义），tab 随之重算 */
+function switchTab(tab: MergedTab) {
+  if (activeTab.value === tab) return
+  const query: Record<string, string> = tab === 'quality' ? { tab: 'quality' } : {}
+  void router?.replace?.({ path: '/standard', query })
+}
 
 // 标准列表 + 落标率：通过 useApi 包装并行加载，自动维护 loading / error / data 三态
 const {
@@ -170,5 +216,27 @@ onMounted(() => {
   text-decoration: underline;
   cursor: pointer;
   font: inherit;
+}
+
+/* 导航合并 tab：/standard 与 /quality 合并为同一页后的切换条 */
+.page-tabs {
+  display: flex;
+  gap: var(--ds-spacing-1);
+  margin-bottom: var(--ds-spacing-4);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.page-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
+  color: var(--ds-text-secondary);
+  font: inherit;
+  font-weight: var(--ds-font-weight-medium);
+  cursor: pointer;
+}
+.page-tab.active {
+  color: var(--ds-color-primary-600);
+  border-bottom-color: var(--ds-color-primary-600);
 }
 </style>

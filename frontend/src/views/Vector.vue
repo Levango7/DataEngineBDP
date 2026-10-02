@@ -1,5 +1,25 @@
 <template>
-  <div>
+  <!-- C-2 导航合并：/kb 已并入本页（原 Kb.vue），用 tab 切换「向量数据库/知识工程」 -->
+  <div class="page-tabs" role="group" :aria-label="t('nav.items.vector')">
+    <button
+      type="button"
+      class="page-tab"
+      :class="{ active: activeTab === 'vector' }"
+      @click="switchTab('vector')"
+    >
+      {{ t('nav.items.vector') }}
+    </button>
+    <button
+      type="button"
+      class="page-tab"
+      :class="{ active: activeTab === 'kb' }"
+      @click="switchTab('kb')"
+    >
+      {{ t('nav.items.kb') }}
+    </button>
+  </div>
+
+  <template v-if="activeTab === 'vector'">
     <PageHeader :title="t('vector.title')" :subtitle="t('vector.subtitle')" />
     <Toolbar
       v-model:search-value="searchText"
@@ -60,22 +80,48 @@
         </el-button>
       </template>
     </Modal>
-  </div>
+  </template>
+
+  <!-- 知识工程：原 /kb 页（Kb.vue）完整内容，作为本页第二个 tab -->
+  <Kb v-else />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
+import Kb from '@/views/Kb.vue'
 import * as vectorApi from '@/api/vector'
 import type { VectorCollection, IndexType } from '@/api/vector'
 
 const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
+
+/* ------------------------------ 导航合并 tab ------------------------------ */
+
+// /kb 重定向到 /vector?tab=kb；当前 tab 由路由 query 派生
+const route = useRoute()
+const router = useRouter()
+type MergedTab = 'vector' | 'kb'
+
+/** 解析当前 tab（无 router 注入时回退 vector） */
+function tabFromQuery(): MergedTab {
+  return route?.query?.tab === 'kb' ? 'kb' : 'vector'
+}
+
+const activeTab = computed(tabFromQuery)
+
+/** 切换 tab：更新 URL query（保留可直达链接语义），tab 随之重算 */
+function switchTab(tab: MergedTab) {
+  if (activeTab.value === tab) return
+  const query: Record<string, string> = tab === 'kb' ? { tab: 'kb' } : {}
+  void router?.replace?.({ path: '/vector', query })
+}
 
 // 向量集合列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
@@ -162,5 +208,27 @@ onMounted(() => {
     padding-left: var(--ds-spacing-2);
     padding-right: var(--ds-spacing-2);
   }
+}
+
+/* 导航合并 tab：/vector 与 /kb 合并为同一页后的切换条 */
+.page-tabs {
+  display: flex;
+  gap: var(--ds-spacing-1);
+  margin-bottom: var(--ds-spacing-4);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.page-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
+  color: var(--ds-text-secondary);
+  font: inherit;
+  font-weight: var(--ds-font-weight-medium);
+  cursor: pointer;
+}
+.page-tab.active {
+  color: var(--ds-color-primary-600);
+  border-bottom-color: var(--ds-color-primary-600);
 }
 </style>

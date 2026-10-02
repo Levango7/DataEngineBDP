@@ -135,7 +135,8 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'nav.items.standard', icon: 'List', group: 'governance' }
   },
   // C-2 导航合并：/quality 已合并至 /standard（数据标准页用 tab 切换"标准/质量"）
-  { path: '/quality', redirect: '/standard' },
+  // 重定向携带 tab=quality：直达 /quality 时由 Standard.vue 自动切到「数据质量」tab
+  { path: '/quality', redirect: { path: '/standard', query: { tab: 'quality' } } },
   {
     path: '/lineage',
     name: 'lineage',
@@ -143,7 +144,8 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'nav.items.lineage', icon: 'Share', group: 'governance' }
   },
   // C-2 导航合并：/data-lineage 已合并至 /lineage（血缘页用 tab 切换"任务血缘/数据血缘"）
-  { path: '/data-lineage', redirect: '/lineage' },
+  // 重定向携带 tab=data-lineage：直达 /data-lineage 时由 Lineage.vue 切到「血缘可视化」tab
+  { path: '/data-lineage', redirect: { path: '/lineage', query: { tab: 'data-lineage' } } },
   {
     path: '/sec',
     name: 'sec',
@@ -157,7 +159,8 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'nav.items.vector', icon: 'Box', group: 'intelligent' }
   },
   // C-2 导航合并：/kb 已合并至 /vector（向量页用 tab 切换"向量检索/知识库"）
-  { path: '/kb', redirect: '/vector' },
+  // 重定向携带 tab=kb：直达 /kb 时由 Vector.vue 自动切到「知识工程」tab
+  { path: '/kb', redirect: { path: '/vector', query: { tab: 'kb' } } },
   {
     path: '/llmops',
     name: 'llmops',
