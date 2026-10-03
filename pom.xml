@@ -103,7 +103,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.26.0</version>
+                <version>1.28.0</version>
             </dependency>
             <!-- 2026-09-26 安全修复（Trivy fs run #1241 明细；三项均为传递依赖，
                  全仓无显式版本声明，故按上面同款做法在此集中 pin）：
