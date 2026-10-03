@@ -17,36 +17,36 @@ data:
   # ---- DDL 资产（21 张表）----
 {{- if .Values.configMap.assets.ddl.enabled }}
 {{- range $path, $_ := .Files.Glob "assets/ddl/**" }}
-  {{ $path | replace "assets/" "" }}: |-
-{{ .Files.Get $path | indent 4 }}
+  {{ $path | replace "assets/" "" | replace "/" "_" }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- end }}
   # ---- DAG 资产（5 个调度作业）----
 {{- if .Values.configMap.assets.dag.enabled }}
 {{- range $path, $_ := .Files.Glob "assets/dag/**" }}
-  {{ $path | replace "assets/" "" }}: |-
-{{ .Files.Get $path | indent 4 }}
+  {{ $path | replace "assets/" "" | replace "/" "_" }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- end }}
   # ---- Dashboard 资产（3 个仪表盘）----
 {{- if .Values.configMap.assets.dashboard.enabled }}
 {{- range $path, $_ := .Files.Glob "assets/dashboard/**" }}
-  {{ $path | replace "assets/" "" }}: |-
-{{ .Files.Get $path | indent 4 }}
+  {{ $path | replace "assets/" "" | replace "/" "_" }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- end }}
   # ---- RBAC 资产（3 个角色）----
 {{- if .Values.configMap.assets.rbac.enabled }}
 {{- range $path, $_ := .Files.Glob "assets/rbac/**" }}
-  {{ $path | replace "assets/" "" }}: |-
-{{ .Files.Get $path | indent 4 }}
+  {{ $path | replace "assets/" "" | replace "/" "_" }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- end }}
   # ---- 文档资产 ----
 {{- if .Values.configMap.assets.docs.enabled }}
 {{- range $path, $_ := .Files.Glob "assets/docs/**" }}
-  {{ $path | replace "assets/" "" }}: |-
-{{ .Files.Get $path | indent 4 }}
+  {{ $path | replace "assets/" "" | replace "/" "_" }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- end }}
   # ---- 模板元数据 ----

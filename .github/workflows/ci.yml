@@ -509,6 +509,13 @@ jobs:
         # 本校验要求：已接入模块必须真的启用 Flyway，未接入模块必须显式登记在待补清单
         run: python3 scripts/check-db-migration-coverage.py
 
+      - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
+        # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
+        # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
+        # 的 ConfigMap 键名必须对 "/" 做替换；2026-10-03 前发布侧仍带缺陷（只去
+        # 前缀不去斜杠），本校验防再分叉回归。
+        run: python3 scripts/check-chart-asset-keys.py
+
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |
           if [ -f .githooks/pre-commit ]; then

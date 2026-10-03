@@ -44,6 +44,10 @@ spec:
         - name: template-assets
           configMap:
             name: {{ include "finance-template.configmapName" . }}
+            # 键名去 "/"（K8s ConfigMap 键字符集限制），items.path 还原目录布局，
+            # 容器内保持 /templates/ddl/*.sql 等既有路径不变
+            items:
+              {{- include "finance-template.assetsItems" . | nindent 14 }}
       {{- if .Values.securityContext.enabled }}
       securityContext:
         runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
