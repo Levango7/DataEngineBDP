@@ -1,0 +1,32 @@
+# 生产环境 profile：切换 PostgreSQL、关闭 H2 控制台、提升日志级别门槛
+# （2026-10-03 随 KNOWN-FAILURES #3 迁移覆盖批次新增；此前 prod profile 实际仍落在
+#  主配置的 H2 上，属"四环境交付承诺 vs 实际"的口径缺口）
+spring:
+  datasource:
+    # 独立 schema：Flyway 建表与 Hibernate 校验都落在 finops_dashboard（多服务同库避免撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=finops_dashboard}
+    username: ${DB_USERNAME:shuqing}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/dashboard/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:finops_dashboard}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration/dashboard
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    com.levango7.dataenginebdp: INFO
+    org.hibernate: WARN

@@ -26,6 +26,15 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
+  # Flyway：仅生产/集成环境启用（prod profile 置 true）。
+  # dev 默认关闭：H2 + ddl-auto=update 零配置本地起库；
+  # 基线脚本是 PostgreSQL 方言，不能在 H2 上执行。
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration/dashboard
+    validate-on-migrate: true
+    clean-disabled: true
+
 management:
   endpoints:
     web:

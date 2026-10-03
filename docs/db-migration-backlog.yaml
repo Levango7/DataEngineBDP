@@ -4,46 +4,27 @@
 # 而全仓原本 0 个迁移框架、0 份建表 DDL —— 意思是"生产环境没人建表"，
 # 服务连上 PostgreSQL 就会因缺表启动失败或运行期报错。
 #
-# 已接入 Flyway 的模块（不在本清单内）：encaps-layer、finops/billing，
-# 以及 2026-10-02 补齐的 high 批 6 个：sql-gateway、rule-engine、encaps-tenant、
-# finops/cost-model、governance/metadata-collector、governance/lineage-analyzer。
+# 已接入 Flyway 的模块（不在本清单内，累计 16 个）：
+#   · 早期：encaps-layer、finops/billing
+#   · 2026-10-02（手写基线批，6 个）：sql-gateway、rule-engine、encaps-tenant、
+#     finops/cost-model、governance/metadata-collector、governance/lineage-analyzer
+#   · 2026-10-03（生成式基线批，8 个）：data-standard、finops/dashboard、
+#     infra-provider-cloud、infra-provider-private、infra-provider-xinchang、
+#     master-data、stream-batch-scheduler、tag-engine
+#
+# 库形态豁免（不计入上款 17，也不在本清单）：common-security —— 无自有数据源
+# （无 application.yml / 无 postgresql 依赖），@Entity 由引用方服务 schema 承载；
+# 已登记在检查器 LIBRARY_MODULES（scripts/check-db-migration-coverage.py）。
+#
 # 补一个模块的步骤（详见 docs/数据库迁移指南.md）：
 #   1. bash scripts/gen-db-baseline.sh platform/<模块>
+#      （产物移入 db/migration/<模块名>/，见 2026-10-03 目录隔离约定）
 #   2. 模块 pom.xml 加 spring-boot-flyway + flyway-core + flyway-database-postgresql
-#   3. application.yml 加 flyway.enabled=${FLYWAY_ENABLED:false}
+#   3. application.yml 加 flyway.enabled=${FLYWAY_ENABLED:false}（locations 指模块子目录）
 #      application-prod.yml 加 flyway.enabled=true / schemas / create-schemas=true
+#      有 test/resources/application.yml 的模块必须显式加 spring.flyway.enabled=false
+#      （测试 yml 遮蔽主配置时 Flyway matchIfMissing 默认开启，会拿 PG 方言撞 H2）
 #   4. 把该模块从本清单删除，跑 python scripts/check-db-migration-coverage.py
 #
 # 说明：type 标注该模块是否真的会独立部署（无 chart 的模块暂不建表也没意义）。
-awaiting_migration:
-  # —— 其余待补模块（high 批 6 个已接入 Flyway，见文件头"已接入"清单）——
-  - module: platform/stream-batch-scheduler
-    entities: 2
-    priority: medium
-  - module: platform/tag-engine
-    entities: 2
-    priority: medium
-  - module: platform/master-data
-    entities: 2
-    priority: medium
-    note: 该模块无 Helm chart，建表前需先确认可部署
-  - module: platform/data-standard
-    entities: 2
-    priority: medium
-    note: 该模块无 Helm chart
-  - module: platform/finops/dashboard
-    entities: 1
-    priority: medium
-  - module: platform/infra-provider-cloud
-    entities: 1
-    priority: low
-  - module: platform/infra-provider-private
-    entities: 1
-    priority: low
-  - module: platform/infra-provider-xinchang
-    entities: 1
-    priority: low
-  - module: platform/common-security
-    entities: 2
-    priority: low
-    note: 库形态组件（被其它服务引用），表由引用方 schema 承载，需单独定策略
+awaiting_migration: []

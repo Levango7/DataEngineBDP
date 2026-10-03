@@ -3,7 +3,7 @@
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing}
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=master_data}
     username: ${DB_USERNAME:shuqing}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -13,6 +13,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  # 建表由 Flyway 负责（db/migration/master-data/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:master_data}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration/master-data
   h2:
     console:
       enabled: false
