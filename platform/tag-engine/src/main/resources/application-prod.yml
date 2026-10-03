@@ -5,7 +5,7 @@ spring:
   application:
     name: tag-engine
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgres:5432/tagengine}
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/tagengine?currentSchema=tag_engine}
     username: ${DB_USERNAME:tagengine}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -16,6 +16,13 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  # 建表由 Flyway 负责（db/migration/tag-engine/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:tag_engine}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration/tag-engine
 
 management:
   endpoints:

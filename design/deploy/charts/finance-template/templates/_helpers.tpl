@@ -121,3 +121,47 @@ Image helper: render repository:tag.
 {{- define "finance-template.image" -}}
 {{- printf "%s:%s" .repository .tag -}}
 {{- end -}}
+
+{{/*
+资产 ConfigMap 的卷投射（items）：键名以 "_" 替代 "/"（K8s ConfigMap 键字符集
+仅允许 [-._a-zA-Z0-9]，含 "/" 会被 API Server 拒绝——KNOWN-FAILURES #36 同类缺陷），
+path 字段还原原始目录结构，使容器内仍为 /templates/ddl/*.sql 等既有布局。
+configmap-assets.yaml 的键名生成必须与本 helper 保持同一替换规则
+（由 scripts/check-chart-asset-keys.py 静态守护）。
+*/}}
+{{- define "finance-template.assetsItems" -}}
+{{- if .Values.configMap.assets.ddl.enabled -}}
+{{- range $path, $_ := .Files.Glob "assets/ddl/**" }}
+- key: {{ $path | replace "assets/" "" | replace "/" "_" }}
+  path: {{ $path | replace "assets/" "" }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.configMap.assets.dag.enabled -}}
+{{- range $path, $_ := .Files.Glob "assets/dag/**" }}
+- key: {{ $path | replace "assets/" "" | replace "/" "_" }}
+  path: {{ $path | replace "assets/" "" }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.configMap.assets.dashboard.enabled -}}
+{{- range $path, $_ := .Files.Glob "assets/dashboard/**" }}
+- key: {{ $path | replace "assets/" "" | replace "/" "_" }}
+  path: {{ $path | replace "assets/" "" }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.configMap.assets.rbac.enabled -}}
+{{- range $path, $_ := .Files.Glob "assets/rbac/**" }}
+- key: {{ $path | replace "assets/" "" | replace "/" "_" }}
+  path: {{ $path | replace "assets/" "" }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.configMap.assets.docs.enabled -}}
+{{- range $path, $_ := .Files.Glob "assets/docs/**" }}
+- key: {{ $path | replace "assets/" "" | replace "/" "_" }}
+  path: {{ $path | replace "assets/" "" }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.configMap.includeMetadata }}
+- key: template-metadata.yaml
+  path: template-metadata.yaml
+{{- end }}
+{{- end -}}

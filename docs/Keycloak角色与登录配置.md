@@ -92,8 +92,8 @@ PY
 
 | 项 | 现状 | 影响 |
 | --- | --- | --- |
-| Keycloak Chart 无法启动 | `templates/deployment.yaml` 没有 `args`/`command`，官方镜像无子命令会直接退出；`values.config.realms` 只被渲染成 `realms: "map[...]"` 这样的环境变量字符串，Keycloak 不读 | 生产环境需先用外部方式起 Keycloak 并跑本脚本；Chart 需补启动参数 + DB 环境变量 + `--import-realm` 挂载 |
-| Chart 无 Secret 注入 | 88 个 Chart 中只有 16 个（多为 Python 组件）用了 `secretKeyRef`；Java 服务与基础设施 Chart 一律 `envFrom: configMapRef` | `DB_PASSWORD`/`JWT_SECRET` 这类敏感值只能进 ConfigMap（任何能 `get configmap` 的人可读）。需统一改为 Secret 注入 |
+| ~~Keycloak Chart 无法启动~~ **已修（2026-10-03）** | `templates/deployment.yaml` 已补启动参数（`args: start --http-enabled=true ...`，可经 values.args 覆盖）；`values.config.realms` 的环境变量垃圾渲染已移除，realm 定义改走 `realmImport.files`（ConfigMap 挂载 `/opt/keycloak/data/import` + `--import-realm`，幂等）；`KC_DB_*` 经 Secret 注入（`database.existingSecret`，口令不落 values） | 生产可直接 helm install 起服；部署前需先创建凭据 Secret（`kubectl create secret generic keycloak-db --from-literal=username=... --from-literal=password=...`） |
+| Chart 无 Secret 注入 | 88 个 Chart 中只有 16 个（多为 Python 组件）用了 `secretKeyRef`；Java 服务与基础设施 Chart 一律 `envFrom: configMapRef`（Keycloak Chart 已带 KC_DB_* secretKeyRef，其余仍待统一，台账 #12） | `DB_PASSWORD`/`JWT_SECRET` 这类敏感值只能进 ConfigMap（任何能 `get configmap` 的人可读）。需统一改为 Secret 注入 |
 | 无"用户从前端注册到 Keycloak"的编排 | 审批通过只改数据库状态（`RegistrationController.decide`），不建 Keycloak 用户、不发凭证 | "租户自助开通"闭环缺一环；需接 Keycloak Admin API 建用户并映射 `tenantId` 属性 |
 
 以上三条已同步登记在 [KNOWN-FAILURES.md](KNOWN-FAILURES.md) 第六节。

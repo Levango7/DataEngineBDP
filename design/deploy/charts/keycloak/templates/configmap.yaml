@@ -5,9 +5,13 @@ metadata:
   labels:
     {{- include "keycloak.labels" . | nindent 4 }}
 data:
+  # 仅渲染标量环境变量。
+  # 旧实现还遍历 .Values.config（嵌套 map/列表），toString 会渲染成
+  # `realms: "map[name:sq enabled:true ...]"` 这类垃圾字符串——Keycloak 不读，
+  # 且误导排障（KNOWN-FAILURES #11）。realm 定义改走 realmImport（见
+  # templates/realm-import.yaml + --import-realm），DB 配置走 KC_DB_* Secret 注入。
   {{- range $key, $val := .Values.env }}
+  {{- if or (kindIs "string" $val) (kindIs "int" $val) (kindIs "int64" $val) (kindIs "float64" $val) (kindIs "bool" $val) }}
   {{ $key }}: {{ $val | toString | quote }}
   {{- end }}
-  {{- range $key, $val := .Values.config }}
-  {{ $key }}: {{ $val | toString | quote }}
   {{- end }}

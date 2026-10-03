@@ -22,6 +22,15 @@ spring:
       enabled: false
       path: /h2-console
 
+  # Flyway：仅生产/集成环境启用（prod profile 置 true）。
+  # dev 默认关闭：H2 + ddl-auto=update 零配置本地起库；
+  # 基线脚本是 PostgreSQL 方言，不能在 H2 上执行。
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    locations: classpath:db/migration/tag-engine
+    validate-on-migrate: true
+    clean-disabled: true
+
 management:
   endpoints:
     web:
@@ -45,6 +54,17 @@ logging:
 
 # 标签画像引擎配置
 app:
+  # JWT 接线（2026-10-03 补）：common-security 的 SecurityConfig 依赖 JwtAuthFilter，
+  # 而该 Bean 仅在 app.security.jwt.secret 就绪时装配（fail-closed）——缺接线时
+  # 应用在任何 profile 都无法启动（KNOWN-FAILURES #3 批次生产启动验证暴露）。
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+      expiry: 3600
+    # CORS 允许来源（common-security 的 corsConfigurationSource 读取；缺省会造成启动失败）
+    cors:
+      allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
   tag-store:
     # 存储实现类型：mock（内存）/ doris（真实 Doris 集群）
     type: ${TAG_STORE_TYPE:doris}

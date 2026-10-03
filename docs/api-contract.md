@@ -3,7 +3,7 @@
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
 - 前端入口：`frontend/src/api/*.ts`（共 37 个文件）
-- 后端前缀：Java 71 / Python 21 / Go 16（含显式注册表 4 项）
+- 后端前缀：Java 71 / Python 21 / Go 13（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 

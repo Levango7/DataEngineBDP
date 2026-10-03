@@ -79,6 +79,22 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     "/api/v1/dashboards": "business-portal",
 }
 
+# 已裁决的共享前缀：经取证确认"保持共享、不路由"（不再计入待裁决冲突；
+# --check 对其余未裁决冲突仍会 fail，见 is_coarse_prefix 与 main()）。
+ACCEPTED_SHARED_PREFIXES: dict[str, str] = {
+    # 由上方长注释的 T1 取证（2026-09-29）固化：细化零收益且新造 3 个冲突，
+    # 保持"报冲突不路由"，待"缺 chart / 后端未实现"两类真缺口解决后再议。
+    "/api/v1": "T1 裁决：不细化、不路由（细化零前端收益且新造 3 冲突）",
+}
+
+
+def is_coarse_prefix(prefix: str) -> bool:
+    """版本根级粗前缀（如 /api/v1）：有效路径段 ≤2，其下级路径由多服务各自实现，
+    不能作为单条路由。KNOWN-FAILURES #44③：旧条件 count('/') < 2 对 /api/v1 恒假，
+    该分支与其提示文案从未生效。"""
+    segs = [p for p in prefix.strip("/").split("/") if p]
+    return len(segs) <= 2
+
 # 不对外经网关暴露的前缀（各服务都有，无区分度）
 EXCLUDED_PREFIXES: set[str] = {
     "/api/v1/health",   # 健康检查：由 K8s 探针与集群内监控直接访问
@@ -168,12 +184,14 @@ def resolve_chart(module: str, chart_ports: dict[str, int]) -> str | None:
 def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
     """构造 APISIX routes。
 
-    返回 (routes, unmapped 列表, conflicts 列表)。冲突不静默裁决：
-    多服务声明同一前缀且无显式归属时跳过该前缀并列入 conflicts，由人工决定。
+    返回 (routes, unmapped, conflicts, accepted)。冲突不静默裁决：
+    多服务声明同一前缀且无显式归属时跳过该前缀并列入 conflicts，由人工决定；
+    已取证裁决"保持共享、不路由"的前缀列入 accepted（不计冲突，也不生成路由）。
     """
     routes: list[dict] = []
     unmapped: list[str] = []
     conflicts: list[str] = []
+    accepted: list[str] = []
 
     # 长前缀优先，避免 /api/v1/x 抢先匹配 /api/v1/x/y
     for prefix in sorted(prefixes, key=lambda p: (-len(p), p)):
@@ -183,9 +201,15 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
         modules = prefixes[prefix]
         charts = sorted({c for m in modules if (c := resolve_chart(m, chart_ports))})
 
+        # 已裁决共享前缀：记录在案、不路由、不计冲突（依据见 ACCEPTED_SHARED_PREFIXES）
+        if prefix.rstrip("/") in ACCEPTED_SHARED_PREFIXES:
+            accepted.append(
+                f"{prefix} —— {ACCEPTED_SHARED_PREFIXES[prefix.rstrip('/')]}")
+            continue
+
         # 粗前缀（如 /api/v1）：多个服务把子路径直接挂在版本号下，
-        # 需要按各服务的二级路径细分，不能作为单条路由，否则互相抢占
-        if prefix.rstrip("/").count("/") < 2 and len(charts) > 1:
+        # 需要按各服务的二级路径细化，不能作为单条路由，否则互相抢占
+        if is_coarse_prefix(prefix) and len(charts) > 1:
             conflicts.append(
                 f"{prefix} 为粗前缀，被 {', '.join(charts)} 共享 —— 需按二级路径细化后再路由")
             continue
@@ -214,7 +238,7 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
         })
 
     routes.sort(key=lambda r: r["uri"])
-    return routes, unmapped, conflicts
+    return routes, unmapped, conflicts, accepted
 
 
 def route_segment(uri: str) -> str:
@@ -260,7 +284,7 @@ def main() -> int:
         return 2
 
     prefixes = collect_prefixes(contract)
-    routes, unmapped, conflicts = build_routes(prefixes, chart_ports)
+    routes, unmapped, conflicts, accepted = build_routes(prefixes, chart_ports)
     rendered = render_configmap(routes)
 
     # collect_frontend_calls() 返回 {api 模块文件名: [调用路径]}，需展平取路径
@@ -271,27 +295,40 @@ def main() -> int:
 
     if args.report:
         print(f"前缀总数: {len(prefixes)}；已生成路由: {len(routes)}；未映射: {len(unmapped)}；"
-              f"待裁决冲突: {len(conflicts)}")
+              f"待裁决冲突: {len(conflicts)}；已裁决共享（不路由）: {len(accepted)}")
         if conflicts:
             print("待裁决（多服务同前缀，需人工定归属；未裁决期间该前缀生产不可达）:")
             for c in conflicts:
                 print(f"  - {c}")
+        if accepted:
+            print("已裁决共享（保持不路由，依据在册；不计冲突）:")
+            for a in accepted:
+                print(f"  - {a}")
         if unmapped:
             print("未映射前缀（该组件无 chart/Service，生产不可达，需补 chart 或确认非对外服务）:")
             for p in unmapped:
                 print(f"  - {p}  ← {', '.join(prefixes[p])}")
         print(f"前端使用首段: {len(frontend_segments)}；路由未覆盖: {len(uncovered)}")
         for s in uncovered:
-            print(f"  - /api/v1/{s}")
+            print(f"  - {('/api/v1/' + s.lstrip('/'))}")
         return 0
 
     if args.check:
+        # KNOWN-FAILURES #44③：--check 不仅比对字节，还必须拦住"有未裁决冲突"——
+        # 否则新增/变更导致的新冲突会随渲染结果一起提交，门禁形同虚设。
+        if conflicts:
+            print(f"FAIL: 存在 {len(conflicts)} 条未裁决前缀冲突，--check 不通过：")
+            for c in conflicts:
+                print(f"  - {c}")
+            print("      裁决后写入 PREFIX_OWNER_OVERRIDES（归属）或 ACCEPTED_SHARED_PREFIXES（不路由），"
+                  "并运行 python scripts/gen-apisix-routes.py 重新生成")
+            return 1
         current = ROUTES_FILE.read_text(encoding="utf-8") if ROUTES_FILE.is_file() else ""
         if current != rendered:
             print(f"FAIL: {ROUTES_FILE.relative_to(REPO_ROOT)} 与代码前缀不一致")
             print("      运行 python scripts/gen-apisix-routes.py 重新生成并提交")
             return 1
-        print(f"OK: APISIX 路由与代码前缀一致（{len(routes)} 条）")
+        print(f"OK: APISIX 路由与代码前缀一致（{len(routes)} 条；无未裁决冲突）")
         return 0
 
     ROUTES_FILE.parent.mkdir(parents=True, exist_ok=True)

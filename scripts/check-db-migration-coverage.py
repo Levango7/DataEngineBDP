@@ -36,6 +36,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLATFORM = REPO_ROOT / "platform"
 BACKLOG = REPO_ROOT / "docs" / "db-migration-backlog.yaml"
 
+# 库形态组件：不独立部署、无自有数据源（无 application.yml / 无 postgresql 依赖），
+# 其 @Entity 由引用方服务（宿主）的迁移承载 —— 如 common-security 的表随宿主服务
+# schema 建。既不要求自带迁移，也不进待补清单（依据：docs/db-migration-backlog.yaml
+# 对该模块的登记说明 + README 模块口径"扣 4 个库形态组件"）。
+LIBRARY_MODULES: set[str] = {"platform/common-security"}
+
 
 def jpa_modules() -> dict[str, int]:
     """module 相对路径 → @Entity 类数量（只统计 src/main/java，忽略 target）。"""
@@ -58,6 +64,8 @@ def jpa_modules() -> dict[str, int]:
                 count += 1
         if count:
             rel = pom.parent.relative_to(REPO_ROOT).as_posix()
+            if rel in LIBRARY_MODULES:
+                continue
             out[rel] = count
     return out
 

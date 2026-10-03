@@ -53,7 +53,7 @@ public class DagRunEntity {
 
     /** DAG 快照（提交时的完整 DAG JSON，供重跑/补数据复原参数）。 */
     @Lob
-    @Column(nullable = false, columnDefinition = "CLOB")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String dagSnapshot;
 
     /** 运行类型。 */
@@ -87,12 +87,12 @@ public class DagRunEntity {
 
     /** 各节点执行结果（JSON 序列化）。 */
     @Lob
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String nodeResultsJson;
 
     /** 失败原因（status=FAILED 时有值）。 */
     @Lob
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String errorMessage;
 
     /** 记录创建时间。 */
