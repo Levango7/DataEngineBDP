@@ -95,7 +95,6 @@ spec:
               path: {{ .Values.probes.startup.httpGet.path | quote }}
               port: {{ .Values.probes.startup.httpGet.port | int }}
             periodSeconds: {{ .Values.probes.startup.periodSeconds | int }}
-            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | default 5 | int }}
             failureThreshold: {{ .Values.probes.startup.failureThreshold | int }}
             timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | int }}
           {{- end }}
