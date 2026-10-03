@@ -67,25 +67,48 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# ---- ConfigMap 数据（从 design/deploy/values/keycloak-values.yaml 提取骨架）----
-config:
-  realms:
-    - name: sq
-      enabled: true
-      accessTokenLifespan: 300
-      ssoSessionIdleTimeout: 28800
-    - name: master
-      enabled: true
-      accessTokenLifespan: 60
-  database:
-    type: postgresql
-    host: pg-keycloak.internal
-    port: 5432
-    name: keycloak
-  cache:
-    type: infinispan
-    mode: distributed
-    owners: 2
+# ---- 启动参数（必需）----
+# Keycloak 官方镜像没有默认子命令，缺 args 会直接退出导致 CrashLoop
+# （KNOWN-FAILURES #11）。集群内走 HTTP（TLS 由 Ingress/网关终止）。
+# 开启 realmImport 时会自动追加 --import-realm。
+args:
+  - start
+  - --http-enabled=true
+  - --hostname-strict=false
+  - --proxy-headers=xforwarded
+
+# ---- 数据库（KC_DB_* 环境变量，凭据只经 Secret 注入）----
+# 先创建凭据 Secret（口令禁止写入 values）：
+#   kubectl create secret generic keycloak-db \
+#     --from-literal=username=keycloak --from-literal=password=<强口令>
+database:
+  enabled: true
+  vendor: postgres
+  host: pg-keycloak.internal
+  port: 5432
+  name: keycloak
+  jdbcParams: ""                    # 例："?sslmode=require"
+  existingSecret: keycloak-db
+  usernameKey: username
+  passwordKey: password
+
+# ---- Realm 导入（--import-realm，文件以 ConfigMap 挂载到 /opt/keycloak/data/import）----
+# 旧实现 values.config.realms 只被渲染成 `realms: "map[...]"` 环境变量垃圾字符串，
+# Keycloak 不读（KNOWN-FAILURES #11）；现改为结构化文件渲染。
+realmImport:
+  enabled: false
+  # 文件名 -> realm JSON（YAML 对象，渲染时 toPrettyJson）。
+  # 例：
+  # files:
+  #   sq-realm.json:
+  #     realm: sq
+  #     enabled: true
+  #     accessTokenLifespan: 300
+  #     ssoSessionIdleTimeout: 28800
+  files: {}
+
+# ---- 附加标量环境变量（键值会以 envFrom 注入；仅标量会渲染）----
+env: {}
 
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/keycloak-values.yaml 覆盖

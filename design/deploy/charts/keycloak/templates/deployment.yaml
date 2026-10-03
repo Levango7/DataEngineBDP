@@ -16,6 +16,9 @@ spec:
       annotations:
         # ConfigMap 变更时滚动重启
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.realmImport.enabled }}
+        checksum/realm-import: {{ include (print $.Template.BasePath "/realm-import.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -44,6 +47,33 @@ spec:
             - name: http
               containerPort: {{ .Values.service.containerPort | int }}
               protocol: TCP
+          # 启动参数（必需）：Keycloak 官方镜像无默认子命令，缺 args 会直接退出
+          # 导致 CrashLoop（KNOWN-FAILURES #11）。realmImport 开启时追加 --import-realm。
+          args:
+            {{- range .Values.args }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- if .Values.realmImport.enabled }}
+            - "--import-realm"
+            {{- end }}
+          # DB 凭据只经 Secret 注入（KC_DB_PASSWORD 等不进 ConfigMap）
+          {{- if .Values.database.enabled }}
+          env:
+            - name: KC_DB
+              value: {{ .Values.database.vendor | quote }}
+            - name: KC_DB_URL
+              value: {{ printf "jdbc:postgresql://%s:%v/%s%s" .Values.database.host .Values.database.port .Values.database.name .Values.database.jdbcParams | quote }}
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.usernameKey }}
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.existingSecret }}
+                  key: {{ .Values.database.passwordKey }}
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "keycloak.configmapName" . }}
@@ -67,6 +97,12 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 16 }}
+          {{- if .Values.realmImport.enabled }}
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          {{- end }}
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
@@ -80,3 +116,9 @@ spec:
                 - {{ . }}
 {{- end }}
 {{- end }}
+      {{- if .Values.realmImport.enabled }}
+      volumes:
+        - name: realm-import
+          configMap:
+            name: {{ include "keycloak.fullname" . }}-realm-import
+      {{- end }}
