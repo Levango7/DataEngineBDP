@@ -158,6 +158,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/catalog/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "catalog:8082": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/cluster/**",
           "upstream": {
             "type": "roundrobin",
@@ -253,6 +262,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/eval/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llm-gateway:8084": 1
             }
           }
         },
@@ -640,15 +658,6 @@ data:
             "type": "roundrobin",
             "nodes": {
               "sql-gateway:8081": 1
-            }
-          }
-        },
-        {
-          "uri": "/catalog/**",
-          "upstream": {
-            "type": "roundrobin",
-            "nodes": {
-              "catalog:8082": 1
             }
           }
         },

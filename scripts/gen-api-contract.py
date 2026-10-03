@@ -159,8 +159,14 @@ def collect_python_prefixes() -> dict[str, list[str]]:
         # 每个路由器的完整业务前缀 = apiPrefix + router prefix
         # 修复：个别 router 前缀已含 /api/v1（如 registry 的 /api/v1/registry），
         # 直接拼接会双重加前缀（/api/v1/api/v1/registry）导致契约误报未匹配。
+        py_path = str(py).replace("\\", "/")
         for var, prefix in routers.items():
-            if prefix.startswith("/api/"):
+            if "/llm-gateway/evaluation/" in py_path and prefix == "":
+                # KNOWN-FAILURES #44②：evaluation 子应用（routes.py 无前缀 + include
+                # 无 prefix）实际挂载在网关注册的 /api/v1/eval 下；直接补 PY_API_PREFIX
+                # 会误报为粗前缀 /api/v1（假阳性共享声明）。
+                full = "/api/v1/eval"
+            elif prefix.startswith("/api/"):
                 full = prefix.rstrip("/") or PY_API_PREFIX
             else:
                 full = (PY_API_PREFIX + prefix).rstrip("/") or PY_API_PREFIX
@@ -176,9 +182,17 @@ def collect_python_prefixes() -> dict[str, list[str]]:
 
 # ------------------------- Go gin 后端 -------------------------
 
-# 自动：r.Group("/api/v1/xxx")（服务入口直接注册的组）
-GO_GROUP_RE = re.compile(r'\b\w+\s*:=\s*\w+\.Group\("(/[^"]*)"\)')
+# 自动：var := parent.Group("/path")（服务入口直接注册的组）
+# 顺序扫描 + 变量表按路由树拼完整前缀：嵌套组（如 ppGroup := v1.Group("/propagation-policies")）
+# 需拼接父组路径，否则二级路径被误登记为根前缀（KNOWN-FAILURES #44①）。
+GO_GROUP_ASSIGN_RE = re.compile(r'\b(\w+)\s*:=\s*(\w+)\.Group\("([^"]*)"\)')
 GO_DIRECT_RE = re.compile(r'\b\w+\.(GET|POST|PUT|DELETE|PATCH)\("(/[^"]*)"')
+
+# 视为"根引擎"的父变量名：in-file 再无上溯时，其路径即完整前缀。
+# 其余不可解析父变量（函数参数注入，如 observability query.go 的 RegisterPlatformRoutes(rg)
+# 内 `v1 := rg.Group("/api/v1")`）→ 跳过登记，避免假阳性根前缀
+# （其真实挂载点 /platform/api/v1 由显式注册表/上层组语义覆盖，KNOWN-FAILURES #44②）。
+GO_ENGINE_ROOTS = {"r", "router", "engine", "app", "gin", "srv", "server", "mux", "e"}
 
 # 显式注册表：RegisterRoutes 间接注册模式的 Go 服务业务前缀
 # （gin 的 RegisterRoutes(g) 内部 g.VERB(path) 无法静态绑定挂载点，显式声明保证可审计）
@@ -204,13 +218,30 @@ def collect_go_prefixes() -> dict[str, list[str]]:
             module = rel.parts[0]
         except ValueError:
             continue
-        # 组前缀（直接注册）
-        for m in GO_GROUP_RE.finditer(text):
-            prefix = m.group(1)
-            # 组下须有直接注册的动词路由（排除纯分组无路由的情况）
-            out.setdefault(prefix, [])
-            if module not in out[prefix]:
-                out[prefix].append(module)
+        # 组前缀：顺序扫描维护 var -> 完整路径（父未解析则本变量及其子组一并跳过）
+        var_paths: dict[str, str | None] = {}
+        for m in GO_GROUP_ASSIGN_RE.finditer(text):
+            var, parent, path = m.group(1), m.group(2), m.group(3)
+            if parent in var_paths:
+                base = var_paths[parent]
+            elif parent in GO_ENGINE_ROOTS:
+                base = ""
+            else:
+                base = None  # 函数参数注入：挂载点不在本文件，静态不可推导
+            if base is None:
+                var_paths[var] = None
+                continue
+            if path.strip("/") == "":
+                full = base or "/"
+            else:
+                full = f"{base.rstrip('/')}/{path.strip('/')}"
+            if full == "/":  # 根组本身不构成前缀
+                var_paths[var] = None
+                continue
+            var_paths[var] = full
+            out.setdefault(full, [])
+            if module not in out[full]:
+                out[full].append(module)
         # 直接注册在根引擎的完整路径（如 r.GET("/api/v1/health")）取首两段
         for m in GO_DIRECT_RE.finditer(text):
             p = m.group(2)
