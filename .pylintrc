@@ -132,6 +132,13 @@ disable =
     R0901,  # too-many-public-methods
     # 项目允许使用 print（CLI 工具）
     W1514,  # unspecified-encoding
+    # import-error：ci.yml 的 python-lint job 按设计只安装 requirements-lint.txt
+    # （lint 工具本身），不安装各组件运行期依赖 —— 该 job 内 E0401 全量为环境噪音
+    # （2026-10-03 #46 清债实证：industry-templates 84 条、其余三个失败组件同型，
+    # 占比 2.5 分以上）。导入存在性由 Python Test job（装依赖跑真实用例）覆盖，
+    # 静态可见性由 flake8/mypy 覆盖。本仓库各组件在本地安装依赖后 E0401 仅剩
+    # 同目录相对路径噪音（同上由测试覆盖）。
+    E0401,  # import-error
 
 [REPORTS]
 # 不显示评分报告
