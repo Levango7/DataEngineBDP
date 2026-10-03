@@ -90,10 +90,7 @@ class TestSqlValidator:
         # 必须按 ERROR 拒绝，避免未知语句绕过 SELECT-only 护栏。
         r = validator.validate("foo bar baz;")
         assert r.valid is False
-        assert any(
-            i.code == "UNKNOWN_STMT_TYPE" and i.level == ValidationLevel.ERROR
-            for i in r.issues
-        )
+        assert any(i.code == "UNKNOWN_STMT_TYPE" and i.level == ValidationLevel.ERROR for i in r.issues)
 
     def test_multi_statement_rejected(self, validator: SqlValidator) -> None:
         r = validator.validate("SELECT 1; SELECT 2;")
