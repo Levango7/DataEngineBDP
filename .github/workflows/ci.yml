@@ -2107,6 +2107,12 @@ jobs:
     name: Markdown Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # 放行条件（KNOWN-FAILURES #42）：needs 含 3 个 PR-only job
+    # （docker-build / dependency-review / baseline-pr-guard，均 if: pull_request），
+    # push/schedule 事件下它们被 skip ⇒ 缺省行为（需全部 success）会让本 job 连带
+    # 恒 skip，文档门禁在直推 main / 定时任务上形同虚设。改为"只要没有失败就运行"：
+    # skipped 不算失败，故 push/schedule 下照常执行；PR 上有真实失败时仍不运行。
+    if: ${{ !contains(needs.*.result, 'failure') }}
     # 依赖前述所有 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
     needs:
       - gitleaks-scan

@@ -44,18 +44,56 @@ jobs:
   ci-gate:
     name: CI Gate (等待 CI 通过)
     runs-on: ubuntu-latest
+    # 查询 ci.yml 在本 commit 上的 workflow run 需要 actions: read
+    # （job 级 permissions 覆盖顶层；顶层为 contents/packages/id-token/attestations write）
+    permissions:
+      contents: read
+      actions: read
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 等待 CI 工作流通过
-        uses: lewagon/wait-on-check-action@v1.3.4
-        with:
-          ref: ${{ github.sha }}
-          check-name: 'Frontend Build'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 30
-          verbose: true
+      - name: 等待 CI 工作流在本次 commit 上完成
+        # 旧实现：lewagon/wait-on-check-action 等 check-name 'Frontend Build'。
+        # 该 check 由 ci.yml 的 job 在【开始执行时】才注册；main push 时 ci.yml 的
+        # job 若因排队尚未注册，门禁的首次探测即报 "The requested check was never
+        # run against this ref" 并 exit 1 —— 与 CI 真实结果无关的竞态假红
+        # （实证：2026-10-03 main run 37106024951，ci.yml 37106025093 彼时刚入队）。
+        # 新实现（与 release.yml 同款）：直接查询 ci.yml 在 github.sha 上的
+        # workflow run 结论，run 天然先于 job 存在，无注册竞态。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          echo "等待 ci.yml 在 commit $SHA 上的 workflow run 完成（最长 60 分钟）..."
+          deadline=$(( $(date +%s) + 3600 ))
+          while :; do
+            # head_sha 为服务端过滤参数；同时用 jq 按 head_sha 复核，
+            # 以防参数被忽略时误取到其它 commit 的 run。
+            runs=$(gh api \
+              "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=50" \
+              2>/dev/null || echo '{}')
+            total=$(echo "$runs" | jq -r --arg sha "$SHA" \
+              '[.workflow_runs[]? | select(.head_sha == $sha)] | length')
+            success=$(echo "$runs" | jq -r --arg sha "$SHA" \
+              '[.workflow_runs[]? | select(.head_sha == $sha and .conclusion == "success")] | length')
+            pending=$(echo "$runs" | jq -r --arg sha "$SHA" \
+              '[.workflow_runs[]? | select(.head_sha == $sha and .status != "completed")] | length')
+            echo "ci.yml runs on $SHA: total=$total success=$success pending=$pending"
+            if [ "$success" -gt 0 ]; then
+              echo "::notice::CI 工作流已通过（success=$success），开始执行构建流水线"
+              exit 0
+            fi
+            # run 已存在且全部结束、却无一 success ⇒ CI 失败，立即中止（不空等）
+            if [ "$total" -gt 0 ] && [ "$pending" -eq 0 ]; then
+              echo "::error::ci.yml 在 commit $SHA 上的 run 已全部结束但无一 success，Build 中止"
+              exit 1
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::等待 ci.yml 完成超时（60 分钟，commit $SHA）"
+              exit 1
+            fi
+            sleep 30
+          done
 
       - name: CI 门禁通过
         run: echo "CI 工作流已通过，开始执行构建流水线"
