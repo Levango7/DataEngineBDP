@@ -210,6 +210,19 @@ encaps-layer:
   env:
     K8S_CLIENT_TIMEOUT: "30s"
     INFORMER_WATCH_CACHE: "true"
+    # 字段加密全局 SM4 密钥（hex 32 字符）。application.yml 为 ${ENCRYPT_KEY}
+    # 无默认值（fail-fast）；缺它时 fieldEncryptAspect 的占位符解析失败 →
+    # APPLICATION FAILED TO START（CI kind-smoke 实证，KNOWN-FAILURES #53）。
+    # 仅本地/CI 用的开发密钥（32 hex 字符 —— sm4KeyFromHex 要求，
+    # 非 hex 或长度不符会被 resolveGlobalKey 判非法并静默禁用切面）；
+    # 生产必须注入 KMS 生成的真实密钥（禁止复用本值）。
+    ENCRYPT_KEY: "0123456789abcdef0123456789abcdef"
+  probes:
+    # CI/kind 是弱环境：本服务启动 40-60s（20 JPA 仓库 + Hibernate），
+    # liveness 默认 30s delay 会在启动完成前掐死容器（exit 137 循环，kind-smoke 实证）；
+    # 开 startup 探针后 liveness/readiness 待启动完成后才接管。
+    startup:
+      enabled: true
   logs:
     # 与 Dockerfile 里mkdir -p /app/logs 双保险：即使镜像未预建目录也能写。
     # 仅本地/CI 打开；生产走日志采集或挂 PVC（chart 默认 enabled: false）。
@@ -426,7 +439,34 @@ open-api-catalog:
     requests: { cpu: "250m", memory: 256Mi }
   service:
     type: ClusterIP
-    port: 8080
+    # 容器实际监听 8090（Dockerfile EXPOSE 8090 / settings.port 默认 8090）。
+    # Service 端口与探针端口都必须随之对齐——此前全按 Java 惯例填 8080，导致：
+    #   ① Service targetPort 打空端口；② 存活探针（8080）失败 → kubelet 反复重启
+    #   → CrashLoop/未就绪（CI kind-smoke 实证：应用日志已 "Uvicorn running" 仍被杀）。
+    port: 8090
+    containerPort: 8090
+  probes:
+    liveness:
+      httpGet:
+        path: /api/v1/health
+        port: 8090
+    readiness:
+      httpGet:
+        path: /api/v1/health
+        port: 8090
   env:
     APISIX_ADMIN_KEY: ""
     APISIX_URL: "http://apisix-admin:9180"
+    # SQLite 落点改到挂载出来的 /data：settings.dbPath 默认 "data/openapi_catalog.db"
+    # 是相对路径，只读根下无法建库 → 启动即
+    # sqlite3.OperationalError: unable to open database file（CI kind-smoke 实证）。
+    # ⚠️ env 名以 pydantic-settings 实际映射为准：字段 dbPath + 前缀 →
+    # OPENAPI_CATALOG_DBPATH（camelCase 字段不带内部下划线；本地实测
+    # OPENAPI_CATALOG_DB_PATH 拼写会被忽略——settings.py 原 docstring 记错了，已订正）。
+    OPENAPI_CATALOG_DBPATH: "/data/openapi_catalog.db"
+  # 只读根下可写目录（见 chart values 的 data/tmp 说明）
+  data:
+    enabled: true
+    storageClassName: ""
+  tmp:
+    enabled: true

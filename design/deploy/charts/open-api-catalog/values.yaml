@@ -97,6 +97,18 @@ env:
   LOG_LEVEL: info
   JAVA_OPTS: ""
 
+# ---- 可写目录挂载（readOnlyRootFilesystem: true 时必需）----
+# /data：SQLite 数据库落点。settings.dbPath 默认 "data/openapi_catalog.db"
+# （相对路径 → 解析到镜像工作目录），只读根下建库必失败：
+#   sqlite3.OperationalError: unable to open database file（CI kind-smoke 实证）。
+# 开启后请同时把 OPENAPI_CATALOG_DB_PATH 指向 /data 下（见 deploy/local/values-local-core.yaml）。
+data:
+  enabled: false
+  storageClassName: ""
+# /tmp：临时文件逃生口（与 Java 组件对齐；uvicorn/Python 常规启动不强依赖）
+tmp:
+  enabled: false
+
 # ---- ConfigMap 数据（骨架，按需扩展）----
 # ---- 鉴权（AUTH_MODE fail-fast 配套）----
 # jwt_auth.py 在 K8s 环境未显式 AUTH_MODE 时拒绝启动；此处生产默认强制 jwt。

@@ -1,16 +1,20 @@
 """应用配置（环境变量驱动，前缀 OPENAPI_CATALOG_）.
 
-支持配置项：
-    OPENAPI_CATALOG_HOST          监听地址（默认 0.0.0.0）
-    OPENAPI_CATALOG_PORT          监听端口（默认 8090）
-    OPENAPI_CATALOG_LOG_LEVEL     日志级别（默认 info）
-    OPENAPI_CATALOG_RELOAD        开发模式热重载（默认 false）
-    OPENAPI_CATALOG_API_PREFIX    API 路由前缀（默认 /api/v1）
-    OPENAPI_CATALOG_APISIX_ADMIN  APISIX Admin API 地址
-    OPENAPI_CATALOG_DEFAULT_QUOTA 默认订阅配额（次/分钟）
-    OPENAPI_CATALOG_KEYCLOAK_URL  Keycloak 服务地址
-    OPENAPI_CATALOG_STORE_TYPE    存储类型: mock / sqlite（默认 sqlite）
-    OPENAPI_CATALOG_DB_PATH       SQLite 数据库文件路径
+支持配置项（⚠️ env 名 = 前缀 + 字段名原样大写，camelCase 字段不带内部下划线——
+pydantic-settings 不做 snake_case 转换；此前本文档列的下划线拼写会被静默忽略，
+2026-10-03 实测订正，如 OPENAPI_CATALOG_DBPATH 而非 ..._DB_PATH）：
+    OPENAPI_CATALOG_HOST           监听地址（默认 0.0.0.0）
+    OPENAPI_CATALOG_PORT           监听端口（默认 8090）
+    OPENAPI_CATALOG_LOGLEVEL       日志级别（默认 info）
+    OPENAPI_CATALOG_RELOAD         开发模式热重载（默认 false）
+    OPENAPI_CATALOG_APIPREFIX      API 路由前缀（默认 /api/v1）
+    OPENAPI_CATALOG_APISIXADMINURL APISIX Admin API 地址
+    OPENAPI_CATALOG_DEFAULTQUOTA   默认订阅配额（次/分钟）
+    OPENAPI_CATALOG_KEYCLOAKURL    Keycloak 服务地址
+    OPENAPI_CATALOG_STORETYPE      存储类型: mock / sqlite（默认 sqlite）
+    OPENAPI_CATALOG_DBPATH         SQLite 数据库文件路径（默认相对路径
+                                   data/openapi_catalog.db；K8s 下必须指向可写挂载，
+                                   如 /data/openapi_catalog.db，否则只读根下建库失败）
 """
 
 from __future__ import annotations

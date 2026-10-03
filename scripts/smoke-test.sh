@@ -55,17 +55,21 @@ kubectl port-forward -n "$NS" svc/dataengine-catalog 8082:8080 >/dev/null 2>&1 &
 PF3=$!
 kubectl port-forward -n "$NS" svc/dataengine-rule-engine 8083:8080 >/dev/null 2>&1 &
 PF4=$!
-kubectl port-forward -n "$NS" svc/dataengine-open-api-catalog 8084:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/dataengine-open-api-catalog 8084:8090 >/dev/null 2>&1 &
 PF5=$!
 sleep 3
 
 # Java Spring Boot 服务统一使用 /actuator/health
-curl -fsS http://localhost:8080/readyz >/dev/null && pass "encaps-layer" || fail "encaps-layer"
+# （encaps-layer 无 /readyz 端点——Dockerfile HEALTHCHECK 与 chart 探针均用
+#  /actuator/health[/liveness]；旧写法查不存在的 /readyz，健康也会误判 FAIL）
+curl -fsS http://localhost:8080/actuator/health >/dev/null && pass "encaps-layer" || fail "encaps-layer"
 curl -fsS http://localhost:8081/actuator/health >/dev/null && pass "sql-gateway" || fail "sql-gateway"
 # Go/Python 服务统一使用 /api/v1/health
 curl -fsS http://localhost:8082/api/v1/health >/dev/null && pass "catalog" || fail "catalog"
 curl -fsS http://localhost:8083/api/v1/health >/dev/null && pass "rule-engine" || fail "rule-engine"
-curl -fsS http://localhost:8084/readyz >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
+# open-api-catalog 同理无 /readyz；且其 Service 端口为 8090（应用监听 8090），
+# port-forward 远端必须是 8090（见 deploy/local/values-local-core.yaml 端口注记）
+curl -fsS http://localhost:8084/api/v1/health >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
 
 # 清理 port-forward
 kill $PF1 $PF2 $PF3 $PF4 $PF5 2>/dev/null || true
@@ -86,9 +90,12 @@ done
 
 # 6. 关键配置验证
 log "验证 catalog JWT 密钥已注入..."
-kubectl get secret -n "$NS" catalog-auth >/dev/null 2>&1 || fail "catalog-auth Secret 缺失"
-key_len=$(kubectl get secret -n "$NS" catalog-auth -o jsonpath='{.data.JWT_SIGNING_KEY}' | base64 -d | wc -c)
-(( key_len >= 32 )) || fail "JWT_SIGNING_KEY 长度不足: $key_len 字符 (需 >=32)"
+# Secret 名带 Helm release 前缀（dataengine 为 local-up.sh 的固定 release 名），
+# 键名为 catalog chart secret.yaml 定义的 jwt-signing-key。
+# 旧写法查不存在的 catalog-auth/JWT_SIGNING_KEY —— 健康环境也会误判 FAIL。
+kubectl get secret -n "$NS" dataengine-catalog-auth >/dev/null 2>&1 || fail "dataengine-catalog-auth Secret 缺失"
+key_len=$(kubectl get secret -n "$NS" dataengine-catalog-auth -o jsonpath='{.data.jwt-signing-key}' | base64 -d | wc -c)
+(( key_len >= 32 )) || fail "jwt-signing-key 长度不足: $key_len 字符 (需 >=32)"
 pass "catalog JWT 密钥长度: $key_len 字符"
 
 # 7. Helm Chart 渲染验证（四环境 Profile）

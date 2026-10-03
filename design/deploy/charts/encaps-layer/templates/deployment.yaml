@@ -87,6 +87,18 @@ spec:
                   name: {{ .Values.auth.jwtSecretName }}
                   key: {{ .Values.auth.jwtSecretKey | default "jwt-secret" }}
           {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          # 慢启动保护：startup 未通过前 liveness/readiness 不生效，
+          # 避免 JVM 启动期（CI/kind 实测 40-60s）被 liveness 掐死（exit 137）
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.httpGet.path | quote }}
+              port: {{ .Values.probes.startup.httpGet.port | int }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds | int }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | default 5 | int }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold | int }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | int }}
+          {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -94,6 +106,7 @@ spec:
               port: {{ .Values.probes.liveness.httpGet.port | int }}
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds | default 5 | int }}
             failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
@@ -103,6 +116,7 @@ spec:
               port: {{ .Values.probes.readiness.httpGet.port | int }}
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds | default 5 | int }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
           {{- end }}
           resources:

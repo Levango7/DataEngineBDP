@@ -48,6 +48,20 @@ securityContext:
 # SecurityConfig 匿名放行 /actuator/health/liveness|readiness）。
 # 修复记录：此前指向不存在的 /healthz、/readyz，探针 404 会导致 Pod 被误判不健康。
 probes:
+  # 启动探针（K8s 先只跑 startup，成功后 liveness/readiness 才接管）：
+  # 为慢启动 JVM 提供保护——CI/kind 实测本服务启动 40-60s（20 个 JPA 仓库扫描
+  # + Hibernate 初始化），liveness 默认 30s delay 会在启动完成前探失败并掐死
+  # 容器（lastState exit=137、无异常栈、日志停在 Hibernate 中段——kind-smoke 实证）。
+  # 默认关闭以兼容既有部署；慢环境（CI/本地 kind）开启。
+  startup:
+    enabled: false
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+    # 10s × 30 = 300s 启动上限；JVM 起来后由 liveness 接管
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 3
   liveness:
     enabled: true
     httpGet:
