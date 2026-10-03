@@ -116,7 +116,9 @@ public class QualityRuleController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
         String tenantId = requireTenant();
-        int current = Math.max(page, 1);
+        // 分页参数 clamp：page 上限（1000）防 (page-1)*size 溢出为负，
+        // 使 start 为负导致 subList 抛 IndexOutOfBoundsException（HTTP 500）。
+        int current = Math.max(1, Math.min(page, 1000));
         int size = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
         List<Rule> all = ruleService.findByTenantId(tenantId).stream()
                 .sorted(Comparator.comparing(Rule::getCreatedAt,

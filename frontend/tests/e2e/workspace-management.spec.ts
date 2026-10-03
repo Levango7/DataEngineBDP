@@ -15,7 +15,7 @@ test.describe('工作空间管理（/workspace-management）', () => {
 
   test('工作空间管理页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('工作空间管理')
-    await expect(page.locator('.sub')).toContainText('K8s Namespace')
+    await expect(page.locator('.page-header__subtitle')).toContainText('K8s Namespace')
     await expect(page.locator('.toolbar')).toBeVisible({ timeout: 15_000 })
   })
 

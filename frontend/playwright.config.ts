@@ -17,7 +17,10 @@ import { defineConfig, devices } from '@playwright/test'
  *  18080 兜底——其 /api 兜底代理转发一切未细分前缀，stub Controller 提供契约响应 */
 const stack = {
   api: process.env.VITE_API_TARGET || 'http://127.0.0.1:18080',
-  encapsTenant: process.env.VITE_ENCAPS_TENANT_TARGET || 'http://127.0.0.1:18080',
+  // encaps-tenant 是独立进程（Tenant/Project/Account/Workspace/Quota 域），
+  // docker-compose 映射宿主机 18090（18090:8081）——此前误指 encaps-layer 18080，
+  // 导致 /api/v1/account|admin|quotas|workspaces 全部 404。
+  encapsTenant: process.env.VITE_ENCAPS_TENANT_TARGET || 'http://127.0.0.1:18090',
   encapsData: process.env.VITE_ENCAPS_DATA_TARGET || 'http://127.0.0.1:18080',
   encapsGateway: process.env.VITE_ENCAPS_GATEWAY_TARGET || 'http://127.0.0.1:18080',
   assetExchange: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:18094',
@@ -32,7 +35,13 @@ const stack = {
   ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18080',
   models: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:18080',
   registry: process.env.VITE_REGISTRY_TARGET || 'http://127.0.0.1:18089',
-  streamBatch: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18080'
+  streamBatch: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18080',
+  // infra-orchestrator（/api/v1/clusters）与 lineage-analyzer（/lineage）均未纳入
+  // tests/integration/docker-compose.yml 的 nightly 栈；按本文件既定策略（栈外服务
+  // 统一指向 encaps-layer 宿主机 18080 兜底）显式注入，避免 vite proxy 因 8085/8086
+  // 无监听而回落报 500。
+  infraOrchestrator: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:18080',
+  lineage: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:18080'
 }
 
 export default defineConfig({
@@ -105,7 +114,9 @@ export default defineConfig({
       VITE_AI_TARGET: stack.ai,
       VITE_MODELS_TARGET: stack.models,
       VITE_REGISTRY_TARGET: stack.registry,
-      VITE_STREAM_BATCH_TARGET: stack.streamBatch
+      VITE_STREAM_BATCH_TARGET: stack.streamBatch,
+      VITE_INFRA_ORCHESTRATOR_TARGET: stack.infraOrchestrator,
+      VITE_LINEAGE_TARGET: stack.lineage
     }
   }
 })

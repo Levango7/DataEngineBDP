@@ -33,8 +33,9 @@ test.describe('数据集成（/integrate）', () => {
     await expect(page.locator('.pill.b', { hasText: '批流一体' })).toBeVisible()
     // 新建同步任务按钮
     await expect(page.locator('button', { hasText: '新建同步任务' })).toBeVisible()
-    // 同步任务表格（el-table 渲染为 table）
-    await expect(page.locator('.card table')).toBeVisible({ timeout: 15_000 })
+    // 同步任务表格（el-table 渲染为 .el-table 容器，内部含 header/body 两个 <table>，
+    // .card table 会命中 2 个元素触发 strict mode violation）
+    await expect(page.locator('.card .el-table').first()).toBeVisible({ timeout: 15_000 })
     // 表头列：任务 / 源→目标 / 模式 / 状态 / 最近运行 / 操作
     await expect(page.locator('.card thead')).toContainText('任务')
     await expect(page.locator('.card thead')).toContainText('操作')

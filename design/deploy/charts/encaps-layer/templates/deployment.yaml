@@ -36,7 +36,7 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
-      {{- if or ( and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) ) ( and .Values.tmp ( .Values.tmp.enabled ) ) }}
+      {{- if or ( and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) ) ( and .Values.tmp ( .Values.tmp.enabled ) ) ( and .Values.data ( .Values.data.enabled ) ) }}
       volumes:
         {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
         - name: logs
@@ -49,6 +49,16 @@ spec:
         #   -> ApplicationContextException: Unable to start web server
         # 用 emptyDir 挂出 /tmp，在保留只读根加固的前提下满足这一必需的可写点。
         - name: tmp
+          emptyDir: {}
+        {{- end }}
+        {{- if and .Values.data ( .Values.data.enabled ) }}
+        # 应用数据目录（H2 文件库：/app/data/SVC-db.mv.db 等）。
+        # readOnlyRootFilesystem: true 时镜像内 /app/data 只读，H2 建库直接失败：
+        #   FileSystemException: /app/data/SVC-db.trace.db: Read-only file system
+        # 注意 K8s 的 fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，
+        # 因此不能靠 fsGroup 绕过，必须把该目录挂出来。
+        # 生产若需持久化，把 storageClassName 指向 PVC 即可复用同一挂载点。
+        - name: data
           emptyDir: {}
         {{- end }}
       {{- end }}
@@ -97,7 +107,7 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if or ( and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) ) ( and .Values.tmp ( .Values.tmp.enabled ) ) }}
+          {{- if or ( and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) ) ( and .Values.tmp ( .Values.tmp.enabled ) ) ( and .Values.data ( .Values.data.enabled ) ) }}
           volumeMounts:
             {{- if and .Values.logs ( .Values.logs.enabled ) ( .Values.logs.mountPath ) }}
             # 应用日志目录挂载。默认为空（不挂），生产请用宿主机/云盘日志采集或挂 PVC。
@@ -109,6 +119,11 @@ spec:
             # /tmp 可写点，配合 readOnlyRootFilesystem: true 使用（见 volumes 段注释）。
             - name: tmp
               mountPath: /tmp
+            {{- end }}
+            {{- if and .Values.data ( .Values.data.enabled ) }}
+            # /app/data 可写点（H2 文件库），配合 readOnlyRootFilesystem: true 使用。
+            - name: data
+              mountPath: /app/data
             {{- end }}
           {{- end }}
 {{- if .Values.securityContext.enabled }}

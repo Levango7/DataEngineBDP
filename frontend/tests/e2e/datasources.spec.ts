@@ -15,7 +15,7 @@ test.describe('数据源管理（/datasources）', () => {
 
   test('数据源管理页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('数据源管理')
-    await expect(page.locator('.sub')).toContainText('统一管理平台数据接入源')
+    await expect(page.locator('.page-header__subtitle')).toContainText('统一管理平台数据接入源')
     await expect(page.locator('text=MySQL').first()).toBeVisible({ timeout: 15_000 }).catch(() => {})
   })
 

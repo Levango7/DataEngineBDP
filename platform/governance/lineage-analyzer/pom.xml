@@ -106,6 +106,28 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- PostgreSQL：生产环境通过环境变量切换（本模块原先只有 H2，prod 缺驱动） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Flyway：生产库表结构迁移（prod profile 启用；dev 沿用 H2 + ddl-auto 零配置）。
+             版本由 spring-boot-dependencies 统一管理。
+             注意：Spring Boot 4 把 Flyway 自动装配拆到 spring-boot-flyway 模块——
+             只加 flyway-core 不会有 FlywayAutoConfiguration，迁移不会执行。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
         <!-- 复用 sql-gateway 的 SQL 解析器（ASTNode / SqlParserService / SqlDialect） -->
         <dependency>

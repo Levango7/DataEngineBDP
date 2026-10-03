@@ -191,7 +191,10 @@ public class CostDataService {
                 if (val instanceof String) {
                     try {
                         cost = new BigDecimal((String) val).setScale(4, RoundingMode.HALF_UP);
-                    } catch (NumberFormatException ignored) {
+                    } catch (NumberFormatException e) {
+                        // 高风险空 catch：静默丢弃会低估资源成本且无迹可查。
+                        // 触发路径：Prometheus 指标 value[1] 为 "NaN"/""/损坏值。
+                        log.warn("跳过无法解析的成本样本值: value={}, err={}", val, e.getMessage());
                     }
                 }
             }

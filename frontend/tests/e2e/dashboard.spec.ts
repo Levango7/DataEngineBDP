@@ -41,8 +41,8 @@ test.describe('仪表盘首页（/dashboard）', () => {
   test('资源趋势与待办审批区域存在', async ({ page }) => {
     // 资源趋势卡片（含 CPU/内存进度条 .bar）
     await expect(page.locator('.grid.g2 .card').first()).toBeVisible({ timeout: 15_000 })
-    // 待办审批表格（el-table 渲染）
-    await expect(page.locator('.grid.g2 el-table').first()).toBeVisible()
+    // 待办审批表格（el-table 渲染为 .el-table 容器，非 <el-table> 标签）
+    await expect(page.locator('.grid.g2 .el-table').first()).toBeVisible()
     // 至少存在一个进度条 .bar（CPU 或内存）
     await expect(page.locator('.bar').first()).toBeVisible()
   })

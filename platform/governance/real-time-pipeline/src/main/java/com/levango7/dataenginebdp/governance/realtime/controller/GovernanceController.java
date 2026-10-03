@@ -282,10 +282,13 @@ public class GovernanceController {
             @RequestParam(defaultValue = "50") int size) {
         String tenantId = requireTenant();
         int safeSize = Math.min(Math.max(size, 1), 200);
+        // 分页参数 clamp（page>=0）：防负页码或 page*size 溢出使 fromIndex 为负，
+        // 导致 subList 抛 IndexOutOfBoundsException（HTTP 500）。
+        int safePage = Math.max(0, Math.min(page, 100000));
         // 按租户过滤（多租户隔离，R10 安全修复）
         List<QualityAlert> all = qualityEngine.getAlertEmitter().getAlertBuffer(tenantId);
         int total = all.size();
-        int fromIndex = Math.min(page * safeSize, total);
+        int fromIndex = Math.min(safePage * safeSize, total);
         int toIndex = Math.min(fromIndex + safeSize, total);
         return ResponseEntity.ok(all.subList(fromIndex, toIndex));
     }

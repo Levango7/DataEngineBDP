@@ -4,7 +4,9 @@
 # 而全仓原本 0 个迁移框架、0 份建表 DDL —— 意思是"生产环境没人建表"，
 # 服务连上 PostgreSQL 就会因缺表启动失败或运行期报错。
 #
-# 已接入 Flyway 的模块（不在本清单内）：encaps-layer、finops/billing。
+# 已接入 Flyway 的模块（不在本清单内）：encaps-layer、finops/billing，
+# 以及 2026-10-02 补齐的 high 批 6 个：sql-gateway、rule-engine、encaps-tenant、
+# finops/cost-model、governance/metadata-collector、governance/lineage-analyzer。
 # 补一个模块的步骤（详见 docs/数据库迁移指南.md）：
 #   1. bash scripts/gen-db-baseline.sh platform/<模块>
 #   2. 模块 pom.xml 加 spring-boot-flyway + flyway-core + flyway-database-postgresql
@@ -14,31 +16,7 @@
 #
 # 说明：type 标注该模块是否真的会独立部署（无 chart 的模块暂不建表也没意义）。
 awaiting_migration:
-  # —— 已部署为服务，优先补 ——
-  - module: platform/sql-gateway
-    entities: 4
-    priority: high
-    note: 统一 SQL 网关，查询审计/结果缓存表
-  - module: platform/rule-engine
-    entities: 1
-    priority: high
-    note: 规则与质量结果落库
-  - module: platform/encaps-tenant
-    entities: 2
-    priority: high
-    note: 租户/工作空间表（注意与 encaps-layer 的同名表要用独立 schema 隔离）
-  - module: platform/finops/cost-model
-    entities: 1
-    priority: high
-    note: 计费口径与定价配置表，与 billing 同属出账链路
-  - module: platform/governance/metadata-collector
-    entities: 2
-    priority: high
-    note: prod 现为 ddl-auto=none，既不建表也不校验，风险最高
-  - module: platform/governance/lineage-analyzer
-    entities: 3
-    priority: high
-    note: 血缘默认 H2 内存，重启即丢，必须落库
+  # —— 其余待补模块（high 批 6 个已接入 Flyway，见文件头"已接入"清单）——
   - module: platform/stream-batch-scheduler
     entities: 2
     priority: medium

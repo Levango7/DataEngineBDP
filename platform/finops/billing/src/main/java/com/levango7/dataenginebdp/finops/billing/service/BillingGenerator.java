@@ -392,7 +392,10 @@ public class BillingGenerator {
                         if (val instanceof String) {
                             try {
                                 total += Double.parseDouble((String) val);
-                            } catch (NumberFormatException ignored) {
+                            } catch (NumberFormatException e) {
+                                // 高风险空 catch：静默丢弃会使用量/账单金额少计且无迹可查。
+                                // 触发路径：Prometheus 时序 values[][1] 为 "NaN"/""/损坏值。
+                                log.warn("跳过无法解析的用量样本值: value={}, err={}", val, e.getMessage());
                             }
                         }
                     }

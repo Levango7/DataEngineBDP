@@ -221,6 +221,13 @@ encaps-layer:
     #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
+  data:
+    # /app/data 挂 emptyDir，配合 readOnlyRootFilesystem: true 使用。
+    # H2 文件库需要写 /app/data，只读根会导致：
+    #   FileSystemException: /app/data/<svc>-db.trace.db: Read-only file system
+    # fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，故必须挂出来。
+    enabled: true
+    storageClassName: ""
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -274,6 +281,13 @@ sql-gateway:
     #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
+  data:
+    # /app/data 挂 emptyDir，配合 readOnlyRootFilesystem: true 使用。
+    # H2 文件库需要写 /app/data，只读根会导致：
+    #   FileSystemException: /app/data/<svc>-db.trace.db: Read-only file system
+    # fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，故必须挂出来。
+    enabled: true
+    storageClassName: ""
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），
@@ -351,6 +365,13 @@ rule-engine:
     #   FileSystemException: /tmp/tomcat.PORT.RANDOM: Read-only file system
     #   -> ApplicationContextException: Unable to start web server
     enabled: true
+  data:
+    # /app/data 挂 emptyDir，配合 readOnlyRootFilesystem: true 使用。
+    # H2 文件库需要写 /app/data，只读根会导致：
+    #   FileSystemException: /app/data/<svc>-db.trace.db: Read-only file system
+    # fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，故必须挂出来。
+    enabled: true
+    storageClassName: ""
   auth:
     # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），
     # 复用 catalog chart 生成的 dataengine-catalog-auth（键 jwt-signing-key），

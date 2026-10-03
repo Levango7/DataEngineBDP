@@ -2,6 +2,8 @@ server:
   port: 0
 
 spring:
+  flyway:
+    enabled: false
   application:
     name: encaps-tenant-test
   datasource:

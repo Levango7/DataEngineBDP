@@ -1,0 +1,37 @@
+# 生产环境 Profile（spring.profiles.active=prod）
+# 覆盖默认 H2 内存库，切换到 PostgreSQL；JWT secret 必须外置。
+# 背景：本模块 dev 默认 H2 内存库（重启即丢），prod 必须落 PostgreSQL 持久化血缘。
+
+spring:
+  datasource:
+    # 各服务共用 PostgreSQL 实例、各自独立 schema（避免多服务同库撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=lineage_analyzer}
+    username: ${DB_USERNAME:shuqing}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:lineage_analyzer}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration/lineage-analyzer
+  jpa:
+    hibernate:
+      # 生产默认 validate（表由迁移管理）
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+
+app:
+  security:
+    jwt:
+      # 生产环境必须外置，无默认值
+      secret: ${JWT_SECRET}
+      enabled: ${JWT_ENABLED:true}

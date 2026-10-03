@@ -1,0 +1,36 @@
+# 生产环境 Profile（spring.profiles.active=prod）
+# 覆盖默认 H2 配置，切换到 PostgreSQL；JWT secret 必须外置。
+# 与 finops/billing 同属出账链路，共用 shuqing 库但各自独立 schema（finops_cost_model）。
+
+spring:
+  datasource:
+    # 各服务共用 PostgreSQL 实例、各自独立 schema（避免多服务同库撞表名）
+    url: ${DB_URL:jdbc:postgresql://postgresql:5432/shuqing?currentSchema=finops_cost_model}
+    username: ${DB_USERNAME:shuqing}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  # 建表由 Flyway 负责（db/migration/V1__baseline.sql），Hibernate 只校验不改表
+  flyway:
+    enabled: true
+    schemas: ${FLYWAY_SCHEMA:finops_cost_model}
+    create-schemas: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration/cost-model
+  jpa:
+    hibernate:
+      # 生产默认 validate（表由迁移管理）；本地验证/初始化可用 DDL_AUTO=update 覆盖
+      ddl-auto: ${DDL_AUTO:validate}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}  # 生产环境必须外置，无默认值
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+    cors:
+      allowed-origins: ${CORS_ORIGINS}

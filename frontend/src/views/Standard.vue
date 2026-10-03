@@ -1,83 +1,113 @@
 <template>
-  <div>
-    <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
-    <Toolbar
-      :show-create="true"
-      :create-label="t('standard.newStandard')"
-      :create-aria-label="t('standard.newStandard')"
-      :show-refresh="false"
-      @create="modalVisible = true"
-    >
-      <template #actions>
-        <span class="pill b">
-          {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
-        </span>
-      </template>
-    </Toolbar>
-    <div class="card">
-      <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
-      <div v-else-if="error" class="state-tip state-error">
-        {{ error.message }}，
-        <button type="button" class="link-btn" @click="loadStandards">
-          {{ t('common.retry') }}
-        </button>
-      </div>
-      <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
-      <el-table
-        v-else
-        :data="standards"
-        stripe
-        border
-        role="table"
-        :aria-label="t('standard.title')"
-        :empty-text="t('standard.empty')"
+  <div class="page-merged">
+    <!-- 模板级注释必须留在根节点内部：Vue 会把根元素之外的注释编译成根级注释 vnode，
+         使组件变成 fragment 根，导致 DefaultLayout 的 <transition mode="out-in"> 卡死
+         （离开本页后新路由永远不渲染，E2E 实证） -->
+    <!-- C-2 导航合并：/quality 已并入本页（原 Quality.vue），用 tab 切换「数据标准/数据质量」 -->
+    <div class="page-tabs" role="group" :aria-label="t('nav.items.standard')">
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'standard' }"
+        @click="switchTab('standard')"
       >
-        <el-table-column prop="name" :label="t('standard.cols.item')" min-width="160" />
-        <el-table-column :label="t('standard.cols.type')" width="120">
-          <template #default="{ row }">
-            {{ typeLabel(row.type) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="rule" :label="t('standard.cols.rule')" min-width="180" />
-        <el-table-column prop="refAssetCount" :label="t('standard.cols.refAssets')" width="120" />
-      </el-table>
+        {{ t('nav.items.standard') }}
+      </button>
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'quality' }"
+        @click="switchTab('quality')"
+      >
+        {{ t('nav.items.quality') }}
+      </button>
     </div>
 
-    <Modal
-      :visible="modalVisible"
-      :title="t('standard.createModal.title')"
-      @close="modalVisible = false"
-    >
-      <label>{{ t('standard.createModal.item') }}</label>
-      <el-input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
-      <label>{{ t('standard.createModal.type') }}</label>
-      <el-select v-model="form.type" style="width: 100%">
-        <el-option :label="t('standard.types.primary_key')" value="primary_key" />
-        <el-option :label="t('standard.types.enum')" value="enum" />
-        <el-option :label="t('standard.types.dict')" value="dict" />
-        <el-option :label="t('standard.types.amount')" value="amount" />
-      </el-select>
-      <label>{{ t('standard.createModal.rule') }}</label>
-      <el-input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
-      <template #footer>
-        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{
-            submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
-          }}
-        </el-button>
-      </template>
-    </Modal>
+    <template v-if="activeTab === 'standard'">
+      <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
+      <Toolbar
+        :show-create="true"
+        :create-label="t('standard.newStandard')"
+        :create-aria-label="t('standard.newStandard')"
+        :show-refresh="false"
+        @create="modalVisible = true"
+      >
+        <template #actions>
+          <span class="pill b">
+            {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
+          </span>
+        </template>
+      </Toolbar>
+      <div class="card">
+        <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
+        <div v-else-if="error" class="state-tip state-error">
+          {{ error.message }}，
+          <button type="button" class="link-btn" @click="loadStandards">
+            {{ t('common.retry') }}
+          </button>
+        </div>
+        <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
+        <el-table
+          v-else
+          :data="standards"
+          stripe
+          border
+          role="table"
+          :aria-label="t('standard.title')"
+          :empty-text="t('standard.empty')"
+        >
+          <el-table-column prop="name" :label="t('standard.cols.item')" min-width="160" />
+          <el-table-column :label="t('standard.cols.type')" width="120">
+            <template #default="{ row }">
+              {{ typeLabel(row.type) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="rule" :label="t('standard.cols.rule')" min-width="180" />
+          <el-table-column prop="refAssetCount" :label="t('standard.cols.refAssets')" width="120" />
+        </el-table>
+      </div>
+
+      <Modal
+        :visible="modalVisible"
+        :title="t('standard.createModal.title')"
+        @close="modalVisible = false"
+      >
+        <label>{{ t('standard.createModal.item') }}</label>
+        <el-input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
+        <label>{{ t('standard.createModal.type') }}</label>
+        <el-select v-model="form.type" style="width: 100%">
+          <el-option :label="t('standard.types.primary_key')" value="primary_key" />
+          <el-option :label="t('standard.types.enum')" value="enum" />
+          <el-option :label="t('standard.types.dict')" value="dict" />
+          <el-option :label="t('standard.types.amount')" value="amount" />
+        </el-select>
+        <label>{{ t('standard.createModal.rule') }}</label>
+        <el-input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
+        <template #footer>
+          <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{
+              submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
+            }}
+          </el-button>
+        </template>
+      </Modal>
+    </template>
+
+    <!-- 数据质量：原 /quality 页（Quality.vue）完整内容，作为本页第二个 tab -->
+    <Quality v-else />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
+import Quality from '@/views/Quality.vue'
 import * as standardApi from '@/api/standard'
 import type { Standard, StandardSummary, StandardType } from '@/api/standard'
 import type { PagedResult } from '@/api/types'
@@ -86,6 +116,27 @@ const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
+
+/* ------------------------------ 导航合并 tab ------------------------------ */
+
+// /quality 重定向到 /standard?tab=quality；当前 tab 由路由 query 派生
+const route = useRoute()
+const router = useRouter()
+type MergedTab = 'standard' | 'quality'
+
+/** 解析当前 tab（无 router 注入时回退 standard，兼容组件单测） */
+function tabFromQuery(): MergedTab {
+  return route?.query?.tab === 'quality' ? 'quality' : 'standard'
+}
+
+const activeTab = computed(tabFromQuery)
+
+/** 切换 tab：更新 URL query（保留可直达链接语义），tab 随之重算 */
+function switchTab(tab: MergedTab) {
+  if (activeTab.value === tab) return
+  const query: Record<string, string> = tab === 'quality' ? { tab: 'quality' } : {}
+  void router?.replace?.({ path: '/standard', query })
+}
 
 // 标准列表 + 落标率：通过 useApi 包装并行加载，自动维护 loading / error / data 三态
 const {
@@ -170,5 +221,27 @@ onMounted(() => {
   text-decoration: underline;
   cursor: pointer;
   font: inherit;
+}
+
+/* 导航合并 tab：/standard 与 /quality 合并为同一页后的切换条 */
+.page-tabs {
+  display: flex;
+  gap: var(--ds-spacing-1);
+  margin-bottom: var(--ds-spacing-4);
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.page-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
+  color: var(--ds-text-secondary);
+  font: inherit;
+  font-weight: var(--ds-font-weight-medium);
+  cursor: pointer;
+}
+.page-tab.active {
+  color: var(--ds-color-primary-600);
+  border-bottom-color: var(--ds-color-primary-600);
 }
 </style>

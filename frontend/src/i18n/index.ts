@@ -174,12 +174,15 @@ const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/develop': ['develop'],
   '/sql': ['sql'],
   '/govern': ['govern'],
-  '/standard': ['standard'],
+  // C-2 导航合并：/standard 页内含「数据标准/数据质量」两个 tab，需一并预载 quality 模块
+  '/standard': ['standard', 'quality'],
   '/quality': ['quality'],
-  '/lineage': ['lineage'],
+  // C-2 导航合并：/lineage 页内含「数据血缘/血缘可视化」两个 tab
+  '/lineage': ['lineage', 'dataLineage'],
   '/data-lineage': ['dataLineage'],
   '/sec': ['sec'],
-  '/vector': ['vector'],
+  // C-2 导航合并：/vector 页内含「向量数据库/知识工程」两个 tab，需一并预载 kb 模块
+  '/vector': ['vector', 'kb'],
   '/kb': ['kb'],
   '/llmops': ['llmops'],
   '/gateway': ['gateway'],
@@ -203,21 +206,25 @@ const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-api': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
   '/ai-assistant': ['aiAssistant'],
-  '/infra-machine': ['infraMachine'],
-  '/infra-k8s': ['infraK8s'],
-  '/infra-net': ['infraNet'],
-  '/infra-store': ['infraStore'],
-  '/infra-sched': ['infraSched'],
-  '/eng-storage': ['engStorage'],
+  // 引擎/基础设施/开发层页面共用 engines 命名空间（kpi/table/sql 等公共词条），
+  // infra 各页还互相复用 infraK8s/infraSched 命名空间；凡组件用到而映射未含者，
+  // 词条不会合并 → 页面回退显示原始 key（如 engines.flink.title）。逐条按组件实际
+  // t('ns.*') 前缀核对后补齐。
+  '/infra-machine': ['infraMachine', 'infraK8s', 'engines'],
+  '/infra-k8s': ['infraK8s', 'engines'],
+  '/infra-net': ['infraNet', 'infraK8s', 'infraSched', 'engines'],
+  '/infra-store': ['infraStore', 'infraK8s', 'infraSched', 'engines'],
+  '/infra-sched': ['infraSched', 'infraK8s', 'engines'],
+  '/eng-storage': ['engStorage', 'engines'],
   '/eng-spark': ['engines'],
-  '/eng-flink': ['engFlink'],
+  '/eng-flink': ['engFlink', 'engines'],
   '/eng-doris': ['engines'],
   '/eng-kafka': ['engines'],
-  '/eng-iotdb': ['engIotdb'],
-  '/eng-mmg': ['engMmg'],
+  '/eng-iotdb': ['engIotdb', 'engines'],
+  '/eng-mmg': ['engMmg', 'engines'],
   '/govern-meta': ['govern'],
-  '/dev-sched': ['devSched'],
-  '/dev-tag': ['devTag'],
+  '/dev-sched': ['devSched', 'engines'],
+  '/dev-tag': ['devTag', 'engines'],
   '/dev-ml': ['devMl'],
   '/orchestrator/dag': ['orchestrator']
 }

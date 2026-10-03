@@ -63,8 +63,11 @@ def jpa_modules() -> dict[str, int]:
 
 
 def has_migrations(module_rel: str) -> bool:
+    # 递归匹配：兼容两种布局——扁平 db/migration/*.sql（旧）与
+    # 按模块隔离的 db/migration/<模块名>/*.sql（2026-10-03 起，防 Flyway 扫依赖
+    # jar 时跨模块版本冲突；见 commit 48405780）
     mig_dir = REPO_ROOT / module_rel / "src" / "main" / "resources" / "db" / "migration"
-    return mig_dir.is_dir() and any(mig_dir.glob("*.sql"))
+    return mig_dir.is_dir() and any(mig_dir.glob("**/*.sql"))
 
 
 def flyway_enabled_in_prod(module_rel: str) -> tuple[bool, str]:

@@ -21,8 +21,8 @@ test.describe('数据资产管理（资产目录 /govern）', () => {
   test('资产目录页加载', async ({ page }) => {
     // 标题
     await expect(page.locator('h1')).toContainText('资产目录')
-    // 子标题
-    await expect(page.locator('.sub')).toContainText('统一检索')
+    // 子标题（Govern.vue 已迁移至共享 PageHeader，类名为 .page-header__subtitle）
+    await expect(page.locator('.page-header__subtitle')).toContainText('统一检索')
     // 工具栏
     await expect(page.locator('.toolbar')).toBeVisible()
     // 卡片容器
@@ -43,8 +43,9 @@ test.describe('数据资产管理（资产目录 /govern）', () => {
 
   test('资产列表显示暂无资产或数据行', async ({ page }) => {
     await page.waitForSelector('table', { timeout: 15_000 })
-    // 表格存在
-    await expect(page.locator('table')).toBeVisible()
+    // 表格存在（el-table 渲染为 .el-table 容器，其内部含 header/body 两个 <table>，
+    // 直接 locator('table') 会命中 2 个元素触发 strict mode violation）
+    await expect(page.locator('.el-table').first()).toBeVisible()
     // 要么有数据行（tbody tr），要么有"暂无资产"提示
     const dataRows = page.locator('tbody tr')
     const emptyRow = page.locator('tbody tr td', { hasText: '暂无资产' })
@@ -65,11 +66,11 @@ test.describe('数据资产管理（资产目录 /govern）', () => {
   })
 
   test('分层筛选下拉存在', async ({ page }) => {
-    const select = page.locator('.toolbar select')
+    // Govern.vue toolbar #filters 使用 Element Plus <el-select>（渲染为 .el-select，
+    // 无原生 <select>），默认项"全部分层"以 placeholder 呈现
+    const select = page.locator('.toolbar .el-select')
     await expect(select.first()).toBeVisible()
-    // 默认选项"全部分层"
-    const option = select.first().locator('option')
-    await expect(option.first()).toContainText('全部分层')
+    await expect(select.first()).toContainText('全部分层')
   })
 
   test('登记资产按钮存在', async ({ page }) => {

@@ -15,7 +15,7 @@ test.describe('集群概览（/cluster）', () => {
 
   test('集群概览页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('集群概览')
-    await expect(page.locator('.sub')).toContainText('Kubernetes 集群')
+    await expect(page.locator('.page-header__subtitle')).toContainText('Kubernetes 集群')
     await expect(page.locator('.stat-card').first()).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('text=总节点数')).toBeVisible()
   })
@@ -23,7 +23,9 @@ test.describe('集群概览（/cluster）', () => {
   test('节点列表表格与刷新按钮存在', async ({ page }) => {
     await page.waitForTimeout(2_000)
     await expect(page.locator('h1')).toContainText('集群概览')
-    await expect(page.locator('text=节点列表')).toBeVisible({ timeout: 15_000 })
+    // "节点列表"文案同时出现在 PageCard 标题 / 表格空态 / toast 中，
+    // text=节点列表 会命中 3 个元素触发 strict mode violation；改为精确定位卡片标题
+    await expect(page.getByRole('heading', { name: '节点列表' })).toBeVisible({ timeout: 15_000 })
     const refreshBtn = page.locator('button[aria-label="刷新节点列表"]')
     await expect(refreshBtn).toBeVisible()
   })

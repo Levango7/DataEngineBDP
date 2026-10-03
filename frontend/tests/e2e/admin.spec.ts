@@ -38,8 +38,8 @@ test.describe('运营后台（/admin）', () => {
   test('环境矩阵表格存在', async ({ page }) => {
     // 环境矩阵卡片（含 h3"环境矩阵"）
     await expect(page.locator('h3', { hasText: '环境矩阵' })).toBeVisible({ timeout: 15_000 })
-    // el-table 渲染（环境矩阵表格）
-    await expect(page.locator('el-table').first()).toBeVisible({ timeout: 15_000 })
+    // el-table 渲染为 .el-table 容器（标签选择器永不匹配）
+    await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('运营 KPI API 返回 200（Bearer 认证）', async ({ request }) => {

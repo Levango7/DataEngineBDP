@@ -105,6 +105,17 @@ env:
   JAVA_OPTS: ""
 
 # ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+# ---- 应用数据目录 ----
+data:
+  # 是否把 /app/data 挂成 emptyDir。默认关闭。
+  # 与 securityContext.readOnlyRootFilesystem: true 配套使用：
+  # H2 文件库需要写 /app/data，只读根会导致
+  # "FileSystemException: /app/data/SVC-db.trace.db: Read-only file system"。
+  # 注意 fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，故必须挂出来。
+  # 生产若需持久化，可把 storageClassName 指向 PVC（复用同一挂载点）。
+  enabled: false
+  storageClassName: ""
+
 # ---- 临时目录 ----
 tmp:
   # 是否把 /tmp 挂成 emptyDir。默认关闭。

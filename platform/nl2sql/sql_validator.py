@@ -131,10 +131,12 @@ class SqlValidator:
                 firstKw = tok.value.upper()
                 break
         if firstKw is None:
-            # 无法识别语句类型，按警告处理
+            # fail-closed：无法识别语句类型时按 ERROR 拒绝。
+            # 旧实现返回 WARNING，而 validate() 仅以 ERROR 判定 valid，
+            # 导致任何未被 sqlparse 识别为 SELECT/DML/DDL 的语句被放行（安全护栏可被绕过）。
             return ValidationIssue(
-                level=ValidationLevel.WARNING,
-                message="无法识别 SQL 语句类型，建议以 SELECT 开头",
+                level=ValidationLevel.ERROR,
+                message="无法识别 SQL 语句类型，SELECT-only 模式仅允许 SELECT",
                 code="UNKNOWN_STMT_TYPE",
             )
         if firstKw in _DANGEROUS_KEYWORDS:

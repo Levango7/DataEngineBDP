@@ -32,15 +32,15 @@ test.describe('审批中心（/approvals）', () => {
     await expect(page.locator('.appr-stats')).toBeVisible({ timeout: 15_000 })
     const statCount = await page.locator('.appr-stats .stat').count()
     expect(statCount).toBeGreaterThanOrEqual(4)
-    // 状态筛选下拉（el-select，placeholder 含"状态"）
-    await expect(page.locator('.toolbar el-select').first()).toBeVisible({ timeout: 15_000 })
+    // 状态筛选下拉（el-select 渲染为 .el-select，标签选择器永不匹配）
+    await expect(page.locator('.toolbar .el-select').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('注册申请表格存在', async ({ page }) => {
-    // el-table 渲染（注册申请列表，含 ID/用户名/邮箱/状态/操作等列）
-    await expect(page.locator('el-table').first()).toBeVisible({ timeout: 15_000 })
+    // el-table 渲染为 .el-table 容器（标签选择器永不匹配）
+    await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
     // 表格至少存在表头列（el-table-column 渲染为 th）
-    await expect(page.locator('el-table th').first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.locator('.el-table th').first()).toBeVisible({ timeout: 15_000 })
   })
 
   test('注册审批 API 未认证返回 401', async ({ request }) => {
