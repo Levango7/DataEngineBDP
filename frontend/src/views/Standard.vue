@@ -1,8 +1,9 @@
 <template>
-  <!-- C-2 导航合并：/quality 已并入本页（原 Quality.vue），用 tab 切换「数据标准/数据质量」 -->
-  <!-- 单根节点（必需）：DefaultLayout 的 <transition mode="out-in"> 无法动画化 fragment 根，
-       多根会使本页离开时 leave 过渡永不完成——旧页卡在 DOM、新路由不渲染（E2E trace 实证） -->
   <div class="page-merged">
+    <!-- 模板级注释必须留在根节点内部：Vue 会把根元素之外的注释编译成根级注释 vnode，
+         使组件变成 fragment 根，导致 DefaultLayout 的 <transition mode="out-in"> 卡死
+         （离开本页后新路由永远不渲染，E2E 实证） -->
+    <!-- C-2 导航合并：/quality 已并入本页（原 Quality.vue），用 tab 切换「数据标准/数据质量」 -->
     <div class="page-tabs" role="group" :aria-label="t('nav.items.standard')">
       <button
         type="button"
