@@ -1,97 +1,101 @@
 <template>
   <!-- C-2 导航合并：/quality 已并入本页（原 Quality.vue），用 tab 切换「数据标准/数据质量」 -->
-  <div class="page-tabs" role="group" :aria-label="t('nav.items.standard')">
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'standard' }"
-      @click="switchTab('standard')"
-    >
-      {{ t('nav.items.standard') }}
-    </button>
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'quality' }"
-      @click="switchTab('quality')"
-    >
-      {{ t('nav.items.quality') }}
-    </button>
-  </div>
-
-  <template v-if="activeTab === 'standard'">
-    <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
-    <Toolbar
-      :show-create="true"
-      :create-label="t('standard.newStandard')"
-      :create-aria-label="t('standard.newStandard')"
-      :show-refresh="false"
-      @create="modalVisible = true"
-    >
-      <template #actions>
-        <span class="pill b">
-          {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
-        </span>
-      </template>
-    </Toolbar>
-    <div class="card">
-      <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
-      <div v-else-if="error" class="state-tip state-error">
-        {{ error.message }}，
-        <button type="button" class="link-btn" @click="loadStandards">
-          {{ t('common.retry') }}
-        </button>
-      </div>
-      <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
-      <el-table
-        v-else
-        :data="standards"
-        stripe
-        border
-        role="table"
-        :aria-label="t('standard.title')"
-        :empty-text="t('standard.empty')"
+  <!-- 单根节点（必需）：DefaultLayout 的 <transition mode="out-in"> 无法动画化 fragment 根，
+       多根会使本页离开时 leave 过渡永不完成——旧页卡在 DOM、新路由不渲染（E2E trace 实证） -->
+  <div class="page-merged">
+    <div class="page-tabs" role="group" :aria-label="t('nav.items.standard')">
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'standard' }"
+        @click="switchTab('standard')"
       >
-        <el-table-column prop="name" :label="t('standard.cols.item')" min-width="160" />
-        <el-table-column :label="t('standard.cols.type')" width="120">
-          <template #default="{ row }">
-            {{ typeLabel(row.type) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="rule" :label="t('standard.cols.rule')" min-width="180" />
-        <el-table-column prop="refAssetCount" :label="t('standard.cols.refAssets')" width="120" />
-      </el-table>
+        {{ t('nav.items.standard') }}
+      </button>
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'quality' }"
+        @click="switchTab('quality')"
+      >
+        {{ t('nav.items.quality') }}
+      </button>
     </div>
 
-    <Modal
-      :visible="modalVisible"
-      :title="t('standard.createModal.title')"
-      @close="modalVisible = false"
-    >
-      <label>{{ t('standard.createModal.item') }}</label>
-      <el-input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
-      <label>{{ t('standard.createModal.type') }}</label>
-      <el-select v-model="form.type" style="width: 100%">
-        <el-option :label="t('standard.types.primary_key')" value="primary_key" />
-        <el-option :label="t('standard.types.enum')" value="enum" />
-        <el-option :label="t('standard.types.dict')" value="dict" />
-        <el-option :label="t('standard.types.amount')" value="amount" />
-      </el-select>
-      <label>{{ t('standard.createModal.rule') }}</label>
-      <el-input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
-      <template #footer>
-        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{
-            submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
-          }}
-        </el-button>
-      </template>
-    </Modal>
-  </template>
+    <template v-if="activeTab === 'standard'">
+      <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
+      <Toolbar
+        :show-create="true"
+        :create-label="t('standard.newStandard')"
+        :create-aria-label="t('standard.newStandard')"
+        :show-refresh="false"
+        @create="modalVisible = true"
+      >
+        <template #actions>
+          <span class="pill b">
+            {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
+          </span>
+        </template>
+      </Toolbar>
+      <div class="card">
+        <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
+        <div v-else-if="error" class="state-tip state-error">
+          {{ error.message }}，
+          <button type="button" class="link-btn" @click="loadStandards">
+            {{ t('common.retry') }}
+          </button>
+        </div>
+        <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
+        <el-table
+          v-else
+          :data="standards"
+          stripe
+          border
+          role="table"
+          :aria-label="t('standard.title')"
+          :empty-text="t('standard.empty')"
+        >
+          <el-table-column prop="name" :label="t('standard.cols.item')" min-width="160" />
+          <el-table-column :label="t('standard.cols.type')" width="120">
+            <template #default="{ row }">
+              {{ typeLabel(row.type) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="rule" :label="t('standard.cols.rule')" min-width="180" />
+          <el-table-column prop="refAssetCount" :label="t('standard.cols.refAssets')" width="120" />
+        </el-table>
+      </div>
 
-  <!-- 数据质量：原 /quality 页（Quality.vue）完整内容，作为本页第二个 tab -->
-  <Quality v-else />
+      <Modal
+        :visible="modalVisible"
+        :title="t('standard.createModal.title')"
+        @close="modalVisible = false"
+      >
+        <label>{{ t('standard.createModal.item') }}</label>
+        <el-input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
+        <label>{{ t('standard.createModal.type') }}</label>
+        <el-select v-model="form.type" style="width: 100%">
+          <el-option :label="t('standard.types.primary_key')" value="primary_key" />
+          <el-option :label="t('standard.types.enum')" value="enum" />
+          <el-option :label="t('standard.types.dict')" value="dict" />
+          <el-option :label="t('standard.types.amount')" value="amount" />
+        </el-select>
+        <label>{{ t('standard.createModal.rule') }}</label>
+        <el-input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
+        <template #footer>
+          <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{
+              submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
+            }}
+          </el-button>
+        </template>
+      </Modal>
+    </template>
+
+    <!-- 数据质量：原 /quality 页（Quality.vue）完整内容，作为本页第二个 tab -->
+    <Quality v-else />
+  </div>
 </template>
 
 <script setup lang="ts">

@@ -1,80 +1,90 @@
 <template>
   <!-- C-2 导航合并：/data-lineage 已并入本页（原 DataLineage.vue），用 tab 切换「数据血缘/血缘可视化」 -->
-  <div class="page-tabs" role="group" :aria-label="t('nav.items.lineage')">
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'lineage' }"
-      @click="switchTab('lineage')"
-    >
-      {{ t('nav.items.lineage') }}
-    </button>
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'data-lineage' }"
-      @click="switchTab('data-lineage')"
-    >
-      {{ t('nav.items.data-lineage') }}
-    </button>
-  </div>
+  <!-- 单根节点（必需）：DefaultLayout 的 <transition mode="out-in"> 无法动画化 fragment 根，
+       多根会使本页离开时 leave 过渡永不完成——旧页卡在 DOM、新路由不渲染（E2E trace 实证） -->
+  <div class="page-merged">
+    <div class="page-tabs" role="group" :aria-label="t('nav.items.lineage')">
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'lineage' }"
+        @click="switchTab('lineage')"
+      >
+        {{ t('nav.items.lineage') }}
+      </button>
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'data-lineage' }"
+        @click="switchTab('data-lineage')"
+      >
+        {{ t('nav.items.data-lineage') }}
+      </button>
+    </div>
 
-  <template v-if="activeTab === 'lineage'">
-    <PageHeader
-      :title="t('lineage.title')"
-      :subtitle="t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') })"
-    />
-    <div class="legend">
-      <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.upstream') }}</span>
-      <span style="color: var(--ds-color-primary-500)">{{ t('lineage.legend.current') }}</span>
-      <span style="color: var(--ds-color-success-500)">{{ t('lineage.legend.downstream') }}</span>
-      <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.faded') }}</span>
-    </div>
-    <div v-if="loading" class="card" style="padding: 16px; color: var(--ds-text-tertiary)">
-      {{ t('lineage.loading') }}
-    </div>
-    <div v-else-if="error" class="card" style="padding: 16px; color: var(--ds-color-error-500)">
-      {{ error.message }}，
-      <a href="javascript:void(0)" @click="loadLineage(highlightTable)">{{ t('common.retry') }}</a>
-    </div>
-    <div v-else class="card">
-      <div class="lineage">
-        <div class="lvl">
-          <div v-for="tbl in upstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
-            {{ t('lineage.noUpstream') }}
+    <template v-if="activeTab === 'lineage'">
+      <PageHeader
+        :title="t('lineage.title')"
+        :subtitle="t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') })"
+      />
+      <div class="legend">
+        <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.upstream') }}</span>
+        <span style="color: var(--ds-color-primary-500)">{{ t('lineage.legend.current') }}</span>
+        <span style="color: var(--ds-color-success-500)">{{ t('lineage.legend.downstream') }}</span>
+        <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.faded') }}</span>
+      </div>
+      <div v-if="loading" class="card" style="padding: 16px; color: var(--ds-text-tertiary)">
+        {{ t('lineage.loading') }}
+      </div>
+      <div v-else-if="error" class="card" style="padding: 16px; color: var(--ds-color-error-500)">
+        {{ error.message }}，
+        <a href="javascript:void(0)" @click="loadLineage(highlightTable)">
+          {{ t('common.retry') }}
+        </a>
+      </div>
+      <div v-else class="card">
+        <div class="lineage">
+          <div class="lvl">
+            <div v-for="tbl in upstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
+            <div
+              v-if="upstreamTables.length === 0"
+              class="ln"
+              style="color: var(--ds-text-tertiary)"
+            >
+              {{ t('lineage.noUpstream') }}
+            </div>
           </div>
-        </div>
-        <div class="lvl">
-          <div
-            class="ln hot"
-            @click="store.showToast(t('lineage.currentNode', { table: highlightTable }))"
-          >
-            {{ highlightTable }}
+          <div class="lvl">
+            <div
+              class="ln hot"
+              @click="store.showToast(t('lineage.currentNode', { table: highlightTable }))"
+            >
+              {{ highlightTable }}
+            </div>
           </div>
-        </div>
-        <div class="lvl">
-          <div v-for="tbl in downstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div
-            v-if="downstreamTables.length === 0"
-            class="ln"
-            style="color: var(--ds-text-tertiary)"
-          >
-            {{ t('lineage.noDownstream') }}
+          <div class="lvl">
+            <div v-for="tbl in downstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
+            <div
+              v-if="downstreamTables.length === 0"
+              class="ln"
+              style="color: var(--ds-text-tertiary)"
+            >
+              {{ t('lineage.noDownstream') }}
+            </div>
           </div>
-        </div>
-        <div class="lvl">
-          <div v-for="tbl in impactTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="impactTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
-            {{ t('lineage.noImpact') }}
+          <div class="lvl">
+            <div v-for="tbl in impactTables" :key="tbl" class="ln">{{ tbl }}</div>
+            <div v-if="impactTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
+              {{ t('lineage.noImpact') }}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </template>
+    </template>
 
-  <!-- 血缘可视化：原 /data-lineage 页（DataLineage.vue）完整内容，作为本页第二个 tab -->
-  <DataLineage v-else />
+    <!-- 血缘可视化：原 /data-lineage 页（DataLineage.vue）完整内容，作为本页第二个 tab -->
+    <DataLineage v-else />
+  </div>
 </template>
 
 <script setup lang="ts">

@@ -1,89 +1,93 @@
 <template>
   <!-- C-2 导航合并：/kb 已并入本页（原 Kb.vue），用 tab 切换「向量数据库/知识工程」 -->
-  <div class="page-tabs" role="group" :aria-label="t('nav.items.vector')">
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'vector' }"
-      @click="switchTab('vector')"
-    >
-      {{ t('nav.items.vector') }}
-    </button>
-    <button
-      type="button"
-      class="page-tab"
-      :class="{ active: activeTab === 'kb' }"
-      @click="switchTab('kb')"
-    >
-      {{ t('nav.items.kb') }}
-    </button>
-  </div>
-
-  <template v-if="activeTab === 'vector'">
-    <PageHeader :title="t('vector.title')" :subtitle="t('vector.subtitle')" />
-    <Toolbar
-      v-model:search-value="searchText"
-      :show-create="true"
-      :create-label="t('vector.newCollection')"
-      :create-aria-label="t('vector.newCollection')"
-      :search-placeholder="t('vector.searchPlaceholder')"
-      :search-aria-label="t('vector.searchPlaceholder')"
-      :show-refresh="false"
-      @create="modalVisible = true"
-      @search="doSearch"
-    />
-    <div class="card">
-      <div v-if="loading" class="state-tip">
-        {{ t('vector.loading') }}
-      </div>
-      <div v-else-if="error" class="state-tip error">
-        {{ t('vector.loadFailed', { msg: error.message }) }}
-        <el-button size="small" style="margin-left: 8px" @click="loadCollections">
-          {{ t('common.retry') }}
-        </el-button>
-      </div>
-      <el-table v-else :data="collections" stripe :empty-text="t('common.empty')">
-        <el-table-column :label="t('vector.cols.collection')" prop="name" />
-        <el-table-column :label="t('vector.cols.dimension')" prop="dimension" />
-        <el-table-column :label="t('vector.cols.count')" prop="count" />
-        <el-table-column :label="t('vector.cols.index')" prop="index" />
-        <el-table-column :label="t('vector.cols.relatedKb')" prop="relatedKb" />
-      </el-table>
+  <!-- 单根节点（必需）：DefaultLayout 的 <transition mode="out-in"> 无法动画化 fragment 根，
+       多根会使本页离开时 leave 过渡永不完成——旧页卡在 DOM、新路由不渲染（E2E trace 实证） -->
+  <div class="page-merged">
+    <div class="page-tabs" role="group" :aria-label="t('nav.items.vector')">
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'vector' }"
+        @click="switchTab('vector')"
+      >
+        {{ t('nav.items.vector') }}
+      </button>
+      <button
+        type="button"
+        class="page-tab"
+        :class="{ active: activeTab === 'kb' }"
+        @click="switchTab('kb')"
+      >
+        {{ t('nav.items.kb') }}
+      </button>
     </div>
 
-    <Modal
-      :visible="modalVisible"
-      :title="t('vector.createModal.title')"
-      @close="modalVisible = false"
-    >
-      <label>{{ t('vector.createModal.name') }}</label>
-      <el-input
-        v-model="newCollection.name"
-        :placeholder="t('vector.createModal.namePlaceholder')"
+    <template v-if="activeTab === 'vector'">
+      <PageHeader :title="t('vector.title')" :subtitle="t('vector.subtitle')" />
+      <Toolbar
+        v-model:search-value="searchText"
+        :show-create="true"
+        :create-label="t('vector.newCollection')"
+        :create-aria-label="t('vector.newCollection')"
+        :search-placeholder="t('vector.searchPlaceholder')"
+        :search-aria-label="t('vector.searchPlaceholder')"
+        :show-refresh="false"
+        @create="modalVisible = true"
+        @search="doSearch"
       />
-      <label>{{ t('vector.createModal.dimension') }}</label>
-      <el-input-number v-model="newCollection.dimension" :min="1" />
-      <label>{{ t('vector.createModal.indexType') }}</label>
-      <el-select v-model="newCollection.index">
-        <el-option label="HNSW" value="HNSW" />
-        <el-option label="IVF_PQ" value="IVF_PQ" />
-      </el-select>
-      <label>{{ t('vector.createModal.relatedKb') }}</label>
-      <el-input
-        v-model="newCollection.relatedKb"
-        :placeholder="t('vector.createModal.relatedKbPlaceholder')"
-      />
-      <template #footer>
-        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
-        <el-button type="primary" @click="submitCreate">
-          {{ t('vector.createModal.create') }}
-        </el-button>
-      </template>
-    </Modal>
-  </template>
+      <div class="card">
+        <div v-if="loading" class="state-tip">
+          {{ t('vector.loading') }}
+        </div>
+        <div v-else-if="error" class="state-tip error">
+          {{ t('vector.loadFailed', { msg: error.message }) }}
+          <el-button size="small" style="margin-left: 8px" @click="loadCollections">
+            {{ t('common.retry') }}
+          </el-button>
+        </div>
+        <el-table v-else :data="collections" stripe :empty-text="t('common.empty')">
+          <el-table-column :label="t('vector.cols.collection')" prop="name" />
+          <el-table-column :label="t('vector.cols.dimension')" prop="dimension" />
+          <el-table-column :label="t('vector.cols.count')" prop="count" />
+          <el-table-column :label="t('vector.cols.index')" prop="index" />
+          <el-table-column :label="t('vector.cols.relatedKb')" prop="relatedKb" />
+        </el-table>
+      </div>
 
-  <!-- 知识工程：原 /kb 页（Kb.vue）完整内容，作为本页第二个 tab -->
-  <Kb v-else />
+      <Modal
+        :visible="modalVisible"
+        :title="t('vector.createModal.title')"
+        @close="modalVisible = false"
+      >
+        <label>{{ t('vector.createModal.name') }}</label>
+        <el-input
+          v-model="newCollection.name"
+          :placeholder="t('vector.createModal.namePlaceholder')"
+        />
+        <label>{{ t('vector.createModal.dimension') }}</label>
+        <el-input-number v-model="newCollection.dimension" :min="1" />
+        <label>{{ t('vector.createModal.indexType') }}</label>
+        <el-select v-model="newCollection.index">
+          <el-option label="HNSW" value="HNSW" />
+          <el-option label="IVF_PQ" value="IVF_PQ" />
+        </el-select>
+        <label>{{ t('vector.createModal.relatedKb') }}</label>
+        <el-input
+          v-model="newCollection.relatedKb"
+          :placeholder="t('vector.createModal.relatedKbPlaceholder')"
+        />
+        <template #footer>
+          <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+          <el-button type="primary" @click="submitCreate">
+            {{ t('vector.createModal.create') }}
+          </el-button>
+        </template>
+      </Modal>
+    </template>
+
+    <!-- 知识工程：原 /kb 页（Kb.vue）完整内容，作为本页第二个 tab -->
+    <Kb v-else />
+  </div>
 </template>
 
 <script setup lang="ts">
