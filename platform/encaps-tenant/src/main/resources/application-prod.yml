@@ -17,7 +17,7 @@ spring:
     schemas: ${FLYWAY_SCHEMA:encaps_tenant}
     create-schemas: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    locations: classpath:db/migration/encaps-tenant
   jpa:
     hibernate:
       # 生产默认 validate（表由迁移管理）；本地验证/初始化可用 DDL_AUTO=update 覆盖

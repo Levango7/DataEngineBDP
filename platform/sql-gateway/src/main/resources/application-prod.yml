@@ -14,7 +14,7 @@ spring:
     schemas: ${FLYWAY_SCHEMA:sql_gateway}
     create-schemas: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    locations: classpath:db/migration/sql-gateway
   jpa:
     hibernate:
       ddl-auto: validate

@@ -15,7 +15,7 @@ spring:
     schemas: ${FLYWAY_SCHEMA:lineage_analyzer}
     create-schemas: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    locations: classpath:db/migration/lineage-analyzer
   jpa:
     hibernate:
       # 生产默认 validate（表由迁移管理）

@@ -16,7 +16,7 @@ spring:
     schemas: ${FLYWAY_SCHEMA:metadata_collector}
     create-schemas: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    locations: classpath:db/migration/metadata-collector
   jpa:
     hibernate:
       # 原为 none（既不建表也不校验，风险最高）；Flyway 接管建表后改为 validate

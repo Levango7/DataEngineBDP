@@ -15,7 +15,7 @@ spring:
     schemas: ${FLYWAY_SCHEMA:finops_cost_model}
     create-schemas: true
     baseline-on-migrate: false
-    locations: classpath:db/migration
+    locations: classpath:db/migration/cost-model
   jpa:
     hibernate:
       # 生产默认 validate（表由迁移管理）；本地验证/初始化可用 DDL_AUTO=update 覆盖

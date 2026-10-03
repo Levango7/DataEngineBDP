@@ -9,3 +9,7 @@ app:
     # 因此这里显式写上；生产配置里不应出现这一项。
     dev:
       tenant-id: dev-tenant
+
+spring:
+  flyway:
+    enabled: false

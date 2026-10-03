@@ -27,7 +27,7 @@ spring:
   # 基线脚本是 PostgreSQL 方言，不能在 H2 上执行。
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
-    locations: classpath:db/migration
+    locations: classpath:db/migration/lineage-analyzer
     validate-on-migrate: true
     clean-disabled: true
 
