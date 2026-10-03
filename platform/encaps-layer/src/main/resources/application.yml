@@ -131,7 +131,7 @@ app:
       # 突发倍率：桶容量 = rpm × burst（短时突发容忍）
       burst-factor: ${RATE_LIMIT_BURST:1.5}
     # 字段级加密全局 SM4 密钥（hex 字符串，32 字符 = 16 字节）
-    # 生产环境必须通过环境变量 ENCRYPT_KEY 覆盖；开发环境默认值仅用于本地联调
+    # 本行无默认值：未设置 ENCRYPT_KEY 时占位符解析失败、应用启动即挂（fail-fast，CI kind-smoke 实证）；本地/CI 由 deploy/local/values-local-core.yaml 注入 32 位 hex 开发密钥，生产必须由 KMS 生成并注入真实密钥
     # 配置方式：export ENCRYPT_KEY=0123456789abcdef0123456789abcdef（32 字符 hex）
     # 留空时 @Encrypt/@Decrypt 切面在调用时抛 CryptoException（生产环境必须配置）
     # 注意：密钥由 KMS 生成，禁止硬编码到代码仓库；轮换周期 1 年（见 R-024）

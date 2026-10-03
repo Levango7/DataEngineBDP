@@ -86,12 +86,10 @@ public class FieldEncryptAspect {
             return null;
         }
         byte[] methodKey = resolveKey(encrypt.key());
-        try {
-            processObject(result, methodKey, true);
-        } catch (CryptoException e) {
-            log.warn("Field encrypt failed for method {}: {}",
-                    ((MethodSignature) pjp.getSignature()).toShortString(), e.getMessage());
-        }
+        // fail-closed：加密失败必须让调用方失败，绝不静默返回明文。
+        // 旧实现 catch 后仅 warn —— 密钥缺失/非法时 @Encrypt 字段会以明文写库/返回，
+        // 安全控制静默失效（KNOWN-FAILURES #53）。
+        processObject(result, methodKey, true);
         return result;
     }
 
@@ -113,7 +111,11 @@ public class FieldEncryptAspect {
         try {
             processObject(result, methodKey, false);
         } catch (CryptoException e) {
-            log.warn("Field decrypt failed for method {}: {}",
+            // 解密刻意保持宽松（与加密相反）：历史明文行/密钥轮换期旧密文解密失败时，
+            // 拒绝整条读取会打穿存量数据可用性。但必须可见——日志升为 ERROR，
+            // 且此时返回的是未解密字段（非明文泄露，而是密文原样透出），
+            // 排查依据见 KNOWN-FAILURES #53。
+            log.error("Field decrypt failed for method {}: {}",
                     ((MethodSignature) pjp.getSignature()).toShortString(), e.getMessage());
         }
         return result;
