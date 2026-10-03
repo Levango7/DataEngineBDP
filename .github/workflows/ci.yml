@@ -180,6 +180,8 @@ jobs:
             exit 0
           fi
           fail_count=0
+          # 仓库根绝对路径：pylint 的 --rcfile 需要它（见下方 pylint 步骤注释）
+          REPO_ROOT_DIR="$(git rev-parse --show-toplevel)"
           while IFS= read -r f; do
             mod_dir=$(dirname "$f")
             mod_name=$(basename "$mod_dir")
@@ -198,7 +200,12 @@ jobs:
             # 失败不计入 fail_count —— 与"pylint 因 .pylintrc 取值非法而从未真正执行、
             # 却一直显示绿"属同型吞错。现改为计入 fail_count，与 black/isort/flake8 同口径。
             # （历史 bug 本身已修：.pylintrc:231 logging-format-style 由非法的 fstr 改为 new）
-            (cd "$mod_dir" && pylint --rcfile=../../.pylintrc --fail-under=7.0 . 2>&1) || { echo "✗ $mod_name pylint 分数低于阈值"; fail_count=$((fail_count + 1)); }
+            # 2026-10-03 修复：rcfile 原写 ../../.pylintrc，对三级嵌套模块
+            # （platform/llm-gateway/evaluation）解析到不存在的 platform/.pylintrc，
+            # pylint 以 "The config file doesn't exist!" 直接退出——非分数问题，
+            # evaluation 因此在门禁开启后长期"假失败"。改用仓库根绝对路径，
+            # 对任意嵌套深度成立。
+            (cd "$mod_dir" && pylint --rcfile="$REPO_ROOT_DIR/.pylintrc" --fail-under=7.0 . 2>&1) || { echo "✗ $mod_name pylint 分数低于阈值"; fail_count=$((fail_count + 1)); }
             # mypy 类型检查（保留为非阻断，但显式化原因、不静默）：
             #   根 pyproject.toml [tool.mypy] 为 strict = true，本仓大量模块尚未按 strict
             #   标注类型；若计入 fail_count 会在本批直接翻红且无法在一批内收敛（不是"修一个
