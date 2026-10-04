@@ -2,7 +2,7 @@
 
 功能：
     1. 检测运行环境（WSL/Windows），确保可访问 K3s 服务；
-    2. 运行 4 条链路的 pytest 集成测试；
+    2. 运行 6 条链路的 pytest 集成测试；
     3. 收集测试结果，生成 Markdown 报告 integration_test_report.md。
 
 用法：
@@ -39,13 +39,14 @@ PROJECT_ROOT = SCRIPT_DIR.parents[1]
 # K3s 测试目录（子目录，避免与原有 conftest.py 冲突）
 K3S_TEST_DIR = SCRIPT_DIR / "k3s"
 
-# 4 条链路的测试文件
+# 6 条链路的测试文件
 CHAIN_FILES = {
     1: "test_chain1_nl2sql_to_query.py",
     2: "test_chain2_orchestrator_agent.py",
     3: "test_chain3_query_rewrite_mv.py",
     4: "test_chain4_security_crypto.py",
     5: "test_chain5_industry_template_helm.py",
+    6: "test_chain6_governance_lineage.py",
 }
 
 CHAIN_NAMES = {
@@ -54,6 +55,7 @@ CHAIN_NAMES = {
     3: "链路3: 查询改写→物化视图路由",
     4: "链路4: SecurityFacade→加解密",
     5: "链路5: 行业模板 helm 真部署",
+    6: "链路6: 治理闭环→血缘摄取与统一查询面",
 }
 
 
@@ -354,8 +356,8 @@ def main() -> int:
         description="K3s 端到端集成测试运行脚本"
     )
     parser.add_argument(
-        "--chain", type=str, default="1,2,3,4,5",
-        help="运行的链路 ID，逗号分隔（默认 1,2,3,4,5）",
+        "--chain", type=str, default="1,2,3,4,5,6",
+        help="运行的链路 ID，逗号分隔（默认 1,2,3,4,5,6）",
     )
     parser.add_argument(
         "--output", type=str, default="integration_test_report.md",
