@@ -203,6 +203,47 @@ def testGetModelNotFound(client):
     assert resp.status_code == 404
 
 
+# ---------- 模型版本子资源（台账 #1c）----------
+
+
+def testListModelVersionsIncrementsBySameName(client):
+    """同名重复训练必须递增版本号，且版本列表可按模型名查到。"""
+    first = _setupModel(client, name="ver-1")
+    second = _setupModel(client, name="ver-1")
+    assert first != second
+
+    resp = client.get("/api/v1/models/ver-1/versions")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert [v["version"] for v in body] == ["1", "2"]
+    assert {v["modelName"] for v in body} == {"ver-1"}
+    assert body[0]["modelPath"] and body[1]["modelPath"]
+    # 契约：version 是字符串（前端 dev-ml.ts 的 ModelVersion.version: string）
+    assert all(isinstance(v["version"], str) for v in body)
+
+
+def testListModelVersionsAcceptsModelId(client):
+    """路径参数也接受模型 ID（前端两种传法都能落）。"""
+    mid = _setupModel(client, name="ver-2")
+    resp = client.get(f"/api/v1/models/{mid}/versions")
+    assert resp.status_code == 200
+    assert [v["version"] for v in resp.json()] == ["1"]
+
+
+def testListModelVersionsNotFound(client):
+    resp = client.get("/api/v1/models/ghost/versions")
+    assert resp.status_code == 404
+
+
+def testListModelVersionsDoesNotMixOtherNames(client):
+    """不同模型名不得混进同一版本列表。"""
+    _setupModel(client, name="mix-a")
+    _setupModel(client, name="mix-b")
+    resp = client.get("/api/v1/models/mix-a/versions")
+    assert resp.status_code == 200
+    assert [v["modelName"] for v in resp.json()] == ["mix-a"]
+
+
 def testDeleteModel(client):
     mid = _setupModel(client)
     resp = client.delete(f"/api/v1/models/{mid}")
