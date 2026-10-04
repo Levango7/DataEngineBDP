@@ -108,9 +108,5 @@ export function getDownstream(table: string, depth = 5): Promise<LineageQueryRes
  * @param table 表全名
  */
 export function impactAnalysis(table: string): Promise<LineageQueryResult> {
-  return get<LineageQueryResult>(
-    `/lineage/api/v1/lineage/impact`,
-    { table },
-    { baseURL: '' }
-  )
+  return get<LineageQueryResult>(`/lineage/api/v1/lineage/impact`, { table }, { baseURL: '' })
 }
