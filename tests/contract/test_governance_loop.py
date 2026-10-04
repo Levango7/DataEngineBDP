@@ -49,24 +49,27 @@ def _sources_outside(root: Path, exclude: Path) -> list[Path]:
     return [p for p in _java_sources(root) if exclude not in p.parents]
 
 
-def test_t1_pipeline_must_not_own_a_lineage_graph_writer() -> None:
-    """T1：血缘图写入实现只允许存在于 lineage-analyzer 一侧。
+def test_t1_pipeline_must_not_write_the_lineage_graph() -> None:
+    """T1：血缘图的**写入行为**只能存在于 lineage-analyzer 一侧。
 
-    判据（任一命中即失败）：
-      a) pipeline 模块内存在 Nebula 血缘客户端类；
-      b) pipeline 模块内直接出现 nGQL 写入语句（INSERT VERTEX/EDGE）。
+    判据修正（2026-10-04）：原版断言"pipeline 内不得存在 Nebula*Lineage*Client 类"，
+    属**代理指标**——该类同时承载读缓存（GovernanceController 曾用它查询），
+    类存在 ≠ 写入者不唯一，按类名断言会导致"改对了也永远红"。
+    改为直接断言写入行为（这才是判定面）：
+      a) pipeline 主源码内不得出现 nGQL 写语句（INSERT VERTEX / INSERT EDGE）；
+      b) 不得调用图客户端的写入方法 writeLineage。
     """
-    self_owned: list[str] = []
+    violations: list[str] = []
     for src in _java_sources(PIPELINE):
         text = src.read_text(encoding="utf-8", errors="replace")
-        if re.search(r"class\s+\w*Nebula\w*Lineage\w*Client", text):
-            self_owned.append(f"{src.relative_to(REPO)}：自持 Nebula 血缘客户端类")
         if re.search(r"INSERT\s+(VERTEX|EDGE)", text, re.IGNORECASE):
-            self_owned.append(f"{src.relative_to(REPO)}：直接拼 nGQL 写入")
+            violations.append(f"{src.relative_to(REPO)}：直接拼 nGQL 写入")
+        if re.search(r"\.writeLineage\s*\(", text):
+            violations.append(f"{src.relative_to(REPO)}：调用图客户端 writeLineage（图写入行为）")
 
-    assert not self_owned, (
+    assert not violations, (
         "血缘写入者不唯一（裁决 Q2：保留 Nebula 通路，但只允许 lineage-analyzer 写）。"
-        "命中：\n  - " + "\n  - ".join(self_owned)
+        "命中：\n  - " + "\n  - ".join(violations)
     )
 
 

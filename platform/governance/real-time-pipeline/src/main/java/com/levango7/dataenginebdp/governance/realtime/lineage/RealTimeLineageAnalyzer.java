@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 实时血缘解析器。
  *
- * <p>整合 {@link FlinkCdcSqlLineageParser}（SQL 解析）与 {@link NebulaLineageGraphClient}
+ * <p>整合 {@link FlinkCdcSqlLineageParser}（SQL 解析），解析结果经 {@link LineageIngestClient}
  * （图存储），提供端到端的实时血缘更新能力。
  *
  * <p>触发方式：
@@ -33,7 +33,8 @@ public class RealTimeLineageAnalyzer {
     private static final Logger log = LoggerFactory.getLogger(RealTimeLineageAnalyzer.class);
 
     private final FlinkCdcSqlLineageParser sqlParser;
-    private final NebulaLineageGraphClient graphClient;
+    /** 血缘外发通道（唯一写入者在 lineage-analyzer）；测试构造可为 null。 */
+    private final LineageIngestClient ingestClient;
     private final Timer lineageTimer;
 
     /** 作业 SQL 缓存：jobId → sqlText（用于元数据变更后重新解析） */
@@ -46,10 +47,10 @@ public class RealTimeLineageAnalyzer {
 
     @Autowired
     public RealTimeLineageAnalyzer(FlinkCdcSqlLineageParser sqlParser,
-                                   NebulaLineageGraphClient graphClient,
+                                   LineageIngestClient ingestClient,
                                    MeterRegistry meterRegistry) {
         this.sqlParser = sqlParser;
-        this.graphClient = graphClient;
+        this.ingestClient = ingestClient;
         this.lineageTimer = Timer.builder("governance.lineage.update.duration")
                 .description("血缘解析与更新耗时")
                 .publishPercentiles(0.5, 0.95, 0.99)
@@ -57,10 +58,10 @@ public class RealTimeLineageAnalyzer {
     }
 
     /** 测试用构造函数（无 MeterRegistry） */
-    public RealTimeLineageAnalyzer(FlinkCdcSqlLineageParser sqlParser,
-                                   NebulaLineageGraphClient graphClient) {
+    public RealTimeLineageAnalyzer(FlinkCdcSqlLineageParser sqlParser) {
         this.sqlParser = sqlParser;
-        this.graphClient = graphClient;
+        // 测试构造不带外发通道：emit 路径会走 null 分支并记日志，不影响既有断言
+        this.ingestClient = null;
         this.lineageTimer = null;
     }
 
@@ -85,8 +86,8 @@ public class RealTimeLineageAnalyzer {
         lineage.setTenantId(tenantId);
         parseCount.incrementAndGet();
 
-        // Step 2: 写入 NebulaGraph 血缘图
-        boolean success = graphClient.writeLineage(lineage);
+        // Step 2: 外发给 lineage-analyzer（裁决 Q2：唯一写入者），失败不阻塞主流程
+        boolean success = ingestClient != null && ingestClient.emitRunEvent(lineage, jobId);
         if (success) {
             updateSuccessCount.incrementAndGet();
         } else {
@@ -120,18 +121,13 @@ public class RealTimeLineageAnalyzer {
             String sqlText = entry.getValue();
             FieldLineage lineage = sqlParser.parse(sqlText, jobId);
             if (targetTable.equals(lineage.getTargetTable())) {
-                graphClient.writeLineage(lineage);
+                if (ingestClient != null) {
+                    ingestClient.emitRunEvent(lineage, jobId);
+                }
                 updated.add(lineage);
             }
         }
         return updated;
-    }
-
-    /**
-     * 获取血缘图客户端（用于查询血缘）。
-     */
-    public NebulaLineageGraphClient getGraphClient() {
-        return graphClient;
     }
 
     /**
