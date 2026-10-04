@@ -1200,9 +1200,14 @@ dqctl version
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | /api/v1/lineage/analyze | 分析 SQL 血缘（返回 ECharts 友好格式） |
+| POST | /api/v1/lineage/events | 摄取 OpenLineage RunEvent（治理闭环的自动血缘入口） |
 | GET | /api/v1/lineage/upstream/{table} | 查询上游依赖表（query 参数 depth，默认 5） |
 | GET | /api/v1/lineage/downstream/{table} | 查询下游依赖表 |
 | GET | /api/v1/lineage/impact/{table} | 影响分析 |
+
+三个查询端点同时接受查询参数形态（`?table=…`）。**表全名含 `/` 时必须用查询参数形态**：
+OpenLineage 摄取产生的节点全名是 `<namespace>/<name>`（如 `hive/ods.orders`），
+放进路径段会 404（多出一段），写成 `%2F` 会被 Tomcat 以 400 拒绝编码斜杠。
 
 ## 第14章 标签引擎 API
 
