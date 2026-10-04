@@ -145,10 +145,50 @@ class Settings(BaseSettings):
         return self.experimentStoreType == "mlflow" or self.mlflowEnabled
 
 
+def _envKwargs() -> dict:
+    """把部署侧使用的 `ML_<UPPER_SNAKE>` 环境变量映射成 camelCase 字段初始化参数.
+
+    为什么必须手工映射（本地实测，pydantic-settings 2.5.2 / pydantic 2.13.4）：
+
+    - 字段名是 camelCase（backendType、featureStoreType、logLevel 等），而本模块
+      文档与 deploy/manifests、design/deploy/charts 用的是带下划线的
+      `ML_BACKEND_TYPE`、`ML_FEATURE_STORE_TYPE`、`ML_EXPERIMENT_STORE_TYPE` 之类；
+      pydantic-settings 默认按字段名匹配环境变量，于是这些名字**一个都绑不上**，
+      配置静默回落到默认值 sklearn/redis/mlflow——部署写 `ML_BACKEND_TYPE=mock`
+      时，进程实际起的是需要 Redis + MLflow 的后端。
+    - 想用 `alias_generator` 修反而更糟：字段一旦带显式 alias，连本来能绑的
+      `ML_HOST` 也不绑了（实测 alias_generator 版在 ML_HOST=9.9.9.9 下 host 仍是默认值），
+      因为显式 alias 不参与 case_insensitive 归一。
+
+    所以这里显式转换后作为初始化参数传入（InitSettingsSource 一定生效），
+    未识别的 `ML_*` 变量继续忽略（与原 `extra="ignore"` 口径一致）。
+
+    Returns:
+        字段名 → 环境变量值。
+    """
+    fields = set(Settings.model_fields.keys())
+    prefix = Settings.model_config.get("env_prefix") or ""
+    kwargs: dict = {}
+    for rawKey, value in os.environ.items():
+        key = rawKey.upper()
+        if not key.startswith(prefix):
+            continue
+        tail = key[len(prefix) :].lower()
+        head, *rest = tail.split("_")
+        name = head + "".join(part[:1].upper() + part[1:] for part in rest)
+        if name in fields:
+            kwargs[name] = value
+    return kwargs
+
+
 @lru_cache(maxsize=1)
 def getSettings() -> Settings:
-    """获取全局配置单例（带缓存）."""
-    return Settings()
+    """获取全局配置单例（带缓存）.
+
+    Returns:
+        应用配置（已合并 `ML_*` 环境变量）。
+    """
+    return Settings(**_envKwargs())
 
 
 def resetSettings() -> None:

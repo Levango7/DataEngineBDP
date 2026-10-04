@@ -74,7 +74,10 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
-python_functions = ["test_*"]
+# 原值 ["test_*"] 与本模块 38 个 camelCase 用例名（testListModels 等）不匹配，
+# pytest 采集 0 条却仍报绿——实测 `pytest tests/ --collect-only` 返回 "collected 0 items"。
+# 改成前缀通配后本模块真实用例数才进入门禁。
+python_functions = ["test*"]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",

@@ -44,8 +44,19 @@ def mockExperimentStore() -> MockExperimentStore:
 
 @pytest.fixture
 def settings() -> Settings:
+    """测试用配置：三个后端位全部走 Mock.
+
+    原先只传 `backendType="mock"`，另两位靠 `os.environ.setdefault("ML_*_STORE_TYPE")`
+    生效——但那些带下划线的变量名在修复前根本绑不上（见 settings._envKwargs 说明），
+    于是 /health 报的是真实默认值 redis/mlflow，`testHealth` 因此恒红却从未被采集。
+    这里显式传参，让"测试跑在 Mock 栈上"这件事与断言一致。
+    """
     resetSettings()
-    return Settings(backendType="mock")
+    return Settings(
+        backendType="mock",
+        featureStoreType="mock",
+        experimentStoreType="mock",
+    )
 
 
 @pytest.fixture
