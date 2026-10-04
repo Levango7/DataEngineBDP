@@ -25,6 +25,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 # 本文件在 tests/contract/（**不在** tests/integration/ 下，故不被 IT 腿收集，
 # 不给 IT 计数添红；由 ci.yml 的 standards job 单独跑，秒级、无需服务）
 REPO = Path(__file__).resolve().parents[2]
@@ -32,6 +34,15 @@ PLATFORM = REPO / "platform"
 PIPELINE = PLATFORM / "governance" / "real-time-pipeline"
 LINEAGE = PLATFORM / "governance" / "lineage-analyzer"
 COLLECTOR = PLATFORM / "governance" / "metadata-collector"
+
+
+LINEAGE_CLIENT_FILE = (
+    PIPELINE / "src/main/java/com/levango7/dataenginebdp/governance/realtime/lineage/LineageIngestClient.java"
+)
+COLLECTOR_WRITER_FILE = (
+    PLATFORM
+    / "governance/metadata-collector/src/main/java/com/levango7/dataenginebdp/governance/collector/service/MetadataWriterService.java"
+)
 
 
 def _java_sources(root: Path) -> list[Path]:
@@ -118,4 +129,50 @@ def test_t3_metadata_writer_emits_after_write() -> None:
     assert not silent, (
         "采集器只写 catalog、不通知下游（草案断点 4）：" + ", ".join(silent) + "。"
         "阶段 2 完成前，非 Iceberg 源的自动血缘必然缺失。"
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="已知缺口：出站调用缺 JWT 凭据（服务端只认 JWT 声明租户）——"
+    "待服务间凭据方案裁决。修好后本断言会 XPASS 从而使 strict 报错，"
+    "届时移除本标记，让 T4 正式成为阻断门禁。",
+)
+def test_t4_outbound_calls_carry_credentials_the_server_accepts() -> None:
+    """T4（2026-10-04 探针实测后新增）：接线存在 ≠ 调用能通过。
+
+    实测依据（本机真实进程探针，lineage-analyzer 单跑于 8086）：
+      - POST /api/v1/lineage/events 与 GET /upstream|/downstream 均 403；
+      - 服务端租户过滤器只从 JWT 声明取租户（TenantContextFilter.java:153-155 读
+        claim "tenantId" 及其下划线形式），文件内无 getHeader("X-Tenant-Id") 分支；
+      - 类注释另要求 iss 与 tenantId 两个 claim 同时存在（:40）。
+    而当前出站调用只带 X-Tenant-Id 头、不带 JWT ⇒ 运行期必然 403。
+
+    判定面：两个出站调用点必须显式携带 Authorization。缺则红——它衡量"能不能真的通过"。
+    """
+    patterns = [
+        re.compile(r'header\s*\(\s*"?Authorization"?', re.IGNORECASE),
+        re.compile(r"HttpHeaders\.AUTHORIZATION"),
+        re.compile(r"\.bearerAuth\s*\(", re.IGNORECASE),
+    ]
+    checks = {
+        "pipeline/LineageIngestClient": LINEAGE_CLIENT_FILE,
+        "collector/MetadataWriterService": COLLECTOR_WRITER_FILE,
+    }
+    violations: list[str] = []
+    for label, path in checks.items():
+        if not path.is_file():
+            violations.append(label + "：文件缺失（结构变更，需更新本契约）")
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if not any(pat.search(text) for pat in patterns):
+            violations.append(
+                str(path.relative_to(REPO))
+                + "：未携带 Authorization（服务端要求 JWT 声明租户；仅 X-Tenant-Id 头会被 403）"
+            )
+
+    assert not violations, (
+        "出站调用缺可被服务端接受的凭据——接线存在但运行期必 403（探针实测）。"
+        "待裁决服务间凭据方案（服务账号 JWT 换发 / 内部可信通道）。命中：\n  - "
+        + "\n  - ".join(violations)
     )
