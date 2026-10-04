@@ -28,9 +28,13 @@ import java.util.Set;
  * <p>映射约定：
  * <ul>
  *   <li>数据集节点全名 = {@code <namespace>/<name>}，与 SQL 血缘的 {@code db.table}
- *       命名空间正交，查询/影响分析 API 通用</li>
+ *       命名空间正交；全名可能含 {@code /}（生产端如 batch-pipeline 会把 batchId
+ *       拼进 name），这类键必须用查询参数形式
+ *       {@code GET /api/v1/lineage/upstream?table=<full name>} 寻址——路径变量形式
+ *       放不下 {@code /}（原样会被拆成多段→404，编码成 %2F 会被 Tomcat 拒→400）</li>
  *   <li>边类型 {@link LineageEdge.RelationType#TABLE_LINEAGE}，dialect 记为
  *       {@code openlineage}，便于区分来源</li>
+ *   <li>inputs/outputs 兼容规范包装对象 {@code {"datasets":[...]}} 与裸数组两种形态</li>
  *   <li>无 inputs/outputs 的事件（如 pipeline 父 Run 事件）合法，仅记录不产生边</li>
  *   <li>重复事件幂等：Writer 按 节点 fullName / 边 source+target+type 去重</li>
  * </ul>
@@ -152,9 +156,13 @@ public class OpenLineageIngestService {
     }
 
     /** 提取 inputs/outputs 数据集全名列表（缺 name 的条目跳过，namespace 缺省回退）。 */
-    private List<String> datasets(String defaultNamespace, Object array) {
+    private List<String> datasets(String defaultNamespace, Object io) {
         List<String> names = new ArrayList<>();
-        if (!(array instanceof List<?> list)) {
+        // OpenLineage 规范里 inputs/outputs 是包装对象 {"datasets": [...]}，而仓内
+        // batch_pipeline.openlineage 发射器历史上直接发裸数组，两种形态都要接受：
+        // 只认裸数组时，规范形态会返回 HTTP 200 但 edges=0（写入被静默丢弃）。
+        Object raw = (io instanceof Map<?, ?> wrapper) ? wrapper.get("datasets") : io;
+        if (!(raw instanceof List<?> list)) {
             return names;
         }
         for (Object item : list) {

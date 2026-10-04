@@ -323,9 +323,9 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
 |---|---|---|---|
-| `/lineage/api/v1/lineage/upstream/${encodeURIComponent(table)}` （1 变量） | `/lineage` | governance/lineage-analyzer | ✅ |
-| `/lineage/api/v1/lineage/downstream/${encodeURIComponent(table)}` （1 变量） | `/lineage` | governance/lineage-analyzer | ✅ |
-| `/lineage/api/v1/lineage/impact/${encodeURIComponent(table)}` （1 变量） | `/lineage` | governance/lineage-analyzer | ✅ |
+| `/lineage/api/v1/lineage/upstream`  | `/lineage` | governance/lineage-analyzer | ✅ |
+| `/lineage/api/v1/lineage/downstream`  | `/lineage` | governance/lineage-analyzer | ✅ |
+| `/lineage/api/v1/lineage/impact`  | `/lineage` | governance/lineage-analyzer | ✅ |
 
 ## llmops.ts
 

@@ -79,10 +79,13 @@ export function analyzeLineage(sql: string, dialect?: string): Promise<LineageGr
  * @param table 表全名
  * @param depth 遍历深度，默认 5
  */
+// 表全名走 query 参数而不是路径变量：OpenLineage 数据集全名形如 namespace/name，
+// encodeURIComponent 会把它编成 %2F，Tomcat 默认直接拒 400；?table= 形态对两种
+// 命名（db.table 与 namespace/name）都可用。
 export function getUpstream(table: string, depth = 5): Promise<LineageQueryResult> {
   return get<LineageQueryResult>(
-    `/lineage/api/v1/lineage/upstream/${encodeURIComponent(table)}`,
-    { depth },
+    `/lineage/api/v1/lineage/upstream`,
+    { table, depth },
     { baseURL: '' }
   )
 }
@@ -94,8 +97,8 @@ export function getUpstream(table: string, depth = 5): Promise<LineageQueryResul
  */
 export function getDownstream(table: string, depth = 5): Promise<LineageQueryResult> {
   return get<LineageQueryResult>(
-    `/lineage/api/v1/lineage/downstream/${encodeURIComponent(table)}`,
-    { depth },
+    `/lineage/api/v1/lineage/downstream`,
+    { table, depth },
     { baseURL: '' }
   )
 }
@@ -106,8 +109,8 @@ export function getDownstream(table: string, depth = 5): Promise<LineageQueryRes
  */
 export function impactAnalysis(table: string): Promise<LineageQueryResult> {
   return get<LineageQueryResult>(
-    `/lineage/api/v1/lineage/impact/${encodeURIComponent(table)}`,
-    undefined,
+    `/lineage/api/v1/lineage/impact`,
+    { table },
     { baseURL: '' }
   )
 }

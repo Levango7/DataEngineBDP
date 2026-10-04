@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -195,5 +196,69 @@ class LineageControllerTest {
                         (req, resp) -> capturedStatus[0] = resp.getStatusCode().value())
                 .toEntity(Map.class);
         assertEquals(400, capturedStatus[0]);
+    }
+
+    @Test
+    @DisplayName("摄取的 namespace/name 全名可用 ?table= 查到（路径变量放不下 /）")
+    void testQueryByParamAddressesSlashedFullName() {
+        Map<String, Object> ev = Map.of(
+                "eventType", "COMPLETE",
+                "job", Map.of("namespace", "hive", "name", "daily"),
+                "run", Map.of("runId", "aaaaaaaa-1111-1111-1111-111111111111"),
+                "inputs", List.of(Map.of("namespace", "hive", "name", "ods.orders")),
+                "outputs", List.of(Map.of("namespace", "hive", "name", "dws.order_daily")));
+
+        ResponseEntity<Map> ingest = restClient.post()
+                .uri(baseUrl + "/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ev)
+                .retrieve()
+                .toEntity(Map.class);
+        assertEquals(1, ingest.getBody().get("edges"));
+
+        // 缺陷复现点：写入返回 200 且 edges=1，但 /downstream/hive/ods.orders 是 404、
+        // /downstream/hive%2Fods.orders 被 Tomcat 拒为 400，这类键此前无法从查询面寻址。
+        ResponseEntity<Map> resp = restClient.get()
+                .uri(baseUrl + "/downstream?table=hive/ods.orders")
+                .retrieve()
+                .toEntity(Map.class);
+        assertTrue(resp.getStatusCode().is2xxSuccessful());
+        assertEquals(List.of("hive/dws.order_daily"), resp.getBody().get("tables"));
+
+        ResponseEntity<Map> up = restClient.get()
+                .uri(baseUrl + "/upstream?table=hive/dws.order_daily&depth=3")
+                .retrieve()
+                .toEntity(Map.class);
+        assertEquals(List.of("hive/ods.orders"), up.getBody().get("tables"));
+
+        ResponseEntity<Map> impact = restClient.get()
+                .uri(baseUrl + "/impact?table=hive/ods.orders")
+                .retrieve()
+                .toEntity(Map.class);
+        assertEquals("IMPACT", impact.getBody().get("direction"));
+        assertEquals(List.of("hive/dws.order_daily"), impact.getBody().get("tables"));
+    }
+
+    @Test
+    @DisplayName("?table= 与路径变量都缺 → 400（不是 500）")
+    void testQueryMissingTableReturns400() {
+        ResponseEntity<Map> resp = restClient.get()
+                .uri(baseUrl + "/downstream")
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError(), (req, r) -> { })
+                .toEntity(Map.class);
+        assertEquals(400, resp.getStatusCode().value());
+    }
+
+    @Test
+    @DisplayName("@Min/@Max 参数校验失败必须是 4xx，不能被兜底分支伪装成 500")
+    void testMethodParamValidationKeepsClientStatus() {
+        ResponseEntity<Map> tooDeep = restClient.get()
+                .uri(baseUrl + "/downstream?table=a&depth=99")
+                .retrieve()
+                .onStatus(status -> !status.is2xxSuccessful(), (req, r) -> { })
+                .toEntity(Map.class);
+        assertEquals(400, tooDeep.getStatusCode().value());
+        assertEquals("invalid_request", tooDeep.getBody().get("error"));
     }
 }
