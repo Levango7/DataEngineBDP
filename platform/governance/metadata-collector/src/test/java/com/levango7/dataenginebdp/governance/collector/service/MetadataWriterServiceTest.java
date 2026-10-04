@@ -45,7 +45,7 @@ class MetadataWriterServiceTest {
         when(webClientBuilder.build()).thenReturn(webClient);
 
         writerService = new MetadataWriterService(webClientBuilder,
-                "http://localhost:8082", 5, 1);
+                "http://localhost:8082", 5, 1, "http://localhost:8082/api/v1/governance/catalog/events");
     }
 
     @Test
