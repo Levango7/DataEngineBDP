@@ -29,9 +29,9 @@ import java.time.format.DateTimeFormatter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 跨域数据面 POC 集成测试：真实双 MinIO 实例上打通“源域写入 → 跨域复制 → 目标域读取 → sha256 校验”。
+ * 跨域数据面 POC 集成测试：真实双 S3 兼容端点上打通“源域写入 → 跨域复制 → 目标域读取 → sha256 校验”。
  *
- * <p>仅在 {@code -Dreplication.it=true} 时运行，需要两个真实 MinIO：
+ * <p>仅在 {@code -Dreplication.it=true} 时运行，需要两个真实 S3 兼容端点（compose 缺省为 MinIO，受限环境亦可换用 LocalStack 等）：
  * <pre>
  * docker compose -f platform/storage-io/docker/docker-compose.replication.yml up -d
  * mvn -pl platform/storage-io test -Dtest=CrossDomainReplicationIT -Dreplication.it=true
@@ -211,7 +211,10 @@ class CrossDomainReplicationIT {
                     .append(" | ").append(item.getElapsedMs()).append(" |\n");
         }
 
-        sb.append("\n## 4. 幂等复跑（第二次执行）\n\n");
+        sb.append("\n> 说明：SKIP 行未传输字节，故源/目标 sha256 为空、校验列恒为 false，")
+                .append("表示“不适用”，并非“校验失败”；仅 COPY / OVERWRITE 参与 sha256 校验。\n\n");
+
+        sb.append("## 4. 幂等复跑（第二次执行）\n\n");
         sb.append("| 指标 | 值 |\n| --- | --- |\n");
         sb.append("| COPY | ").append(second.getCopied()).append(" |\n");
         sb.append("| OVERWRITE | ").append(second.getOverwritten()).append(" |\n");
@@ -219,7 +222,7 @@ class CrossDomainReplicationIT {
         sb.append("| FAILED | ").append(second.getFailed()).append(" |\n");
         sb.append("| 传输字节 | ").append(second.getTotalBytes()).append(" |\n\n");
 
-        sb.append("> 本报告由 CrossDomainReplicationIT 在真实 MinIO 上运行后生成，")
+        sb.append("> 本报告由 CrossDomainReplicationIT 在真实 S3 兼容端点上运行后生成（端点见上表），")
                 .append("sha256 / 字节数 / 耗时均来自实际数据，无 simulate 分支。\n");
         return sb.toString();
     }

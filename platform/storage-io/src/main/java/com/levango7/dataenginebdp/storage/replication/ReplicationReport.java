@@ -55,7 +55,7 @@ public class ReplicationReport {
     /** 失败对象数。 */
     private int failed;
 
-    /** sha256 校验通过的对象数。 */
+    /** sha256 校验通过的对象数（仅计 COPY / OVERWRITE；SKIP 不参与校验，故不计入）。 */
     private int verified;
 
     /** 传输字节总数（COPY + OVERWRITE）。 */
@@ -65,7 +65,10 @@ public class ReplicationReport {
     @Builder.Default
     private List<ReplicationItemResult> items = new ArrayList<>();
 
-    /** 是否全部成功且校验通过。 */
+    /**
+     * 是否全部成功且校验通过：无 FAILED，且全部已传输对象（COPY + OVERWRITE）均通过 sha256 校验。
+     * SKIP 表示目标已是较新版本、按 LWW 无需传输，不计入该判定。
+     */
     public boolean isAllVerified() {
         return failed == 0 && (copied + overwritten) == verified;
     }

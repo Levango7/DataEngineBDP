@@ -32,7 +32,10 @@ public class ReplicationItemResult {
     /** 目标读回内容 sha256（仅 COPY/OVERWRITE 计算）。 */
     private String targetSha256;
 
-    /** 目标读回内容是否与源逐字节一致。 */
+    /**
+     * 目标读回内容是否与源逐字节一致。仅对 COPY / OVERWRITE 有意义：这两类动作会传输并独立读回校验。
+     * SKIP 未传输字节，恒为 {@code false}，语义是“不适用”，而非“校验失败”。
+     */
     private boolean verified;
 
     /** 单对象耗时（毫秒）。 */
