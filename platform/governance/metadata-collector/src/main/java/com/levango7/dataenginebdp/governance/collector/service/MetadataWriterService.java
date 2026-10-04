@@ -4,6 +4,7 @@ import com.levango7.dataenginebdp.governance.collector.model.ColumnMetadata;
 import com.levango7.dataenginebdp.governance.collector.model.TableMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.levango7.dataenginebdp.common.security.ServiceTokenMinter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,16 @@ public class MetadataWriterService {
     private final int maxRetries;
     /** 下游事件端点（pipeline 的 catalog 事件入口）；采集成功后 emit，失败不阻塞。 */
     private final String catalogEventsUrl;
+
+    /** 服务间凭据密钥（裁决 A）：与用户令牌同源的 JWT_SECRET。 */
+    @Value("${app.security.jwt.secret:}")
+    private String jwtSecret;
+
+    @Value("${governance.service.issuer:dataenginebdp-collector}")
+    private String issuer;
+
+    @Value("${app.tenant.default-id:platform}")
+    private String defaultTenantId;
 
     /**
      * 构造写入服务。
@@ -131,8 +142,12 @@ public class MetadataWriterService {
         try {
             // 用绝对 URI 覆盖 webClient 的 catalog baseUrl（WebClient 支持），
             // 从而无需第二个 client —— 也便于单测用同一个 mock 断言
+            // 服务端只认 JWT 声明租户，故随调用签发短 TTL 服务令牌（裁决 A）
+            String bearer = ServiceTokenMinter.mint(
+                    jwtSecret, issuer, defaultTenantId, "metadata-collector");
             webClient.post()
                     .uri(java.net.URI.create(catalogEventsUrl))
+                    .header("Authorization", "Bearer " + bearer)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(event)
                     .retrieve()

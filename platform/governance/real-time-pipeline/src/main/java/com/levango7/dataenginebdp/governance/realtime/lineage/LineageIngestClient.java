@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.governance.realtime.lineage;
 import com.levango7.dataenginebdp.governance.realtime.model.FieldLineage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.levango7.dataenginebdp.common.security.ServiceTokenMinter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -35,6 +36,13 @@ public class LineageIngestClient {
     /** OpenLineage 事件命名空间前缀：区分 pipeline 生产的血缘与其它生产端。 */
     private static final String JOB_NAMESPACE = "dataenginebdp.realtime-pipeline";
 
+    /** 服务间凭据密钥（裁决 A）：与用户令牌同源的 JWT_SECRET。 */
+    @Value("${app.security.jwt.secret:}")
+    private String jwtSecret;
+
+    @Value("${governance.service.issuer:dataenginebdp-pipeline}")
+    private String issuer;
+
     private final RestClient restClient;
     private final String ingestUrl;
 
@@ -57,8 +65,12 @@ public class LineageIngestClient {
             return false;
         }
         try {
+            // 服务端只认 JWT 声明租户（探针实测：仅 X-Tenant-Id 会 403），故随调用签发短 TTL 服务令牌
+            String bearer = ServiceTokenMinter.mint(
+                    jwtSecret, issuer, lineage.getTenantId(), "real-time-pipeline");
             restClient.post()
                     .uri(ingestUrl)
+                    .header("Authorization", "Bearer " + bearer)
                     .header("X-Tenant-Id", lineage.getTenantId() == null ? "" : lineage.getTenantId())
                     .body(buildRunEvent(lineage, jobId))
                     .retrieve()

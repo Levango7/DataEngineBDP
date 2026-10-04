@@ -39,6 +39,9 @@ COLLECTOR = PLATFORM / "governance" / "metadata-collector"
 LINEAGE_CLIENT_FILE = (
     PIPELINE / "src/main/java/com/levango7/dataenginebdp/governance/realtime/lineage/LineageIngestClient.java"
 )
+MINTER_FILE = (
+    PLATFORM / "common-security/src/main/java/com/levango7/dataenginebdp/common/security/ServiceTokenMinter.java"
+)
 COLLECTOR_WRITER_FILE = (
     PLATFORM
     / "governance/metadata-collector/src/main/java/com/levango7/dataenginebdp/governance/collector/service/MetadataWriterService.java"
@@ -132,32 +135,31 @@ def test_t3_metadata_writer_emits_after_write() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="已知缺口：出站调用缺 JWT 凭据（服务端只认 JWT 声明租户）——"
-    "待服务间凭据方案裁决。修好后本断言会 XPASS 从而使 strict 报错，"
-    "届时移除本标记，让 T4 正式成为阻断门禁。",
-)
 def test_t4_outbound_calls_carry_credentials_the_server_accepts() -> None:
-    """T4（2026-10-04 探针实测后新增）：接线存在 ≠ 调用能通过。
+    """T4（2026-10-04 探针实测 + 裁决 A 后升级）：接线存在 ≠ 调用能通过。
 
-    实测依据（本机真实进程探针，lineage-analyzer 单跑于 8086）：
-      - POST /api/v1/lineage/events 与 GET /upstream|/downstream 均 403；
-      - 服务端租户过滤器只从 JWT 声明取租户（TenantContextFilter.java:153-155 读
-        claim "tenantId" 及其下划线形式），文件内无 getHeader("X-Tenant-Id") 分支；
-      - 类注释另要求 iss 与 tenantId 两个 claim 同时存在（:40）。
-    而当前出站调用只带 X-Tenant-Id 头、不带 JWT ⇒ 运行期必然 403。
+    实测依据：lineage-analyzer 单跑于 8086 时两个端点均 403；服务端租户过滤器只从
+    JWT 声明取租户（TenantContextFilter.java:153-155），无 X-Tenant-Id 分支，
+    且要求 iss 与 tenantId 同时存在（:40）。
 
-    判定面：两个出站调用点必须显式携带 Authorization。缺则红——它衡量"能不能真的通过"。
+    裁决 A（服务账号 JWT 换发）落地后，判定面升级为四项：
+      Authorization 头、使用 ServiceTokenMinter（而非裸头）、iss 声明、tenantId 声明、
+      以及 act=service（审计可区分服务写与用户写）。
     """
-    patterns = [
-        re.compile(r'header\s*\(\s*"?Authorization"?', re.IGNORECASE),
-        re.compile(r"HttpHeaders\.AUTHORIZATION"),
-        re.compile(r"\.bearerAuth\s*\(", re.IGNORECASE),
-    ]
+    # 判定面按角色分：调用方负责"带上凭据"，签发器负责"声明口径"（单一来源）
+    caller_required = {
+        "Authorization 头": re.compile(r'header\s*\(\s*"?Authorization"?', re.IGNORECASE),
+        "使用服务令牌签发器": re.compile(r"ServiceTokenMinter"),
+    }
+    minter_required = {
+        "iss 声明": re.compile(r"\.issuer\s*\("),
+        "tenantId 声明": re.compile(r'\.claim\s*\(\s*"tenantId"'),
+        "act=service 声明": re.compile(r'\.claim\s*\(\s*"act"\s*,\s*"service"'),
+    }
     checks = {
         "pipeline/LineageIngestClient": LINEAGE_CLIENT_FILE,
         "collector/MetadataWriterService": COLLECTOR_WRITER_FILE,
+        "common-security/ServiceTokenMinter": MINTER_FILE,
     }
     violations: list[str] = []
     for label, path in checks.items():
@@ -165,14 +167,11 @@ def test_t4_outbound_calls_carry_credentials_the_server_accepts() -> None:
             violations.append(label + "：文件缺失（结构变更，需更新本契约）")
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
-        if not any(pat.search(text) for pat in patterns):
-            violations.append(
-                str(path.relative_to(REPO))
-                + "：未携带 Authorization（服务端要求 JWT 声明租户；仅 X-Tenant-Id 头会被 403）"
-            )
+        applicable = minter_required if label.endswith("ServiceTokenMinter") else caller_required
+        missing = [name for name, pat in applicable.items() if not pat.search(text)]
+        if missing:
+            violations.append(str(path.relative_to(REPO)) + "：缺 " + "、".join(missing))
 
     assert not violations, (
-        "出站调用缺可被服务端接受的凭据——接线存在但运行期必 403（探针实测）。"
-        "待裁决服务间凭据方案（服务账号 JWT 换发 / 内部可信通道）。命中：\n  - "
-        + "\n  - ".join(violations)
+        "出站调用缺服务端可接受的凭据形态（裁决 A）。命中：\n  - " + "\n  - ".join(violations)
     )
