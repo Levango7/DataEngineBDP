@@ -8,6 +8,8 @@
 > 燧石 Flint 已按组件继承清单选择性继承（清单见 `F:\Nexus\Flint\inventory\BDP继承清单.md`）。
 >
 > 处置依据：`F:\Nexus\Flint\docs\adr\ADR-001-重做决策与资产继承.md`
+>
+> 维护模式下允许的例外情形与判定边界，见 `docs/维护模式口径说明.md`。
 
 # 数据引擎大数据平台 · DataEngineBDP
 
