@@ -106,7 +106,7 @@ def test_t3_metadata_writer_emits_after_write() -> None:
     assert candidates, "未找到采集器写入服务（metadata-collector 结构已变，需更新本契约）"
 
     triggers = re.compile(
-        r"onMetadataCollected|/api/v1/lineage/events|publishEvent|emitEvent|kafkaTemplate\.send",
+        r"onMetadataCollected|/api/v1/lineage/events|governance/catalog/events|publishEvent|emitEvent|kafkaTemplate\.send",
         re.IGNORECASE,
     )
     silent = [

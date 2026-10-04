@@ -49,6 +49,8 @@ public class MetadataWriterService {
     private final String catalogBaseUrl;
     private final long timeoutSeconds;
     private final int maxRetries;
+    /** 下游事件端点（pipeline 的 catalog 事件入口）；采集成功后 emit，失败不阻塞。 */
+    private final String catalogEventsUrl;
 
     /**
      * 构造写入服务。
@@ -61,11 +63,13 @@ public class MetadataWriterService {
     public MetadataWriterService(WebClient.Builder webClientBuilder,
                                  @Value("${app.catalog.base-url:http://catalog:8082}") String catalogBaseUrl,
                                  @Value("${app.catalog.timeout-seconds:30}") long timeoutSeconds,
-                                 @Value("${app.catalog.max-retries:3}") int maxRetries) {
+                                 @Value("${app.catalog.max-retries:3}") int maxRetries,
+                                 @Value("${app.pipeline.catalog-events-url:http://real-time-pipeline:8082/api/v1/governance/catalog/events}") String catalogEventsUrl) {
         this.webClient = webClientBuilder.baseUrl(catalogBaseUrl).build();
         this.catalogBaseUrl = catalogBaseUrl;
         this.timeoutSeconds = timeoutSeconds;
         this.maxRetries = maxRetries;
+        this.catalogEventsUrl = catalogEventsUrl;
     }
 
     /**
@@ -89,6 +93,8 @@ public class MetadataWriterService {
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
             log.debug("Wrote table {}.{} to catalog", metadata.getDatabaseName(), metadata.getTableName());
+            // 采集成功 → 通知 pipeline（治理闭环入口）；这是"非 Iceberg 源也能有自动血缘"的关键一跳
+            emitMetadataCollected(metadata);
             return true;
         } catch (Exception e) {
             log.error("Failed to write table {}.{} to catalog: {}",
@@ -105,6 +111,40 @@ public class MetadataWriterService {
      * @param tables 表元数据列表
      * @return 成功写入的表数
      */
+    /**
+     * 采集成功后通知 pipeline 的 catalog 事件端点（非阻塞）。
+     *
+     * <p>为什么是它而不是直连 lineage ingest：闭环的两跳是
+     * collector → pipeline（catalog 事件）→ 编排/血缘刷新 → lineage-analyzer（唯一写入者）。
+     * 该端点在审计中曾是"已存在但零调用方"的入口，本方法即那根缺失的线。
+     *
+     * <p>失败只记警告：血缘链路断开不得导致元数据采集失败。
+     */
+    private void emitMetadataCollected(TableMetadata metadata) {
+        String identifier = metadata.getDatabaseName() + "." + metadata.getTableName();
+        Map<String, Object> event = new HashMap<>();
+        event.put("eventType", "metadata-collected");
+        event.put("eventId", java.util.UUID.randomUUID().toString());
+        event.put("namespace", metadata.getDatabaseName());
+        event.put("tableName", metadata.getTableName());
+        event.put("tableIdentifier", identifier);
+        try {
+            // 用绝对 URI 覆盖 webClient 的 catalog baseUrl（WebClient 支持），
+            // 从而无需第二个 client —— 也便于单测用同一个 mock 断言
+            webClient.post()
+                    .uri(java.net.URI.create(catalogEventsUrl))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(event)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(timeoutSeconds))
+                    .block();
+        } catch (Exception e) {
+            log.warn("Metadata collected event emit failed (non-blocking): table={}, reason={}",
+                    identifier, e.getMessage());
+        }
+    }
+
     public int writeBatch(List<TableMetadata> tables) {
         if (tables == null || tables.isEmpty()) {
             return 0;
