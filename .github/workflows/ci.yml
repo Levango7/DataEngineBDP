@@ -483,10 +483,9 @@ jobs:
         #   ① pipeline 自持血缘写入实现（写入者不唯一）
         #   ② /api/v1/lineage/events 零调用方（端点白造）
         #   ③ 采集器只写 catalog、不 emit（非 Iceberg 源无自动血缘）
-        # 现状**预期失败**：故先用 continue-on-error 保持 CI 可读；
-        # 阶段 1（统一写入者）与阶段 2（采集器 emit）落地后**删除该行**转为阻断。
+        # 2026-10-04 转阻断：阶段 1（统一写入者）与阶段 2（采集器 emit）已落地，
+        # 契约 T1/T2/T3 实测全绿，故移除 continue-on-error。
         # 本文件在 tests/contract/ 而非 tests/integration/，不参与 IT 腿收集。
-        continue-on-error: true
         run: |
           python3 -m pip install -q pytest 2>/dev/null || true
           python3 -m pytest tests/contract/test_governance_loop.py -q
