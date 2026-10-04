@@ -26,6 +26,11 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8086"
+        # application.yml 的 app.security.jwt.secret=${JWT_SECRET} 无默认值，
+        # 不注入则占位符解析失败、Pod 起不来（与 sql-gateway.yaml 同一约定：
+        # 取值与 tests/integration/k3s/conftest.py 的测试密钥一致，生产走 helm charts）。
+        - name: JWT_SECRET
+          value: "it-test-jwt-secret-at-least-32-bytes-long"
         readinessProbe:
           httpGet:
             path: /actuator/health

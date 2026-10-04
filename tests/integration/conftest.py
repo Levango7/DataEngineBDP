@@ -47,7 +47,11 @@ BASE_URLS: Dict[str, str] = {
     "sql_gateway": "http://localhost:18081",
     "catalog": "http://localhost:18082",
     "rule_engine": "http://localhost:18083",
-    "lineage": "http://localhost:18084",
+    # lineage-analyzer 不在本 compose 拓扑里。历史值 18084 实际是 finops 的主机端口
+    # （docker-compose.yml:178），把血缘请求打到了 finops 上，症状是"永远 skip、看似有覆盖"。
+    # 18100 未被 18080-18097 与 schema-drift 用的 18099 占用；日后把 lineage 纳入
+    # 本拓扑时改这里即可，跨进程闭环断言的正式归属是 k3s 链路（tests/integration/k3s/）。
+    "lineage": "http://localhost:18100",
     # Python 组件（本地直接运行，使用原生端口）。
     "asset_exchange": "http://localhost:8087",
     "business_portal": "http://localhost:8088",

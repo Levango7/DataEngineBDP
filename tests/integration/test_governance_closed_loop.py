@@ -7,6 +7,9 @@
 from __future__ import annotations
 
 import json
+import time
+
+import requests
 
 
 def test_asset_catalog_crud(api_client, encaps_url):
@@ -57,17 +60,73 @@ def test_quality_rules_endpoint(api_client, rule_engine_url):
 
 
 def test_lineage_query(api_client, lineage_url):
-    """血缘查询（治理血缘入口）。"""
+    """血缘闭环：OpenLineage 摄取 → 上下游查询必须读回同一条边。
+
+    对应治理闭环草案 阶段0 断言 1（写入口有真实调用方）与断言 2（写完查得到）。
+
+    历史版本打的是 ``POST /api/v1/lineage/query``——该路径在任何后端都没有实现
+    （只有 design/deploy/values/governance-values.yaml:247 声明过），且当时
+    ``BASE_URLS["lineage"]`` 指向 18084，也就是 finops 的主机端口，
+    于是这个用例等价于"向 finops 发一个不存在的路径，非 200 就 skip"：
+    永远绿、永远不覆盖。现已改为真实查询面并显式区分"服务缺席"与"闭环断裂"。
+    """
+    import uuid
+
     import pytest
+
+    ns = "it-closed-loop"
+    src, dst = f"{ns}/ods.it", f"{ns}/dws.it"
+    event = {
+        "eventType": "COMPLETE",
+        "eventTime": time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime()),
+        "run": {"runId": str(uuid.uuid4())},
+        "job": {"namespace": ns, "name": f"{ns}.it-job"},
+        # 规范包装对象形态：{...} 而非裸数组，顺带守住"标准生产端也能落边"
+        "inputs": {"datasets": [{"namespace": ns, "name": "ods.it"}]},
+        "outputs": {"datasets": [{"namespace": ns, "name": "dws.it"}]},
+    }
+
     try:
-        resp = api_client.post(lineage_url + "/api/v1/lineage/query",
-                               json={"table": "orders"})
-    except Exception:
-        pytest.skip("lineage 服务不可用，跳过")
-    if resp.status_code != 200:
-        pytest.skip(f"lineage 不可用: HTTP {resp.status_code}")
-    # 空结果可接受（无录入）；接口必须正常响应
-    assert resp.status_code == 200
+        ing = api_client.post(lineage_url + "/api/v1/lineage/events", json=event)
+    except requests.exceptions.RequestException as exc:
+        pytest.skip(f"lineage-analyzer 未纳入本 compose 拓扑（不可达）：{exc}")
+
+    if ing.status_code in (401, 403):
+        pytest.skip(
+            f"lineage-analyzer 可达但拒绝测试令牌（HTTP {ing.status_code}）；"
+            "本 leg 未为其注入与服务端一致的 JWT_SECRET"
+        )
+    if ing.status_code == 404:
+        pytest.skip(f"lineage-analyzer 未提供 /api/v1/lineage/events：{ing.text[:120]}")
+
+    assert ing.status_code == 200, f"摄取失败 HTTP {ing.status_code}: {ing.text[:300]}"
+    assert ing.json().get("edges") == 1, f"规范形态事件未落边：{ing.text[:300]}"
+
+    # 关键断言：含 / 的数据集全名必须能从统一查询面读回（?table= 形态）
+    down = api_client.get(lineage_url + "/api/v1/lineage/downstream", params={"table": src})
+    assert down.status_code == 200, f"下游查询失败 HTTP {down.status_code}: {down.text[:300]}"
+    assert dst in down.json().get("tables", []), f"写入成功但查询为空：{down.text[:300]}"
+
+    up = api_client.get(lineage_url + "/api/v1/lineage/upstream", params={"table": dst})
+    assert src in up.json().get("tables", []), f"上游查询未读回边：{up.text[:300]}"
+
+
+def test_lineage_query_surface_rejects_bad_request(api_client, lineage_url):
+    """查询面缺 table 或深度越界必须是 4xx，不能被伪装成 500。"""
+    import pytest
+
+    try:
+        missing = api_client.get(lineage_url + "/api/v1/lineage/downstream")
+        too_deep = api_client.get(
+            lineage_url + "/api/v1/lineage/downstream", params={"table": "a.b", "depth": 999}
+        )
+    except requests.exceptions.RequestException as exc:
+        pytest.skip(f"lineage-analyzer 不可达：{exc}")
+
+    if missing.status_code == 404:
+        pytest.skip("lineage-analyzer 版本过旧，未提供 ?table= 形态")
+    assert missing.status_code == 400, f"缺 table 应 400，实际 {missing.status_code}"
+    assert too_deep.status_code == 400, f"depth 越界应 400，实际 {too_deep.status_code}"
 
 
 def _login(api_client, encaps_url):
