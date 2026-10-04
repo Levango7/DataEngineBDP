@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import json
 import time
 
 import requests
@@ -47,7 +46,14 @@ def test_asset_catalog_crud(api_client, encaps_url):
 
 def test_quality_rules_endpoint(api_client, rule_engine_url):
     """质量规则列表（治理质量校验入口）。"""
-    resp = api_client.get(rule_engine_url + "/api/v1/rules")
+    try:
+        resp = api_client.get(rule_engine_url + "/api/v1/rules")
+    except requests.exceptions.ConnectionError:
+        # 本文件既定契约是"组件不可用时自动跳过"，但原实现只把"非 200"当缺席：
+        # 服务根本没起时 requests 直接抛 ConnectionError → 没起 compose 的机器必红。
+        # 服务在位时断言强度不变（状态码与响应结构仍会真实判失败）。
+        import pytest
+        pytest.skip(f"rule-engine 不可达，跳过: {rule_engine_url}")
     if resp.status_code != 200:
         import pytest
         pytest.skip(f"rule-engine 不可用: HTTP {resp.status_code}")
