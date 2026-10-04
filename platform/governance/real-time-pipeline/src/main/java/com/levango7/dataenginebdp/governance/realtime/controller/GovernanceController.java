@@ -129,55 +129,6 @@ public class GovernanceController {
         return ResponseEntity.ok(lineage);
     }
 
-    /**
-     * 查询指定目标表的血缘。
-     */
-    @Operation(summary = "查询指定目标表的血缘")
-    @GetMapping("/lineage/{targetTable}")
-    public ResponseEntity<FieldLineage> queryLineage(@PathVariable String targetTable) {
-        // R11 安全修复：按 tenantId 过滤，拒绝跨租户访问
-        String tenantId = requireTenant();
-        FieldLineage lineage = lineageAnalyzer.getGraphClient().queryLineage(targetTable);
-        if (lineage == null || !tenantId.equals(lineage.getTenantId())) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(lineage);
-    }
-
-    /**
-     * 查询所有血缘（租户隔离 + 分页）。
-     *
-     * @param page 页号（0 起）
-     * @param size 每页大小（上限 200）
-     * @return 分页后的血缘 Map
-     */
-    @Operation(summary = "查询所有血缘（分页）")
-    @GetMapping("/lineage")
-    public ResponseEntity<Map<String, FieldLineage>> getAllLineage(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        String tenantId = requireTenant();
-        int safeSize = Math.min(Math.max(size, 1), 200);
-        // 按租户过滤（多租户隔离，R10 安全修复）
-        Map<String, FieldLineage> all = lineageAnalyzer.getGraphClient().getAllCachedLineage(tenantId);
-        // 分页截断
-        Map<String, FieldLineage> paged = new java.util.LinkedHashMap<>();
-        int skip = page * safeSize;
-        int taken = 0;
-        for (var entry : all.entrySet()) {
-            if (skip > 0) {
-                skip--;
-                continue;
-            }
-            paged.put(entry.getKey(), entry.getValue());
-            taken++;
-            if (taken >= safeSize) {
-                break;
-            }
-        }
-        return ResponseEntity.ok(paged);
-    }
-
     // -----------------------------------------------------------------------
     // 质量规则管理
     // -----------------------------------------------------------------------
