@@ -76,6 +76,9 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+                        // 健康端点匿名可读：与 common-security/encaps-layer/data-standard/
+                        // master-data 同口径，k3s 集成腿的就绪探测走这条路径
+                        .requestMatchers("/api/v1/health").permitAll()
                         // 容器错误派发放行：sendError() 以 ERROR dispatch 重入过滤链时认证
                         // 过滤器已被跳过（SecurityContext 已清空），若 /error 要求认证会把
                         // 真实 4xx/5xx 统一改写成 403。
