@@ -57,6 +57,8 @@ public class ObjectReplicator {
      * @return 真实汇总报告
      */
     public ReplicationReport replicate(String prefix) {
+        // 开始时刻在入口取一次：报告窗口必须覆盖真实耗时，不能与 finishedAt 同点取值
+        Instant startedAt = Instant.now();
         long start = System.currentTimeMillis();
         List<String> keys = source.listObjects(prefix);
 
@@ -90,7 +92,7 @@ public class ObjectReplicator {
                 .sourceEndpoint(source.endpoint())
                 .targetEndpoint(target.endpoint())
                 .sourcePrefix(prefix)
-                .startedAt(Instant.now())
+                .startedAt(startedAt)
                 .finishedAt(Instant.now())
                 .elapsedMs(System.currentTimeMillis() - start)
                 .totalObjects(keys.size())

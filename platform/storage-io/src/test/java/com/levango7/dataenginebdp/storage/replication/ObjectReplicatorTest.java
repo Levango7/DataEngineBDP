@@ -10,6 +10,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -192,6 +193,24 @@ class ObjectReplicatorTest {
         assertThat(target.existsObject(PREFIX + "f.bin")).isFalse();
     }
 
+    @Test
+    @DisplayName("报告时间字段自洽：startedAt 取自复制开始、窗口覆盖真实耗时")
+    void reportTimestamps_areConsistentWithElapsed() {
+        source.putAt(PREFIX + "g.bin", bytes("timing", 1024), T0);
+        target.putDelayMs = 60L;
+
+        ReplicationReport report = replicator.replicate(PREFIX);
+
+        assertThat(report.getStartedAt()).isNotNull();
+        assertThat(report.getFinishedAt()).isNotNull();
+        assertThat(report.getFinishedAt()).isAfterOrEqualTo(report.getStartedAt());
+        assertThat(report.getElapsedMs()).isGreaterThanOrEqualTo(50L);
+        long windowMs = Duration.between(report.getStartedAt(), report.getFinishedAt()).toMillis();
+        assertThat(windowMs)
+                .as("startedAt→finishedAt 窗口须覆盖真实耗时；旧缺陷下两者同点取值、窗口恒为 0")
+                .isGreaterThanOrEqualTo(50L);
+    }
+
     // -------------------- helpers --------------------
 
     private static byte[] bytes(String seed, int size) {
@@ -224,6 +243,8 @@ class ObjectReplicatorTest {
         /** 显式强制时间戳（putAt 作用域内有效）；为 null 时按真实存储语义取写入当前时刻。 */
         private Instant forcedLastModified;
         boolean corruptOnPut = false;
+        /** 写入人为延时（毫秒），让报告耗时可测量；用于验证时间字段自洽。 */
+        long putDelayMs = 0L;
 
         InMemoryObjectStore(String endpoint) {
             this.endpoint = endpoint;
@@ -244,6 +265,14 @@ class ObjectReplicatorTest {
 
         @Override
         public void putObject(String key, InputStream inputStream, long contentLength, String contentType) {
+            if (putDelayMs > 0) {
+                try {
+                    Thread.sleep(putDelayMs);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("测试延时被中断", ie);
+                }
+            }
             try {
                 byte[] data = inputStream.readAllBytes();
                 if (corruptOnPut && data.length > 0) {
