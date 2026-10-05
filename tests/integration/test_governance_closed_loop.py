@@ -96,6 +96,7 @@ def test_lineage_query(api_client, lineage_url):
         ing = api_client.post(lineage_url + "/api/v1/lineage/events", json=event)
     except requests.exceptions.RequestException as exc:
         pytest.skip(f"lineage-analyzer 未纳入本 compose 拓扑（不可达）：{exc}")
+        return  # 显式 return：CodeQL 不把 pytest.skip 视为不返回，运行时它已抛异常
 
     if ing.status_code in (401, 403):
         pytest.skip(
@@ -128,6 +129,7 @@ def test_lineage_query_surface_rejects_bad_request(api_client, lineage_url):
         )
     except requests.exceptions.RequestException as exc:
         pytest.skip(f"lineage-analyzer 不可达：{exc}")
+        return  # 显式 return：CodeQL 不把 pytest.skip 视为不返回，运行时它已抛异常
 
     if missing.status_code == 404:
         pytest.skip("lineage-analyzer 版本过旧，未提供 ?table= 形态")
