@@ -8,15 +8,16 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockGet = vi.fn(() =>
-  Promise.resolve({
-    rootTable: '',
-    direction: 'DOWNSTREAM',
-    depth: 5,
-    tables: [],
-    paths: [],
-    queryTimeMs: 0
-  })
+const mockGet = vi.fn(
+  (_url: string, _params?: Record<string, unknown>, _config?: Record<string, unknown>) =>
+    Promise.resolve({
+      rootTable: '',
+      direction: 'DOWNSTREAM',
+      depth: 5,
+      tables: [],
+      paths: [],
+      queryTimeMs: 0
+    })
 )
 const mockPost = vi.fn(() => Promise.resolve({ categories: [], nodes: [], links: [], meta: {} }))
 
