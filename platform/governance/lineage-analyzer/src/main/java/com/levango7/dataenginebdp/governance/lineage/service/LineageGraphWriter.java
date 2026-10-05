@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -84,12 +86,7 @@ public class LineageGraphWriter {
         // 1. 写内存图（仅表级边参与邻接表）
         for (LineageEdge edge : graph.getEdges()) {
             if (edge.getRelationType() == LineageEdge.RelationType.TABLE_LINEAGE) {
-                String src = edge.getSourceFullName();
-                String tgt = edge.getTargetFullName();
-                upstreamMap.computeIfAbsent(tgt, k -> ConcurrentHashMap.newKeySet()).add(src);
-                downstreamMap.computeIfAbsent(src, k -> ConcurrentHashMap.newKeySet()).add(tgt);
-                knownTables.add(src);
-                knownTables.add(tgt);
+                projectEdge(edge);
             }
         }
 
@@ -145,6 +142,45 @@ public class LineageGraphWriter {
         }
 
         log.debug("图谱写入完成: {} 节点, {} 边", graph.getNodes().size(), graph.getEdges().size());
+    }
+
+    /**
+     * 把一条表级边投影进内存邻接表（write 与启动回填共用）。
+     *
+     * @param edge 表级血缘边
+     */
+    private void projectEdge(LineageEdge edge) {
+        String src = edge.getSourceFullName();
+        String tgt = edge.getTargetFullName();
+        upstreamMap.computeIfAbsent(tgt, k -> ConcurrentHashMap.newKeySet()).add(src);
+        downstreamMap.computeIfAbsent(src, k -> ConcurrentHashMap.newKeySet()).add(tgt);
+        knownTables.add(src);
+        knownTables.add(tgt);
+    }
+
+    /**
+     * 从持久化存储回填内存邻接表（应用就绪时执行一次）。
+     *
+     * <p>必要性：查询面（{@link LineageQueryService}）只读内存邻接表，而邻接表原先
+     * 仅由 {@link #write} 填充。prod 用 PostgreSQL 持久化边数据，进程重启后库里
+     * 有边、内存为空，所有上下游/影响分析查询会静默返回空结果。回填后
+     * 「重启即失忆」不再成立。</p>
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public synchronized void reloadAdjacencyFromStore() {
+        upstreamMap.clear();
+        downstreamMap.clear();
+        knownTables.clear();
+        int edges = 0;
+        for (LineageEdge edge : edgeRepository.findByRelationType(
+                LineageEdge.RelationType.TABLE_LINEAGE)) {
+            projectEdge(edge);
+            edges++;
+        }
+        for (LineageNode node : nodeRepository.findAll()) {
+            knownTables.add(node.getFullName());
+        }
+        log.info("血缘内存图回填完成: edges={}, tables={}", edges, knownTables.size());
     }
 
     /**

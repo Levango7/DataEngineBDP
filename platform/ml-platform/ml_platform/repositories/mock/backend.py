@@ -109,7 +109,7 @@ class MockMLBackend(MLBackend):
             name=config.outputModelName,
             algorithm=config.algorithm.value,
             experimentId=config.experimentId,
-            version=1,
+            version=self._nextVersion(config.outputModelName, self._models.values()),
             status=ModelStatus.READY,
             artifactUri=f"mock-artifact:///{modelId}/model",
             metrics=metrics,

@@ -21,6 +21,11 @@ public interface ObjectStore {
     /**
      * 上传对象（同时创建租户前缀）。
      *
+     * <p><b>隐式契约</b>：实现<b>必须</b>在返回前完整消费 {@code inputStream}。
+     * {@code ObjectReplicator} 以 {@code DigestInputStream} 包装源流后交给本方法，
+     * 依赖“传完即读完”在传输过程中流式计算源对象 sha256；若实现不读满流，
+     * 校验哈希将退化为空内容哈希，导致复制被误判为 FAILED。
+     *
      * @param key          相对对象键（不含 tenantId）
      * @param inputStream  数据流
      * @param contentLength 数据长度（字节）
@@ -65,6 +70,23 @@ public interface ObjectStore {
      * @param key 相对对象键
      */
     boolean existsObject(String key);
+
+    /**
+     * 读取对象元数据快照（不下载对象内容）。
+     *
+     * <p>用于跨域复制的冲突判定与流式复制前的长度获取，避免整对象读入内存。
+     *
+     * @param key 相对对象键
+     * @return 元数据；键不存在返回 null
+     */
+    ObjectMetadata statObject(String key);
+
+    /**
+     * 当前存储实例的访问端点（源 / 目标端点写入复制报告，便于产物溯源）。
+     *
+     * @return 端点字符串（如 http://localhost:9100）
+     */
+    String endpoint();
 
     /**
      * 创建 bucket（幂等）。

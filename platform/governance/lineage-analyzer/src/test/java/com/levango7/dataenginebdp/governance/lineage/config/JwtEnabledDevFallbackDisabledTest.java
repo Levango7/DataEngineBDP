@@ -18,9 +18,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 若 {@link TenantContextFilter} 的 dev 回退逻辑写错（比如只判断 dev 租户是否配置、
  * 漏了 jwtEnabled 前置条件），本测试会立刻红。</p>
  *
- * <p>判据：无 token / 无效 token 的请求必须是 <b>401</b>。
+ * <p>判据：无 token / 无效 token 的<b>业务</b>请求必须是 <b>401</b>。
  * 一旦 dev 回退被误激活，请求会带上 dev 租户 + dev 主体 → 走到 Controller 返回 200，
  * 与本测试断言直接冲突。</p>
+ *
+ * <p>例外：健康路径（{@code /api/v1/health}、{@code /actuator/**}）按平台口径匿名可读，
+ * 由 {@code healthEndpoints_arePublicEvenWithJwtEnabled} 单独锁定，
+ * 并反向对照业务端点仍为 401。</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
@@ -57,6 +61,36 @@ class JwtEnabledDevFallbackDisabledTest {
         int status = call(upstreamRequest("Bearer not-a-valid-jwt"));
         assertEquals(401, status,
                 "无效 token 必须 401；返回 200 说明 dev 回退被误激活");
+    }
+
+    @Test
+    @DisplayName("健康端点匿名可读：/api/v1/health 与 /actuator/health 必须 200")
+    void healthEndpoints_arePublicEvenWithJwtEnabled() {
+        // 与 common-security / encaps-layer / data-standard / master-data 同口径。
+        // k3s 集成腿的就绪探测走 HEALTH_PATHS["lineage-analyzer"]="/api/v1/health"，
+        // 原实现在此返回 401（实测）：TenantContextFilter 早已豁免健康路径，
+        // 缺的是 SecurityConfig 生产分支的 permitAll —— 过滤器放行后仍被授权层拦下。
+        String base = "http://localhost:" + port;
+        assertEquals(200, get(base + "/api/v1/health"), "/api/v1/health 应匿名 200");
+        assertEquals(200, get(base + "/actuator/health"), "/actuator/health 应匿名 200");
+        // 反向对照：豁免只针对健康路径，业务端点仍需凭据
+        assertEquals(401, call(upstreamRequest(null)), "业务端点不得被一并放行");
+    }
+
+    /**
+     * 无凭据 GET 指定 URL，返回状态码。
+     *
+     * @param url 完整 URL
+     * @return HTTP 状态码
+     */
+    private int get(String url) {
+        final int[] captured = {0};
+        restClient.get()
+                .uri(url)
+                .retrieve()
+                .onStatus(status -> true, (req, resp) -> captured[0] = resp.getStatusCode().value())
+                .toEntity(String.class);
+        return captured[0] == 0 ? 200 : captured[0];
     }
 
     /**

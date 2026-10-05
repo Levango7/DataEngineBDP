@@ -177,7 +177,8 @@ class MLflowMLBackend(MLBackend):
             name=config.outputModelName,
             algorithm=config.algorithm.value,
             experimentId=experimentId,
-            version=1,
+            # mlflow 后端的 _models 值形如 (name, runId, ModelInfo)，取第三项算版本
+            version=self._nextVersion(config.outputModelName, (info for _, _, info in self._models.values())),
             status=ModelStatus.READY,
             artifactUri=run.info.artifact_uri,
             metrics=metrics,

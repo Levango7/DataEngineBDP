@@ -109,3 +109,21 @@ class MLBackend(ABC):
             if m.name == name:
                 return m
         return None
+
+    @staticmethod
+    def _nextVersion(name: str, known) -> int:
+        """同名模型的下一个版本号（从 1 递增）.
+
+        各后端的 train() 原先一律写 `version=1`，于是重复训练同名模型会得到
+        一串 version=1 的记录，"模型版本列表"就没有可排序的版本号；版本号必须
+        由同名已有版本推导。
+
+        Args:
+            name:  模型名。
+            known: 已注册模型的可迭代集合（ModelInfo 或含 ModelInfo 的元组请自行取）。
+
+        Returns:
+            新版本号 = 同名最大版本 + 1（无同名时为 1）。
+        """
+        versions = [m.version for m in known if getattr(m, "name", None) == name]
+        return max(versions, default=0) + 1

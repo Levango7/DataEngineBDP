@@ -63,7 +63,9 @@ kubectl get pods -n "$NS" -o wide
 
 echo "== 6/6 服务端口验证（ClusterIP） =="
 for svc in encaps-layer sql-gateway catalog rule-engine nl2sql open-api-catalog; do
-  port=$(kubectl get svc -n "$NS" "$svc" -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || echo "")
+  # Service 名带 Helm release 前缀（本脚本 release 固定为 dataengine）；
+  # 旧写法查裸名必然 not found → 全部 WARN，健康环境也满屏告警。
+  port=$(kubectl get svc -n "$NS" "dataengine-$svc" -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || echo "")
   [[ -n "$port" ]] && pass "$svc Service 端口: $port" || log "WARN: $svc Service 未找到"
 done
 

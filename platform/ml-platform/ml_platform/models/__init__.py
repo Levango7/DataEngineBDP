@@ -23,6 +23,7 @@ from ml_platform.models.experiment import (
     ExperimentInfo,
     ModelInfo,
     ModelMetrics,
+    ModelVersion,
 )
 from ml_platform.models.feature import (
     FeatureGroup,
@@ -70,4 +71,5 @@ __all__ = [
     "ExperimentInfo",
     "ModelInfo",
     "ModelMetrics",
+    "ModelVersion",
 ]

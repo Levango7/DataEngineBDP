@@ -13,6 +13,7 @@ from ml_platform.models import (
     EvalConfig,
     EvalResult,
     ModelInfo,
+    ModelVersion,
     PredictionResult,
 )
 from ml_platform.repositories import MlPlatformError
@@ -91,6 +92,44 @@ async def getModel(
         return model
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))
+
+
+@router.get(
+    "/{modelId}/versions",
+    response_model=list[ModelVersion],
+    summary="模型版本列表",
+)
+async def listModelVersions(
+    modelId: str,
+    registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """列出同一模型的各个版本（台账 #1c）.
+
+    路径参数既可以是模型 ID，也可以是模型名——前端 `DevMl.vue` 的版本抽屉传的是
+    `row.name`，而本路由前缀已由 APISIX 裁定归 ml-platform（`/models` → ml-platform）。
+    同名即同模型：版本号由各后端 train() 按同名最大值递增写入。
+
+    租户隔离：非 admin 只返回本租户的版本。
+
+    Raises:
+        HTTPException: 404 模型不存在；403 缺少租户上下文。
+    """
+    models = await registry.backend.list_models()
+    target = next((m for m in models if m.id == modelId), None)
+    if target is None:
+        target = next((m for m in models if m.name == modelId), None)
+    if target is None:
+        raise HTTPException(status_code=404, detail="模型不存在")
+    _require_model_owner(target, ctx)
+
+    versions = [
+        m
+        for m in models
+        if m.name == target.name and (ctx.role == "admin" or getattr(m, "tenantId", None) == ctx.tenantId)
+    ]
+    versions.sort(key=lambda m: (m.version, m.createdAt))
+    return [ModelVersion.fromModelInfo(m) for m in versions]
 
 
 @router.delete(

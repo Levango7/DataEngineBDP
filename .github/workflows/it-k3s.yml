@@ -1,4 +1,4 @@
-# 独立工作流：K3s 五链路集成测试（chain1–chain5）
+# 独立工作流：K3s 六链路集成测试（chain1–chain6）
 #
 # 为什么独立成 job（不塞进 ci.yml 的 Integration Test）：
 #   1) 那条腿的 job 上限 30 分钟，pytest 单轮已占 13 分钟；这里要构建镜像 + 建集群 + 等 Pod 就绪，
@@ -15,7 +15,7 @@
 #   - manifests 引用 sq/*:0.1.0，而 Helm charts（13 个 values.yaml）与 compose 全用 shuqing/*。
 #     本 job 按 manifests 现状构建 sq/* 标签（不在此处改产品口径），命名统一另立事项。
 #   - 未构建的组件其 Pod 会停在 ImagePullBackOff；ensure_k3s_services_deployed 的
-#     `kubectl wait --all` 超时被其自身容忍（conftest 内 pass），故只构建五链路真正需要的组件。
+#     `kubectl wait --all` 超时被其自身容忍（conftest 内 pass），故只构建各链路真正需要的组件。
 name: IT K3s Chains
 
 on:
@@ -42,10 +42,11 @@ env:
     infra-orchestrator
     knowledge-engine
     industry-templates
+    lineage-analyzer
 
 jobs:
   k3s-chains:
-    name: K3s 五链路（chain1-5）
+    name: K3s 六链路（chain1-6）
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -130,7 +131,7 @@ jobs:
           pip install -q -r tests/integration/requirements.txt 2>/dev/null || pip install -q pytest requests pyjwt
           pip install -q pytest-html
 
-      - name: 运行 K3s 五链路
+      - name: 运行 K3s 六链路
         env:
           K3S_NAMESPACE: shuqing
         # 与 ci.yml 的集成腿保持同一工作目录约定：conftest 里的组件根路径按

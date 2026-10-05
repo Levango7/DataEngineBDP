@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.storage.impl;
 
 import com.levango7.dataenginebdp.storage.TenantPathMapper;
+import com.levango7.dataenginebdp.storage.api.ObjectMetadata;
 import com.levango7.dataenginebdp.storage.api.ObjectStore;
 import com.levango7.dataenginebdp.storage.api.StorageProfile;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -148,6 +150,36 @@ public class S3ObjectStore implements ObjectStore {
         } catch (NoSuchKeyException e) {
             return false;
         }
+    }
+
+    @Override
+    public ObjectMetadata statObject(String key) {
+        try {
+            HeadObjectResponse head = s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(profile.getBucket())
+                    .key(toFullKey(key))
+                    .build());
+            return ObjectMetadata.builder()
+                    .key(key)
+                    .size(head.contentLength() != null ? head.contentLength() : 0L)
+                    .etag(head.eTag())
+                    .lastModified(head.lastModified())
+                    .contentType(head.contentType())
+                    .build();
+        } catch (NoSuchKeyException e) {
+            return null;
+        } catch (S3Exception e) {
+            // MinIO / S3 对 headObject 缺失键通常返回 404 且无响应体，SDK 抛 S3Exception 而非 NoSuchKeyException
+            if (e.statusCode() == 404) {
+                return null;
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public String endpoint() {
+        return profile.getEndpoint();
     }
 
     @Override

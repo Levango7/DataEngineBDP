@@ -275,9 +275,9 @@ export function registerModel(req: ModelRegisterRequest): Promise<MlModel> {
 /**
  * 列出模型版本
  *
- * ⚠ 后端缺口：ml-platform 只有 GET /api/v1/models/{modelId}（详情，含版本信息），
- * 没有 /versions 子资源。保留此调用是为待后端补齐后即用，当前会 404 ——
- * 已登记 docs/KNOWN-FAILURES.md §6（模型版本子资源缺失），调用方需容错。
+ * 后端：ml-platform `GET /api/v1/models/{modelIdOrName}/versions`（台账 #1c，2026-10-05 已补）。
+ * 路径参数传模型名即可：同名即同一模型的不同版本，版本号由后端在重复训练时递增。
+ * 此前该路径后端不存在（必 404），调用方靠 `.catch(() => [])` 兜住。
  */
 export function listModelVersions(name: string): Promise<ModelVersion[]> {
   return get<ModelVersion[]>(`${BASE_ML_MODELS}/${encodeURIComponent(name)}/versions`)

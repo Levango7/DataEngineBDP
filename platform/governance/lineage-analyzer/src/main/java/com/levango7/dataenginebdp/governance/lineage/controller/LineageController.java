@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -44,7 +45,8 @@ import java.util.Map;
  *   <li>{@code GET  /api/v1/lineage/upstream/{table}} - 查询上游</li>
  *   <li>{@code GET  /api/v1/lineage/downstream/{table}} - 查询下游</li>
  *   <li>{@code GET  /api/v1/lineage/impact/{table}} - 影响分析</li>
- *   <li>{@code GET  /api/v1/lineage/graph} - 获取完整图谱</li>
+ *   <li>{@code GET  /api/v1/lineage/{upstream|downstream|impact}?table=<全名>}
+ *       - 同上，用于含 {@code /} 的 OpenLineage 数据集全名</li>
  *   <li>{@code POST /api/v1/lineage/events} - 摄取 OpenLineage RunEvent</li>
  * </ul>
  *
@@ -62,6 +64,8 @@ import java.util.Map;
  *   <li>{@link MethodArgumentNotValidException} → 400（Bean Validation 失败，如 sql 为空）</li>
  *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
  *   <li>{@link MethodArgumentTypeMismatchException} → 400（路径/参数类型不匹配）</li>
+ *   <li>{@link ResponseStatusException} 及其子类（方法参数 @Min/@Max 校验失败、
+ *       缺租户上下文）→ 沿用其自带状态码（400 / 403）</li>
  *   <li>其他 {@link Exception} → 500（服务端内部错误，消息脱敏）</li>
  * </ul>
  *
@@ -118,46 +122,57 @@ public class LineageController {
     /**
      * 查询上游依赖表。
      *
-     * @param table 表全名
+     * <p>表全名可走路径变量（{@code /upstream/ods.orders}）或查询参数
+     * （{@code /upstream?table=hive/ods.orders}）；含 {@code /} 的 OpenLineage
+     * 全名只能用后者。</p>
+     *
+     * @param table 表全名（路径变量形式）
+     * @param queryTable 表全名（查询参数形式，优先路径变量）
      * @param depth 深度（默认 5，上限 20，@Min/@Max 校验）
      * @return 上游查询结果
      */
     @Operation(summary = "查询上游依赖表")
-    @GetMapping("/upstream/{table}")
+    @GetMapping({"/upstream/{table}", "/upstream"})
     public ResponseEntity<LineageQueryResult> upstream(
-            @PathVariable String table,
+            @PathVariable(name = "table", required = false) String table,
+            @RequestParam(name = "table", required = false) String queryTable,
             @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
         requireTenant();
-        return ResponseEntity.ok(queryService.getUpstream(table, depth));
+        return ResponseEntity.ok(queryService.getUpstream(resolveTable(table, queryTable), depth));
     }
 
     /**
      * 查询下游依赖表。
      *
-     * @param table 表全名
+     * @param table 表全名（路径变量形式）
+     * @param queryTable 表全名（查询参数形式，优先路径变量）
      * @param depth 深度（默认 5，上限 20，@Min/@Max 校验）
      * @return 下游查询结果
      */
     @Operation(summary = "查询下游依赖表")
-    @GetMapping("/downstream/{table}")
+    @GetMapping({"/downstream/{table}", "/downstream"})
     public ResponseEntity<LineageQueryResult> downstream(
-            @PathVariable String table,
+            @PathVariable(name = "table", required = false) String table,
+            @RequestParam(name = "table", required = false) String queryTable,
             @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
         requireTenant();
-        return ResponseEntity.ok(queryService.getDownstream(table, depth));
+        return ResponseEntity.ok(queryService.getDownstream(resolveTable(table, queryTable), depth));
     }
 
     /**
      * 影响分析。
      *
-     * @param table 表全名
+     * @param table 表全名（路径变量形式）
+     * @param queryTable 表全名（查询参数形式，优先路径变量）
      * @return 影响分析结果
      */
     @Operation(summary = "影响分析血缘")
-    @GetMapping("/impact/{table}")
-    public ResponseEntity<LineageQueryResult> impact(@PathVariable String table) {
+    @GetMapping({"/impact/{table}", "/impact"})
+    public ResponseEntity<LineageQueryResult> impact(
+            @PathVariable(name = "table", required = false) String table,
+            @RequestParam(name = "table", required = false) String queryTable) {
         requireTenant();
-        return ResponseEntity.ok(queryService.impactAnalysis(table));
+        return ResponseEntity.ok(queryService.impactAnalysis(resolveTable(table, queryTable)));
     }
 
     /**
@@ -215,6 +230,18 @@ public class LineageController {
             log.warn("血缘 API 参数类型不匹配: {}", e.getMessage());
             return ResponseEntity.badRequest().body(errorMap("invalid_param_type", "参数类型不匹配"));
         }
+        // Spring 内建方法参数校验（@Min/@Max）失败抛 HandlerMethodValidationException，
+        // 它继承 ResponseStatusException 且状态码本身是 4xx；此前会掉进兜底分支被误报成
+        // 500（把客户端错误伪装成服务端错误，违反 CONVENTIONS §9.3）。
+        // requireTenant() 抛的 403 同样走这里，保持"缺租户 → 403"的文档契约。
+        if (e instanceof ResponseStatusException rse) {
+            log.warn("血缘 API 客户端错误: status={} reason={}",
+                    rse.getStatusCode(), rse.getReason());
+            return ResponseEntity.status(rse.getStatusCode()).body(
+                    errorMap("invalid_request",
+                            rse.getReason() == null || rse.getReason().isBlank()
+                                    ? "请求参数不合法" : rse.getReason()));
+        }
         // 服务端错误（5xx）：消息脱敏，不暴露内部异常细节
         log.error("血缘 API 内部异常", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -240,12 +267,29 @@ public class LineageController {
     }
 
     /**
-     * 从 {@link TenantContext} 校验当前租户；缺失时抛 403。
+     * 归并两种表全名来源：路径变量优先，其次查询参数；两者皆空视为客户端错误。
+     *
+     * @param pathTable  路径变量形式的全名
+     * @param queryTable 查询参数形式的全名
+     * @return 生效的表全名
+     */
+    private static String resolveTable(String pathTable, String queryTable) {
+        if (pathTable != null && !pathTable.isBlank()) {
+            return pathTable;
+        }
+        if (queryTable != null && !queryTable.isBlank()) {
+            return queryTable;
+        }
+        throw new IllegalArgumentException("缺少 table：请用 /upstream/{table} 或 ?table=<全名> 之一传入");
+    }
+
+    /**
+     * 从 {@link TenantContext} 校验当前租户；缺失时返回 403（fail-closed）。
      */
     private static void requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {
-            throw new IllegalStateException("缺少租户上下文");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
         }
     }
 

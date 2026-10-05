@@ -31,6 +31,8 @@ logs/
 __pycache__/
 *.pyc
 .venv/
+.venv-*/
+.venv-nl2sql-test/
 
 # Maven build output (global exclusion)
 **/target/
@@ -96,9 +98,10 @@ docs/_盘点_*.md
 frontend/playwright-report/
 frontend/test-results/
 
-# 压测/灾备测试运行产物（不入库，仅保留脚本和手写报告）
+# 压测/灾备/跨域复制测试运行产物（不入库，仅保留脚本和手写报告）
 tests/performance/stress/results/
 tests/disaster-recovery/results/
+tests/cross-domain-replication/results/
 
 # 冒烟验证临时文件（不入库，仅忽略根目录下的临时产物，保留 scripts/smoke/ 下的脚本）
 /smoke-*.csv

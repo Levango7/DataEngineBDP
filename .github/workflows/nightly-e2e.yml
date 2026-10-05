@@ -181,17 +181,17 @@ jobs:
           kubectl get nodes -o wide
 
       - name: 构建并导入链路业务镜像
-        # 为什么补这一步：本 job 此前只装集群不部署服务，于是五链路用例整体 SKIPPED
+        # 为什么补这一步：本 job 此前只装集群不部署服务，于是各链路用例整体 SKIPPED
         # ——即"绿但空跑"（见本 job 开头注释与 run_k3s_integration.py 的退出码语义）。
         # 导入方式沿用仓库自己验证过的路子（deploy/k3s/deployment_verification_report.md:26）：
         # docker build → docker save | k3s ctr images import，构建上下文用组件目录
         # （与 deploy/k3s/build_all.ps1 的 `docker build -t $image $path` 一致）。
-        # 只构建五链路真正需要的组件；其余 manifest 的 Pod 会停在 ImagePullBackOff，
+        # 只构建各链路真正需要的组件；其余 manifest 的 Pod 会停在 ImagePullBackOff，
         # 由 conftest 的 ensure_k3s_services_deployed() 自身容忍 wait 超时，不拖红。
         run: |
           set -uo pipefail
           images=""
-          for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates; do
+          for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates lineage-analyzer; do
             dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
             if [ -z "$dir" ] || [ ! -f "$dir/Dockerfile" ]; then
               echo "::warning::$comp 未找到 Dockerfile，跳过"
@@ -223,12 +223,12 @@ jobs:
             docker save $images | sudo k3s ctr images import -
             kubectl apply -f deploy/k3s/manifests/namespace.yaml
             kubectl apply -f deploy/k3s/manifests/ || echo "::warning::部分 manifest apply 失败（未构建的组件预期如此）"
-            # 链路所需 5 个组件必须真的 Ready：此处原先只发 warning，导致 chain1-4
+            # 链路所需 6 个组件必须真的 Ready：此处原先只发 warning，导致 chain1-4
             # 全部在 fixture setup 阶段 ERROR 却不报"谁没起来"，把基础设施问题伪装成用例问题
             # （run 36345945597 实测）。改为硬失败并打印现场。
             echo "等待链路组件 Deployment 可用（每个最多 300s）"
             notready=""
-            for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine; do
+            for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine lineage-analyzer; do
               if ! kubectl -n shuqing wait --for=condition=Available "deployment/${comp}" --timeout=300s; then
                 notready="$notready $comp"
               fi

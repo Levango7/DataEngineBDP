@@ -179,4 +179,32 @@ class OpenLineageIngestServiceTest {
         assertNotNull(graphWriter.getDirectDownstream("batch-pipeline/b-001/01_raw"));
         assertEquals(LineageNode.NodeType.TABLE, LineageNode.NodeType.valueOf("TABLE"));
     }
+
+    @Test
+    @DisplayName("规范形态 inputs/outputs = {\"datasets\":[...]} 也必须产生边")
+    void specWrappedDatasetsProduceEdges() {
+        // OpenLineage 规范把 inputs/outputs 定义为包装对象，外部标准生产端发这种形态；
+        // 只认裸数组时 ingest 返回 200 但 edges=0，血缘被静默丢弃。
+        Map<String, Object> ev = event("j", "88888888-8888-8888-8888-888888888888",
+                List.of(), List.of());
+        ev.put("inputs", Map.of("datasets", List.of(dataset("hive", "ods.orders"))));
+        ev.put("outputs", Map.of("datasets", List.of(dataset("hive", "dws.order_daily"))));
+
+        Map<String, Object> result = ingestService.ingest(ev);
+
+        assertEquals(1, result.get("edges"));
+        assertTrue(graphWriter.getDirectDownstream("hive/ods.orders")
+                .contains("hive/dws.order_daily"));
+    }
+
+    @Test
+    @DisplayName("包装对象缺 datasets 字段 → 合法但 0 边（不误报）")
+    void wrapperWithoutDatasetsKeyYieldsNoEdges() {
+        Map<String, Object> ev = event("j", "99999999-9999-9999-9999-999999999999",
+                List.of(), List.of());
+        ev.put("inputs", Map.of("other", List.of()));
+        ev.put("outputs", Map.of("other", List.of()));
+
+        assertEquals(0, ingestService.ingest(ev).get("edges"));
+    }
 }

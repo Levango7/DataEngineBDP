@@ -244,7 +244,9 @@ governance:
       openapi:
         enabled: true
         ingress: { enabled: true, host: "lineage-api.<domain>" }
-        endpoints: ["/api/v1/lineage/query", "/api/v1/lineage/impact", "/api/v1/lineage/visualize"]
+        # 与 lineage-analyzer 的 LineageController 实测一致（原列表里的 /api/v1/lineage/query
+        # 与 /visualize 在任何后端都不存在，曾把集成用例骗成"打卡不存在的 path、非 200 即 skip"）
+        endpoints: ["/api/v1/lineage/events", "/api/v1/lineage/upstream", "/api/v1/lineage/downstream", "/api/v1/lineage/impact"]
 
     monitoring:
       metrics: { enabled: true, port: 9091 }
