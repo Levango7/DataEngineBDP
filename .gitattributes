@@ -1,3 +1,7 @@
+# 全仓文本统一 LF，防止 Windows 工具写入 CRLF 导致 git status 大面积假改动
+# （2026-10-06 修复：曾出现 4696 文件工作区 CRLF / 索引 LF）
+* text=auto eol=lf
+
 # 强制关键脚本类文件使用 LF（防 Windows CRLF 干扰 shell/bash 语法）
 .github/workflows/*.yml text eol=lf
 *.sh text eol=lf
