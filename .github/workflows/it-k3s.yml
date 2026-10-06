@@ -146,7 +146,10 @@ jobs:
           echo "=== Pod 状态 ==="
           kubectl -n shuqing get pods -o wide || true
           echo "=== 未就绪 Pod 的事件与日志 ==="
-          for p in $(kubectl -n shuqing get pods -o jsonpath='{range .items[?(@.status.phase!="Running")]}{.metadata.name}{end}' 2>/dev/null | head -6); do
+          # jsonpath 的 range 必须自带分隔符，否则所有 pod 名会被拼成一整串：
+          # 实测得到 kubectl ... pods "asset-exchange-…lineage-analyzer-…vector-engine-…" not found
+          # —— 诊断步自己失败，等于"谁没起来"永远看不见。
+          for p in $(kubectl -n shuqing get pods -o jsonpath='{range .items[?(@.status.phase!="Running")]}{.metadata.name}{"\n"}{end}' 2>/dev/null | head -6); do
             echo "--- $p ---"
             kubectl -n shuqing describe pod "$p" | tail -25 || true
             kubectl -n shuqing logs "$p" --tail=80 || true
