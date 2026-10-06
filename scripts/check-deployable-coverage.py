@@ -33,10 +33,20 @@ SCAN_SUFFIXES = (".yaml", ".yml", ".tpl", ".json")
 
 
 def _git_files(pattern: str) -> list:
-    out = subprocess.run(
-        ["git", "ls-files", pattern], cwd=REPO, capture_output=True, text=True
-    ).stdout
-    return sorted(set(out.split()))
+    # core.quotePath=false：git 默认对非 ASCII 路径加引号并转八进制（如 "platform/\344\270\255…"），
+    # 那样下面的 startswith("platform/") 会静默漏掉整个组件——门禁从"拦住缺口"变成"没看见"。
+    # 按行切而非 split()：目录名含空格时 split() 会把一个路径劈成两截。
+    proc = subprocess.run(
+        ["git", "-c", "core.quotePath=false", "ls-files", pattern],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"git ls-files {pattern} 失败（rc={proc.returncode}）：{proc.stderr.strip()}"
+        )
+    return sorted(set(proc.stdout.splitlines()))
 
 
 def buildable_components() -> list:
@@ -51,7 +61,15 @@ def buildable_components() -> list:
         for p in _git_files("**/Dockerfile")
         if p.replace("\\", "/").startswith("platform/")
     }
-    return sorted(d for d in dirs if d)
+    comps = sorted(d for d in dirs if d)
+    # 空集必须判红：分母解析不到东西时，"零缺口"是假的绿。
+    # backlog 非空时空集会走"过期登记"分支报错，但销账完（backlog 清空）后就没有任何拦截了，
+    # 所以这层判据要写在脚本里，不能依赖清单恰好还有条目。
+    if not comps:
+        raise RuntimeError(
+            "platform/ 下解析到 0 个含 Dockerfile 的组件——这是检出/路径口径问题，不是没有缺口"
+        )
+    return comps
 
 
 def deployment_surface() -> str:
