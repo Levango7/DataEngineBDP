@@ -67,7 +67,10 @@ app:
       issuer-uri: ${OIDC_ISSUER_URI:}
     cors:
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-    encrypt-key: ${ENCRYPT_KEY}
+    # 字段级加密全局 SM4 密钥（hex 字符串，32 字符 = 16 字节）；信创 profile 下凭据加密使用
+    encrypt-key: ${ENCRYPT_KEY:}
+    # 凭据加密 AES-256 密钥（Base64 编码的 32 字节）；国际 profile 下凭据加密使用
+    credential-encryption-key: ${CREDENTIAL_ENCRYPTION_KEY:}
     keycloak:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
