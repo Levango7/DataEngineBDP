@@ -1,7 +1,8 @@
 {
-  "_comment": "Java 模块覆盖率基线（2026-09-01 Boot 4.1.1 升级后 jacoco 全量实测快照）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
+  "_comment": "Java 模块覆盖率基线（行覆盖率 %）。本文件只被趋势检查使用：CI 里当次实测低于基线 >2% 才阻断。绝对阈值门在 .github/workflows/ci.yml 的 JaCoCo 步骤（LINE_THRESHOLD=40 / BRANCH_THRESHOLD=18）里判，与本文件数值无关。",
   "_source": "Boot 4.1.1 升级验收：24 模块 mvn verify + jacoco 实测（coverage-measured.json）",
-  "_threshold_note": "当前阈值：行≥40% 分支≥18%（2026-09-01 实化提升，名单内最低实测 46%/30%）。目标 85% GA标准。",
+  "_threshold_note": "绝对阈值：行≥40% 分支≥18%。注意 ci.yml 同时维护一份排除清单 COVERAGE_EXCLUDE（dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang 共 9 个模块），清单内模块只走趋势检查、不走绝对阈值 ⇒ 本文件里出现低于 40 的数值不必然代表门禁失效，须先查它是否在排除清单。目标 85% GA 标准。",
+  "_baseline_refresh": "2026-10-06 本机补测并订正 billing 0→99 / master-data 0→100 / data-standard 0→93（命令：mvn -o -pl platform/finops/billing,platform/master-data,platform/data-standard test jacoco:report，JDK 17.0.20，BUILD SUCCESS；jacoco.xml 实测行覆盖 99.64/100.0/93.52，分支 93.38/98.81/96.67）。原 0 是这三个模块 2026-09-21 移出排除清单、恢复绝对阈值前的快照，一直没刷 ⇒ 趋势门对它们等于不存在（0 基线永远跌不出 -2% 区间）。基线取整偏低 1% 留缓冲，避免本机与 runner 的 jacoco excludes 差异造成误红。",
   "_t02_plan": "T-02 分阶段提升计划：阶段1（当前）所有24模块参与趋势检查防回归；阶段2逐步提升低覆盖率模块基线（每次5-10%）；阶段3最终目标85% GA标准",
   "common-security": 49,
   "encaps-layer": 56,
@@ -25,7 +26,7 @@
   "encaps-gateway": 2,
   "real-time-pipeline": 25,
   "infra-provider-cloud": 10,
-  "master-data": 0,
-  "data-standard": 0,
-  "billing": 0
+  "master-data": 100,
+  "data-standard": 93,
+  "billing": 99
 }
