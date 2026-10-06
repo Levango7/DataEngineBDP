@@ -64,6 +64,15 @@ public final class GmAlgorithm {
     /** SM4 CBC 模式 */
     public static final String SM4_MODE_CBC = "CBC";
 
+    /** SM4 GCM 模式（AEAD 认证加密，NIST SP 800-38D） */
+    public static final String SM4_MODE_GCM = "GCM";
+
+    /** SM4-GCM 推荐 IV 长度（12 字节，NIST SP 800-38D 推荐） */
+    public static final int SM4_GCM_IV_LEN = 12;
+
+    /** SM4-GCM 认证标签长度（16 字节 = 128 bit） */
+    public static final int SM4_GCM_TAG_LEN = 16;
+
     /** PKCS7 填充名 */
     public static final String PADDING_PKCS7 = "PKCS7Padding";
 

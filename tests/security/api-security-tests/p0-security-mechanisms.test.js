@@ -2,8 +2,8 @@
  * P0 安全机制验证 —— 验证任务 401 落地的安全机制是否生效
  *
  * 验证项：
- *   1. SmCryptoUtil 国密工具类可加载（SM2/SM3/SM4）
- *   2. @Encrypt 字段加密注解 + FieldEncryptAspect 切面工作
+ *   1. 国密 Provider（SM2/SM3/SM4）可加载
+ *   2. 凭据加密真实机制：CredentialEncryptor 按 Profile 路由 SM4/AES（原 @Encrypt/FieldEncryptAspect 死代码已于 2026-10-06 删除）
  *   3. @AuditLog 审计日志注解 + AuditLogAspect 切面工作
  *   4. JWT 认证过滤器（JwtAuthFilter）工作
  *   5. SecurityConfig 安全配置生效（permitAll/authenticated）
@@ -50,67 +50,47 @@ function grepInDir(dir, pattern, include = '*.java') {
 async function main() {
   const t = new TestRunner('P0 安全机制验证');
 
-  // 1. SmCryptoUtil 国密工具类
-  await t.test('SmCryptoUtil 国密工具类文件存在', async () => {
-    const f = path.join(SECURITY_PKG, 'SmCryptoUtil.java');
-    if (!fileExists(f)) throw new Error(`缺失: ${f}`);
-  });
+  // 1. 国密 Provider（SM2/SM3/SM4）
+  //    注：原 SmCryptoUtil 仅被误导性 FieldEncryptAspect 使用，已随该切面于 2026-10-06 删除；
+  //    国密原语现由 crypto/gm/{SM2Provider,SM3Provider,SM4Provider} 提供（有独立 Java 单测覆盖）。
+  const GM_PKG = path.join(PROJECT_ROOT, 'platform/encaps-layer/src/main/java/com/levango7/dataenginebdp/encaps/crypto/gm');
+  const STORAGE_PKG = path.join(PROJECT_ROOT, 'platform/encaps-layer/src/main/java/com/levango7/dataenginebdp/encaps/crypto/jwt/storage');
+  const UTIL_PKG = path.join(PROJECT_ROOT, 'platform/encaps-data/src/main/java/com/levango7/dataenginebdp/encaps/util');
 
-  await t.test('SmCryptoUtil 包含 SM2/SM3/SM4 方法', async () => {
-    const f = path.join(SECURITY_PKG, 'SmCryptoUtil.java');
-    const content = fs.readFileSync(f, 'utf8');
-    const required = ['sm2Sign', 'sm2Verify', 'sm2Encrypt', 'sm2Decrypt',
-                      'sm3Hash', 'sm3HashHex',
-                      'sm4Encrypt', 'sm4Decrypt', 'sm4GenerateKey'];
-    for (const m of required) {
-      if (!content.includes(m)) throw new Error(`SmCryptoUtil 缺失方法: ${m}`);
+  await t.test('国密 SM2/SM3/SM4 Provider 存在', async () => {
+    for (const f of ['SM2Provider.java', 'SM3Provider.java', 'SM4Provider.java']) {
+      if (!fileExists(path.join(GM_PKG, f))) throw new Error(`缺失: ${f}`);
     }
   });
 
-  await t.test('SmCryptoUtil 引用国标 Provider', async () => {
-    const f = path.join(SECURITY_PKG, 'SmCryptoUtil.java');
-    const content = fs.readFileSync(f, 'utf8');
-    if (!content.includes('SM2Provider')) throw new Error('未引用 SM2Provider');
-    if (!content.includes('SM3Provider')) throw new Error('未引用 SM3Provider');
-    if (!content.includes('SM4Provider')) throw new Error('未引用 SM4Provider');
-  });
-
-  // 2. @Encrypt 注解 + FieldEncryptAspect 切面
-  await t.test('@Encrypt 注解类存在', async () => {
-    const f = path.join(SECURITY_PKG, 'Encrypt.java');
+  // 2. 凭据加密（真实机制）：CredentialEncryptor 按加密 Profile 路由 SM4/AES
+  await t.test('CredentialEncryptor 存在', async () => {
+    const f = path.join(UTIL_PKG, 'CredentialEncryptor.java');
     if (!fileExists(f)) throw new Error(`缺失: ${f}`);
   });
 
-  await t.test('@Decrypt 注解类存在', async () => {
-    const f = path.join(SECURITY_PKG, 'Decrypt.java');
-    if (!fileExists(f)) throw new Error(`缺失: ${f}`);
+  await t.test('CredentialEncryptor 按 Profile 路由 SM4/AES（不硬编码算法）', async () => {
+    const content = fs.readFileSync(path.join(UTIL_PKG, 'CredentialEncryptor.java'), 'utf8');
+    if (!content.includes('fromProfile')) throw new Error('缺少 fromProfile（Profile 路由入口）');
+    if (!content.includes('GmStorageCipher')) throw new Error('未路由到 SM4（GmStorageCipher）');
+    if (!content.includes('IntlStorageCipher')) throw new Error('未路由到 AES（IntlStorageCipher）');
+    if (!content.includes('CryptoProfile')) throw new Error('未使用 CryptoProfile');
   });
 
-  await t.test('FieldEncryptAspect 切面类存在', async () => {
-    const f = path.join(SECURITY_PKG, 'FieldEncryptAspect.java');
-    if (!fileExists(f)) throw new Error(`缺失: ${f}`);
+  await t.test('CredentialEncryptor 解密双读（按密文算法标识分派）', async () => {
+    const content = fs.readFileSync(path.join(UTIL_PKG, 'CredentialEncryptor.java'), 'utf8');
+    if (!content.includes('detectAlgorithm')) throw new Error('缺少算法标识识别（双读迁移）');
   });
 
-  await t.test('FieldEncryptAspect 标注 @Aspect @Component', async () => {
-    const f = path.join(SECURITY_PKG, 'FieldEncryptAspect.java');
-    const content = fs.readFileSync(f, 'utf8');
-    if (!content.includes('@Aspect')) throw new Error('未标注 @Aspect');
-    if (!content.includes('@Component')) throw new Error('未标注 @Component');
+  await t.test('存在 SM4-CBC 与 AES-GCM 存储加密实现', async () => {
+    if (!fileExists(path.join(STORAGE_PKG, 'GmStorageCipher.java'))) throw new Error('缺失 GmStorageCipher');
+    if (!fileExists(path.join(STORAGE_PKG, 'IntlStorageCipher.java'))) throw new Error('缺失 IntlStorageCipher');
   });
 
-  await t.test('FieldEncryptAspect 拦截 @Encrypt @Decrypt', async () => {
-    const f = path.join(SECURITY_PKG, 'FieldEncryptAspect.java');
-    const content = fs.readFileSync(f, 'utf8');
-    if (!content.includes('@annotation(encrypt)')) throw new Error('未拦截 @Encrypt');
-    if (!content.includes('@annotation(decrypt)')) throw new Error('未拦截 @Decrypt');
-  });
-
-  await t.test('FieldEncryptAspect 使用 SmCryptoUtil', async () => {
-    const f = path.join(SECURITY_PKG, 'FieldEncryptAspect.java');
-    const content = fs.readFileSync(f, 'utf8');
-    if (!content.includes('SmCryptoUtil.sm4Encrypt')) throw new Error('未调用 SM4 加密');
-    if (!content.includes('SmCryptoUtil.sm4Decrypt')) throw new Error('未调用 SM4 解密');
-    if (!content.includes('SmCryptoUtil.sm3Hash')) throw new Error('未调用 SM3 哈希');
+  await t.test('误导性 @Encrypt/@Decrypt 死代码已删除', async () => {
+    for (const f of ['Encrypt.java', 'Decrypt.java', 'FieldEncryptAspect.java', 'SmCryptoUtil.java']) {
+      if (fileExists(path.join(SECURITY_PKG, f))) throw new Error(`应已删除但仍存在: ${f}`);
+    }
   });
 
   // 3. @AuditLog 注解 + AuditLogAspect 切面
@@ -231,14 +211,14 @@ async function main() {
     }
   });
 
-  // 9. 检查 @Encrypt 使用点
-  await t.test('代码中存在 @Encrypt 使用点', async () => {
-    const srcDir = path.join(PROJECT_ROOT, 'platform/encaps-layer/src/main/java');
-    const files = grepInDir(srcDir, '@Encrypt\\s*[\\(\\s]');
+  // 9. 检查凭据加密使用点（真实机制）
+  await t.test('代码中存在 CredentialEncryptor 使用点', async () => {
+    const srcDir = path.join(PROJECT_ROOT, 'platform');
+    const files = grepInDir(srcDir, 'credentialEncryptor\\.');
     if (files.length === 0) {
-      t.warn_('未找到 @Encrypt 使用点', '建议在敏感字段上标注 @Encrypt');
+      t.warn_('未找到 CredentialEncryptor 使用点', '建议在敏感凭据读写处使用 CredentialEncryptor');
     } else {
-      console.log(`     找到 ${files.length} 处 @Encrypt 使用`);
+      console.log(`     找到 ${files.length} 处 CredentialEncryptor 使用`);
     }
   });
 

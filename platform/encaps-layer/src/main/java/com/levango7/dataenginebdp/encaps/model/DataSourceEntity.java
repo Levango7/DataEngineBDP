@@ -1,7 +1,5 @@
 package com.levango7.dataenginebdp.encaps.model;
 
-import com.levango7.dataenginebdp.encaps.security.Encrypt;
-import com.levango7.dataenginebdp.encaps.security.EncryptType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -62,8 +60,7 @@ public class DataSourceEntity {
     @Column(nullable = false, length = 128)
     private String username;
 
-    /** 密码（仅写入时使用，查询不返回；SM4 加密存储）。 */
-    @Encrypt(EncryptType.SM4)
+    /** 密码密文（仅写入时使用，查询不返回；由 {@code CredentialEncryptor} 加密：信创 SM4-CBC / 国际 AES-GCM）。 */
     @Column(length = 255)
     private String password;
 

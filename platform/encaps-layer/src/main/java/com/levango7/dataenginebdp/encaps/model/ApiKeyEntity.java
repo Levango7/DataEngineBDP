@@ -1,7 +1,5 @@
 package com.levango7.dataenginebdp.encaps.model;
 
-import com.levango7.dataenginebdp.encaps.security.Encrypt;
-import com.levango7.dataenginebdp.encaps.security.EncryptType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -55,13 +53,11 @@ public class ApiKeyEntity {
     @Column(nullable = false, length = 16)
     private String status;
 
-    /** 实际 apiKey（SM4 加密存储，调用方持有明文）。 */
-    @Encrypt(EncryptType.SM4)
+    /** 实际 apiKey 密文（由 {@code CredentialEncryptor} 加密：信创 SM4-CBC / 国际 AES-GCM；调用方持有明文）。 */
     @Column(nullable = false, length = 128, unique = true)
     private String apiKey;
 
-    /** secret 哈希（SM3 不可逆摘要），创建时明文一次性返回，之后不再泄露。 */
-    @Encrypt(EncryptType.SM3)
+    /** secret 摘要（SHA-256，创建时明文一次性返回，之后不再泄露）。 */
     @Column(nullable = false, length = 128)
     private String secretHash;
 
