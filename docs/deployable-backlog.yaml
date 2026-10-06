@@ -1,0 +1,18 @@
+# 可构建但无部署单元的组件（scripts/check-deployable-coverage.py --write-backlog 生成）
+# 含义：该组件有 Dockerfile，但没有同名 Chart，镜像名也不在任何 Chart/k3s 清单里
+#       ⇒ 只能在 tests/integration/docker-compose.yml 的测试拓扑里跑，生产不可部署。
+# 销账条件：补齐 Chart 或在 k3s manifest 中引用其镜像后，重跑脚本从本名单移除。
+uncovered:
+  - "platform/batch-pipeline"
+  - "platform/batch-pipeline/docker/spark-cluster"
+  - "platform/encaps-tenant"
+  - "platform/finops/cost-model"
+  - "platform/finops/dashboard"
+  - "platform/governance/real-time-pipeline"
+  - "platform/karmada/api"
+  - "platform/karmada/docker/mock-cluster"
+  - "platform/karmada/failover/api"
+  - "platform/karmada/failover/engine"
+  - "platform/karmada/federated-query"
+  - "platform/llm-gateway/evaluation"
+  - "platform/observability/query-api"
