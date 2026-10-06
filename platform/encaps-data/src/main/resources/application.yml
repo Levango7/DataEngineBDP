@@ -67,15 +67,7 @@ app:
       issuer-uri: ${OIDC_ISSUER_URI:}
     cors:
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-    # 字段级加密全局 SM4 密钥（hex 字符串，32 字符 = 16 字节）；信创 profile 下凭据加密使用
-    encrypt-key: ${ENCRYPT_KEY:}
-    # 凭据加密 AES-256 密钥（Base64 编码的 32 字节）；国际 profile 下凭据加密使用
-    credential-encryption-key: ${CREDENTIAL_ENCRYPTION_KEY:}
-    # 存量凭据密文离线迁移（默认关闭；仅在迁移窗口临时开启，跑完即关，稳态零开销）
-    # 迁移语义：旧算法密文/历史明文 → 当前 Profile 主算法；幂等可重复运行
-    credential-migration:
-      enabled: ${CREDENTIAL_MIGRATION_ENABLED:false}
-      dry-run: ${CREDENTIAL_MIGRATION_DRY_RUN:false}
+    encrypt-key: ${ENCRYPT_KEY}
     keycloak:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}

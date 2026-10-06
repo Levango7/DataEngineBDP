@@ -130,8 +130,12 @@ app:
       read-rpm: ${RATE_LIMIT_READ_RPM:600}
       # 突发倍率：桶容量 = rpm × burst（短时突发容忍）
       burst-factor: ${RATE_LIMIT_BURST:1.5}
-    # 注：字段级 SM4 凭据加密密钥配置已移至 encaps-data / encaps-gateway
-    # （CredentialEncryptorConfig 读取 app.security.encrypt-key / ENCRYPT_KEY，按 Profile 路由 SM4/AES）。
+    # 字段级加密全局 SM4 密钥（hex 字符串，32 字符 = 16 字节）
+    # 本行无默认值：未设置 ENCRYPT_KEY 时占位符解析失败、应用启动即挂（fail-fast，CI kind-smoke 实证）；本地/CI 由 deploy/local/values-local-core.yaml 注入 32 位 hex 开发密钥，生产必须由 KMS 生成并注入真实密钥
+    # 配置方式：export ENCRYPT_KEY=0123456789abcdef0123456789abcdef（32 字符 hex）
+    # 留空时 @Encrypt/@Decrypt 切面在调用时抛 CryptoException（生产环境必须配置）
+    # 注意：密钥由 KMS 生成，禁止硬编码到代码仓库；轮换周期 1 年（见 R-024）
+    encrypt-key: ${ENCRYPT_KEY}
     keycloak:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
