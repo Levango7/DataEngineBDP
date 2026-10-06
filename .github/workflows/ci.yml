@@ -527,6 +527,12 @@ jobs:
         # 本校验要求：已接入模块必须真的启用 Flyway，未接入模块必须显式登记在待补清单
         run: python3 scripts/check-db-migration-coverage.py
 
+      - name: 组件部署单元覆盖校验（有 Dockerfile 却无 Chart ⇒ 生产不可部署，只减不增）
+        # 缺口事实来源 docs/deployable-backlog.yaml（当前 13 个，含治理链的 real-time-pipeline：
+        # 跨进程血缘边已接好，但集群里没有任何东西承载它）。
+        # 语义与建表迁移覆盖校验同构：允许既有欠债登记在案，但新增缺口 / 销账不及时的过期条目一律阻断。
+        run: python3 scripts/check-deployable-coverage.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
