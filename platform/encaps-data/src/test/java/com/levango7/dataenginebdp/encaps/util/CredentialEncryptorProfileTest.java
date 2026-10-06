@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.util;
 
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoProfile;
+import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmStorageCipher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,11 +51,11 @@ class CredentialEncryptorProfileTest {
         }
 
         @Test
-        @DisplayName("信创 Profile 使用 SM4-CBC（#53 核心修复）")
-        void xinchang_usesSm4() {
+        @DisplayName("信创 Profile 使用 SM4-GCM（#53 核心修复，含 AEAD 完整性）")
+        void xinchang_usesSm4Gcm() {
             CredentialEncryptor enc = CredentialEncryptor.fromProfile(
                     CryptoProfile.XINCHANG, SM4_KEY, null);
-            assertThat(enc.getAlgorithm()).isEqualTo("SM4-CBC");
+            assertThat(enc.getAlgorithm()).isEqualTo("SM4-GCM");
             String ciphertext = enc.encrypt("密码123");
             assertThat(ciphertext).doesNotContain("密码123");
             assertThat(enc.decrypt(ciphertext)).isEqualTo("密码123");
@@ -98,9 +99,9 @@ class CredentialEncryptorProfileTest {
 
             // 历史密文仍可解密
             assertThat(upgraded.decrypt(legacyCipher)).isEqualTo("legacy-secret");
-            // 新写入走 SM4
+            // 新写入走 SM4-GCM
             String newCipher = upgraded.encrypt("new-secret");
-            assertThat(CredentialEncryptor.detectAlgorithm(newCipher)).isEqualTo("SM4-CBC");
+            assertThat(CredentialEncryptor.detectAlgorithm(newCipher)).isEqualTo("SM4-GCM");
             assertThat(upgraded.decrypt(newCipher)).isEqualTo("new-secret");
             assertThat(upgraded.isEncrypted(legacyCipher)).isTrue();
             assertThat(upgraded.isEncrypted(newCipher)).isTrue();
@@ -120,6 +121,19 @@ class CredentialEncryptorProfileTest {
         }
 
         @Test
+        @DisplayName("信创 Profile 可解密旧 SM4-CBC 密文（历史双读）")
+        void xinchang_decryptsLegacySm4Cbc() {
+            GmStorageCipher cbc = new GmStorageCipher(SM4_KEY);
+            String legacy = cbc.encryptString("legacy-cbc-secret");
+            assertThat(CredentialEncryptor.detectAlgorithm(legacy)).isEqualTo("SM4-CBC");
+
+            CredentialEncryptor upgraded = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, null);
+            assertThat(upgraded.getAlgorithm()).isEqualTo("SM4-GCM");
+            assertThat(upgraded.decrypt(legacy)).isEqualTo("legacy-cbc-secret");
+        }
+
+        @Test
         @DisplayName("无对应解密器时 decrypt 抛 CryptoException 而非返回原值")
         void noDecryptor_throws() {
             CredentialEncryptor gm = CredentialEncryptor.fromProfile(
@@ -131,7 +145,7 @@ class CredentialEncryptorProfileTest {
             assertThat(aesOnly.isEncrypted(sm4Cipher)).isTrue();
             assertThatThrownBy(() -> aesOnly.decrypt(sm4Cipher))
                     .isInstanceOf(CryptoException.class)
-                    .hasMessageContaining("SM4-CBC");
+                    .hasMessageContaining("SM4-GCM");
         }
     }
 
@@ -153,6 +167,80 @@ class CredentialEncryptorProfileTest {
             assertThat(dual.isEncrypted("plain-text")).isFalse();
             assertThat(dual.isEncrypted("")).isFalse();
             assertThat(dual.isEncrypted(null)).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("存量迁移（reencrypt，幂等）")
+    class Migration {
+
+        @Test
+        @DisplayName("历史明文 → 加密为当前主算法")
+        void plaintextEncrypted() {
+            CredentialEncryptor enc = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, AES_KEY);
+            String out = enc.reencrypt("legacy-plaintext");
+            assertThat(CredentialEncryptor.detectAlgorithm(out)).isEqualTo("SM4-GCM");
+            assertThat(enc.decrypt(out)).isEqualTo("legacy-plaintext");
+        }
+
+        @Test
+        @DisplayName("旧 AES-GCM 密文 → 重加密为 SM4-GCM")
+        void aesCiphertextMigrated() {
+            CredentialEncryptor legacy = CredentialEncryptor.fromProfile(
+                    CryptoProfile.INTERNATIONAL, null, AES_KEY);
+            String aesCipher = legacy.encrypt("legacy-aes");
+
+            CredentialEncryptor enc = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, AES_KEY);
+            String out = enc.reencrypt(aesCipher);
+            assertThat(CredentialEncryptor.detectAlgorithm(out)).isEqualTo("SM4-GCM");
+            assertThat(out).isNotEqualTo(aesCipher);
+            assertThat(enc.decrypt(out)).isEqualTo("legacy-aes");
+        }
+
+        @Test
+        @DisplayName("旧 SM4-CBC 密文 → 重加密为 SM4-GCM")
+        void sm4CbcCiphertextMigrated() {
+            GmStorageCipher cbc = new GmStorageCipher(SM4_KEY);
+            String cbcCipher = cbc.encryptString("legacy-cbc");
+
+            CredentialEncryptor enc = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, null);
+            String out = enc.reencrypt(cbcCipher);
+            assertThat(CredentialEncryptor.detectAlgorithm(out)).isEqualTo("SM4-GCM");
+            assertThat(enc.decrypt(out)).isEqualTo("legacy-cbc");
+        }
+
+        @Test
+        @DisplayName("已是当前主算法 → 原样返回（幂等）")
+        void alreadyCurrentUnchanged() {
+            CredentialEncryptor enc = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, null);
+            String current = enc.encrypt("already");
+            assertThat(enc.reencrypt(current)).isEqualTo(current);
+            assertThat(enc.reencrypt(enc.reencrypt(current))).isEqualTo(current);
+        }
+
+        @Test
+        @DisplayName("null/空值原样返回")
+        void nullEmptyUnchanged() {
+            CredentialEncryptor enc = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, null);
+            assertThat(enc.reencrypt(null)).isNull();
+            assertThat(enc.reencrypt("")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("无对应旧密钥时 reencrypt 抛 CryptoException（不静默）")
+        void missingLegacyKeyThrows() {
+            CredentialEncryptor aesOnly = CredentialEncryptor.fromProfile(
+                    CryptoProfile.INTERNATIONAL, null, AES_KEY);
+            String aesCipher = aesOnly.encrypt("x");
+            CredentialEncryptor sm4Only = CredentialEncryptor.fromProfile(
+                    CryptoProfile.XINCHANG, SM4_KEY, null);
+            assertThatThrownBy(() -> sm4Only.reencrypt(aesCipher))
+                    .isInstanceOf(CryptoException.class);
         }
     }
 

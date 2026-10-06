@@ -89,8 +89,8 @@ public class CredentialEncryptorConfig {
         CredentialEncryptor encryptor = CredentialEncryptor.fromProfile(profile, sm4Key, aesKey);
         log.info("初始化凭据加密器：profile={}，加密算法={}，可解密算法={}",
                 profile.getProfileName(), encryptor.getAlgorithm(),
-                (aesKey != null && sm4Key != null) ? "SM4-CBC,AES-GCM"
-                        : (sm4Key != null ? "SM4-CBC" : "AES-GCM"));
+                (aesKey != null && sm4Key != null) ? "SM4-GCM,SM4-CBC,AES-GCM"
+                        : (sm4Key != null ? "SM4-GCM,SM4-CBC" : "AES-GCM"));
         return encryptor;
     }
 

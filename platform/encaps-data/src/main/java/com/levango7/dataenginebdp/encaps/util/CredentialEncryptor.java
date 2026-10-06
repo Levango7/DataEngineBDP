@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.util;
 
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoProfile;
+import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmGcmStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.IntlStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.StorageCipher;
@@ -22,7 +23,7 @@ import java.util.Set;
  * <p>用于数据源密码、API Key 等敏感凭据的持久化加密存储。算法由
  * {@link CryptoProfile} 决定：</p>
  * <ul>
- *   <li>{@link CryptoProfile#XINCHANG}（信创/国密辖区）→ {@link GmStorageCipher}（SM4-CBC）</li>
+ *   <li>{@link CryptoProfile#XINCHANG}（信创/国密辖区）→ {@link GmGcmStorageCipher}（SM4-GCM，AEAD）</li>
  *   <li>{@link CryptoProfile#INTERNATIONAL}（国际辖区）→ {@link IntlStorageCipher}（AES-256-GCM）</li>
  * </ul>
  *
@@ -32,10 +33,10 @@ import java.util.Set;
  * 使信创辖区的凭据加密真正走 SM4。</p>
  *
  * <h3>密文自描述与双读迁移</h3>
- * <p>两种算法的密文均以算法标识开头（{@code Base64("SM4-CBC"|0x00|...)}
+ * <p>两种算法的密文均以算法标识开头（{@code Base64("SM4-GCM"|"SM4-CBC"|0x00|...)}
  * 或 {@code Base64("AES-GCM"|0x00|...)}）。{@link #decrypt(String)} 按密文头部标识
  * 分派到对应解密器，因此**切换 Profile 不会导致历史密文不可读**：
- * 信创上线后仍可解密存量 AES 密文，反之亦然。写入（{@link #encrypt(String)}）
+ * 信创上线后仍可解密存量 AES-GCM / SM4-CBC 密文，反之亦然。写入（{@link #encrypt(String)}）
  * 始终使用当前 Profile 的主算法。</p>
  *
  * <h3>密钥来源</h3>
@@ -69,7 +70,7 @@ public final class CredentialEncryptor {
      * 只要密文头部是已知算法即认定为密文，避免迁移期误判。
      */
     private static final Set<String> KNOWN_ALGORITHMS =
-            Set.of(IntlStorageCipher.ALGORITHM, GmStorageCipher.ALGORITHM);
+            Set.of(IntlStorageCipher.ALGORITHM, GmGcmStorageCipher.ALGORITHM, GmStorageCipher.ALGORITHM);
 
     /** 主加密器（用于写入），由 Profile 决定 */
     private final StorageCipher primary;
@@ -127,10 +128,10 @@ public final class CredentialEncryptor {
      *
      * <p>仅在 Profile 允许的算法之间路由；对应密钥缺失时 fail-fast，避免静默降级：</p>
      * <ul>
-     *   <li>{@code XINCHANG} 必须有 SM4 密钥，主算法 = SM4-CBC</li>
+     *   <li>{@code XINCHANG} 必须有 SM4 密钥，主算法 = SM4-GCM（AEAD）</li>
      *   <li>{@code INTERNATIONAL} 必须有 AES 密钥，主算法 = AES-GCM</li>
      * </ul>
-     * <p>两个密钥都提供时，解密支持两种算法的双读。</p>
+     * <p>两个密钥都提供时，解密支持双读（含旧 SM4-CBC 密文）。</p>
      *
      * @param profile 加密辖区 Profile
      * @param sm4Key  SM4 密钥（16 字节）；信创 Profile 必填
@@ -141,12 +142,14 @@ public final class CredentialEncryptor {
      */
     public static CredentialEncryptor fromProfile(CryptoProfile profile, byte[] sm4Key, byte[] aesKey) {
         Objects.requireNonNull(profile, "profile 不可为 null");
-        List<StorageCipher> all = new ArrayList<>(2);
-        StorageCipher gm = null;
+        List<StorageCipher> all = new ArrayList<>(3);
+        StorageCipher gmGcm = null;
         StorageCipher intl = null;
         if (sm4Key != null && sm4Key.length > 0) {
-            gm = new GmStorageCipher(sm4Key.clone());
-            all.add(gm);
+            // 主算法 SM4-GCM（AEAD）；同时保留 SM4-CBC 用于解密旧密文（双读）
+            gmGcm = new GmGcmStorageCipher(sm4Key.clone());
+            all.add(gmGcm);
+            all.add(new GmStorageCipher(sm4Key.clone()));
         }
         if (aesKey != null && aesKey.length > 0) {
             intl = new IntlStorageCipher(aesKey.clone());
@@ -154,11 +157,11 @@ public final class CredentialEncryptor {
         }
         StorageCipher primary = switch (profile) {
             case XINCHANG -> {
-                if (gm == null) {
+                if (gmGcm == null) {
                     throw new CryptoException("信创（xinchang）Profile 需要 SM4 密钥"
                             + "（app.security.encrypt-key / ENCRYPT_KEY，32 位 hex）");
                 }
-                yield gm;
+                yield gmGcm;
             }
             case INTERNATIONAL -> {
                 if (intl == null) {
@@ -230,10 +233,57 @@ public final class CredentialEncryptor {
     /**
      * 当前写入使用的算法标识。
      *
-     * @return 主加密器的算法标识，如 {@code SM4-CBC} / {@code AES-GCM}
+     * @return 主加密器的算法标识，如 {@code SM4-GCM} / {@code AES-GCM}
      */
     public String getAlgorithm() {
         return primary.getAlgorithm();
+    }
+
+    /**
+     * 判断存储值是否已经是「当前主算法」的密文（无需迁移）。
+     *
+     * <p>空值与 null 视为无需迁移。</p>
+     *
+     * @param stored 存储值
+     * @return true 表示已是当前算法密文或空值
+     */
+    public boolean isCurrentAlgorithm(String stored) {
+        if (stored == null || stored.isEmpty()) {
+            return true;
+        }
+        String algorithm = detectAlgorithm(stored);
+        return algorithm != null && algorithm.equals(primary.getAlgorithm());
+    }
+
+    /**
+     * 将存量值幂等重加密为「当前主算法」的密文（永久迁移原语）。
+     *
+     * <p>处理规则：</p>
+     * <ul>
+     *   <li>null/空 → 原样返回</li>
+     *   <li>已是当前主算法密文 → 原样返回（幂等，可重复调用）</li>
+     *   <li>历史**明文**（非密文）→ 直接加密为当前主算法</li>
+     *   <li>旧算法密文（如 AES-GCM / SM4-CBC）→ 解密后用当前主算法重加密（双读迁移）</li>
+     * </ul>
+     *
+     * <p>本方法不在读写热路径上调用；仅由离线迁移任务/显式运维操作调用，
+     * 因此稳态运行时**零额外开销**。</p>
+     *
+     * @param stored 存量存储值
+     * @return 迁移后的存储值（若无需迁移则为原值）
+     * @throws CryptoException 旧密文解密失败（密钥错误/密文损坏/缺少对应密钥）
+     */
+    public String reencrypt(String stored) {
+        if (stored == null || stored.isEmpty()) {
+            return stored;
+        }
+        if (isCurrentAlgorithm(stored)) {
+            return stored;
+        }
+        if (!isEncrypted(stored)) {
+            return encrypt(stored);
+        }
+        return encrypt(decrypt(stored));
     }
 
     /**
