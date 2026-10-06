@@ -32,7 +32,6 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-import time
 from pathlib import Path
 
 import pytest
@@ -76,6 +75,11 @@ def _chart_name(industry: str) -> str:
 def _helm_install(industry: str, namespace: str, repo_root: str) -> tuple:
     """执行 helm upgrade --install（--no-hooks）验证 release 生命周期.
 
+    --create-namespace 原因：集群腿只 apply deploy/k3s/manifests/namespace.yaml（即
+    `shuqing`），行业模板用的 `energy` 名空间没人建，helm 会直接报
+    `create: failed to create: namespaces "energy" not found`（run 37293507802 即此，
+    症状是 1 failed + 3 errors，容易被误读成模板缺陷）。
+
     --no-hooks 原因：post-install 导入 Job 需要 Doris/DolphinScheduler/Superset/
     Keycloak 等外部目标与 importer 镜像，隔离测试环境不具备，Job 无法完成；
     而 helm 对 hook Job 是阻塞等待的（即使不加 --wait，实测 helm 3.14 报
@@ -85,7 +89,10 @@ def _helm_install(industry: str, namespace: str, repo_root: str) -> tuple:
     chart = _chart_dir(industry)
     release = _chart_name(industry)
     code, out, err = _run(
-        ["helm", "upgrade", "--install", release, chart, "-n", namespace, "--no-hooks"],
+        [
+            "helm", "upgrade", "--install", release, chart,
+            "-n", namespace, "--create-namespace", "--no-hooks",
+        ],
         cwd=repo_root, timeout=180,
     )
     return code, out, err
