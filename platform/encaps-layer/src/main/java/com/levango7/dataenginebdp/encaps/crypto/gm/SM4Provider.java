@@ -1,11 +1,7 @@
 package com.levango7.dataenginebdp.encaps.crypto.gm;
 
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM4Engine;
-import org.bouncycastle.crypto.modes.AEADBlockCipher;
-import org.bouncycastle.crypto.modes.GCMBlockCipher;
-import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.security.SecureRandom;
@@ -68,97 +64,6 @@ public class SM4Provider {
         byte[] iv = new byte[BLOCK];
         secureRandom.nextBytes(iv);
         return iv;
-    }
-
-    /**
-     * 生成随机 SM4-GCM IV（12 字节）。
-     *
-     * @return 12 字节随机 IV
-     */
-    public byte[] generateGcmIv() {
-        byte[] iv = new byte[GmAlgorithm.SM4_GCM_IV_LEN];
-        secureRandom.nextBytes(iv);
-        return iv;
-    }
-
-    /**
-     * SM4-GCM 加密（AEAD 认证加密）。
-     *
-     * <p>GB/T 32907 分组密码 + NIST SP 800-38D GCM 模式。输出为 {@code ciphertext || tag}，
-     * 其中 tag 固定 16 字节；GCM 为流式模式，<b>不做 PKCS7 填充</b>。</p>
-     *
-     * @param plaintext 明文，不可为 null
-     * @param key       SM4 密钥（16 字节）
-     * @param iv        IV（必须 12 字节）
-     * @param aad       附加认证数据（不加密但参与完整性认证），可为 null
-     * @return 密文（含 16 字节认证标签）
-     * @throws CryptoException 参数不合法或加密失败
-     */
-    public byte[] encryptGcm(byte[] plaintext, byte[] key, byte[] iv, byte[] aad) {
-        return processGcm(plaintext, key, iv, aad, true);
-    }
-
-    /**
-     * SM4-GCM 解密（AEAD 认证解密）。
-     *
-     * <p>认证失败（密钥错误、密文/标签被篡改、AAD 不匹配）时抛 {@link CryptoException}，
-     * 绝不返回未认证明文。</p>
-     *
-     * @param ciphertext 密文（含 16 字节认证标签）
-     * @param key        SM4 密钥（16 字节）
-     * @param iv         IV（必须 12 字节，与加密时一致）
-     * @param aad        附加认证数据（必须与加密时一致），可为 null
-     * @return 明文
-     * @throws CryptoException 参数不合法或认证/解密失败
-     */
-    public byte[] decryptGcm(byte[] ciphertext, byte[] key, byte[] iv, byte[] aad) {
-        return processGcm(ciphertext, key, iv, aad, false);
-    }
-
-    /**
-     * SM4-GCM 加解密核心处理。
-     *
-     * @param data    输入（明文或密文）
-     * @param key     SM4 密钥（16 字节）
-     * @param iv      IV（12 字节）
-     * @param aad     附加认证数据，可为 null
-     * @param encrypt true=加密，false=解密
-     * @return 输出（密文含标签 / 明文）
-     */
-    private byte[] processGcm(byte[] data, byte[] key, byte[] iv, byte[] aad, boolean encrypt) {
-        if (data == null) {
-            throw new CryptoException("data must not be null");
-        }
-        if (key == null || key.length != GmAlgorithm.SM4_KEY_LEN) {
-            throw new CryptoException("SM4 key must be 16 bytes, got: "
-                    + (key == null ? "null" : key.length));
-        }
-        if (iv == null || iv.length != GmAlgorithm.SM4_GCM_IV_LEN) {
-            throw new CryptoException("SM4 GCM iv must be " + GmAlgorithm.SM4_GCM_IV_LEN
-                    + " bytes, got: " + (iv == null ? "null" : iv.length));
-        }
-        try {
-            AEADBlockCipher cipher = new GCMBlockCipher(new SM4Engine());
-            AEADParameters params = new AEADParameters(
-                    new KeyParameter(key), GmAlgorithm.SM4_GCM_TAG_LEN * 8, iv.clone(), aad);
-            cipher.init(encrypt, params);
-            byte[] out = new byte[cipher.getOutputSize(data.length)];
-            int len = cipher.processBytes(data, 0, data.length, out, 0);
-            len += cipher.doFinal(out, len);
-            if (len == out.length) {
-                return out;
-            }
-            byte[] trimmed = new byte[len];
-            System.arraycopy(out, 0, trimmed, 0, len);
-            return trimmed;
-        } catch (InvalidCipherTextException e) {
-            throw new CryptoException("SM4-GCM authentication failed "
-                    + "(wrong key or tampered ciphertext)", e);
-        } catch (CryptoException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CryptoException("SM4-GCM " + (encrypt ? "encrypt" : "decrypt") + " failed", e);
-        }
     }
 
     /**
