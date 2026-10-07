@@ -124,7 +124,7 @@ public class QuotaService {
      * @param tenantId 租户 ID；为 null 时返回全部
      * @return Quota 列表（不会返回 null）
      */
-    public List<Quota> listQuotas(Long tenantId) {
+    public List<Quota> listQuotas(String tenantId) {
         if (tenantId == null) {
             return quotaRepository.findAll();
         }
@@ -138,7 +138,7 @@ public class QuotaService {
      * @param workspaceId Workspace ID（可选）
      * @return Quota 列表
      */
-    public List<Quota> listQuotas(Long tenantId, Long workspaceId) {
+    public List<Quota> listQuotas(String tenantId, Long workspaceId) {
         if (workspaceId != null) {
             return quotaRepository.findAllByWorkspaceId(workspaceId);
         }

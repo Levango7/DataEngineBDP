@@ -73,7 +73,7 @@ class K8sQuotaTranslatorTest {
         Quota q = new Quota();
         q.setId(1L);
         q.setWorkspaceId(10L);
-        q.setTenantId(100L);
+        q.setTenantId("100");
         q.setCpuLimit("10");
         q.setMemoryLimit("20Gi");
         q.setStorageLimit("100Gi");

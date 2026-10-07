@@ -45,7 +45,8 @@ public class Quota {
 
     /** 所属租户 ID，必填（用于跨 Workspace 聚合查询） */
     @NotNull(message = "tenantId must not be null")
-    private Long tenantId;
+    /** 租户业务键（字符串）；与 tenants.name 同口径，非数据库自增主键。 */
+    private String tenantId;
 
     /* ------------------------------ ResourceQuota 组 ------------------------------ */
 

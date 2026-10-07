@@ -73,7 +73,7 @@ public class AdminController {
     /** 配额数（tenantId 容错：非数字返回 0）。 */
     private int quotaCount(String tenantId) {
         try {
-            return quotaRepository.findByTenantId(Long.parseLong(tenantId)).size();
+            return quotaRepository.findByTenantId(tenantId).size();
         } catch (NumberFormatException e) {
             return 0;
         }

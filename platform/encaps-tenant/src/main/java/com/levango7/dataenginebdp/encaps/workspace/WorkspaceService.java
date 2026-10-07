@@ -137,7 +137,7 @@ public class WorkspaceService {
      * @param tenantId 租户 ID；为 null 时返回全部
      * @return Workspace 列表（不会返回 null）
      */
-    public List<Workspace> listWorkspaces(Long tenantId) {
+    public List<Workspace> listWorkspaces(String tenantId) {
         if (tenantId == null) {
             return workspaceRepository.findAll();
         }
@@ -212,6 +212,8 @@ public class WorkspaceService {
      * @return K8s Namespace 名称
      */
     private String generateNamespaceName(Workspace ws) {
+        // 租户键会进 Namespace 名，先按 K8s 形态校验（台账 #56 方案③放开类型后新增的约束面）
+        String tenantKey = K8sTenantKeys.requireSafe(ws.getTenantId());
         String slug = ws.getName() == null ? "" : ws.getName().toLowerCase()
                 .replaceAll("[^a-z0-9-]", "-")
                 .replaceAll("-+", "-")
@@ -222,6 +224,6 @@ public class WorkspaceService {
         if (slug.isEmpty()) {
             slug = "ws";
         }
-        return "ws-" + ws.getTenantId() + "-" + slug;
+        return "ws-" + tenantKey + "-" + slug;
     }
 }

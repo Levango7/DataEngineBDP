@@ -52,7 +52,7 @@ class WorkspaceServiceTest {
     private Workspace sampleCreateRequest() {
         Workspace ws = new Workspace();
         ws.setName("test-ws");
-        ws.setTenantId(100L);
+        ws.setTenantId("100");
         ws.setDescription("test workspace");
         return ws;
     }
@@ -146,7 +146,7 @@ class WorkspaceServiceTest {
         Workspace existing = new Workspace();
         existing.setId(1L);
         existing.setName("test-ws");
-        existing.setTenantId(100L);
+        existing.setTenantId("100");
         existing.setNamespace("ws-100-test-ws");
         existing.setStatus(Workspace.WorkspaceStatus.ACTIVE);
 
@@ -168,7 +168,7 @@ class WorkspaceServiceTest {
         Workspace existing = new Workspace();
         existing.setId(1L);
         existing.setName("test-ws");
-        existing.setTenantId(100L);
+        existing.setTenantId("100");
         existing.setNamespace("ws-100-test-ws");
         existing.setStatus(Workspace.WorkspaceStatus.ACTIVE);
 
@@ -221,15 +221,15 @@ class WorkspaceServiceTest {
         Workspace w1 = new Workspace();
         w1.setId(1L);
         w1.setName("w1");
-        w1.setTenantId(100L);
+        w1.setTenantId("100");
 
-        when(workspaceRepository.findByTenantId(100L)).thenReturn(List.of(w1));
+        when(workspaceRepository.findByTenantId("100")).thenReturn(List.of(w1));
 
-        List<Workspace> result = workspaceService.listWorkspaces(100L);
+        List<Workspace> result = workspaceService.listWorkspaces("100");
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTenantId()).isEqualTo(100L);
-        verify(workspaceRepository).findByTenantId(100L);
+        assertThat(result.get(0).getTenantId()).isEqualTo("100");
+        verify(workspaceRepository).findByTenantId("100");
         verify(workspaceRepository, never()).findAll();
     }
 
@@ -265,7 +265,7 @@ class WorkspaceServiceTest {
         existing.setId(1L);
         existing.setName("old-name");
         existing.setDescription("old-desc");
-        existing.setTenantId(100L);
+        existing.setTenantId("100");
         existing.setNamespace("ws-100-old");
         existing.setResourceQuota("cpu=1");
         existing.setNetworkPolicy("deny-all");
@@ -288,7 +288,7 @@ class WorkspaceServiceTest {
         assertThat(updated.getResourceQuota()).isEqualTo("cpu=8,memory=16Gi");
         // namespace、tenantId 不变
         assertThat(updated.getNamespace()).isEqualTo("ws-100-old");
-        assertThat(updated.getTenantId()).isEqualTo(100L);
+        assertThat(updated.getTenantId()).isEqualTo("100");
         // createdAt 保留
         assertThat(updated.getCreatedAt()).isEqualTo(LocalDateTime.of(2024, 1, 1, 0, 0));
         assertThat(updated.getUpdatedAt()).isNotNull();

@@ -21,7 +21,7 @@ public interface QuotaRepository extends JpaRepository<Quota, Long> {
      * @param tenantId 租户 ID
      * @return 该租户下的 Quota 列表（不会返回 null）
      */
-    List<Quota> findByTenantId(Long tenantId);
+    List<Quota> findByTenantId(String tenantId);
 
     /**
      * 按 Workspace ID 查询 Quota（同一 Workspace 至多一条活跃 Quota）。

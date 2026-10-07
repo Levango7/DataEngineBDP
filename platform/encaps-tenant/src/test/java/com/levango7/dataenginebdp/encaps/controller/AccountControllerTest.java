@@ -44,7 +44,7 @@ class AccountControllerTest {
         Quota q = new Quota();
         q.setId(1L);
         q.setWorkspaceId(1L);
-        q.setTenantId(100L);
+        q.setTenantId("100");
         q.setCpuLimit(cpu);
         q.setMemoryLimit("16Gi");
         q.setStorageLimit("100Gi");
@@ -54,7 +54,7 @@ class AccountControllerTest {
 
     @Test
     void plan_returnsFreeWhenNoQuotas() {
-        when(quotaRepository.findByTenantId(100L)).thenReturn(List.of());
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of());
         var resp = controller().plan();
         Map<String, Object> body = resp.getBody();
         assertThat(body.get("plan")).isEqualTo("free");
@@ -63,7 +63,7 @@ class AccountControllerTest {
 
     @Test
     void plan_infersProWhenCpuAbove4() {
-        when(quotaRepository.findByTenantId(100L)).thenReturn(List.of(sampleQuota("8")));
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(sampleQuota("8")));
         var resp = controller().plan();
         assertThat(resp.getBody().get("plan")).isEqualTo("pro");
         assertThat(((java.util.List<?>) resp.getBody().get("quotas"))).hasSize(1);
@@ -71,17 +71,36 @@ class AccountControllerTest {
 
     @Test
     void plan_infersEnterpriseWhenCpuAbove32() {
-        when(quotaRepository.findByTenantId(100L)).thenReturn(List.of(sampleQuota("40")));
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(sampleQuota("40")));
         var resp = controller().plan();
         assertThat(resp.getBody().get("plan")).isEqualTo("enterprise");
     }
 
     @Test
     void billing_returnsMonthlyFee() {
-        when(quotaRepository.findByTenantId(100L)).thenReturn(List.of(sampleQuota("8")));
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(sampleQuota("8")));
         var resp = controller().billing();
         Map<String, Object> body = resp.getBody();
         assertThat(((Number) body.get("totalCost")).doubleValue()).isEqualTo(1999.0);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void billing_itemKeysMatchFrontendContract() {
+        // 前端 frontend/src/api/account.ts 的 BillingItem 声明是 id/name/usage/cost，
+        // 而 Account.vue 直接 row.cost.toLocaleString()。键名一旦错位，整页会被
+        // ErrorBoundary 换成"页面渲染出错"（台账 #56：批次 B 让 /account 第一次拿到数据后才暴露）。
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(sampleQuota("8")));
+        Map<String, Object> body = controller().billing().getBody();
+        List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+        assertThat(items).hasSize(1);
+        Map<String, Object> item = items.get(0);
+        assertThat(item).containsOnlyKeys("id", "name", "usage", "cost");
+        assertThat(item.get("id")).isInstanceOf(String.class);
+        assertThat(item.get("name")).isInstanceOf(String.class);
+        assertThat(item.get("usage")).isInstanceOf(String.class);
+        assertThat(((Number) item.get("cost")).doubleValue())
+                .isEqualTo(((Number) body.get("totalCost")).doubleValue());
     }
 
     @Test

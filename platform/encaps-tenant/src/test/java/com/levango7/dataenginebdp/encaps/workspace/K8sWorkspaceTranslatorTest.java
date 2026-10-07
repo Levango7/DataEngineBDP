@@ -68,7 +68,7 @@ class K8sWorkspaceTranslatorTest {
         Workspace ws = new Workspace();
         ws.setId(1L);
         ws.setName("test-ws");
-        ws.setTenantId(100L);
+        ws.setTenantId("100");
         ws.setNamespace("ws-100-test-ws");
         ws.setResourceQuota("cpu=4,memory=8Gi");
         return ws;

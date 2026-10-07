@@ -41,7 +41,7 @@ class WorkspaceServiceMockModeTest {
     private Workspace sampleRequest() {
         Workspace ws = new Workspace();
         ws.setName("mock-ws");
-        ws.setTenantId(1L);
+        ws.setTenantId("1");
         return ws;
     }
 

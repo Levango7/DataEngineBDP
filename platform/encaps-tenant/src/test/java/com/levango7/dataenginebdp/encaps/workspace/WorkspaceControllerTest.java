@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -67,7 +68,7 @@ class WorkspaceControllerTest {
         Workspace ws = new Workspace();
         ws.setId(id);
         ws.setName(name);
-        ws.setTenantId(100L);
+        ws.setTenantId("100");
         ws.setNamespace("ws-100-" + name);
         ws.setStatus(Workspace.WorkspaceStatus.ACTIVE);
         ws.setCreatedAt(LocalDateTime.now());
@@ -80,7 +81,7 @@ class WorkspaceControllerTest {
     void create_shouldReturn201() throws Exception {
         Workspace input = new Workspace();
         input.setName("new-ws");
-        input.setTenantId(100L);
+        input.setTenantId("100");
 
         Workspace saved = sampleWorkspace(1L, "new-ws");
 
@@ -101,7 +102,7 @@ class WorkspaceControllerTest {
         Workspace w1 = sampleWorkspace(1L, "ws-1");
         Workspace w2 = sampleWorkspace(2L, "ws-2");
 
-        when(workspaceService.listWorkspaces(100L)).thenReturn(List.of(w1, w2));
+        when(workspaceService.listWorkspaces("100")).thenReturn(List.of(w1, w2));
 
         // 分页契约：返回 {list,total,page,size}（对齐前端 PagedResult）
         mockMvc.perform(get("/api/v1/workspaces"))
@@ -116,7 +117,7 @@ class WorkspaceControllerTest {
     void list_withTenantId_shouldReturn200() throws Exception {
         Workspace w1 = sampleWorkspace(1L, "ws-1");
 
-        when(workspaceService.listWorkspaces(100L)).thenReturn(List.of(w1));
+        when(workspaceService.listWorkspaces("100")).thenReturn(List.of(w1));
 
         mockMvc.perform(get("/api/v1/workspaces").param("tenantId", "100"))
                 .andExpect(status().isOk())
@@ -151,7 +152,7 @@ class WorkspaceControllerTest {
     void update_existingId_shouldReturn200() throws Exception {
         Workspace input = new Workspace();
         input.setName("updated-name");
-        input.setTenantId(100L);
+        input.setTenantId("100");
 
         Workspace updated = sampleWorkspace(1L, "updated-name");
 
@@ -171,7 +172,7 @@ class WorkspaceControllerTest {
     void update_nonExistingId_shouldReturn404() throws Exception {
         Workspace input = new Workspace();
         input.setName("some-name");
-        input.setTenantId(100L);
+        input.setTenantId("100");
 
         // 生产先按 (id, tenantId) 校验归属，不存在直接 404，不再走到 update
         when(workspaceService.getWorkspace(999L)).thenReturn(Optional.empty());
@@ -235,19 +236,23 @@ class WorkspaceControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/workspaces/{id} — 租户标识非数字时同样 403，不再回 401（台账 #56 的错误语义统一）")
-    void get_nonNumericTenant_shouldReturn403() throws Exception {
+    @DisplayName("GET /api/v1/workspaces/all — 非数字租户业务键是合法键（台账 #56 方案③）")
+    void listAll_nonNumericTenantKey_isAccepted() throws Exception {
+        // 用列表端点断言"键被接受"：详情端点在 mock 无数据时是 404，无法区分"键合法但没数据"与"键被拒"。
         TenantContext.setTenantId("platform-admin");
+        when(workspaceService.listWorkspaces("platform-admin")).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/workspaces/1"))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/v1/workspaces/all"))
+                .andExpect(status().isOk());
+
+        verify(workspaceService).listWorkspaces("platform-admin");
     }
 
     @Test
     @DisplayName("GET /api/v1/workspaces/{id} — 跨租户访问返回 404（R8 租户隔离）")
     void get_otherTenantWorkspace_shouldReturn404() throws Exception {
         Workspace other = sampleWorkspace(1L, "other-tenant-ws");
-        other.setTenantId(999L);
+        other.setTenantId("999");
 
         when(workspaceService.getWorkspace(1L)).thenReturn(Optional.of(other));
 

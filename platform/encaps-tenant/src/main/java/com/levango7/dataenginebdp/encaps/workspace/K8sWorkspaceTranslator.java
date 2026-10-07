@@ -140,7 +140,7 @@ public class K8sWorkspaceTranslator {
      */
     public NetworkPolicy createNetworkPolicy(Workspace workspace) {
         String ns = workspace.getNamespace();
-        String tenantId = String.valueOf(workspace.getTenantId());
+        String tenantId = K8sTenantKeys.requireSafe(workspace.getTenantId());
         log.info("Creating NetworkPolicy in Namespace {} for tenant {}", ns, tenantId);
         try {
             // 1) 默认拒绝全部入站
@@ -198,7 +198,7 @@ public class K8sWorkspaceTranslator {
      */
     public RoleBinding createRBAC(Workspace workspace) {
         String ns = workspace.getNamespace();
-        String tenantId = String.valueOf(workspace.getTenantId());
+        String tenantId = K8sTenantKeys.requireSafe(workspace.getTenantId());
         String groupName = "tenant-" + tenantId + "-admins";
         log.info("Creating RoleBinding in Namespace {} for group {}", ns, groupName);
         try {

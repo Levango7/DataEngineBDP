@@ -59,31 +59,20 @@ public class WorkspaceController {
     }
 
     /**
-     * 取当前请求的租户主键。
+     * 取当前请求的租户业务键。
      *
-     * <p>失败一律按"拒绝访问"（403）表达，不再回 401：请求能走到这里说明认证已通过，
-     * 只是租户标识不可用。缺失用 {@link MissingTenantContextException}、非数字用
-     * {@code ResponseStatusException(FORBIDDEN)}，与 AccountController.tenantIdLong() 同口径
-     * （台账 #56：此前这两个控制器回 401、AccountController 回 403）。</p>
+     * <p>租户标识在本平台是字符串业务键（全仓 39 张带 tenant_id 的表里 35 张是 varchar），
+     * 因此这里不再要求它能 parse 成 Long；缺失仍是拒绝访问（403），不是未认证（401）。</p>
      *
-     * @return 当前请求的数字租户主键
+     * @return 当前请求的租户业务键
      * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
-     * @throws ResponseStatusException(403) 若租户 ID 无法映射为 Long 型主键
      */
-    private Long currentTenantIdLong() {
+    private String currentTenantKey() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
             throw new MissingTenantContextException();
         }
-        try {
-            return Long.parseLong(tid);
-        } catch (NumberFormatException e) {
-            // 与 AccountController.tenantIdLong() 同一口径：认证已通过但租户标识无法映射到本域主键，
-            // 属"拒绝访问"（403），不是"未认证"（401）——此前两处回 401、一处回 403，
-            // 客户端按状态码分支会被误导（台账 #56）。不降级到 0L（R10 安全修复）。
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "租户标识无法映射到租户主键，拒绝访问该资源");
-        }
+        return tid;
     }
 
     /**
@@ -98,7 +87,7 @@ public class WorkspaceController {
     @AuditLog(action = "CREATE_WORKSPACE", resource = "workspace")
     @PostMapping
     public ResponseEntity<Workspace> create(@Valid @RequestBody Workspace workspace) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 注入 JWT 中的 tenantId，忽略请求体中的 tenantId
         workspace.setTenantId(tenantId);
         Workspace created = workspaceService.createWorkspace(workspace);
@@ -123,7 +112,7 @@ public class WorkspaceController {
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 忽略请求参数中的 tenantId，强制使用 TenantContext 中的 tenantId
         List<Workspace> all = workspaceService.listWorkspaces(tenantId);
         int total = all.size();
@@ -154,7 +143,7 @@ public class WorkspaceController {
     @Operation(summary = "列出全部 Workspace（不分页，租户隔离）")
     @GetMapping("/all")
     public ResponseEntity<List<Workspace>> listAll() {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         return ResponseEntity.ok(workspaceService.listWorkspaces(tenantId));
     }
 
@@ -169,7 +158,7 @@ public class WorkspaceController {
     @Operation(summary = "获取单个 Workspace 详情（租户隔离）")
     @GetMapping("/{id}")
     public ResponseEntity<Workspace> get(@PathVariable Long id) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         return workspaceService.getWorkspace(id)
                 .filter(ws -> tenantId.equals(ws.getTenantId()))
                 .map(ResponseEntity::ok)
@@ -190,7 +179,7 @@ public class WorkspaceController {
     @PutMapping("/{id}")
     public ResponseEntity<Workspace> update(@PathVariable Long id,
                                             @Valid @RequestBody Workspace workspace) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 先校验存在且属于当前租户
         return workspaceService.getWorkspace(id)
                 .filter(existing -> tenantId.equals(existing.getTenantId()))
@@ -212,7 +201,7 @@ public class WorkspaceController {
     @AuditLog(action = "DELETE_WORKSPACE", resource = "workspace")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 先校验存在且属于当前租户
         boolean owned = workspaceService.getWorkspace(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))
@@ -237,7 +226,7 @@ public class WorkspaceController {
     @Operation(summary = "查询 Workspace 对应 K8s Namespace 的实时状态（租户隔离）")
     @GetMapping("/{id}/status")
     public ResponseEntity<Map<String, String>> status(@PathVariable Long id) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 先校验存在且属于当前租户
         boolean owned = workspaceService.getWorkspace(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))
