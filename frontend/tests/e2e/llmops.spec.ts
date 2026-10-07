@@ -33,16 +33,19 @@ test.describe('LLMOps（/llmops）', () => {
     await expect(btn.first()).toBeVisible({ timeout: 10_000 })
   })
 
+  // 后端 LLMOpsController 只挂 /models、/eval-metrics、/finetune、/inference-services
+  // 等子路径（@RequestMapping("/api/v1/llmops") 上没有根映射），打裸前缀必然 404
+  // ——那是后端的正确行为，不是服务缺陷。
   test('LLMOps API 返回 200（Bearer 认证）', async ({ request }) => {
     const token = await getApiToken(request)
-    const resp = await request.get(`${apiBase}/llmops`, {
+    const resp = await request.get(`${apiBase}/llmops/inference-services`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     expect(resp.status()).toBe(200)
   })
 
   test('LLMOps API 未认证返回 401', async ({ request }) => {
-    const resp = await request.get(`${apiBase}/llmops`)
+    const resp = await request.get(`${apiBase}/llmops/inference-services`)
     expect(resp.status()).toBe(401)
   })
 })

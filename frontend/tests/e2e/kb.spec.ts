@@ -15,7 +15,9 @@ test.describe('知识工程（/kb）', () => {
 
   test('知识工程页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('知识工程')
-    await expect(page.locator('.sub')).toContainText('企业级知识底座')
+    // 页面已迁到 @/components/ui 的 PageHeader，副标题类名是 .page-header__subtitle；
+    // 旧的 .sub 在该页已不存在（真实浏览器实测 .sub 命中 0）
+    await expect(page.locator('.page-header__subtitle')).toContainText('企业级知识底座')
     await expect(page.locator('.card').first()).toBeVisible({ timeout: 15_000 })
   })
 
