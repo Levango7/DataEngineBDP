@@ -26,6 +26,11 @@ test.describe('运营后台（/admin）', () => {
   })
 
   test('KPI 四卡片存在', async ({ page }) => {
+    // 先等本页渲染完成：/admin 的 h1 唯一（上一页 Dashboard 的 h1 是"工作台"）。
+    // 否则切页过渡（DefaultLayout 的 <transition mode="out-in">）期间，上一页 Dashboard
+    // 残留的 .grid.g4 会被下面的选择器命中——实测恒计数为 1（= Dashboard 在 overviewError
+    // 态下唯一的那张 .card 告警卡），使断言取到上一页而非本页。
+    await expect(page.locator('h1')).toContainText('运营后台', { timeout: 15_000 })
     // KPI 四卡片容器 .grid.g4 可见
     await expect(page.locator('.grid.g4')).toBeVisible({ timeout: 15_000 })
     // 四个 .card（租户总数/集群总数/月度营收/告警数）
