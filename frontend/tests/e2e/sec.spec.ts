@@ -34,16 +34,18 @@ test.describe('安全脱敏（/sec）', () => {
     })
   })
 
+  // 后端 SecController 只挂 /policies 与 /approvals 两类子路径（@RequestMapping("/api/v1/sec")
+  // 上没有根映射），打裸前缀必然 404——那是后端的正确行为，不是服务缺陷。
   test('安全策略 API 返回 200（Bearer 认证）', async ({ request }) => {
     const token = await getApiToken(request)
-    const resp = await request.get(`${apiBase}/sec`, {
+    const resp = await request.get(`${apiBase}/sec/policies`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     expect(resp.status()).toBe(200)
   })
 
   test('安全策略 API 未认证返回 401', async ({ request }) => {
-    const resp = await request.get(`${apiBase}/sec`)
+    const resp = await request.get(`${apiBase}/sec/policies`)
     expect(resp.status()).toBe(401)
   })
 })
