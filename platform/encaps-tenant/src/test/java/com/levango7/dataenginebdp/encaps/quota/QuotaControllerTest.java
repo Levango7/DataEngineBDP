@@ -23,6 +23,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -69,7 +70,7 @@ class QuotaControllerTest {
         Quota q = new Quota();
         q.setId(id);
         q.setWorkspaceId(10L);
-        q.setTenantId(100L);
+        q.setTenantId("100");
         q.setCpuLimit("10");
         q.setMemoryLimit("20Gi");
         q.setStorageLimit("100Gi");
@@ -93,7 +94,7 @@ class QuotaControllerTest {
     void setQuota_shouldReturn201() throws Exception {
         Quota input = new Quota();
         input.setWorkspaceId(10L);
-        input.setTenantId(100L);
+        input.setTenantId("100");
         input.setCpuLimit("10");
         input.setMemoryLimit("20Gi");
         input.setStorageLimit("100Gi");
@@ -119,7 +120,7 @@ class QuotaControllerTest {
     void setQuota_duplicate_shouldReturn409() throws Exception {
         Quota input = new Quota();
         input.setWorkspaceId(10L);
-        input.setTenantId(100L);
+        input.setTenantId("100");
         input.setCpuLimit("10");
         input.setMemoryLimit("20Gi");
         input.setStorageLimit("100Gi");
@@ -146,7 +147,7 @@ class QuotaControllerTest {
         Quota q2 = sampleQuota(2L);
         q2.setWorkspaceId(11L);
 
-        when(quotaService.listQuotas(100L, null)).thenReturn(List.of(q1, q2));
+        when(quotaService.listQuotas("100", null)).thenReturn(List.of(q1, q2));
 
         mockMvc.perform(get("/api/v1/quotas"))
                 .andExpect(status().isOk())
@@ -158,7 +159,7 @@ class QuotaControllerTest {
     void list_withTenantId_shouldReturn200() throws Exception {
         Quota q1 = sampleQuota(1L);
 
-        when(quotaService.listQuotas(100L, null)).thenReturn(List.of(q1));
+        when(quotaService.listQuotas("100", null)).thenReturn(List.of(q1));
 
         mockMvc.perform(get("/api/v1/quotas").param("tenantId", "100"))
                 .andExpect(status().isOk())
@@ -171,7 +172,7 @@ class QuotaControllerTest {
     void list_withWorkspaceId_shouldReturn200() throws Exception {
         Quota q1 = sampleQuota(1L);
 
-        when(quotaService.listQuotas(100L, 10L)).thenReturn(List.of(q1));
+        when(quotaService.listQuotas("100", 10L)).thenReturn(List.of(q1));
 
         mockMvc.perform(get("/api/v1/quotas").param("workspaceId", "10"))
                 .andExpect(status().isOk())
@@ -209,7 +210,7 @@ class QuotaControllerTest {
     void update_existingId_shouldReturn200() throws Exception {
         Quota input = new Quota();
         input.setWorkspaceId(10L);
-        input.setTenantId(100L);
+        input.setTenantId("100");
         input.setCpuLimit("20");
         input.setMemoryLimit("40Gi");
         input.setStorageLimit("200Gi");
@@ -236,7 +237,7 @@ class QuotaControllerTest {
     void update_nonExistingId_shouldReturn404() throws Exception {
         Quota input = new Quota();
         input.setWorkspaceId(10L);
-        input.setTenantId(100L);
+        input.setTenantId("100");
         input.setCpuLimit("20");
         input.setMemoryLimit("40Gi");
         input.setStorageLimit("200Gi");
@@ -303,19 +304,23 @@ class QuotaControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/quotas — 租户标识非数字时同样 403，不再回 401（台账 #56 的错误语义统一）")
-    void list_nonNumericTenant_shouldReturn403() throws Exception {
+    @DisplayName("GET /api/v1/quotas — 非数字租户业务键是合法键，不再被强制 parseLong（台账 #56 方案③）")
+    void list_nonNumericTenantKey_isAccepted() throws Exception {
+        // 批次 A 时这里断言 403（同一前提两种状态码）；批次 B 把 tenant_id 定为字符串业务键后，
+        // "platform-admin" 这类键就是正常输入 —— 这条断言即该语义变更的回归位。
         TenantContext.setTenantId("platform-admin");
 
         mockMvc.perform(get("/api/v1/quotas"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
+
+        verify(quotaService).listQuotas("platform-admin", null);
     }
 
     @Test
     @DisplayName("GET /api/v1/quotas/{id} — 跨租户访问返回 404（R8 租户隔离）")
     void get_otherTenantQuota_shouldReturn404() throws Exception {
         Quota other = sampleQuota(1L);
-        other.setTenantId(999L);
+        other.setTenantId("999");
 
         when(quotaService.getQuota(1L)).thenReturn(Optional.of(other));
 

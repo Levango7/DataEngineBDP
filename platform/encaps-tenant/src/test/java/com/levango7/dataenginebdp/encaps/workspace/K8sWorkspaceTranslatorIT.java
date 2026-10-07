@@ -51,7 +51,7 @@ class K8sWorkspaceTranslatorIT {
         ws.setId(888L);
         ws.setName("it-ws");
         ws.setNamespace(NS);
-        ws.setTenantId(999L);
+        ws.setTenantId("999");
 
         translator.createNamespace(ws);
         translator.createNetworkPolicy(ws);

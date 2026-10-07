@@ -20,5 +20,5 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
      * @param tenantId 租户 ID
      * @return 该租户下的 Workspace 列表（不会返回 null）
      */
-    List<Workspace> findByTenantId(Long tenantId);
+    List<Workspace> findByTenantId(String tenantId);
 }

@@ -64,31 +64,20 @@ public class QuotaController {
     }
 
     /**
-     * 取当前请求的租户主键。
+     * 取当前请求的租户业务键。
      *
-     * <p>失败一律按"拒绝访问"（403）表达，不再回 401：请求能走到这里说明认证已通过，
-     * 只是租户标识不可用。缺失用 {@link MissingTenantContextException}、非数字用
-     * {@code ResponseStatusException(FORBIDDEN)}，与 AccountController.tenantIdLong() 同口径
-     * （台账 #56：此前这两个控制器回 401、AccountController 回 403）。</p>
+     * <p>租户标识在本平台是字符串业务键（全仓 39 张带 tenant_id 的表里 35 张是 varchar），
+     * 因此这里不再要求它能 parse 成 Long；缺失仍是拒绝访问（403），不是未认证（401）。</p>
      *
-     * @return 当前请求的数字租户主键
+     * @return 当前请求的租户业务键
      * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
-     * @throws ResponseStatusException(403) 若租户 ID 无法映射为 Long 型主键
      */
-    private Long currentTenantIdLong() {
+    private String currentTenantKey() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
             throw new MissingTenantContextException();
         }
-        try {
-            return Long.parseLong(tid);
-        } catch (NumberFormatException e) {
-            // 与 AccountController.tenantIdLong() 同一口径：认证已通过但租户标识无法映射到本域主键，
-            // 属"拒绝访问"（403），不是"未认证"（401）——此前两处回 401、一处回 403，
-            // 客户端按状态码分支会被误导（台账 #56）。不降级到 0L（R10 安全修复）。
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "租户标识无法映射到租户主键，拒绝访问该资源");
-        }
+        return tid;
     }
 
     /**
@@ -102,7 +91,7 @@ public class QuotaController {
     @Operation(summary = "设置 Quota")
     @PostMapping
     public ResponseEntity<Quota> setQuota(@Valid @RequestBody Quota quota) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 注入 JWT 中的 tenantId，忽略请求体中的 tenantId
         quota.setTenantId(tenantId);
         Quota created = quotaService.setQuota(quota);
@@ -121,7 +110,7 @@ public class QuotaController {
     @GetMapping
     public ResponseEntity<List<Quota>> list(
             @RequestParam(required = false) Long workspaceId) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 忽略请求参数中的 tenantId，强制使用 TenantContext 中的 tenantId
         return ResponseEntity.ok(quotaService.listQuotas(tenantId, workspaceId));
     }
@@ -137,7 +126,7 @@ public class QuotaController {
     @Operation(summary = "获取单个 Quota 详情（租户隔离）")
     @GetMapping("/{id}")
     public ResponseEntity<Quota> get(@PathVariable Long id) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         return quotaService.getQuota(id)
                 .filter(q -> tenantId.equals(q.getTenantId()))
                 .map(ResponseEntity::ok)
@@ -157,7 +146,7 @@ public class QuotaController {
     @PutMapping("/{id}")
     public ResponseEntity<Quota> update(@PathVariable Long id,
                                         @Valid @RequestBody Quota quota) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 先校验存在且属于当前租户
         return quotaService.getQuota(id)
                 .filter(existing -> tenantId.equals(existing.getTenantId()))
@@ -178,7 +167,7 @@ public class QuotaController {
     @Operation(summary = "删除配额（租户隔离）")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 先校验存在且属于当前租户
         boolean owned = quotaService.getQuota(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))
@@ -203,7 +192,7 @@ public class QuotaController {
     @Operation(summary = "查询 Workspace 当前资源用量（已用 / 配额，租户隔离）")
     @GetMapping("/workspace/{workspaceId}/usage")
     public ResponseEntity<Map<String, Map<String, String>>> usage(@PathVariable Long workspaceId) {
-        Long tenantId = currentTenantIdLong();
+        String tenantId = currentTenantKey();
         // 校验该 workspace 的 quota 属于当前租户
         boolean owned = quotaService.getQuotaByWorkspace(workspaceId)
                 .map(q -> tenantId.equals(q.getTenantId()))

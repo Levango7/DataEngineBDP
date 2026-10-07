@@ -45,7 +45,7 @@ class QuotaServiceTest {
     private Quota sampleSetRequest() {
         Quota q = new Quota();
         q.setWorkspaceId(10L);
-        q.setTenantId(100L);
+        q.setTenantId("100");
         q.setCpuLimit("10");
         q.setMemoryLimit("20Gi");
         q.setStorageLimit("100Gi");
@@ -132,7 +132,7 @@ class QuotaServiceTest {
     void setQuota_missingFields_shouldApplyDefaults() {
         Quota req = new Quota();
         req.setWorkspaceId(10L);
-        req.setTenantId(100L);
+        req.setTenantId("100");
         // 不设置任何配额字段
 
         when(quotaRepository.findByWorkspaceId(10L)).thenReturn(Optional.empty());
@@ -205,12 +205,12 @@ class QuotaServiceTest {
     @DisplayName("listQuotas — 指定 tenantId 时按租户过滤")
     void listQuotas_withTenantId_shouldFilter() {
         Quota q1 = sampleExistingQuota();
-        when(quotaRepository.findByTenantId(100L)).thenReturn(List.of(q1));
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(q1));
 
-        List<Quota> result = quotaService.listQuotas(100L);
+        List<Quota> result = quotaService.listQuotas("100");
 
         assertThat(result).hasSize(1);
-        verify(quotaRepository).findByTenantId(100L);
+        verify(quotaRepository).findByTenantId("100");
     }
 
     @Test
@@ -219,7 +219,7 @@ class QuotaServiceTest {
         Quota q1 = sampleExistingQuota();
         when(quotaRepository.findAllByWorkspaceId(10L)).thenReturn(List.of(q1));
 
-        List<Quota> result = quotaService.listQuotas(100L, 10L);
+        List<Quota> result = quotaService.listQuotas("100", 10L);
 
         assertThat(result).hasSize(1);
         verify(quotaRepository).findAllByWorkspaceId(10L);

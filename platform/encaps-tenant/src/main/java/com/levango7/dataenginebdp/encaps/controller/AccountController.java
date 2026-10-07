@@ -49,7 +49,7 @@ public class AccountController {
     @GetMapping("/plan")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> plan() {
-        Long tenantId = tenantIdLong();
+        String tenantId = tenantKey();
         List<Quota> quotas = quotaRepository.findByTenantId(tenantId);
         // 有配额 → 按 CPU 总量选档；无 → 免费版
         String tier = "free";
@@ -74,7 +74,7 @@ public class AccountController {
     @GetMapping("/billing")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> billing() {
-        Long tenantId = tenantIdLong();
+        String tenantId = tenantKey();
         List<Quota> quotas = quotaRepository.findByTenantId(tenantId);
         double cpuSum = quotas.stream().mapToDouble(q -> parseCpu(q.getCpuLimit())).sum();
         String tier = cpuSum > 32 ? "enterprise" : (cpuSum > 4 ? "pro" : "free");
@@ -95,7 +95,7 @@ public class AccountController {
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgrade(@RequestBody Map<String, String> req) {
         // R11 安全修复：校验租户上下文，fail-closed 拒绝无租户请求
-        Long tenantId = tenantIdLong();
+        String tenantId = tenantKey();
         String target = req.getOrDefault("targetPlan", "pro");
         Map<String, Object> planInfo = (Map<String, Object>) PLANS.getOrDefault(target, PLANS.get("pro"));
         log.info("套餐升级请求: tenant={}, target={}", tenantId, target);
@@ -107,28 +107,19 @@ public class AccountController {
     }
 
     /**
-     * TenantContext(字符串) → Long。
+     * 取当前请求的租户业务键（字符串）。
      *
-     * <p>非数字租户 ID（如 Keycloak sub UUID）不再降级为 0L（R10 安全修复），
-     * 因为 0L 会导致所有非数字租户共享同一配额命名空间，破坏租户隔离。
-     * 非数字租户直接抛 403 FORBIDDEN，拒绝访问配额资源。</p>
+     * <p>此前这里 {@code Long.parseLong} 并在失败时抛 403，与 Quota/Workspace 控制器口径不一致
+     * 且把非数字租户整个域拒掉；租户标识在本平台就是字符串业务键，故只保留"缺失即 403"。</p>
      *
-     * @return 当前租户的 Long 型 ID
      * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
-     * @throws ResponseStatusException(403) 若租户 ID 非数字（无法映射到 Long 型配额键）
      */
-    private Long tenantIdLong() {
+    private String tenantKey() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
             throw new MissingTenantContextException();
         }
-        try {
-            return Long.parseLong(tid);
-        } catch (NumberFormatException e) {
-            // 非数字租户（如 Keycloak sub UUID）：抛 403 拒绝，不降级到 0L（R10 安全修复）
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "非数字租户 ID 无法映射到配额键，拒绝访问配额资源");
-        }
+        return tid;
     }
 
     /** 解析 CPU 限制为数字（支持 "4" / "4000m"）。 */
