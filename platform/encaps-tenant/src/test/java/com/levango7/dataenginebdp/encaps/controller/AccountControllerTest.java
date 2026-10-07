@@ -85,6 +85,25 @@ class AccountControllerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void billing_itemKeysMatchFrontendContract() {
+        // 前端 frontend/src/api/account.ts 的 BillingItem 声明是 id/name/usage/cost，
+        // 而 Account.vue 直接 row.cost.toLocaleString()。键名一旦错位，整页会被
+        // ErrorBoundary 换成"页面渲染出错"（台账 #56：批次 B 让 /account 第一次拿到数据后才暴露）。
+        when(quotaRepository.findByTenantId("100")).thenReturn(List.of(sampleQuota("8")));
+        Map<String, Object> body = controller().billing().getBody();
+        List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+        assertThat(items).hasSize(1);
+        Map<String, Object> item = items.get(0);
+        assertThat(item).containsOnlyKeys("id", "name", "usage", "cost");
+        assertThat(item.get("id")).isInstanceOf(String.class);
+        assertThat(item.get("name")).isInstanceOf(String.class);
+        assertThat(item.get("usage")).isInstanceOf(String.class);
+        assertThat(((Number) item.get("cost")).doubleValue())
+                .isEqualTo(((Number) body.get("totalCost")).doubleValue());
+    }
+
+    @Test
     void upgrade_returnsEstimatedFee() {
         var resp = controller().upgrade(Map.of("targetPlan", "enterprise"));
         assertThat(resp.getBody().get("estimatedMonthlyFee")).isEqualTo(9999);

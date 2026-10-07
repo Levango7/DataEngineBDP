@@ -78,13 +78,18 @@ public class AccountController {
         List<Quota> quotas = quotaRepository.findByTenantId(tenantId);
         double cpuSum = quotas.stream().mapToDouble(q -> parseCpu(q.getCpuLimit())).sum();
         String tier = cpuSum > 32 ? "enterprise" : (cpuSum > 4 ? "pro" : "free");
-        double fee = ((Number) ((Map<?, ?>) PLANS.get(tier)).get("monthlyFee")).doubleValue();
+        Map<?, ?> planInfo = (Map<?, ?>) PLANS.get(tier);
+        double fee = ((Number) planInfo.get("monthlyFee")).doubleValue();
 
+        // 键名以前端声明为准（frontend/src/api/account.ts 的 BillingItem：id/name/usage/cost）。
+        // 此前这里是 item/amount/period，而 Account.vue 无条件取 row.cost.toLocaleString()——
+        // 在 nightly 里一直没暴露，因为 /account 长期 403、页面从未拿到过数据。
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("items", List.of(Map.of(
-                "item", "平台订阅费（" + tier + " 档）",
-                "amount", fee,
-                "period", "月")));
+                "id", "subscription-" + tier,
+                "name", "平台订阅费（" + planInfo.get("name") + "）",
+                "usage", "CPU 配额合计 " + (long) cpuSum + " 核",
+                "cost", fee)));
         body.put("totalCost", fee);
         return ResponseEntity.ok(body);
     }
