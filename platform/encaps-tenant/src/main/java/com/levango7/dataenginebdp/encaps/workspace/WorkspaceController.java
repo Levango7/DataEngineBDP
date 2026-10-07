@@ -1,9 +1,11 @@
 package com.levango7.dataenginebdp.encaps.workspace;
 
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,19 +59,30 @@ public class WorkspaceController {
     }
 
     /**
-     * 从 TenantContext 获取当前租户 ID（Long 类型），若缺失或无效返回 null。
+     * 取当前请求的租户主键。
      *
-     * @return 当前请求的租户 ID；若上下文未设置或非数字返回 null
+     * <p>失败一律按"拒绝访问"（403）表达，不再回 401：请求能走到这里说明认证已通过，
+     * 只是租户标识不可用。缺失用 {@link MissingTenantContextException}、非数字用
+     * {@code ResponseStatusException(FORBIDDEN)}，与 AccountController.tenantIdLong() 同口径
+     * （台账 #56：此前这两个控制器回 401、AccountController 回 403）。</p>
+     *
+     * @return 当前请求的数字租户主键
+     * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
+     * @throws ResponseStatusException(403) 若租户 ID 无法映射为 Long 型主键
      */
     private Long currentTenantIdLong() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
-            return null;
+            throw new MissingTenantContextException();
         }
         try {
             return Long.parseLong(tid);
         } catch (NumberFormatException e) {
-            return null;
+            // 与 AccountController.tenantIdLong() 同一口径：认证已通过但租户标识无法映射到本域主键，
+            // 属"拒绝访问"（403），不是"未认证"（401）——此前两处回 401、一处回 403，
+            // 客户端按状态码分支会被误导（台账 #56）。不降级到 0L（R10 安全修复）。
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "租户标识无法映射到租户主键，拒绝访问该资源");
         }
     }
 
@@ -86,9 +99,6 @@ public class WorkspaceController {
     @PostMapping
     public ResponseEntity<Workspace> create(@Valid @RequestBody Workspace workspace) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 注入 JWT 中的 tenantId，忽略请求体中的 tenantId
         workspace.setTenantId(tenantId);
         Workspace created = workspaceService.createWorkspace(workspace);
@@ -114,9 +124,6 @@ public class WorkspaceController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 忽略请求参数中的 tenantId，强制使用 TenantContext 中的 tenantId
         List<Workspace> all = workspaceService.listWorkspaces(tenantId);
         int total = all.size();
@@ -148,9 +155,6 @@ public class WorkspaceController {
     @GetMapping("/all")
     public ResponseEntity<List<Workspace>> listAll() {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return ResponseEntity.ok(workspaceService.listWorkspaces(tenantId));
     }
 
@@ -166,9 +170,6 @@ public class WorkspaceController {
     @GetMapping("/{id}")
     public ResponseEntity<Workspace> get(@PathVariable Long id) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return workspaceService.getWorkspace(id)
                 .filter(ws -> tenantId.equals(ws.getTenantId()))
                 .map(ResponseEntity::ok)
@@ -190,9 +191,6 @@ public class WorkspaceController {
     public ResponseEntity<Workspace> update(@PathVariable Long id,
                                             @Valid @RequestBody Workspace workspace) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 先校验存在且属于当前租户
         return workspaceService.getWorkspace(id)
                 .filter(existing -> tenantId.equals(existing.getTenantId()))
@@ -215,9 +213,6 @@ public class WorkspaceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 先校验存在且属于当前租户
         boolean owned = workspaceService.getWorkspace(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))
@@ -243,9 +238,6 @@ public class WorkspaceController {
     @GetMapping("/{id}/status")
     public ResponseEntity<Map<String, String>> status(@PathVariable Long id) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 先校验存在且属于当前租户
         boolean owned = workspaceService.getWorkspace(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))

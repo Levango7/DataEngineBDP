@@ -1,8 +1,10 @@
 package com.levango7.dataenginebdp.encaps.quota;
 
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,19 +64,30 @@ public class QuotaController {
     }
 
     /**
-     * 从 TenantContext 获取当前租户 ID（Long 类型），若缺失或无效返回 null。
+     * 取当前请求的租户主键。
      *
-     * @return 当前请求的租户 ID；若上下文未设置或非数字返回 null
+     * <p>失败一律按"拒绝访问"（403）表达，不再回 401：请求能走到这里说明认证已通过，
+     * 只是租户标识不可用。缺失用 {@link MissingTenantContextException}、非数字用
+     * {@code ResponseStatusException(FORBIDDEN)}，与 AccountController.tenantIdLong() 同口径
+     * （台账 #56：此前这两个控制器回 401、AccountController 回 403）。</p>
+     *
+     * @return 当前请求的数字租户主键
+     * @throws MissingTenantContextException 若 TenantContext 未设置租户 ID（→403）
+     * @throws ResponseStatusException(403) 若租户 ID 无法映射为 Long 型主键
      */
     private Long currentTenantIdLong() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
-            return null;
+            throw new MissingTenantContextException();
         }
         try {
             return Long.parseLong(tid);
         } catch (NumberFormatException e) {
-            return null;
+            // 与 AccountController.tenantIdLong() 同一口径：认证已通过但租户标识无法映射到本域主键，
+            // 属"拒绝访问"（403），不是"未认证"（401）——此前两处回 401、一处回 403，
+            // 客户端按状态码分支会被误导（台账 #56）。不降级到 0L（R10 安全修复）。
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "租户标识无法映射到租户主键，拒绝访问该资源");
         }
     }
 
@@ -90,9 +103,6 @@ public class QuotaController {
     @PostMapping
     public ResponseEntity<Quota> setQuota(@Valid @RequestBody Quota quota) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 注入 JWT 中的 tenantId，忽略请求体中的 tenantId
         quota.setTenantId(tenantId);
         Quota created = quotaService.setQuota(quota);
@@ -112,9 +122,6 @@ public class QuotaController {
     public ResponseEntity<List<Quota>> list(
             @RequestParam(required = false) Long workspaceId) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 忽略请求参数中的 tenantId，强制使用 TenantContext 中的 tenantId
         return ResponseEntity.ok(quotaService.listQuotas(tenantId, workspaceId));
     }
@@ -131,9 +138,6 @@ public class QuotaController {
     @GetMapping("/{id}")
     public ResponseEntity<Quota> get(@PathVariable Long id) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         return quotaService.getQuota(id)
                 .filter(q -> tenantId.equals(q.getTenantId()))
                 .map(ResponseEntity::ok)
@@ -154,9 +158,6 @@ public class QuotaController {
     public ResponseEntity<Quota> update(@PathVariable Long id,
                                         @Valid @RequestBody Quota quota) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 先校验存在且属于当前租户
         return quotaService.getQuota(id)
                 .filter(existing -> tenantId.equals(existing.getTenantId()))
@@ -178,9 +179,6 @@ public class QuotaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 先校验存在且属于当前租户
         boolean owned = quotaService.getQuota(id)
                 .map(existing -> tenantId.equals(existing.getTenantId()))
@@ -206,9 +204,6 @@ public class QuotaController {
     @GetMapping("/workspace/{workspaceId}/usage")
     public ResponseEntity<Map<String, Map<String, String>>> usage(@PathVariable Long workspaceId) {
         Long tenantId = currentTenantIdLong();
-        if (tenantId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         // 校验该 workspace 的 quota 属于当前租户
         boolean owned = quotaService.getQuotaByWorkspace(workspaceId)
                 .map(q -> tenantId.equals(q.getTenantId()))
