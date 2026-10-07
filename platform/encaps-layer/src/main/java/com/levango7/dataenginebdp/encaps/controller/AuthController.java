@@ -323,7 +323,6 @@ public class AuthController {
     }
 
 
-    /** 解码 JWT payload（base64url），不校验签名（签名由 JwtAuthFilter 负责）。 */
     /**
      * 从 access_token 载荷里取 Keycloak 标准角色声明 {@code realm_access.roles}。
      *
@@ -344,6 +343,7 @@ public class AuthController {
         return List.copyOf(out);
     }
 
+    /** 解码 JWT payload（base64url），不校验签名（签名由 JwtAuthFilter 负责）。 */
     private JsonNode decodeJwtPayload(String token) throws Exception {
         String[] parts = token.split("\\.");
         if (parts.length < 2) {
