@@ -49,7 +49,8 @@ test.describe('数据质量 /quality', () => {
 
   test('数据质量页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('数据质量')
-    await expect(page.locator('.sub')).toContainText('规则配置即校验')
+    // 页面已迁到 PageHeader，副标题在 .page-header__subtitle（旧 .sub 在本页已不存在）
+    await expect(page.locator('.page-header__subtitle')).toContainText('规则配置即校验')
     await expect(page.locator('.toolbar')).toBeVisible()
   })
 

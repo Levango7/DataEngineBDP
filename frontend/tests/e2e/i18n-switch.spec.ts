@@ -83,6 +83,11 @@ test.describe('i18n 语言切换回归', () => {
   })
 
   test('英文模式无词条 key 泄漏（h1 不含模块前缀占位）', async ({ page }) => {
+    // 本用例串行遍历 36 条路由，playwright.config.ts:56 的全局预算是 60s ⇒ 每条只有 1.7s，
+    // 冷启动下（懒加载路由 chunk + 模块词条异步合并）根本走不完，实测在 CI 里跑到中途就
+    // `Test timeout of 60000ms exceeded` 并连带 `page.goto: Target page, context or browser has been closed`。
+    // 这是预算与工作量不匹配，不是词条缺失；只抬高本用例的预算，断言一条不减、不放宽。
+    test.setTimeout(180_000);
     await switchLocale(page, 'en-US')
 
     const routes = [

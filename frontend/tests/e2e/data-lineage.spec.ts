@@ -15,7 +15,8 @@ test.describe('血缘分析（/data-lineage）', () => {
 
   test('血缘分析页加载', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('数据血缘分析')
-    await expect(page.locator('.sub')).toContainText('SQL AST')
+    // 页面已迁到 PageHeader，副标题在 .page-header__subtitle（旧 .sub 在本页已不存在）
+    await expect(page.locator('.page-header__subtitle')).toContainText('SQL AST')
     await expect(page.locator('.sql-input')).toBeVisible({ timeout: 15_000 })
   })
 
@@ -29,7 +30,9 @@ test.describe('血缘分析（/data-lineage）', () => {
 
   test('载入示例填入 SQL', async ({ page }) => {
     await page.locator('button', { hasText: '载入示例' }).click()
-    const val = await page.locator('.sql-textarea').inputValue()
+    // el-input type="textarea" 把 class 落在外层 div（实测 tagName=div），可 inputValue() 的
+    // 节点是内层 textarea；直接对外层取值得到的是 "Node is not an <input>" 一类错误。
+    const val = await page.locator('.sql-textarea textarea').inputValue()
     expect(val.length).toBeGreaterThan(0)
   })
 
