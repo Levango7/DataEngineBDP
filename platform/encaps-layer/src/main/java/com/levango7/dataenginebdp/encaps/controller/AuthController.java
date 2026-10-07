@@ -209,6 +209,13 @@ public class AuthController {
             user.put("username", username);
             user.put("nickname", payload.path("name").asText(username));
             user.put("email", email);
+            // 前端 LoginResult 的 User 契约把 tenantId 与 roles 都列为必填
+            // （frontend/src/api/types.ts:70/72），路由守卫据 roles 拦受限页（router/index.ts:529-531）。
+            // 这两个值本来就在 access_token 里（realm 的 tenant-id mapper 产出 claim `tenantId`，
+            // 见 design/deploy/keycloak/sq-realm-roles.json:69-74），以前没抄进响应体 ⇒ 前端永远拿不到角色，
+            // 所有 requiresRole 的路径对已登录用户都会弹回工作台。
+            user.put("tenantId", payload.path("tenantId").asText(""));
+            user.put("roles", rolesFromPayload(payload));
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("token", accessToken);
@@ -270,10 +277,12 @@ public class AuthController {
         }
         long now = System.currentTimeMillis();
         long expiresIn = 3600;
+        // 租户标识必须在 JWT claim 与响应体 user 里同源，只写一次，防两处漂移
+        final String localTenantId = "platform-admin";
         String token = io.jsonwebtoken.Jwts.builder()
                 .issuer(jwtIssuer)
                 .subject(localUsername)
-                .claim("tenantId", "platform-admin")
+                .claim("tenantId", localTenantId)
                 .claim("role", "admin")
                 // 鉴权只看 realm_access.roles：不带该声明会被 JwtAuthFilter 兜底成 ROLE_USER，
                 // 导致本地管理员访问 /api/v1/tenants、/api/v1/invites 全部 403
@@ -289,6 +298,10 @@ public class AuthController {
         user.put("username", localUsername);
         user.put("nickname", "本地管理员");
         user.put("email", "");
+        // 与 Keycloak 主路径同理由：User 契约要求 tenantId/roles 必填（types.ts:70/72），
+        // 且这两个值就是本方法刚签进 token 的那一份，不存在新增可信判断。
+        user.put("tenantId", localTenantId);
+        user.put("roles", localAuthRoles);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("token", token);
@@ -311,6 +324,26 @@ public class AuthController {
 
 
     /** 解码 JWT payload（base64url），不校验签名（签名由 JwtAuthFilter 负责）。 */
+    /**
+     * 从 access_token 载荷里取 Keycloak 标准角色声明 {@code realm_access.roles}。
+     *
+     * <p>与 {@code JwtAuthFilter.extractAuthorities} 读的是同一个声明，口径一致。</p>
+     */
+    private static List<String> rolesFromPayload(JsonNode payload) {
+        JsonNode roles = payload.path("realm_access").path("roles");
+        if (!roles.isArray()) {
+            return List.of();
+        }
+        List<String> out = new java.util.ArrayList<>();
+        roles.forEach(r -> {
+            String v = r.asText("");
+            if (!v.isBlank()) {
+                out.add(v);
+            }
+        });
+        return List.copyOf(out);
+    }
+
     private JsonNode decodeJwtPayload(String token) throws Exception {
         String[] parts = token.split("\\.");
         if (parts.length < 2) {
