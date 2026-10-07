@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.workspace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.common.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,11 +47,15 @@ class WorkspaceControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 生产控制器在 R8 加固后 tenantId 一律取自 TenantContext，缺失返回 401。
+        // 生产控制器在 R8 加固后 tenantId 一律取自 TenantContext；缺失或不可映射一律 403。
         // standaloneSetup 不挂 JwtAuthFilter，故由测试侧显式写入上下文。
         TenantContext.setTenantId(TEST_TENANT_ID);
         TenantContext.setUserId("test-user");
-        mockMvc = MockMvcBuilders.standaloneSetup(workspaceController).build();
+        // standaloneSetup 不挂 Spring 上下文，故显式注册全局异常处理：
+        // MissingTenantContextException 由 GlobalExceptionHandler 映射为 403。
+        mockMvc = MockMvcBuilders.standaloneSetup(workspaceController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @AfterEach
@@ -221,12 +226,21 @@ class WorkspaceControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/workspaces/{id} — 缺租户上下文时 fail-closed 返回 401（R8 安全语义）")
-    void get_withoutTenantContext_shouldReturn401() throws Exception {
+    @DisplayName("GET /api/v1/workspaces/{id} — 缺租户上下文时 fail-closed 返回 403（认证已通过，属拒绝访问）")
+    void get_withoutTenantContext_shouldReturn403() throws Exception {
         TenantContext.clear();
 
         mockMvc.perform(get("/api/v1/workspaces/1"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/workspaces/{id} — 租户标识非数字时同样 403，不再回 401（台账 #56 的错误语义统一）")
+    void get_nonNumericTenant_shouldReturn403() throws Exception {
+        TenantContext.setTenantId("platform-admin");
+
+        mockMvc.perform(get("/api/v1/workspaces/1"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
