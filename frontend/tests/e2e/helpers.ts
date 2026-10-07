@@ -68,6 +68,23 @@ export async function login(page: Page, creds: { username: string; password: str
     (url) => !url.href.includes('/login'),
     { timeout: 20_000 }
   )
+
+  // 上面只保证"离开了 /login"。Login.vue 之后还会 router.replace(route.query.redirect
+  // || '/dashboard')，而 '/' 又要经 router 的 '/'→/dashboard 重定向才落定，所以这条链
+  // 返回时可能仍在飞；调用方紧接着的 goto 会被它顶掉。nightly 实测过这种 0.1ms 之差：
+  // goto('#/account') 在 246309.9 发出，链在 246310.1 落到 '#/dashboard'，整条用例
+  // 因此 10s 内 h1 恒为「工作台」。这里等 hash 落定（既不是中间的 '#/'，也不在登录页）
+  // 再把控制权交回调用方。
+  await page
+    .waitForFunction(
+      () => {
+        const h = window.location.hash
+        return Boolean(h) && h !== '#/' && !h.startsWith('#/login')
+      },
+      null,
+      { timeout: 10_000 }
+    )
+    .catch(() => {})
 }
 
 /**
