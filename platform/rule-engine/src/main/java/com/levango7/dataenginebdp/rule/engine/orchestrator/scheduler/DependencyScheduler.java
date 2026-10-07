@@ -11,6 +11,7 @@ import com.levango7.dataenginebdp.rule.engine.orchestrator.retry.RetryExecutor;
 import com.levango7.dataenginebdp.rule.engine.orchestrator.retry.RetryPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -65,9 +66,13 @@ public class DependencyScheduler {
     /**
      * 构造函数：Spring 自动注入 AlertManager 与所有 TaskExecutor Bean。
      *
+     * <p>{@code @Autowired} 是必需的：本类还有一个测试用四参构造器，容器在多个候选构造器
+     * 之间无法自行选择，会退回找无参构造器并抛 "No default constructor found"。</p>
+     *
      * @param alertManager 告警管理器
      * @param executors    任务执行器列表
      */
+    @Autowired
     public DependencyScheduler(AlertManager alertManager, List<TaskExecutor> executors) {
         this(alertManager, executors, Executors.newFixedThreadPool(8), new RetryExecutor());
     }

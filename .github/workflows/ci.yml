@@ -533,6 +533,15 @@ jobs:
         # 语义与建表迁移覆盖校验同构：允许既有欠债登记在案，但新增缺口 / 销账不及时的过期条目一律阻断。
         run: python3 scripts/check-deployable-coverage.py
 
+      - name: Spring 组件扫描覆盖校验（Bean 落在扫描根之外 ⇒ 运行期静默 404）
+        # rule-engine 的编排包在 ...rule.engine.orchestrator，启动类却在 ...ruleengine，
+        # 默认扫描够不着 ⇒ OrchestratorController 从未注册，GET /api/v1/orchestrator/dags
+        # 在真实进程里 404，而该模块 429 个单元测试（手工 new POJO）全绿看不见这件事。
+        # 有效根只认 @SpringBootApplication 的 scanBasePackages 与 @ComponentScan；
+        # @EntityScan/@EnableJpaRepositories 也用 basePackages 这个属性名但管的是实体与仓储，
+        # 把它们算进来会误报 lineage-analyzer 这类正常模块（实测踩过）。
+        run: python3 scripts/check-spring-component-scan.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
