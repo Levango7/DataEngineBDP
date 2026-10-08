@@ -8,6 +8,7 @@ import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ import java.util.Map;
  * 环境矩阵为轻量静态视图（真实集群状态见 query-api /cluster）。</p>
  *
  * <p><b>鉴权</b>：要求认证上下文（{@link TenantContext#getTenantId()} 非空），
- * 否则返回 401。KPI 聚合用 {@code count()} 而非 {@code findAll().size()}，
+ * 否则返回 403。KPI 聚合用 {@code count()} 而非 {@code findAll().size()}，
  * 避免全表加载造成 OOM。</p>
  */
 @Slf4j
@@ -107,14 +108,22 @@ public class AdminController {
     /**
      * 鉴权门禁：要求认证上下文（{@link TenantContext#getTenantId()} 非空）。
      *
+     * <p>缺租户上下文一律抛 {@link MissingTenantContextException}（→ 403），
+     * 与 {@code AccountController} / {@code ProjectController} /
+     * {@code QuotaController} / {@code WorkspaceController} 的
+     * {@code currentTenantKey()} 同口径。此前本类抛
+     * {@code ResponseStatusException(UNAUTHORIZED)}（→ 401），
+     * 造成同服务内同一前提两种状态码；401 会触发前端
+     * {@code api/client.ts} 清登录态并跳 {@code /login}，
+     * 即"缺租户上下文"被误读成"登录过期"，用户被无故踢出。</p>
+     *
      * @return 租户 ID
-     * @throws org.springframework.web.server.ResponseStatusException 缺少认证上下文时返回 401
+     * @throws MissingTenantContextException 缺少认证上下文时返回 403
      */
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED, "缺少认证上下文");
+            throw new MissingTenantContextException();
         }
         return tenantId;
     }
