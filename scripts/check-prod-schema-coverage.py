@@ -59,15 +59,19 @@ def table_of_entity(text: str):
     """
     if not re.search(r"^\s*@Entity\b", text, re.M):
         return None
-    m = re.search(
-        r"@Table\s*\((.*?)\)\s*(?:@\w+[^\n]*\n*)*"
-        r"(?:public\s+|final\s+|abstract\s*)*(?:class|interface)\s+(\w+)",
-        text,
-        re.S,
-    )
+    # 不用嵌套量词（(?:@\w+[^\n]*\n*)* 那种）——CodeQL 实测判为多项式回溯 ReDoS，
+    # 而本脚本要解析仓内任意 Java 源文件，一旦碰上构造性文件名就会把 CI 挂住。
+    # 也不用固定 400 字符窗口：属性块被拉长时会静默返回 None ⇒ 门禁漏报（比误报更糟）。
+    # 线性两步：@Table( 之后、到本类型声明之前，这一段里取 name=。
+    m = re.search(r"@Table\s*\(", text)
     if m:
-        nm = re.search(r'name\s*=\s*"([^"]+)"', m.group(1), re.S)
-        return nm.group(1).lower() if nm else _snake(m.group(2))
+        rest = text[m.end():]
+        cend = re.search(r"\b(?:class|interface)\s+(\w+)", rest)
+        seg = rest[: cend.start()] if cend else rest
+        nm = re.search(r'name\s*=\s*"([^"]+)"', seg)
+        if nm:
+            return nm.group(1).lower()
+        return _snake(cend.group(1)) if cend else None
     c = re.search(r"^\s*(?:public\s+|final\s+|abstract\s*)*(?:class|interface)\s+(\w+)", text, re.M)
     return _snake(c.group(1)) if c else None
 
