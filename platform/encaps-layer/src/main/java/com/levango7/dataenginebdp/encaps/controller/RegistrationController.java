@@ -128,10 +128,10 @@ public class RegistrationController {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','TENANT_ADMIN')")
     public ResponseEntity<?> list(
-            @RequestParam(required = false) Long tenantId,
+            @RequestParam(required = false) String tenantId,
             @RequestParam(required = false) String status) {
 
-        Long effectiveTenantId = resolveTenantForList(tenantId);
+        String effectiveTenantId = resolveTenantForList(tenantId);
         if (effectiveTenantId == null && !isPlatformAdmin()) {
             // 普通租户无法从上下文确定租户范围 → 拒绝，绝不回落到全量查询
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -192,7 +192,7 @@ public class RegistrationController {
      * 普通租户：一律以 {@link TenantContext} 为准，参数只用于收窄，
      * 传入他人租户 ID 时忽略并记录告警。</p>
      */
-    private Long resolveTenantForList(Long requestedTenantId) {
+    private String resolveTenantForList(String requestedTenantId) {
         String ctxTenantId = TenantContext.getTenantId();
         if (isPlatformAdmin()) {
             return requestedTenantId;
@@ -200,27 +200,29 @@ public class RegistrationController {
         if (ctxTenantId == null || ctxTenantId.isBlank()) {
             return null;
         }
-        try {
-            Long ctxLong = Long.valueOf(ctxTenantId);
-            if (requestedTenantId != null && !requestedTenantId.equals(ctxLong)) {
-                log.warn("租户隔离拦截: ctxTenant={}, requestedTenant={}（按上下文租户过滤）",
-                    ctxTenantId, requestedTenantId);
-            }
-            return ctxLong;
-        } catch (NumberFormatException e) {
-            log.warn("无法解析租户上下文为 Long: {}", ctxTenantId);
-            return null;
+        // 台账 #56 方案③：租户键是字符串，直接按字符串比较。
+        // 原先 Long.valueOf(ctxTenantId) 的 try/catch 会把 Keycloak sub UUID 这类
+        // 合法键当成“无法解析”而返回 null → 普通租户看到 403。
+        if (requestedTenantId != null && !requestedTenantId.equals(ctxTenantId)) {
+            log.warn("租户隔离拦截: ctxTenant={}, requestedTenant={}（按上下文租户过滤）",
+                ctxTenantId, requestedTenantId);
         }
+        return ctxTenantId;
     }
 
-    /** 当前调用方是否有权操作该租户的记录。 */
-    private boolean canAccessTenant(Long recordTenantId) {
+    /**
+     * 当前调用方是否有权操作该租户的记录。
+     *
+     * <p>台账 #56 方案③：两侧均为字符串，直接 equals；
+     * 原先的 {@code String.valueOf(recordTenantId)} 往返在 Long 侧已不再必要。</p>
+     */
+    private boolean canAccessTenant(String recordTenantId) {
         if (isPlatformAdmin()) {
             return true;
         }
         String ctxTenantId = TenantContext.getTenantId();
         return ctxTenantId != null && recordTenantId != null
-            && ctxTenantId.equals(String.valueOf(recordTenantId));
+            && ctxTenantId.equals(recordTenantId);
     }
 
     /** 审批人：取 JWT subject（真实操作者），无上下文时标记 unknown 而非硬编码角色名。 */

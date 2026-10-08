@@ -17,7 +17,7 @@ public interface InviteCodeRepository extends JpaRepository<InviteCode, Long> {
 
     Optional<InviteCode> findByCode(String code);
 
-    List<InviteCode> findByTenantIdOrderByCreatedAtDesc(Long tenantId);
+    List<InviteCode> findByTenantIdOrderByCreatedAtDesc(String tenantId);
 
     List<InviteCode> findByStatusOrderByCreatedAtDesc(String status);
 
@@ -28,7 +28,7 @@ public interface InviteCodeRepository extends JpaRepository<InviteCode, Long> {
      * @param pageable 分页参数
      * @return 邀请码分页结果
      */
-    Page<InviteCode> findByTenantIdOrderByCreatedAtDesc(Long tenantId, Pageable pageable);
+    Page<InviteCode> findByTenantIdOrderByCreatedAtDesc(String tenantId, Pageable pageable);
 
     /**
      * 按状态分页查询邀请码（R8 修复：list 端点分页支持）。
