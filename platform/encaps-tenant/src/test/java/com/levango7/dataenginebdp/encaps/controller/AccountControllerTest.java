@@ -9,11 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 /**
@@ -108,5 +111,26 @@ class AccountControllerTest {
         var resp = controller().upgrade(Map.of("targetPlan", "enterprise"));
         assertThat(resp.getBody().get("estimatedMonthlyFee")).isEqualTo(9999);
         assertThat(resp.getBody().get("status")).isEqualTo("submitted");
+    }
+
+    @Test
+    void upgrade_unknownPlan_shouldBeRejected() {
+        // 台账 #62：前端弹窗的默认档位是 flagship，而后端只有 free/pro/enterprise。
+        // 此前未知档位被 PLANS.getOrDefault(..., pro) 兜成 pro 静默受理，等于按调用方
+        // 没要求过的档记账；现在必须 fail-closed。
+        assertThatThrownBy(() -> controller().upgrade(Map.of("targetPlan", "flagship")))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void upgrade_missingPlanKey_shouldBeRejected() {
+        // 缺键与未知值同罪：req.getOrDefault("targetPlan","pro") 会让不带字段的请求
+        // 也静默落到 pro，调用方拿不到任何错误信号。
+        assertThatThrownBy(() -> controller().upgrade(Map.of()))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }
