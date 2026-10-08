@@ -542,6 +542,20 @@ jobs:
         # 把它们算进来会误报 lineage-analyzer 这类正常模块（实测踩过）。
         run: python3 scripts/check-spring-component-scan.py
 
+      - name: prod 建表覆盖校验（持久单元有实体、本模块迁移没建表 ⇒ prod 起不来，只减不增）
+        # prod 走 ddl-auto=validate + Flyway，表只由本模块 db/migration/** 决定；而持久单元
+        # 是按应用扫描的包收集的，encaps-tenant 与 encaps-layer 同根包 ...encaps 且 classpath
+        # 带着它 ⇒ 后者的 20 张实体表进了前者的持久单元，实测启动即
+        # Schema validation: missing table [api_definition]（台账 #63）。
+        # 本仓所有 PG 腿都跑默认 profile（FLYWAY_ENABLED/SPRING_PROFILES_ACTIVE 零命中），
+        # 所以这类缺陷在 CI 里没有覆盖位——本步就是那个覆盖位（静态等价判据，不需起容器）。
+        # 注意与上一条门禁的差别：这里 @EntityScan 算有效根（它管的正是实体），
+        # 而组件扫描门禁里它必须排除，两条不要互相"对齐"。
+        run: |
+          # 先跑合成正反例，证明这条门禁不是"全绿地校验自己合成的命题"，再跑真判定
+          python3 scripts/check-prod-schema-coverage.py --self-test
+          python3 scripts/check-prod-schema-coverage.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）

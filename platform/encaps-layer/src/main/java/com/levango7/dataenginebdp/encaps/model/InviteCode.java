@@ -42,8 +42,15 @@ public class InviteCode {
     /** 邀请码（8 位大写字母+数字，租户内唯一） */
     private String code;
 
-    /** 绑定租户 ID（来自 tenants.id） */
-    private Long tenantId;
+    /**
+     * 绑定租户业务键。
+     *
+     * <p>台账 #56 方案③：租户标识在本平台是字符串业务键（token 里就是
+     * {@code "platform-admin"} 或 Keycloak {@code sub} UUID），不再是 tenants.id
+     * 这个 bigint 自增主键。存量行以原值转文本保留（{@code 1} → {@code "1"}），
+     * 故数字租户的既有行为不变。</p>
+     */
+    private String tenantId;
 
     /** 绑定的角色：PLATFORM_ADMIN / TENANT_ADMIN / USER */
     private String role;
