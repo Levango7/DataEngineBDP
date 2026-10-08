@@ -101,8 +101,17 @@ public class AccountController {
     public ResponseEntity<Map<String, Object>> upgrade(@RequestBody Map<String, String> req) {
         // R11 安全修复：校验租户上下文，fail-closed 拒绝无租户请求
         String tenantId = tenantKey();
-        String target = req.getOrDefault("targetPlan", "pro");
-        Map<String, Object> planInfo = (Map<String, Object>) PLANS.getOrDefault(target, PLANS.get("pro"));
+        // 档位同样 fail-closed：此前缺键与未知值都被 getOrDefault 兜成 pro，等于按调用方
+        // 没要求过的档位记账（前端弹窗默认值就是 flagship，见台账 #62）。真实计费接入前
+        // 先把"静默换档"关掉，避免错账被当成正确路径依赖。
+        String target = req.get("targetPlan");
+        Map<String, Object> planInfo = target == null ? null
+                : (Map<String, Object>) PLANS.get(target);
+        if (planInfo == null) {
+            log.warn("套餐升级被拒: 档位缺失或未知, tenant={}", tenantId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "targetPlan 缺失或不是受支持的套餐档位");
+        }
         log.info("套餐升级请求: tenant={}, target={}", tenantId, target);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("estimatedMonthlyFee", planInfo.get("monthlyFee"));
