@@ -1,0 +1,24 @@
+# prod profile（Flyway + ddl-auto=validate）下的建表缺口基线
+# 由 scripts/check-prod-schema-coverage.py --write-baseline 生成；只减不增
+# 每条 = 某模块的持久单元里有、但本模块迁移没建的表
+- module: platform/encaps-tenant
+  - api_definition
+  - data_asset
+  - datasource
+  - develop_schedule
+  - gateway_api_key
+  - industry_template
+  - invite_codes
+  - knowledge_base
+  - knowledge_document
+  - knowledge_rag_strategy
+  - llm_eval_metric
+  - llm_finetune_task
+  - ml_inference_service
+  - ml_model
+  - project
+  - sec_mask_policy
+  - standard
+  - sync_task
+  - tenants
+  - user_registrations
