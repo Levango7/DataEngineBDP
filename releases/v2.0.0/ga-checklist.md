@@ -40,10 +40,10 @@
 
 | 序号 | 检查项 | 验证方法 | 负责人 | 状态 |
 | --- | --- | --- | --- | --- |
-| 1.3.1 | 等保三级测评通过 | 测评报告已出具，结论为"符合" | 安全组 | ☑ | docs/compliance/dengbao-assessment-report.md 已出具，复测符合率 100%（34/34） |
-| 1.3.2 | 密码应用安全性评估通过 | 密评报告已出具，结论为"符合" | 安全组 | ☑ | docs/compliance/crypto-assessment-report.md 已出具，复评符合率 100%（41/41） |
-| 1.3.3 | 整改项清零 | 整改记录全部闭环 | 安全组 | ☑ | docs/compliance/remediation-records.md 显示 5 项整改全部闭环 |
-| 1.3.4 | 复测报告通过 | 整改后复测结论为"符合" | 安全组 | ☑ | docs/compliance/retest-report.md 结论：通过等保三级测评，通过密评 |
+| 1.3.1 | 等保三级测评通过 | 第三方测评报告已出具，结论为"符合" | 安全组 | △ | **未完成**：现仅有内部自评与差距分析（docs/compliance/dengbao-assessment-report.md，非第三方），待具备资质的测评机构实施正式测评（见 KNOWN-FAILURES #10） |
+| 1.3.2 | 密码应用安全性评估通过 | 第三方密评报告已出具，结论为"符合" | 安全组 | △ | **未完成**：现仅有内部自评与差距分析（docs/compliance/crypto-assessment-report.md，非第三方），待资质机构实施正式密评（见 KNOWN-FAILURES #10） |
+| 1.3.3 | 整改项清零 | 整改记录全部闭环 | 安全组 | ☑ | docs/compliance/remediation-records.md 显示 5 项自评缺口整改全部闭环（内部闭环，非第三方复测确认） |
+| 1.3.4 | 复测报告通过 | 整改后第三方复测结论为"符合" | 安全组 | △ | **未完成**：现仅有内部复核（docs/compliance/retest-report.md，非第三方复测），待正式复测（见 KNOWN-FAILURES #10） |
 | 1.3.5 | 容器镜像漏洞扫描通过 | Trivy 扫描 0 Critical / 0 High | 安全组 | ☑ | P3-2 已完成，.github/workflows/ci.yml 含 trivy-scan 作业 |
 | 1.3.6 | 依赖漏洞扫描通过 | SCA 扫描 0 Critical | 安全组 | ☑ | .github/workflows/security.yml 含 Trivy fs+IaC 扫描，gitleaks 密钥扫描 |
 | 1.3.7 | 国密算法验证通过 | SM2/SM3/SM4 功能验证通过 | 安全组 | ☑ | SM2/SM3/SM4 已在 helm-values.yaml、encaps-layer pom.xml、frontend、release-notes 中实现 |
