@@ -43,10 +43,10 @@
 
 | 文档 | 路径 | 内容 |
 | --- | --- | --- |
-| 等保评估报告 | `compliance/dengbao-assessment-report.md` | 等保三级合规评估 |
-| 密码评估报告 | `compliance/crypto-assessment-report.md` | 国密算法合规评估 |
-| 整改记录 | `compliance/remediation-records.md` | 安全合规整改记录 |
-| 复测报告 | `compliance/retest-report.md` | 整改后复测结果 |
+| 等保自评与差距分析 | `compliance/dengbao-assessment-report.md` | 等保三级条款自对照与差距（内部自评，非第三方测评） |
+| 密评自评与差距分析 | `compliance/crypto-assessment-report.md` | 密码应用安全性条款自对照与差距（内部自评，非第三方密评） |
+| 整改记录 | `compliance/remediation-records.md` | 自评缺口整改记录（内部） |
+| 整改复核报告 | `compliance/retest-report.md` | 整改后内部复核结果（非第三方复测） |
 
 ## 设计文档
 
