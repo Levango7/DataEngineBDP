@@ -54,8 +54,13 @@ public class UserRegistration {
     /** 角色：TENANT_ADMIN / USER */
     private String role;
 
-    /** 绑定租户 */
-    private Long tenantId;
+    /**
+     * 绑定租户业务键（字符串，见台账 #56 方案③）。
+     *
+     * <p>与 {@code InviteCode.tenantId} 同键同形态：值来自邀请码的租户键，
+     * 而非 tenants.id 的 bigint 主键。存量行以原值转文本保留。</p>
+     */
+    private String tenantId;
 
     /** 使用的邀请码 */
     private String inviteCode;
