@@ -70,11 +70,11 @@ class RegistrationTenantIsolationTest {
                 .build();
         signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         regRepo.deleteAll();
-        regRepo.save(registration("alice", 1L));
-        regRepo.save(registration("bob", 2L));
+        regRepo.save(registration("alice", "1"));
+        regRepo.save(registration("bob", "2"));
     }
 
-    private static UserRegistration registration(String username, Long tenantId) {
+    private static UserRegistration registration(String username, String tenantId) {
         UserRegistration reg = new UserRegistration();
         reg.setUsername(username);
         reg.setEmail(username + "@example.com");
@@ -143,7 +143,8 @@ class RegistrationTenantIsolationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].username").value("alice"))
-                .andExpect(jsonPath("$.data[0].tenantId").value(1));
+                // 台账 #56 方案③：tenantId 是字符串业务键，存量数字键以文本形态返回（"1" 而非 1）
+                .andExpect(jsonPath("$.data[0].tenantId").value("1"));
     }
 
     @Test
