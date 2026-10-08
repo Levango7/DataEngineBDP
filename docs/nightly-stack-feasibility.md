@@ -54,10 +54,19 @@ encaps-layer 里没有这些前缀的实现——已在 15 个栈内服务目录
   ⇒ 这 4 条要等 **#1/#1b** 裁决"这些前缀在生产由哪个可部署单元承载"，扩栈无从下手。
 
 顺带量化了同一个盲区的范围：`design/deploy/charts/*/values.yaml` 里引用内部镜像仓库（`harbor.shuqing.io/shuqing/*`）的
-first-party Chart 共 **12 个**，其镜像名与仓内 36 个 Dockerfile 目录名**全部不相等**
-（含 chunker、finops、flink-cdc、model-finetuning、observability、storage-io 等）。
+first-party Chart 共 **12 个**。按全仓 `os.walk` 真值（48 个 Dockerfile、45 个目录名）拆开是：
+
+- **6 个没有同名 Dockerfile 目录**：chunker、finops、flink-cdc、observability、storage-io、stream-batch-scheduler
+  （其中 `observability` 的模块其实是 `platform/observability/query-api`，目录名对不上 Chart 的镜像名）；
+- **6 个有同名 Dockerfile**：asset-exchange、business-portal、industry-templates、model-finetuning、nl2sql、open-api-catalog
+  ——但 Chart 写 `harbor.shuqing.io/shuqing/<mod>`、CI 推 `ghcr.io/<owner>/sq-<mod>`（`build.yml:281`/`:347` 的 tag 模板），
+  仓库前缀和命名是两套口径，Chart 默认值指不到 CI 产物。
+
 `docs/deployable-backlog.yaml` 只登记反方向（"有 Dockerfile 却无 Chart"），所以这个方向今天没有门禁。
-是否要补一个"Chart 镜像名 ↔ 可构建镜像名"的双向校验，属另一件事，本文件不动。
+补一个"Chart 引用镜像名 ↔ 可构建镜像名"的双向校验是可行的，但已登记为台账 **#64** 待裁，本文件不动。
+
+> 一条方法留痕：本节最初的版本写成"12 个全部不相等"，那是**探针坏了**——用 `subprocess` 调 `find` 在本机静默返回空集，
+> 于是所有比对都误判成"无 Dockerfile"。真值靠 `os.walk` 独立复算，且必须扫全仓（`model-finetuning` 的 Dockerfile 不在 `platform/` 下）。
 
 ## 3. 表 B：时长实测（全部有日志出处，非估算）
 
@@ -145,11 +154,21 @@ Go 侧读 `JWT_SIGNING_KEY`（`:130`），两处字面值相同（`it-test-jwt-s
 1. **扩栈后断言是否真转绿**。§4 表明 5 个服务各有一个"栈里没有"的依赖（Milvus / provider / kubeconfig 等），
    能不能给 `/vector`、`/cluster/overview` 返 200 而未 500，只能靠一次 `workflow_dispatch` 拿数。
    `infra-orchestrator`、`lineage-analyzer` 已有较强的间接证据（k3s 里 1/1 Running + HTTP 探针通过）。
-2. **DOM 类断言扩栈不必然转绿**：`vector.spec.ts:30`「集合表格表头正确」、`dashboard.spec.ts:41`「资源趋势与待办审批区域存在」、
-   `admin.spec.ts:28` 断言的是**渲染出来的表头/区域元素**，要页面真拿到数据才有意义（`admin.spec.ts:28` 的红在台账里已被明确写成
-   "是 DOM 计数不是状态码"，见 `docs/KNOWN-FAILURES.md:269` 的续⑧；行号口径另见 `:270` 的续⑨）。
-   注意这三条**不属** #58——#58 的 3 例是 `.sub` 类名漂移（`kb.spec.ts:18`、`data-lineage.spec.ts:18`、`ops-quality.spec.ts:52`）。
-   本文不预判扩栈能否让它们转绿。
+2. **与 #58 残留 3 例的关系（这直接影响收益估算，逐条读过断言原文）**：#58 现状列末尾记的"本行现余 3 例"
+   正是 `admin.spec.ts:28`、`dashboard.spec.ts:41`、`vector.spec.ts:30`（行号口径：`:47`/`:34` 是断言行，
+   nightly 按 test 起始行列示）。三例与扩栈的关系**不同**：
+   - `vector.spec.ts:30`「集合表格表头正确」等 `table` 出现后断言表头含"集合/维度/条数"——
+     表头的数据源就是 `/vector` 的集合列表（栈外），所以**扩栈是它的前置**；
+     但它写的选择器 `table th` 无作用域限定（页内还有其他表时 `allTextContents()` 会串起来，
+     #58 记的实测串出"申请申请人操作"），扩栈只是让它"有机会对"，作用域债仍在。
+   - `dashboard.spec.ts:41`「资源趋势与待办审批区域存在」断言 `.bar` 进度条可见，
+     数据源是 `/cluster/overview`（observability/query-api，栈外）⇒ **扩栈直接相关**。
+   - `admin.spec.ts:28`「KPI 四卡片存在」断言 `.grid.g4 .card` ≥ 4，
+     `/admin` 页数据来自**栈内**的 encaps-tenant ⇒ **与扩栈无关**，别把它算进 ① 的收益。
+   ⇒ 方案① 的上限是"15 条 API 404 里的 8 条 + #58 的 2 条"，不是全部。
+   （本条前两次修订都错过：先误记成"属 #58 数据形态类"，又误改成"不属 #58"——
+   后者是因为只读了 #58 的**事项列**开头（那 3 例是 `.sub` 漂移的 `kb:18`/`data-lineage:18`/`ops-quality:52`），
+   没读同一行**现状列**的末尾。教训：台账一格一事，读一行要读完。）
 3. **harbor 上是否另有外部推送**：`harbor.shuqing.io` 本机不可达，§2.1 只断言"本仓无构建法"。
 4. **上一版本草稿记录的"本机 `docker build` 被 buildkit 通道打断"两次失败没有复现，也没查原因**
    （同命令、同 Dockerfile 本轮三次全成功）。只留这一句事实，不给归因。
@@ -158,7 +177,7 @@ Go 侧读 `JWT_SIGNING_KEY`（`:130`），两处字面值相同（`it-test-jwt-s
 
 | 方案 | 内容 | 代价 | 收益 |
 |---|---|---|---|
-| **①（推荐先做）** | 只扩 §2 表 A 里"可"的 5 个服务：compose 加 5 个 service（用 18091/18092/18097/18098/18099），`nightly-e2e.yml` 为对应 `VITE_*_TARGET` 赋值，先跑一次 dispatch | 一次 dispatch（≈25 分钟机时）+ §4 的 env 适配（其中 Milvus/provider 可能要 mock 开关） | 最多摘掉 8 条红（18 → 约 10）；这 5 个前缀获得真实回归网 |
+| **①（推荐先做）** | 只扩 §2 表 A 里"可"的 5 个服务：compose 加 5 个 service（用 18091/18092/18097/18098/18099），`nightly-e2e.yml` 为对应 `VITE_*_TARGET` 赋值，先跑一次 dispatch | 一次 dispatch（≈25 分钟机时）+ §4 的 env 适配（其中 Milvus/provider 可能要 mock 开关） | 摘 8 条 API 404（水位 18 → 约 10），并可能推进 #58 的 2 例（`vector:30`、`dashboard:41`）；`admin:28` 不在此列 |
 | **②** | 只对 7 条卡在架构裁决的用例 `test.skip` + 写明理由与台账行号 | 放弃这 7 条覆盖度（诚实标注，不假绿） | main 红腿可摘，噪声下降；与 #1/#1b 裁决绑定，裁完再撤 |
 | **③** | 维持现状 | 15 条长期红继续稀释信号 | 无 |
 
