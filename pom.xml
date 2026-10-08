@@ -98,6 +98,19 @@
                 <artifactId>lz4-java</artifactId>
                 <version>1.8.1</version>
             </dependency>
+            <!-- 2026-10-08 安全修复：at.yawk.lz4:lz4-java 是 lz4-java 的活跃 fork
+                 （groupId 与上面 org.lz4 不同，故上一条 pin 覆盖不到它），同样是
+                 传递依赖、全仓无显式版本，集中 pin。
+                 · at.yawk.lz4:lz4-java 1.10.1 -> 1.11.4（HIGH，CVE-2026-106451
+                   不安全临时文件处理 → 任意代码执行）
+                   引入链：kafka-clients 3.9.2 -> at.yawk.lz4:lz4-java（encaps-*
+                   等直接依赖 kafka-clients 的模块）。
+                 注：1.11.4 与 1.10.1 同为 1.x，API 兼容，仅修复补丁级行为。 -->
+            <dependency>
+                <groupId>at.yawk.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>1.11.4</version>
+            </dependency>
             <!-- 2026-09-24 安全修复：commons-compress 1.22 为传递依赖（全仓未显式声明），
                  在此集中 pin。CVE-2023-42503 / CVE-2024-25710 / CVE-2024-26308。 -->
             <dependency>
