@@ -133,4 +133,17 @@ class AccountControllerTest {
                 .extracting(e -> ((ResponseStatusException) e).getStatusCode())
                 .isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    void plans_returnsOrderedCatalogWithFees() {
+        // 台账 #62 方案 B：升级弹窗的选项与价格必须来自后端单一真源。
+        // 此前前端硬编码 58,000/35,000 且档位名为 standard/flagship，后端一个都不认。
+        Map<String, Object> body = controller().plans().getBody();
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>) body.get("plans");
+        assertThat(list).extracting(m -> m.get("key")).containsExactly("free", "pro", "enterprise");
+        assertThat(list).allSatisfy(m -> assertThat(m)
+                .containsKeys("key", "name", "monthlyFee", "cpu", "memory"));
+        assertThat(((Number) list.get(1).get("monthlyFee")).doubleValue()).isEqualTo(1999.0);
+    }
 }

@@ -212,7 +212,7 @@ import * as workspaceApi from '@/api/workspace'
 import * as projectApi from '@/api/project'
 import type {
   Workspace,
-  PlanTier,
+  TenantPlanTier,
   DeployEnv,
   WorkspaceStatus,
   WorkspaceK8sStatus
@@ -257,9 +257,9 @@ function statusPillText(status: WorkspaceStatus): string {
   return status in WS_STATUS_CLS ? t(`workspaces.status.${status}`) : status
 }
 
-const PLAN_TIERS: PlanTier[] = ['standard', 'enterprise', 'flagship', 'internal']
+const PLAN_TIERS: TenantPlanTier[] = ['standard', 'enterprise', 'flagship', 'internal']
 
-function planLabel(plan?: PlanTier): string {
+function planLabel(plan?: TenantPlanTier): string {
   return plan && PLAN_TIERS.includes(plan) ? t(`workspaces.plans.${plan}`) : '--'
 }
 
@@ -342,7 +342,7 @@ const creating = ref(false)
 const form = ref<{
   name: string
   tenantId: string
-  plan: PlanTier
+  plan: TenantPlanTier
   env: DeployEnv
 }>({
   name: '',

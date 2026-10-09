@@ -98,8 +98,13 @@ export interface LoginResult {
 /* 租户                                                                */
 /* ------------------------------------------------------------------ */
 
-/** 套餐版本 */
-export type PlanTier = 'standard' | 'enterprise' | 'flagship' | 'internal'
+/**
+ * 租户/工作空间档位（租户域展示词表，含 internal 内部无限档）。
+ *
+ * 与账户域的 `PlanTier`（`@/api/account`，free/pro/enterprise）区分：
+ * 二者此前同名不同值、极易误用（台账 #62 ③），故改为不同名。
+ */
+export type TenantPlanTier = 'standard' | 'enterprise' | 'flagship' | 'internal'
 
 /** 租户状态 */
 export type TenantStatus = 'active' | 'suspended' | 'deleted'
@@ -111,7 +116,7 @@ export interface Tenant extends Identifiable {
   /** 租户编码 */
   code: string
   /** 套餐版本 */
-  plan: PlanTier
+  plan: TenantPlanTier
   /** 状态 */
   status: TenantStatus
   /** 联系人 */
@@ -134,7 +139,7 @@ export interface Tenant extends Identifiable {
 export interface CreateTenantParams {
   name: string
   code: string
-  plan: PlanTier
+  plan: TenantPlanTier
   contact?: string
   contactPhone?: string
 }
@@ -147,7 +152,7 @@ export type UpdateTenantParams = Partial<CreateTenantParams> & {
 /** 租户列表查询参数 */
 export interface TenantListQuery extends PageQuery {
   status?: TenantStatus
-  plan?: PlanTier
+  plan?: TenantPlanTier
 }
 
 /* ------------------------------------------------------------------ */
@@ -169,7 +174,7 @@ export interface Workspace extends Identifiable {
   /** 所属租户名称（冗余字段，便于展示） */
   tenantName?: string
   /** 套餐版本 */
-  plan: PlanTier
+  plan: TenantPlanTier
   /** 部署环境 */
   env: DeployEnv
   /** 状态 */
@@ -198,7 +203,7 @@ export interface Workspace extends Identifiable {
 export interface CreateWorkspaceParams {
   name: string
   tenantId: string
-  plan: PlanTier
+  plan: TenantPlanTier
   env: DeployEnv
 }
 
