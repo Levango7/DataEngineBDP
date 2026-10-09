@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -31,8 +32,24 @@ type ClusterHandler struct {
 	client k8sReader
 }
 
+// staticK8sReader 是空数据 mock：仅在 QUERY_API_K8S_MOCK=true 时启用，
+// 供**没有 k8s** 的集成/E2E 栈让 /api/v1/cluster/* 路由注册并返回 200（不静默 mock）。
+type staticK8sReader struct{}
+
+// ListNodes 返回空节点列表。
+func (staticK8sReader) ListNodes() (*k3sclient.NodeList, error) { return &k3sclient.NodeList{}, nil }
+
+// ListPods 返回空 Pod 列表。
+func (staticK8sReader) ListPods() (*k3sclient.PodList, error) { return &k3sclient.PodList{}, nil }
+
 // NewClusterHandler 创建集群查询 handler。
 func NewClusterHandler() (*ClusterHandler, error) {
+	// 显式 mock：仅当 QUERY_API_K8S_MOCK=true（无 k8s 的集成/E2E 栈）时启用；
+	// 默认仍走真实 kubeconfig，保持“不静默 mock”的既定语义。
+	if strings.EqualFold(os.Getenv("QUERY_API_K8S_MOCK"), "true") {
+		log.Printf("[warn] QUERY_API_K8S_MOCK=true：集群查询使用空数据 mock（仅限无 k8s 的测试栈）")
+		return &ClusterHandler{client: staticK8sReader{}}, nil
+	}
 	client, err := k3sclient.NewFromKubeconfig(os.Getenv("K3S_KUBECONFIG"))
 	if err != nil {
 		return nil, err
