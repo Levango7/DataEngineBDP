@@ -27,10 +27,14 @@ test.describe('向量引擎（/vector）', () => {
     await expect(search).toBeVisible()
   })
 
-  test('集合表格表头正确', async ({ page }) => {
-    // 条件式 skip（台账 #57 续订正）：表格只在向量 API 成功时渲染；栈外 vector-engine 缺席时页面走 error 分支
-    await expect(page.locator('table, .state-tip.error').first()).toBeVisible({ timeout: 15_000 })
-    test.skip(await page.locator('.state-tip.error').count() > 0, 'KNOWN-FAILURES #57① 栈外 vector-engine 缺席时该页表不渲染（页面走 error 分支），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
+  test('集合表格表头正确', async ({ page, request }) => {
+    // 条件式 skip（台账 #57 续订正）：页表只在向量 API 成功时渲染（失败走 error 分支，无表可断言）。
+    // 判定用同源 API 探针：onMounted 前首帧会瞬时渲染一次空 el-table，依赖 DOM 过渡态会被它骗过（nightly 实测）。
+    const token = await getApiToken(request)
+    const probe = await request.get(`${apiBase}/vector`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    test.skip(probe.status() !== 200, 'KNOWN-FAILURES #57① 栈外 vector-engine 缺席（探针非 200）时该页表不渲染，断言不可达；详见 docs/KNOWN-FAILURES.md #57')
     // 先等本页渲染完成：/vector 的 h1 唯一（上一页 Dashboard 的 h1 是"工作台"）。
     // 否则 waitForSelector('table') 会命中切页过渡期残留的 Dashboard 待办表，
     // 表头被拼成"申请申请人操作"（实测），随后对"集合/维度/条数"的断言必失败。
