@@ -33,16 +33,14 @@ test.describe('机器管理（/infra-machine）', () => {
   })
 
   test('信创集群列表 API 返回 200（Bearer 认证）', async ({ request }) => {
-    // 保留 skip（台账 #57① 实跑发现的新真因，非"服务缺席"）：infra-orchestrator 的
-    // `GET /api/v1/clusters/{env}` 对已启用但不可达/已禁用的 provider 抛错（→400/异常），
-    // 而聚合 `GET /api/v1/clusters` 对每个 env 各自 catch 后返回空 ⇒ 只有 `/{env}` 这条
-    // 在无 infra-provider-* 的栈里必非 200。修它要改单环境列表的容错语义（对齐聚合口径或加
-    // provider mock），属产品/接口语义决策，故保留 skip 并如实记录。
-    test.skip(true, 'KNOWN-FAILURES #57①：/clusters/{env} 对不可达/禁用 provider 非 200（400/异常），需产品决策容错语义；不是"服务缺席"。详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/clusters/xinchang`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+    // 条件式 skip（台账 #57①）：infra-orchestrator 缺席时回落 encaps-layer 得 404 ⇒ 跳过；
+    // 服务在栈（扩栈 job / 本地 dev）时照常断言——provider 容错现已对齐聚合口径，
+    // 对未注册/禁用/不可达的 provider 返回**空列表 200**；半坏（500/契约不符）不被吞。
+    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 infra-orchestrator 缺席（回落 encaps-layer 404）；详见 docs/KNOWN-FAILURES.md #57')
     expect(resp.status()).toBe(200)
   })
 
