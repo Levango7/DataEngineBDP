@@ -245,31 +245,37 @@ export interface ClusterOverview {
   podTotal: number
   /** 运行中 Pod 数 */
   podRunning: number
+  /**
+   * 以下业务指标由平台各域聚合，**observability query-api 的 /cluster/overview
+   * 不返回**（其实测响应仅含上面 6 个键 + version）⇒ 一律按可选处理，视图侧必须
+   * 给默认值。台账 #57① 扩栈实测：/dashboard 曾因 assetCount.toLocaleString()
+   * 对 undefined 调用而整页 ErrorBoundary（数据长期 404 掩盖了该缺陷）。
+   */
   /** CPU 容量（核） */
-  cpuCapacity: number
+  cpuCapacity?: number
   /** CPU 已用（核） */
-  cpuUsed: number
+  cpuUsed?: number
   /** 内存容量（GB） */
-  memCapacity: number
+  memCapacity?: number
   /** 内存已用（GB） */
-  memUsed: number
+  memUsed?: number
   /** 存储用量（TB） */
-  storageUsed: number
+  storageUsed?: number
   /** 数据项目数 */
-  projectCount: number
+  projectCount?: number
   /** 运行中项目数（API 未返回时前端按 Pod 运行率估算） */
   projectRunning?: number
   /** 调度作业数 */
-  jobCount: number
+  jobCount?: number
   /** 今日作业成功数 */
-  jobSuccessToday: number
+  jobSuccessToday?: number
   /** 今日作业失败数 */
-  jobFailToday: number
+  jobFailToday?: number
   /** 数据资产数 */
-  assetCount: number
+  assetCount?: number
   /** 近 7 日资源趋势（百分比，0-100） */
-  trendCpu: number[]
-  trendMem: number[]
+  trendCpu?: number[]
+  trendMem?: number[]
 }
 
 /** 节点状态 */

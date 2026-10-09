@@ -50,36 +50,38 @@
       <template v-else-if="overview">
         <div class="card" role="region" :aria-label="t('dashboard.kpi.projects')">
           <h3>{{ t('dashboard.kpi.projects') }}</h3>
-          <div class="kpi">{{ overview.projectCount }}</div>
+          <div class="kpi">{{ overview.projectCount ?? '—' }}</div>
           <div class="meta">
             {{
               t('dashboard.kpi.projectsMeta', {
                 running: runningProjects,
-                paused: overview.projectCount - runningProjects
+                paused: (overview.projectCount ?? 0) - runningProjects
               })
             }}
           </div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.jobs')">
           <h3>{{ t('dashboard.kpi.jobs') }}</h3>
-          <div class="kpi">{{ overview.jobCount }}</div>
+          <div class="kpi">{{ overview.jobCount ?? '—' }}</div>
           <div class="meta">
             {{
               t('dashboard.kpi.jobsMeta', {
-                success: overview.jobSuccessToday,
-                failed: overview.jobFailToday
+                success: overview.jobSuccessToday ?? 0,
+                failed: overview.jobFailToday ?? 0
               })
             }}
           </div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.storage')">
           <h3>{{ t('dashboard.kpi.storage') }}</h3>
-          <div class="kpi s">{{ overview.storageUsed }} {{ t('dashboard.kpi.storageUnit') }}</div>
+          <div class="kpi s">{{ overview.storageUsed ?? '—' }} {{ t('dashboard.kpi.storageUnit') }}</div>
           <div class="meta">{{ t('dashboard.kpi.storageMeta') }}</div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.assets')">
           <h3>{{ t('dashboard.kpi.assets') }}</h3>
-          <div class="kpi s">{{ overview.assetCount.toLocaleString() }}</div>
+          <!-- 契约缺口（台账 #57①）：query-api 不返回 assetCount ⇒ 必须可选渲染，
+               否则 undefined.toLocaleString() 会整页 ErrorBoundary（扩栈实测） -->
+          <div class="kpi s">{{ overview.assetCount?.toLocaleString() ?? '—' }}</div>
           <div class="meta">{{ t('dashboard.kpi.assetsMeta') }}</div>
         </div>
       </template>
@@ -107,7 +109,7 @@
         <template v-else-if="overview">
           <div class="mini" role="img" :aria-label="t('dashboard.trend.cpuChart')">
             <i
-              v-for="(h, idx) in overview.trendCpu"
+              v-for="(h, idx) in (overview.trendCpu ?? [])"
               :key="`cpu-${idx}`"
               :style="{ height: h + '%' }"
             ></i>
@@ -265,15 +267,18 @@ const {
 // CPU 使用率（百分比，保留整数）
 const cpuPercent = computed(() => {
   if (!overview.value) return 0
-  const cap = overview.value.cpuCapacity || 1
-  return Math.round((overview.value.cpuUsed / cap) * 100)
+  // 契约缺口（台账 #57①）：cpuCapacity/cpuUsed 可能缺席 ⇒ 缺省 0，避免 NaN%
+  const cap = overview.value.cpuCapacity ?? 0
+  if (cap <= 0) return 0
+  return Math.round(((overview.value.cpuUsed ?? 0) / cap) * 100)
 })
 
 // 内存使用率（百分比，保留整数）
 const memPercent = computed(() => {
   if (!overview.value) return 0
-  const cap = overview.value.memCapacity || 1
-  return Math.round((overview.value.memUsed / cap) * 100)
+  const cap = overview.value.memCapacity ?? 0
+  if (cap <= 0) return 0
+  return Math.round(((overview.value.memUsed ?? 0) / cap) * 100)
 })
 
 // 运行中项目数：优先用 API 精确值，否则按 Pod 运行率估算
@@ -281,7 +286,7 @@ const runningProjects = computed(() => {
   const ov = overview.value
   if (!ov) return 0
   if (typeof ov.projectRunning === 'number') return ov.projectRunning
-  const podRate = ov.podTotal > 0 ? ov.podRunning / ov.podTotal : 0.78
+  const podRate = (ov.podTotal ?? 0) > 0 ? (ov.podRunning ?? 0) / ov.podTotal : 0.78
   return Math.round((ov.projectCount ?? 0) * podRate)
 })
 

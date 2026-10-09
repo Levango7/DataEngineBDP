@@ -20,9 +20,12 @@ test.describe('数据血缘（/lineage）', () => {
   })
 
   test('上下游与影响四列渲染（空态或数据）', async ({ page }) => {
-    await page.waitForTimeout(2_000)
     await expect(page.locator('h1')).toContainText('血缘分析')
+    // 用可见性等待替代固定 2s：lineage-analyzer 在栈时（扩栈腿）数据往返 + 渲染可能超过 2s，
+    // 固定等待 + 无重试的 count() 会得到 count=0 的假失败（本批本地验收实测）。
+    // 断言语义不变：无论空态还是数据，四列（上游/当前/下游/影响）都必须渲染。
     const lvls = page.locator('.lineage .lvl')
+    await expect(lvls.first()).toBeVisible({ timeout: 15_000 })
     const count = await lvls.count()
     expect(count).toBeGreaterThanOrEqual(4)
   })
