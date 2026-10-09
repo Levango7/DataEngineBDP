@@ -214,7 +214,12 @@ func (h *AssistantHandler) listSessions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
+	// 契约：前端 listSessions(): Promise<ChatSession[]> 期望**裸数组**
+	// （与同组 /superset/datasources 一致）。原实现包了 {"sessions": ...}，
+	// 而 useAiAssistant.loadSessions 把返回值直接赋给 sessions（数组），
+	// 随后 [...sessions.value] 会抛“not iterable” → 页面 ErrorBoundary → h1 消失
+	// （台账 #57① 实跑发现）。改为返回裸数组。
+	c.JSON(http.StatusOK, sessions)
 }
 
 // createSession POST /sessions

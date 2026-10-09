@@ -141,3 +141,32 @@ func TestClusterComponents_onlyShuqingNamespace(t *testing.T) {
 		t.Errorf("catalog 应为 healthy, got %v", s["status"])
 	}
 }
+
+// QUERY_API_K8S_MOCK=true 时 NewClusterHandler 返回空数据 mock（无 k8s 栈用），
+// 且 /api/v1/cluster/overview 应注册可达并返回 200（此前因无 kubeconfig 直接 404）。
+func TestNewClusterHandler_mockMode_returns200(t *testing.T) {
+	t.Setenv("QUERY_API_K8S_MOCK", "true")
+
+	h, err := NewClusterHandler()
+	if err != nil {
+		t.Fatalf("mock 模式不应报错: %v", err)
+	}
+	if h == nil {
+		t.Fatal("handler 不应为 nil")
+	}
+	if nodes, err := h.client.ListNodes(); err != nil || nodes == nil {
+		t.Fatalf("mock ListNodes 应返回空列表: %v", err)
+	}
+	if pods, err := h.client.ListPods(); err != nil || pods == nil {
+		t.Fatalf("mock ListPods 应返回空列表: %v", err)
+	}
+
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.GET("/api/v1/cluster/overview", h.Overview)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/cluster/overview", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("overview 状态码应为 200, got %d body=%s", w.Code, w.Body.String())
+	}
+}
