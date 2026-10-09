@@ -33,12 +33,14 @@ test.describe('机器管理（/infra-machine）', () => {
   })
 
   test('信创集群列表 API 返回 200（Bearer 认证）', async ({ request }) => {
-    // 台账 #57①：`GET /api/v1/clusters/{env}` 现与聚合口径一致——对未注册/禁用/不可达的
-    // provider 返回**空列表 200**（SupplyOrchestrator.listClusters 内 catch + warn），故不再 skip。
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/clusters/xinchang`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+    // 条件式 skip（台账 #57①）：infra-orchestrator 缺席时回落 encaps-layer 得 404 ⇒ 跳过；
+    // 服务在栈（扩栈 job / 本地 dev）时照常断言——provider 容错现已对齐聚合口径，
+    // 对未注册/禁用/不可达的 provider 返回**空列表 200**；半坏（500/契约不符）不被吞。
+    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 infra-orchestrator 缺席（回落 encaps-layer 404）；详见 docs/KNOWN-FAILURES.md #57')
     expect(resp.status()).toBe(200)
   })
 
