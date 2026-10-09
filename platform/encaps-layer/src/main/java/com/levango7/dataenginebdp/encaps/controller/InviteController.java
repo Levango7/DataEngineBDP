@@ -52,7 +52,9 @@ import java.util.Map;
  *   <li>list 端点添加分页参数（page/pageSize），防止全量返回导致性能与信息泄露问题。</li>
  *   <li>create 端点 invitedBy 从 JWT（{@link TenantContext#getUserId()}）获取当前用户，
  *       不再硬编码为 {@code platform-admin}。</li>
- *   <li>preview 端点保持开放：员工注册时需要预校验邀请码。</li>
+ *   <li>preview 端点不加 {@code @PreAuthorize}（低于 admin 门槛），但并非匿名开放：
+ *       {@code SecurityConfig} 的 {@code anyRequest().authenticated()} 仍要求 JWT，
+ *       员工须先登录再在 /register 页预校验邀请码（无 token 返回 401）。</li>
  * </ul></p>
  */
 @Slf4j
@@ -200,7 +202,10 @@ public class InviteController {
     /**
      * 员工输入邀请码预校验：返回租户名/角色/TTL（注册页第一步用，不创建账号）
      *
-     * <p>此端点保持开放（无 @PreAuthorize），供员工在 /register 页面预校验邀请码。</p>
+     * <p>本端点不加 {@code @PreAuthorize}（任何已认证用户均可调用，供 /register 页预校验邀请码），
+     * 但并非匿名开放：{@code SecurityConfig} 的 {@code anyRequest().authenticated()} 仍要求 JWT，
+     * 前端 {@code Register.vue} 在未登录时不发请求并提示「邀请码校验需要登录平台账号后才能进行」。
+     * 无 token 调用返回 401，由 {@code InviteRegistrationTenantKeyStringTest} 锁定。</p>
      */
     @Operation(summary = "邀请码预览（不消耗）")
     @GetMapping("/{code}/preview")

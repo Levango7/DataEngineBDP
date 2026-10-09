@@ -247,6 +247,24 @@ class InviteRegistrationTenantKeyStringTest {
                 .andExpect(jsonPath("$.data.tenantName").value("(外部租户)"));
     }
 
+    @Test
+    @DisplayName("邀请码预览：无 token 返回 401（端点需已认证，不是匿名开放）")
+    void previewInvite_withoutToken_isUnauthorized() throws Exception {
+        InviteCode invite = new InviteCode();
+        invite.setCode("PREVIEWX");
+        invite.setTenantId("platform-admin");
+        invite.setRole("USER");
+        invite.setStatus("PENDING");
+        invite.setCreatedAt(LocalDateTime.now());
+        invite.setExpiresAt(LocalDateTime.now().plusDays(1));
+        inviteRepo.save(invite);
+
+        // 锁定当前契约：SecurityConfig.anyRequest().authenticated() 先于 controller 执行，
+        // 因此即便邀请码存在，匿名调用也拿不到 200 —— 防止日后把此端点误当「已开放」而放松过滤链。
+        mockMvc.perform(get("/api/v1/invites/PREVIEWX/preview"))
+                .andExpect(status().isUnauthorized());
+    }
+
     // ------------------------------------------------------------------
     // helpers
     // ------------------------------------------------------------------
