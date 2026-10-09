@@ -68,16 +68,26 @@ jobs:
         working-directory: tests/integration
         # 与 ci.yml integration-test 相同的门禁语义：栈起不来则 E2E 无意义，硬失败不跳过；
         # --wait 等待全部 healthcheck 通过，--wait-timeout 兜底防止无限等待。
-        # 台账 #57①：额外跑 profile nightly-extra（5 个此前栈外的服务：vector-engine /
-        # ai-assistant / query-api / infra-orchestrator / lineage-analyzer）；
-        # 该 profile 隔离使 ci.yml / security.yml / it-k3s 的 `docker compose up` 行为不变。
-        # 超时 600→900：新增 5 个镜像（含 2 个 Java 根上下文）需并行构建与就绪。
+        # 台账 #57①：扩栈服务（vector-engine / ai-assistant / query-api /
+        # infra-orchestrator / lineage-analyzer）用 profile `nightly-extra` 隔离。
+        # **仅非 PR 触发才起**：PR 只跑 7 个稳定 spec，用不到这些服务，而标准 runner
+        # （~7GB）同时跑 20 个容器 + Vite + Chromium 会资源紧张 → 实测出现
+        # encaps-layer unhealthy / 大范围超时（本次实跑教训）。夜间/手动触发才起全栈。
         run: |
-          echo "启动 docker-compose 后端栈（含 nightly-extra 扩栈服务）..."
-          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 900; then
-            echo "::error::docker-compose 启动失败或健康检查超时，阻断"
-            docker compose --profile nightly-extra ps -a || true
-            exit 1
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR 触发：只起基础栈（稳定子集不需要扩栈服务，避免 runner 资源压力）"
+            if ! docker compose up -d --wait --wait-timeout 600; then
+              echo "::error::docker-compose 启动失败或健康检查超时，阻断"
+              docker compose ps -a || true
+              exit 1
+            fi
+          else
+            echo "夜间/手动触发：起基础栈 + nightly-extra 扩栈服务（5 个）"
+            if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 900; then
+              echo "::error::docker-compose 启动失败或健康检查超时，阻断"
+              docker compose --profile nightly-extra ps -a || true
+              exit 1
+            fi
           fi
           echo "✓ 后端栈所有服务已就绪"
 
