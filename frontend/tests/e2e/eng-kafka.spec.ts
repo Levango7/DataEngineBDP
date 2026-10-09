@@ -38,6 +38,8 @@ test.describe('Kafka 引擎管理（/eng-kafka）', () => {
   })
 
   test('Kafka 集群列表 API 返回 200（Bearer 认证）', async ({ request }) => {
+    // 无条件 skip（台账 #57 裁决②）：/datasources 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
+    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/datasources → encaps-data），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/datasources`, {
       headers: { Authorization: `Bearer ${token}` },

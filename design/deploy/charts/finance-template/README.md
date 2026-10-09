@@ -217,6 +217,7 @@ bash design/deploy/charts/finance-template/ci/lint.sh
 
 ## 11. 关联文档
 
+- **副本归属**：本目录（`design/deploy/charts/finance-template`）是**发布权威**（release.yml 只打包本目录）；`platform/industry-templates/charts/finance-template` 是 CI 门禁侧副本；`platform/industry-templates/templates/finance/helm/` 是 T018 冻结存档（不发布、快照锁定）。守卫脚本：`scripts/check-chart-ownership.py`
 - T018 金融模板源：`platform/industry-templates/templates/finance/`
 - T018 原始 Helm Chart：`platform/industry-templates/templates/finance/helm/`
 - 模板元数据：`platform/industry-templates/templates/finance/template-metadata.yaml`

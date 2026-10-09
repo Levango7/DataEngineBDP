@@ -2,6 +2,12 @@
 # ============================================================================
 # 用途：使金融行业模板可被 helm install 引用部署
 # ============================================================================
+# 【冻结存档】本 Chart 是 T018 原始副本：不参与发布（release.yml 只打包
+# design/deploy/charts/*）、不进 CI 扫描面。当前权威有两处——发布侧为
+# design/deploy/charts/finance-template，门禁侧为
+# platform/industry-templates/charts/finance-template。本目录六个文件的
+# sha256 已被 scripts/check-chart-ownership.py 快照锁定，改动会被 CI 拦下；
+# 确需变更请走裁决（同步更新快照并说明原因）。
 
 ## 1. 概述
 
