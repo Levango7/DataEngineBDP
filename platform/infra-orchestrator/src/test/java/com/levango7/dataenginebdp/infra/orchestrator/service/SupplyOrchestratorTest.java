@@ -55,6 +55,29 @@ class SupplyOrchestratorTest {
     }
 
     @Test
+    void listClusters_returnsEmptyWhenProviderUnregistered() {
+        // 台账 #57①：单环境列表与聚合端点同口径——未注册/禁用 ⇒ 空列表（200），不是 400。
+        registry.unregister(EnvironmentType.XINCHANG); // setUp 中唯一注册的环境
+        SupplyOrchestrator orchestrator = new SupplyOrchestrator(
+                registry, environmentProfile, WebClient.builder().build(), objectMapper);
+        assertThat(orchestrator.listClusters(EnvironmentType.XINCHANG)).isEmpty();
+    }
+
+    @Test
+    void listClusters_returnsEmptyWhenProviderDisabled() {
+        ProviderRegistry disabledRegistry = new ProviderRegistry();
+        disabledRegistry.register(ProviderDescriptor.builder()
+                .environmentType(EnvironmentType.XINCHANG)
+                .name("infra-provider-xinchang")
+                .baseUrl("http://localhost:8090")
+                .enabled(false)
+                .build());
+        SupplyOrchestrator orchestrator = new SupplyOrchestrator(
+                disabledRegistry, environmentProfile, WebClient.builder().build(), objectMapper);
+        assertThat(orchestrator.listClusters(EnvironmentType.XINCHANG)).isEmpty();
+    }
+
+    @Test
     void shouldReturnFailedWhenProviderNotRegistered() {
         // 给一个未注册的环境
         registry.unregister(EnvironmentType.CLOUD_HUAWEI);

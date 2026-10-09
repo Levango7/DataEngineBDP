@@ -34,17 +34,22 @@ test.describe('API 网关（/gateway）', () => {
 
   test('网关 API 返回 200（Bearer 认证）', async ({ request }) => {
     const token = await getApiToken(request)
-    const resp = await request.get(`${apiBase}/gateway`, {
+    // 走 /gateway/stats（GatewayController 实际映射，见 frontend/src/api/gateway.ts getStats）；
+    // 裸 /gateway 无映射会 404，不能作为探针路径
+    const resp = await request.get(`${apiBase}/gateway/stats`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-        // 条件式 skip（台账 #57①）：encaps-gateway 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 条件式 skip（台账 #57①）：encaps-gateway 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
     // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
     test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 encaps-gateway 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
-expect(resp.status()).toBe(200)
+    expect(resp.status()).toBe(200)
+    const json = await resp.json()
+    expect(json).toHaveProperty('data')
+    expect(json.data).toHaveProperty('successRate')
   })
 
   test('网关 API 未认证返回 401', async ({ request }) => {
-    const resp = await request.get(`${apiBase}/gateway`)
+    const resp = await request.get(`${apiBase}/gateway/stats`)
     expect(resp.status()).toBe(401)
   })
 })

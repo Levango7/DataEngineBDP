@@ -65,12 +65,20 @@ public class DataSourceController {
             String password) {
     }
 
-    /** 列表（租户隔离 + 可选类型过滤，P3-9: 添加分页参数）。 */
+    /**
+     * 列表（租户隔离 + 可选类型/关键字过滤，P3-9: 分页参数）。
+     *
+     * <p>响应体为平台统一分页对象 {@code {list,total,page,pageSize}}（与同模块
+     * {@link SearchController} 及前端 {@code types.ts PagedResult} 一致）。
+     * 引擎层（{@code engine.ts} 的 Kafka/IoTDB 集群下拉）用 {@code type} 过滤取
+     * {@code list} 字段，不再依赖裸数组。</p>
+     */
     @Operation(summary = "列表（租户隔离 + 可选类型过滤）")
     @GetMapping
     @Transactional(readOnly = true)
-    public ResponseEntity<List<Map<String, Object>>> list(
+    public ResponseEntity<Map<String, Object>> list(
             String type,
+            String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
         String tenantId = requireTenant();
@@ -80,13 +88,28 @@ public class DataSourceController {
         List<DataSourceEntity> list = (type == null || type.isBlank())
                 ? repository.findByTenantIdOrderByCreatedAtDesc(tenantId)
                 : repository.findByTenantIdAndTypeOrderByCreatedAtDesc(tenantId, type);
-        // 内存分页（数据量不大时可接受，大数据量应改用 Pageable 查询）
-        int from = (safePage - 1) * safePageSize;
-        if (from >= list.size()) {
-            return ResponseEntity.ok(List.of());
+        // 关键字过滤（名称/主机，忽略大小写）：前端 PageQuery.keyword 语义
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = keyword.trim().toLowerCase();
+            list = list.stream()
+                    .filter(e -> containsIgnoreCase(e.getName(), kw) || containsIgnoreCase(e.getHost(), kw))
+                    .toList();
         }
-        int to = Math.min(from + safePageSize, list.size());
-        return ResponseEntity.ok(list.subList(from, to).stream().map(this::toView).toList());
+        int total = list.size();
+        // 内存分页（数据量不大时可接受，大数据量应改用 Pageable 查询）；
+        // 页码越界时返回空 list 但仍带真实 total（客户端分页器需要）
+        int from = Math.min((safePage - 1) * safePageSize, total);
+        int to = Math.min(from + safePageSize, total);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("list", list.subList(from, to).stream().map(this::toView).toList());
+        body.put("total", total);
+        body.put("page", safePage);
+        body.put("pageSize", safePageSize);
+        return ResponseEntity.ok(body);
+    }
+
+    private static boolean containsIgnoreCase(String value, String lowerKeyword) {
+        return value != null && value.toLowerCase().contains(lowerKeyword);
     }
 
     /** 详情。 */
