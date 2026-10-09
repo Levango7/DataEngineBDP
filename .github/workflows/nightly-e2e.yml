@@ -166,18 +166,19 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: 启动精简后端栈（仅扩栈规格所需）
+      - name: 启动完整后端栈（基础栈 + 扩栈服务；DOM 用例还需 encaps-tenant 等）
         working-directory: tests/integration
+        # #397 已给 8 个 Java 服务加 mem_limit（cgroup 感知，JVM 不再按宿主机 ≈7GB 算堆）。
+        # 本 job 起**完整栈**以覆盖 DOM 用例（此前精简栈因缺 encaps-tenant 等而 DOM 大面积红）。
+        # 若仍不稳，退路是更大 runner（方案 D，见 docs/nightly-stack-expansion-runner-plan.md）。
         run: |
-          echo "启动精简栈：encaps-layer + prometheus + 5 个 nightly-extra 服务"
-          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
-                encaps-layer prometheus vector-engine ai-assistant query-api \
-                infra-orchestrator lineage-analyzer; then
-            echo "::error::精简栈启动失败或健康检查超时"
+          echo "启动完整栈（--profile nightly-extra，全部服务）"
+          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 900; then
+            echo "::error::完整栈启动失败或健康检查超时"
             docker compose --profile nightly-extra ps -a || true
             exit 1
           fi
-          echo "✓ 精简栈就绪"
+          echo "✓ 完整栈就绪"
 
       - name: 安装前端依赖
         working-directory: frontend
@@ -188,11 +189,8 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: 运行扩栈相关的 API/401 断言（精简栈不支持 DOM 所需的全部基础服务）
+      - name: 运行扩栈相关的 8 个 spec（含 DOM，完整栈）
         working-directory: frontend
-        # 只跑“API 返回 xxx / 未认证返回 401”这类**接口级**断言：它们只需
-        # encaps-layer(登录) + 目标服务；DOM 用例还依赖 encaps-tenant 等基础服务，
-        # 精简栈不具备（#395 dispatch 实测：DOM 大面积 element not found）。
         run: |
           npx playwright test \
             tests/e2e/vector.spec.ts \
@@ -202,8 +200,7 @@ jobs:
             tests/e2e/data-lineage.spec.ts \
             tests/e2e/lineage.spec.ts \
             tests/e2e/infra-k8s.spec.ts \
-            tests/e2e/infra-machine.spec.ts \
-            --grep "返回 200|返回 401"
+            tests/e2e/infra-machine.spec.ts
 
       - name: 上传 Playwright 报告与结果
         if: always()
