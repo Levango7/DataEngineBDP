@@ -33,6 +33,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | 前端调用 | 首段 | 后端模块 | 状态 |
 |---|---|---|---|
 | `/account/plan`  | `/account` | encaps-tenant | ✅ |
+| `/account/plans`  | `/account` | encaps-tenant | ✅ |
 | `/account/billing`  | `/account` | encaps-tenant | ✅ |
 | `/account/upgrade`  | `/account` | encaps-tenant | ✅ |
 
@@ -480,7 +481,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：262
+- 匹配：263
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。
