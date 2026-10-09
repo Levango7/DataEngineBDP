@@ -563,6 +563,17 @@ jobs:
         # 前缀不去斜杠），本校验防再分叉回归。
         run: python3 scripts/check-chart-asset-keys.py
 
+      - name: chart 三副本归属与快照校验（发布权威/门禁侧/冻结存档不漂移，台账 #52 后续）
+        # finance-template 仓内三副本：design/deploy/charts（发布权威）、
+        # platform/industry-templates/charts（CI 门禁侧）、templates/finance/helm（T018
+        # 冻结存档）。历史上的副本漂移出过 #52 发布侧缺陷；本步校验三副本结构
+        # （Chart.yaml 存在且 name=finance-template）并对 T018 六文件做 sha256 快照锁。
+        # 资产键名规则仍由上一步独立覆盖，两侧扫描面刻意不同，不要互相"对齐"。
+        run: |
+          # 先跑合成正反例（篡改冻结存档 / 新增旁文件 / 空集合三向），再跑真判定
+          python3 scripts/check-chart-ownership.py --self-test
+          python3 scripts/check-chart-ownership.py
+
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |
           if [ -f .githooks/pre-commit ]; then

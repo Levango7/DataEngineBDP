@@ -9,7 +9,10 @@ apiVersion: v2
 #       Doris + DolphinScheduler + Superset + Keycloak 技术栈。
 # 说明：本 Chart 不部署实际工作负载（Doris/DS/Superset/Keycloak 由各自 Chart 部署），
 #       仅负责模板资产的打包、导入与验证。
-# 关联：platform/industry-templates/templates/finance/helm/（T018 原始 Chart）
+# 关联：platform/industry-templates/templates/finance/helm/（T018 原始 Chart，冻结存档）
+# 归属：本副本为**发布权威**（release.yml 只打包 design/deploy/charts/*）；
+#       platform/industry-templates/charts/finance-template 为 CI 门禁侧副本；
+#       三副本结构校验与 T018 快照锁见 scripts/check-chart-ownership.py
 # ============================================================================
 
 name: finance-template
