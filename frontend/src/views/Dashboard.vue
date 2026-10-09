@@ -74,7 +74,9 @@
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.storage')">
           <h3>{{ t('dashboard.kpi.storage') }}</h3>
-          <div class="kpi s">{{ overview.storageUsed ?? '—' }} {{ t('dashboard.kpi.storageUnit') }}</div>
+          <div class="kpi s">
+            {{ overview.storageUsed ?? '—' }} {{ t('dashboard.kpi.storageUnit') }}
+          </div>
           <div class="meta">{{ t('dashboard.kpi.storageMeta') }}</div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.assets')">
@@ -109,7 +111,7 @@
         <template v-else-if="overview">
           <div class="mini" role="img" :aria-label="t('dashboard.trend.cpuChart')">
             <i
-              v-for="(h, idx) in (overview.trendCpu ?? [])"
+              v-for="(h, idx) in overview.trendCpu ?? []"
               :key="`cpu-${idx}`"
               :style="{ height: h + '%' }"
             ></i>

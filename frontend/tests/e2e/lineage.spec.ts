@@ -35,10 +35,13 @@ test.describe('数据血缘（/lineage）', () => {
     const resp = await request.get('/lineage/api/v1/lineage/upstream/dwd.order_wide', {
       headers: { Authorization: `Bearer ${token}` }
     })
-        // 条件式 skip（台账 #57①）：lineage-analyzer 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 条件式 skip（台账 #57①）：lineage-analyzer 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
     // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
-    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 lineage-analyzer 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
-expect(resp.status()).toBe(200)
+    test.skip(
+      resp.status() === 404,
+      'KNOWN-FAILURES #57① 栈外 lineage-analyzer 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57'
+    )
+    expect(resp.status()).toBe(200)
   })
 
   test('血缘 API 未认证返回 401', async ({ request }) => {
