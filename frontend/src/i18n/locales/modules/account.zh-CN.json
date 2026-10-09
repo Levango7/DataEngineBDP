@@ -19,8 +19,9 @@
     "upgradeModal": {
       "title": "升级套餐",
       "targetPlan": "目标套餐",
-      "flagship": "旗舰版",
-      "enterprisePlus": "企业版+扩容包",
+      "free": "免费版",
+      "pro": "专业版",
+      "enterprise": "企业版",
       "estimatedFee": "预计月费",
       "note": "升级后经 NodePoolLease 自动扩容，客户无感知停机。",
       "confirm": "确认升级",

@@ -38,11 +38,22 @@ public class AccountController {
 
     private final QuotaRepository quotaRepository;
 
-    /** 套餐档位（对齐前端 PlanTier）。 */
-    private static final Map<String, Object> PLANS = Map.of(
-            "free", Map.of("name", "免费版", "monthlyFee", 0, "cpu", "4", "memory", "8Gi"),
-            "pro", Map.of("name", "专业版", "monthlyFee", 1999, "cpu", "16", "memory", "32Gi"),
-            "enterprise", Map.of("name", "企业版", "monthlyFee", 9999, "cpu", "64", "memory", "128Gi"));
+    /**
+     * 套餐档位目录（**唯一真源**：升级校验、账单月费与 {@code GET /plans} 都读这里）。
+     *
+     * <p>键集与前端 {@code frontend/src/api/account.ts} 的 {@code PlanTier} 一一对应；
+     * 显示顺序由 {@link #PLAN_ORDER} 固化，供升级弹窗按稳定顺序渲染（台账 #62）。</p>
+     */
+    private static final Map<String, Map<String, Object>> PLANS;
+    /** 档位显示顺序（低→高）。 */
+    private static final List<String> PLAN_ORDER = List.of("free", "pro", "enterprise");
+    static {
+        Map<String, Map<String, Object>> plans = new LinkedHashMap<>();
+        plans.put("free", Map.of("name", "免费版", "monthlyFee", 0, "cpu", "4", "memory", "8Gi"));
+        plans.put("pro", Map.of("name", "专业版", "monthlyFee", 1999, "cpu", "16", "memory", "32Gi"));
+        plans.put("enterprise", Map.of("name", "企业版", "monthlyFee", 9999, "cpu", "64", "memory", "128Gi"));
+        PLANS = Map.copyOf(plans);
+    }
 
     /** 当前套餐（根据配额量推断档位，轻量）。 */
     @Operation(summary = "当前套餐（根据配额量推断档位，轻量）")
@@ -61,12 +72,26 @@ public class AccountController {
             tier = "pro";
         }
 
-        Map<String, Object> planInfo = (Map<String, Object>) PLANS.get(tier);
+        Map<String, Object> planInfo = PLANS.get(tier);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("plan", tier);
         body.put("planName", planInfo.get("name"));
         body.put("quotas", quotas.stream().map(this::quotaView).toList());
         return ResponseEntity.ok(body);
+    }
+
+    /** 套餐档位目录（升级弹窗的选项与价格真源；前端不再硬编码档位与月费）。 */
+    @Operation(summary = "套餐档位目录（键/名称/月费/容量，按低→高排序）")
+    @GetMapping("/plans")
+    public ResponseEntity<Map<String, Object>> plans() {
+        List<Map<String, Object>> list = PLAN_ORDER.stream()
+                .map(key -> {
+                    Map<String, Object> item = new LinkedHashMap<>(PLANS.get(key));
+                    item.put("key", key);
+                    return item;
+                })
+                .toList();
+        return ResponseEntity.ok(Map.of("plans", list));
     }
 
     /** 账单明细（轻量：按配额套餐月费汇总）。 */
@@ -78,7 +103,7 @@ public class AccountController {
         List<Quota> quotas = quotaRepository.findByTenantId(tenantId);
         double cpuSum = quotas.stream().mapToDouble(q -> parseCpu(q.getCpuLimit())).sum();
         String tier = cpuSum > 32 ? "enterprise" : (cpuSum > 4 ? "pro" : "free");
-        Map<?, ?> planInfo = (Map<?, ?>) PLANS.get(tier);
+        Map<String, Object> planInfo = PLANS.get(tier);
         double fee = ((Number) planInfo.get("monthlyFee")).doubleValue();
 
         // 键名以前端声明为准（frontend/src/api/account.ts 的 BillingItem：id/name/usage/cost）。

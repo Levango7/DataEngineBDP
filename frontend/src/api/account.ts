@@ -12,7 +12,14 @@ import { get, post } from './client'
 const BASE = '/account'
 
 /** 套餐版本 */
-export type PlanTier = 'standard' | 'enterprise' | 'flagship'
+/**
+ * 套餐档位（账户域）。
+ *
+ * 与后端唯一真源对齐（`AccountController.PLANS` / `GET /api/v1/account/plans`）：
+ * 此前这里是 standard/enterprise/flagship，而后端只有 free/pro/enterprise ⇒
+ * 弹窗默认 flagship 必被 400 拒（台账 #62）。档位与月费一律以后端返回为准。
+ */
+export type PlanTier = 'free' | 'pro' | 'enterprise'
 
 /** 配额项 */
 export interface QuotaItem {
@@ -34,6 +41,25 @@ export interface AccountPlan {
   planName: string
   /** 配额列表 */
   quotas: QuotaItem[]
+}
+
+/** 套餐档位项（GET /account/plans；月费为唯一真源，前端不再硬编码） */
+export interface PlanOption {
+  /** 档位键（与 PlanTier 同值域） */
+  key: PlanTier
+  /** 后端显示名（中文；界面标签走 i18n） */
+  name: string
+  /** 月费（元） */
+  monthlyFee: number
+  /** CPU 配额 */
+  cpu: string
+  /** 内存配额 */
+  memory: string
+}
+
+/** 套餐档位目录 */
+export interface AccountPlans {
+  plans: PlanOption[]
 }
 
 /** 计费明细项 */
@@ -75,6 +101,13 @@ export interface UpgradePlanResult {
  */
 export function getAccountPlan(): Promise<AccountPlan> {
   return get<AccountPlan>(`${BASE}/plan`)
+}
+
+/**
+ * 获取套餐档位目录（升级弹窗的选项与月费真源）
+ */
+export function getAccountPlans(): Promise<AccountPlans> {
+  return get<AccountPlans>(`${BASE}/plans`)
 }
 
 /**

@@ -19,8 +19,9 @@
     "upgradeModal": {
       "title": "Upgrade Plan",
       "targetPlan": "Target Plan",
-      "flagship": "Flagship",
-      "enterprisePlus": "Enterprise + Expansion Pack",
+      "free": "Free",
+      "pro": "Pro",
+      "enterprise": "Enterprise",
       "estimatedFee": "Estimated Monthly Fee",
       "note": "After upgrading, NodePoolLease scales out automatically with zero perceived downtime.",
       "confirm": "Confirm Upgrade",
