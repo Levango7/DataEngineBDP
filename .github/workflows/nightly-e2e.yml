@@ -146,6 +146,15 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     timeout-minutes: 60
+    # 仅本 job 用扩栈端口；全局默认（playwright.config.ts）仍是 18080 兜底，
+    # **不动全局默认**，否则基础 job（不启扩栈服务）会拿到 500 而非 404，
+    # 使 #392 的“仅 404 才 skip”失效（#395 dispatch 实测教训）。
+    env:
+      VITE_VECTOR_TARGET: http://127.0.0.1:18091
+      VITE_AI_TARGET: http://127.0.0.1:18092
+      VITE_OPS_TARGET: http://127.0.0.1:18097
+      VITE_INFRA_ORCHESTRATOR_TARGET: http://127.0.0.1:18098
+      VITE_LINEAGE_TARGET: http://127.0.0.1:18099
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -179,8 +188,11 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: 运行扩栈相关的 8 个 spec
+      - name: 运行扩栈相关的 API/401 断言（精简栈不支持 DOM 所需的全部基础服务）
         working-directory: frontend
+        # 只跑“API 返回 xxx / 未认证返回 401”这类**接口级**断言：它们只需
+        # encaps-layer(登录) + 目标服务；DOM 用例还依赖 encaps-tenant 等基础服务，
+        # 精简栈不具备（#395 dispatch 实测：DOM 大面积 element not found）。
         run: |
           npx playwright test \
             tests/e2e/vector.spec.ts \
@@ -190,7 +202,8 @@ jobs:
             tests/e2e/data-lineage.spec.ts \
             tests/e2e/lineage.spec.ts \
             tests/e2e/infra-k8s.spec.ts \
-            tests/e2e/infra-machine.spec.ts
+            tests/e2e/infra-machine.spec.ts \
+            --grep "返回 200|返回 401"
 
       - name: 上传 Playwright 报告与结果
         if: always()

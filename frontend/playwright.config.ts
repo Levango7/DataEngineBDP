@@ -30,18 +30,18 @@ const stack = {
   ruleEngine: process.env.VITE_RULE_ENGINE_TARGET || 'http://127.0.0.1:18083',
   sqlGateway: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:18081',
   bi: process.env.VITE_BI_TARGET || 'http://127.0.0.1:18087',
-  ops: process.env.VITE_OPS_TARGET || 'http://127.0.0.1:18097',
-  vector: process.env.VITE_VECTOR_TARGET || 'http://127.0.0.1:18091',
-  ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18092',
+  ops: process.env.VITE_OPS_TARGET || 'http://127.0.0.1:18080',
+  vector: process.env.VITE_VECTOR_TARGET || 'http://127.0.0.1:18080',
+  ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18080',
   models: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:18080',
   registry: process.env.VITE_REGISTRY_TARGET || 'http://127.0.0.1:18089',
   streamBatch: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18080',
-  // infra-orchestrator（/api/v1/clusters）与 lineage-analyzer（/lineage）现在由
-  // tests/integration/docker-compose.yml 的 profile `nightly-extra` 拉起
-  // （台账 #57①）；nightly-e2e.yml 用 `docker compose --profile nightly-extra up`
-  // 同时启动。本地不用 nightly 栈时可继续用环境变量覆盖为兜底/直连端口。
-  infraOrchestrator: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:18098',
-  lineage: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:18099'
+  // infra-orchestrator（/api/v1/clusters）与 lineage-analyzer（/lineage）均未纳入
+  // tests/integration/docker-compose.yml 的 nightly 栈；按本文件既定策略（栈外服务
+  // 统一指向 encaps-layer 宿主机 18080 兜底）显式注入，避免 vite proxy 因 8085/8086
+  // 无监听而回落报 500。
+  infraOrchestrator: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:18080',
+  lineage: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:18080'
 }
 
 export default defineConfig({
