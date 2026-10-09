@@ -44,6 +44,8 @@ jobs:
   #   - 后端 API 栈：docker compose 拉起 tests/integration/docker-compose.yml，
   #     其中 encaps-layer 服务映射宿主机 18080，与 playwright.config.ts 的
   #     VITE_API_TARGET 默认值 http://127.0.0.1:18080 一致（经 Vite proxy 转发）
+  #   - 扩栈第一期（台账 #57①）：vector-engine/ai-assistant/infra-orchestrator
+  #     由 profile "expanded" 拉起（18100-18102），启动失败仅告警
   #   - 前端 dev server：playwright.config.ts 自带 webServer（127.0.0.1:5173），
   #     workflow 不手动启动前端，以 config 为准避免双重拉起
   # ============================================================
@@ -76,6 +78,20 @@ jobs:
             exit 1
           fi
           echo "✓ 后端栈所有服务已就绪"
+
+      - name: 启动扩栈服务（台账 #57① 第一期：vector-engine / ai-assistant / infra-orchestrator）
+        working-directory: tests/integration
+        # 三服务在 compose "expanded" profile 内（默认 ci.yml Integration Test 腿不受影响）。
+        # 启动失败仅告警不阻断：对应 e2e 断言一律"404 探针才跳过"，服务真起来断言就真跑，
+        # 半坏（500/契约不符）不会被静默吞掉；日志里的 ps/警告即是扩栈健康度证据。
+        run: |
+          if docker compose --profile expanded up -d --wait --wait-timeout 900 \
+              vector-engine ai-assistant infra-orchestrator; then
+            echo "✓ 扩栈服务（vector-engine / ai-assistant / infra-orchestrator）已就绪"
+          else
+            echo "::warning::扩栈服务未全部就绪，相关断言将以 404 探针条件跳过（不阻断）"
+            docker compose --profile expanded ps -a vector-engine ai-assistant infra-orchestrator || true
+          fi
 
       - name: 安装前端依赖
         working-directory: frontend
@@ -127,7 +143,7 @@ jobs:
         working-directory: tests/integration
         run: |
           echo "清理 docker-compose 后端栈..."
-          docker compose down -v --remove-orphans || true
+          docker compose --profile expanded down -v --remove-orphans || true
           echo "✓ 清理完成"
 
   # ============================================================

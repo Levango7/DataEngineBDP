@@ -50,12 +50,13 @@ test.describe('向量引擎（/vector）', () => {
   })
 
   test('向量集合 API 返回 200 数组', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/vector 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/vector → vector-engine），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
+    // 条件式 skip（台账 #57① 扩栈第一期）：vector-engine 已进栈（compose profile expanded，
+    // 宿主 18100）；服务缺席时回落 encaps-layer 得 404 ⇒ 跳过；其余状态码照常断言。
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/vector`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 vector-engine 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
     expect(resp.status()).toBe(200)
     const json = await resp.json()
     expect(Array.isArray(json.data)).toBe(true)

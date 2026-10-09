@@ -13,8 +13,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /** 后端各服务的代理目标（宿主机端口 = docker-compose 映射；容器内端口不同）
- *  栈外服务（encaps-data/gateway/vector/ai/stream-batch 等）统一指向 encaps-layer
- *  18080 兜底——其 /api 兜底代理转发一切未细分前缀，stub Controller 提供契约响应 */
+ *  栈外服务（encaps-data/gateway/stream-batch 等）仍统一指向 encaps-layer 18080 兜底；
+ *  vector / ai-assistant / infra-orchestrator 已扩栈（compose profile "expanded"，
+ *  宿主机 18100/18101/18102）——服务缺席时仍回落到 18080 得 404 ⇒ 相关断言用
+ *  "404 才跳过"的条件式 test.skip（台账 #57①） */
 const stack = {
   api: process.env.VITE_API_TARGET || 'http://127.0.0.1:18080',
   // encaps-tenant 是独立进程（Tenant/Project/Account/Workspace/Quota 域），
@@ -31,16 +33,14 @@ const stack = {
   sqlGateway: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:18081',
   bi: process.env.VITE_BI_TARGET || 'http://127.0.0.1:18087',
   ops: process.env.VITE_OPS_TARGET || 'http://127.0.0.1:18080',
-  vector: process.env.VITE_VECTOR_TARGET || 'http://127.0.0.1:18080',
-  ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18080',
+  vector: process.env.VITE_VECTOR_TARGET || 'http://127.0.0.1:18100',
+  ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18101',
   models: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:18080',
   registry: process.env.VITE_REGISTRY_TARGET || 'http://127.0.0.1:18089',
   streamBatch: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18080',
-  // infra-orchestrator（/api/v1/clusters）与 lineage-analyzer（/lineage）均未纳入
-  // tests/integration/docker-compose.yml 的 nightly 栈；按本文件既定策略（栈外服务
-  // 统一指向 encaps-layer 宿主机 18080 兜底）显式注入，避免 vite proxy 因 8085/8086
-  // 无监听而回落报 500。
-  infraOrchestrator: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:18080',
+  // infra-orchestrator（/api/v1/clusters）已扩栈（compose profile "expanded"，宿主机 18102）；
+  // lineage-analyzer（/lineage）仍未纳入 nightly 栈，按既定策略指向 encaps-layer 18080 兜底。
+  infraOrchestrator: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:18102',
   lineage: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:18080'
 }
 

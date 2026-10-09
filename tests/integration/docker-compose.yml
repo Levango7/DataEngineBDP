@@ -471,6 +471,85 @@ services:
       - it-net
 
   # ---------------------------------------------------------------------------
+  # 栈外服务扩栈·第一期（台账 #57①）：三个自带 Dockerfile 的服务进栈
+  # ---------------------------------------------------------------------------
+  # profile "expanded"：默认 compose up（ci.yml 的 Integration Test 腿）不启动，
+  # nightly-e2e.yml 用 --profile expanded 显式拉起且启动失败仅告警（对应 e2e 断言
+  # 一律"404 探针才跳过"——服务真起来断言就真跑，半坏不会被静默吞掉）。
+  vector-engine:
+    build:
+      context: ../../platform/vector-engine
+      dockerfile: Dockerfile
+    image: shuqing/vector-engine:0.1.0
+    container_name: it-vector-engine
+    profiles: ["expanded"]
+    ports:
+      - "18100:8086"
+    environment:
+      - VECTOR_ENGINE_PORT=8086
+      # 无 Milvus 的集成栈显式走 Mock 存储（否则会尝试连 Milvus 再回退，慢且噪声大）
+      - STORE_TYPE=mock
+      # 鉴权中间件 fail-fast：key/issuer 与 encaps-layer 签发的 token 对齐
+      - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+    healthcheck:
+      # 真实健康路由是 /api/v1/health（镜像内 HEALTHCHECK 曾错写 /health，本 PR 一并修正）
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8086/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  ai-assistant:
+    build:
+      context: ../../platform/ai-assistant
+      dockerfile: Dockerfile
+    image: shuqing/ai-assistant:0.1.0
+    container_name: it-ai-assistant
+    profiles: ["expanded"]
+    ports:
+      - "18101:18110"
+    environment:
+      - AI_ASSISTANT_PORT=18110
+      - LLM_GATEWAY_URL=http://llm-gateway:8084
+      - SQL_GATEWAY_URL=http://sql-gateway:8081
+      # 鉴权中间件 fail-fast：key/issuer 必须与 encaps-layer 签发的 token 一致
+      - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18110/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  infra-orchestrator:
+    build:
+      context: ../..
+      dockerfile: platform/infra-orchestrator/Dockerfile
+    image: shuqing/infra-orchestrator:0.1.0
+    container_name: it-infra-orchestrator
+    profiles: ["expanded"]
+    ports:
+      - "18102:8085"
+    environment:
+      # 应用默认 8086，但镜像自带 HEALTHCHECK 探 8085 ⇒ 用 env 对齐（详见 Dockerfile）
+      - INFRA_ORCHESTRATOR_PORT=8085
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
   # Prometheus（采集 4 个自研组件的 metrics）
   # ---------------------------------------------------------------------------
   prometheus:
