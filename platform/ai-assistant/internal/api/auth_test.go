@@ -202,3 +202,16 @@ func TestExecute_TenantMatchesClaim_OK(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "tenant-a", gotTenant)
 }
+
+// /sessions 返回**裸数组**（前端 listSessions(): Promise<ChatSession[]> 的契约）。
+// 回归位：曾返回 {"sessions": [...]}，导致 useAiAssistant 里 [...sessions.value] 抛错、页面崩（#57①）。
+func TestListSessions_ReturnsBareArray(t *testing.T) {
+	router := buildTestRouter(t, nil)
+	token := makeTestToken(t, "tenant-a")
+	w := doJSON(router, http.MethodGet, "/api/v1/ai-assistant/sessions", token, "")
+	require.Equal(t, http.StatusOK, w.Code, "body=%s", w.Body.String())
+
+	var arr []map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &arr),
+		"响应应为 JSON 数组（不是 {sessions:...}），body=%s", w.Body.String())
+}

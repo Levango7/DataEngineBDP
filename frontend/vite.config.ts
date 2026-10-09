@@ -4,7 +4,9 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from 'node:fs'
 // https://vitejs.dev/config/
-const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'))
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8')
+)
 
 // Sprint 1.3：版本号从 package.json 单一来源读取，环境从 VITE_APP_ENV 注入（默认 dev）
 export default defineConfig({
@@ -135,9 +137,13 @@ export default defineConfig({
         changeOrigin: true
       },
       // governance/lineage-analyzer（血缘分析服务 :8086——注意与 vector-engine 同默认端口）
+      // 前端契约（frontend/src/api/lineage.ts + 其单测）保持 `/lineage/api/v1/lineage/...`，
+      // 而服务已移除 context-path、实供 `/api/v1/lineage/...` ⇒ 必须在此 strip 掉开头的 `/lineage`，
+      // 否则转发到服务的是双层路径 `/lineage/api/v1/...` → 404（台账 #57① 实跑发现）。
       '/lineage': {
         target: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:8086',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/lineage/, '')
       },
       // rule-engine（规则引擎服务 :8083——rule-engine 实际端口）
       '/api/v1/quality': {

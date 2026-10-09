@@ -37,14 +37,15 @@ test.describe('血缘分析（/data-lineage）', () => {
   })
 
   test('血缘分析 API 返回 200（Bearer 认证，独立前缀 /lineage）', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/lineage 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/lineage → lineage-analyzer），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.post('/lineage/api/v1/lineage/analyze', {
       headers: { Authorization: `Bearer ${token}` },
       data: { sql: 'SELECT a.id FROM ods.orders a JOIN dim.user b ON a.uid=b.id', dialect: 'ANSI' }
     })
-    expect(resp.status()).toBe(200)
+        // 条件式 skip（台账 #57①）：lineage-analyzer 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
+    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 lineage-analyzer 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
+expect(resp.status()).toBe(200)
   })
 
   test('血缘分析 API 未认证返回 401', async ({ request }) => {
