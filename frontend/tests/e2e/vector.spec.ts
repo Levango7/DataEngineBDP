@@ -28,6 +28,12 @@ test.describe('向量引擎（/vector）', () => {
   })
 
   test('集合表格表头正确', async ({ page }) => {
+    // 先等本页渲染完成：/vector 的 h1 唯一（上一页 Dashboard 的 h1 是"工作台"）。
+    // 否则 waitForSelector('table') 会命中切页过渡期残留的 Dashboard 待办表，
+    // 表头被拼成"申请申请人操作"（实测），随后对"集合/维度/条数"的断言必失败。
+    // 注意：本页表只在向量 API 成功时渲染；栈外服务（vector-engine）缺席时仍会按
+    // 正确原因超时（属台账 #57①，不是本处的竞态）。
+    await expect(page.locator('h1')).toContainText('向量库', { timeout: 15_000 })
     await page.waitForSelector('table', { timeout: 15_000 })
     const headers = page.locator('table th')
     const texts = await headers.allTextContents()
