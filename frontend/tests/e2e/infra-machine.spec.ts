@@ -33,8 +33,12 @@ test.describe('机器管理（/infra-machine）', () => {
   })
 
   test('信创集群列表 API 返回 200（Bearer 认证）', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/clusters/xinchang 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/clusters/xinchang → infra-orchestrator），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
+    // 保留 skip（台账 #57① 实跑发现的新真因，非"服务缺席"）：infra-orchestrator 的
+    // `GET /api/v1/clusters/{env}` 对已启用但不可达/已禁用的 provider 抛错（→400/异常），
+    // 而聚合 `GET /api/v1/clusters` 对每个 env 各自 catch 后返回空 ⇒ 只有 `/{env}` 这条
+    // 在无 infra-provider-* 的栈里必非 200。修它要改单环境列表的容错语义（对齐聚合口径或加
+    // provider mock），属产品/接口语义决策，故保留 skip 并如实记录。
+    test.skip(true, 'KNOWN-FAILURES #57①：/clusters/{env} 对不可达/禁用 provider 非 200（400/异常），需产品决策容错语义；不是"服务缺席"。详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/clusters/xinchang`, {
       headers: { Authorization: `Bearer ${token}` }

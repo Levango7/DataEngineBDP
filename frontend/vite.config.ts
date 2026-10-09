@@ -4,7 +4,9 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync } from 'node:fs'
 // https://vitejs.dev/config/
-const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'))
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8')
+)
 
 // Sprint 1.3：版本号从 package.json 单一来源读取，环境从 VITE_APP_ENV 注入（默认 dev）
 export default defineConfig({

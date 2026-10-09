@@ -37,13 +37,14 @@ test.describe('集群概览（/cluster）', () => {
   })
 
   test('集群概览 API 返回 200（Bearer 认证）', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/cluster 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/cluster/overview → observability query-api），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/cluster/overview`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    expect(resp.status()).toBe(200)
+        // 条件式 skip（台账 #57①）：observability query-api 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
+    test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 observability query-api 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
+expect(resp.status()).toBe(200)
   })
 
   test('集群节点 API 未认证返回 401', async ({ request }) => {
