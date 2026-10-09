@@ -615,15 +615,18 @@ async function loadOverview() {
 /** CPU 使用率（百分比） */
 const cpuPercent = computed(() => {
   if (!overview.value) return 0
-  const cap = overview.value.cpuCapacity || 1
-  return Math.round((overview.value.cpuUsed / cap) * 100)
+  // 契约缺口（台账 #57①）：query-api 不返回 cpuCapacity/cpuUsed ⇒ 缺省 0（原实现会得 NaN%）
+  const cap = overview.value.cpuCapacity ?? 0
+  if (cap <= 0) return 0
+  return Math.round(((overview.value.cpuUsed ?? 0) / cap) * 100)
 })
 
 /** 内存使用率（百分比） */
 const memPercent = computed(() => {
   if (!overview.value) return 0
-  const cap = overview.value.memCapacity || 1
-  return Math.round((overview.value.memUsed / cap) * 100)
+  const cap = overview.value.memCapacity ?? 0
+  if (cap <= 0) return 0
+  return Math.round(((overview.value.memUsed ?? 0) / cap) * 100)
 })
 
 /** 健康率 */
@@ -721,7 +724,7 @@ function renderTrendChart() {
         name: cpuLabel,
         type: 'line',
         smooth: true,
-        data: overview.value.trendCpu,
+        data: overview.value.trendCpu ?? [],
         itemStyle: { color: c.series.success },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
