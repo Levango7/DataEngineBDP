@@ -67,12 +67,16 @@ jobs:
       - name: 启动 docker-compose 后端栈（失败直接阻断）
         working-directory: tests/integration
         # 与 ci.yml integration-test 相同的门禁语义：栈起不来则 E2E 无意义，硬失败不跳过；
-        # --wait 等待全部 healthcheck 通过，--wait-timeout 兜底防止无限等待
+        # --wait 等待全部 healthcheck 通过，--wait-timeout 兜底防止无限等待。
+        # 台账 #57①：额外跑 profile nightly-extra（5 个此前栈外的服务：vector-engine /
+        # ai-assistant / query-api / infra-orchestrator / lineage-analyzer）；
+        # 该 profile 隔离使 ci.yml / security.yml / it-k3s 的 `docker compose up` 行为不变。
+        # 超时 600→900：新增 5 个镜像（含 2 个 Java 根上下文）需并行构建与就绪。
         run: |
-          echo "启动 docker-compose 后端栈..."
-          if ! docker compose up -d --wait --wait-timeout 600; then
+          echo "启动 docker-compose 后端栈（含 nightly-extra 扩栈服务）..."
+          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 900; then
             echo "::error::docker-compose 启动失败或健康检查超时，阻断"
-            docker compose ps -a || true
+            docker compose --profile nightly-extra ps -a || true
             exit 1
           fi
           echo "✓ 后端栈所有服务已就绪"

@@ -37,8 +37,6 @@ test.describe('血缘分析（/data-lineage）', () => {
   })
 
   test('血缘分析 API 返回 200（Bearer 认证，独立前缀 /lineage）', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/lineage 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/lineage → lineage-analyzer），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
     const token = await getApiToken(request)
     const resp = await request.post('/lineage/api/v1/lineage/analyze', {
       headers: { Authorization: `Bearer ${token}` },

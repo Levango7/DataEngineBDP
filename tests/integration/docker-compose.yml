@@ -470,6 +470,172 @@ services:
     networks:
       - it-net
 
+  # ===========================================================================
+  # 台账 #57① 栈外服务扩栈（profile: nightly-extra）
+  #
+  # 这 5 个服务此前不在栈内，导致 nightly 里 /vector、/ai-assistant、
+  # /cluster/overview、/clusters、/lineage 等前缀按 playwright.config.ts 的既定策略
+  # 回落到 encaps-layer:18080 ⇒ 404。扩栈后由 playwright 显式指向本组宿主机端口。
+  #
+  # 用 compose profile 隔离：默认不启动，故 ci.yml 的 Integration Test、security.yml
+  # 的 ZAP DAST、it-k3s 等 `docker compose up` 行为**完全不变**（零波及）；
+  # 仅 nightly-e2e.yml 以 `--profile nightly-extra` 显式拉起。
+  # 宿主机端口 18091/18092/18097/18098/18099 取自 #57① 决策文档 §4（空闲段）。
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # 向量检索引擎（Go/Gin, 容器 8086 → 主机 18091）
+  # ---------------------------------------------------------------------------
+  vector-engine:
+    profiles: ["nightly-extra"]
+    build:
+      context: ../../platform/vector-engine
+      dockerfile: Dockerfile
+    image: shuqing/vector-engine:0.1.0
+    container_name: it-vector-engine
+    ports:
+      - "18091:8086"
+    environment:
+      - VECTOR_ENGINE_PORT=8086
+      # 栈内没有 Milvus：显式选内存 mock 存储（非静默回退）。
+      - STORE_TYPE=mock
+      - MOCK_FALLBACK=true
+      - VECTOR_ENGINE_VERSION=0.1.0
+      # 与 encaps-layer 同密钥/issuer：login 签发的 token 可直接通过本服务校验。
+      # 注意：**不得**设 VECTOR_AUTH_REQUIRED=false——spec 含“未认证返回 401”断言。
+      - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      - CORS_ORIGINS=http://localhost:5173
+    healthcheck:
+      # 健康端点在 /api/v1/health（镜像内置 HEALTHCHECK 写的 /health 是 404，此处覆盖为正确路径）
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # AI 助手（Go/Gin, 容器 18110 → 主机 18092）
+  # ---------------------------------------------------------------------------
+  ai-assistant:
+    profiles: ["nightly-extra"]
+    build:
+      context: ../../platform/ai-assistant
+      dockerfile: Dockerfile
+    image: shuqing/ai-assistant:0.1.0
+    container_name: it-ai-assistant
+    ports:
+      - "18092:18110"
+    environment:
+      - AI_ASSISTANT_PORT=18110
+      - AI_ASSISTANT_DB=/app/data/ai-assistant.db
+      - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      # 容器内 localhost 不是栈内服务，必须改写成服务名。
+      - LLM_GATEWAY_URL=http://llm-gateway:8084
+      - SQL_GATEWAY_URL=http://sql-gateway:8081
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:18110/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 可观测性查询 API（Go/Gin, 容器 8090 → 主机 18097）
+  # ---------------------------------------------------------------------------
+  query-api:
+    profiles: ["nightly-extra"]
+    build:
+      context: ../../platform/observability/query-api
+      dockerfile: Dockerfile
+    image: shuqing/query-api:0.1.0
+    container_name: it-query-api
+    ports:
+      - "18097:8090"
+    environment:
+      - QUERY_API_PORT=8090
+      - QUERY_API_VERSION=0.1.0
+      - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      # 栈内已有 prometheus 服务（同一 it-net）；/cluster/overview 的数据源。
+      - PROMETHEUS_URL=http://prometheus:9090
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 基础设施编排（Java/Spring Boot, 容器 8085 → 主机 18098）
+  # ---------------------------------------------------------------------------
+  infra-orchestrator:
+    profiles: ["nightly-extra"]
+    build:
+      context: ../..
+      dockerfile: platform/infra-orchestrator/Dockerfile
+    image: shuqing/infra-orchestrator:0.1.0
+    container_name: it-infra-orchestrator
+    ports:
+      - "18098:8085"
+    environment:
+      # Dockerfile EXPOSE/HEALTHCHECK 与 k3s manifest 均按 8085；application.yml 默认 8086 需覆盖。
+      - INFRA_ORCHESTRATOR_PORT=8085
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      - CORS_ORIGINS=http://localhost:5173
+      - APP_K8S_MOCK_ENABLED=true
+      # 4 个 infra-provider-* 不在栈内：显式关闭，避免 /clusters 聚合时逐个连接超时。
+      - XINCHANG_PROVIDER_ENABLED=false
+      - BAREMETAL_PROVIDER_ENABLED=false
+      - CLOUD_PROVIDER_ENABLED=false
+      - PRIVATE_PROVIDER_ENABLED=false
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 数据血缘分析（Java/Spring Boot, 容器 8086 → 主机 18099）
+  # ---------------------------------------------------------------------------
+  lineage-analyzer:
+    profiles: ["nightly-extra"]
+    build:
+      context: ../..
+      dockerfile: platform/governance/lineage-analyzer/Dockerfile
+    image: shuqing/lineage-analyzer:0.1.0
+    container_name: it-lineage-analyzer
+    ports:
+      - "18099:8086"
+    environment:
+      - SERVER_PORT=8086
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      - CORS_ORIGINS=http://localhost:5173
+      # H2 内存库 + Flyway 关闭：零外部依赖即可启动。
+      - FLYWAY_ENABLED=false
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 30s
+    networks:
+      - it-net
+
   # ---------------------------------------------------------------------------
   # Prometheus（采集 4 个自研组件的 metrics）
   # ---------------------------------------------------------------------------
