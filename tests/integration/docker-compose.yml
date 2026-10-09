@@ -562,6 +562,9 @@ services:
       - QUERY_API_VERSION=0.1.0
       - JWT_SIGNING_KEY=it-test-jwt-secret-at-least-32-bytes-long
       - JWT_ISSUER=shuqing-bigdata
+      # compose 栈内无 k8s：显式启用空数据 mock，使 /api/v1/cluster/* 路由注册并返回 200
+      # （否则 NewClusterHandler 因无 kubeconfig 失败 → 路由不注册 → 404）。
+      - QUERY_API_K8S_MOCK=true
       # 栈内已有 prometheus 服务（同一 it-net）；/cluster/overview 的数据源。
       - PROMETHEUS_URL=http://prometheus:9090
     depends_on:

@@ -49,7 +49,9 @@ test.describe('向量引擎（/vector）', () => {
     })
     expect(resp.status()).toBe(200)
     const json = await resp.json()
-    expect(Array.isArray(json.data)).toBe(true)
+    // 契约：vector-engine（Go）返回**裸数组**（frontend/src/api/vector.ts listCollections(): VectorCollection[]）。
+    // 非 Java 的 ApiResponse 包装（无 {code,data}）⇒ 断言直接看顶层，不是 json.data。
+    expect(Array.isArray(json)).toBe(true)
   })
 
   test('向量集合 API 未认证返回 401', async ({ request }) => {

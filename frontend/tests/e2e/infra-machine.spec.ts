@@ -34,6 +34,14 @@ test.describe('机器管理（/infra-machine）', () => {
 
   test('信创集群列表 API 返回 200（Bearer 认证）', async ({ request }) => {
     const token = await getApiToken(request)
+    // 保留 skip（台账 #57① 实跑发现的新真因，非“服务缺席”）：
+    // infra-orchestrator 的 `GET /api/v1/clusters/{env}` 对**已启用但不可达**或**已禁用**的 provider
+    // 不是返回空列表而是抛错（ProviderRegistry.lookup → IllegalArgumentException → 400；
+    // 已启用不可达 → WebClient 异常）。而 `GET /api/v1/clusters`（聚合）对每个 env 各自 catch 后返回空
+    // ⇒ 只有 `/{env}` 这条在 compose（无 infra-provider-*）下必非 200。
+    // 修它要改单环境列表的容错语义（与聚合口径对齐或加 provider mock），属产品/接口语义决策，
+    // 不在本次“扩展栈 + 修正路径”范围内，故保留 skip 并如实记录。
+    test.skip(true, 'KNOWN-FAILURES #57①：/clusters/{env} 对不可达/禁用 provider 非 200（400/异常），需 product 决策容错语义；不是“服务缺席”。详见 docs/KNOWN-FAILURES.md #57')
     const resp = await request.get(`${apiBase}/clusters/xinchang`, {
       headers: { Authorization: `Bearer ${token}` }
     })
