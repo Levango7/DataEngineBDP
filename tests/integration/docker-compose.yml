@@ -23,6 +23,7 @@ services:
       dockerfile: platform/encaps-layer/Dockerfile
     image: shuqing/encaps-layer:0.1.0
     container_name: it-encaps-layer
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18080:8080"
     environment:
@@ -67,6 +68,7 @@ services:
       dockerfile: platform/encaps-tenant/Dockerfile
     image: shuqing/encaps-tenant:0.1.0
     container_name: it-encaps-tenant
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18090:8081"
     environment:
@@ -94,6 +96,7 @@ services:
       dockerfile: platform/sql-gateway/Dockerfile
     image: shuqing/sql-gateway:0.1.0
     container_name: it-sql-gateway
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18081:8081"
     environment:
@@ -146,6 +149,7 @@ services:
       dockerfile: platform/rule-engine/Dockerfile
     image: shuqing/rule-engine:0.1.0
     container_name: it-rule-engine
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18083:8083"
     environment:
@@ -174,6 +178,7 @@ services:
       dockerfile: platform/finops/cost-model/Dockerfile
     image: shuqing/cost-model:0.1.0
     container_name: it-cost-model
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18084:8084"
     environment:
@@ -208,6 +213,7 @@ services:
       dockerfile: platform/finops/dashboard/Dockerfile
     image: shuqing/finops-dashboard:0.1.0
     container_name: it-finops-dashboard
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18087:8085"
     environment:
@@ -588,6 +594,7 @@ services:
       dockerfile: platform/infra-orchestrator/Dockerfile
     image: shuqing/infra-orchestrator:0.1.0
     container_name: it-infra-orchestrator
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18098:8085"
     environment:
@@ -621,6 +628,7 @@ services:
       dockerfile: platform/governance/lineage-analyzer/Dockerfile
     image: shuqing/lineage-analyzer:0.1.0
     container_name: it-lineage-analyzer
+    mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
     ports:
       - "18099:8086"
     environment:

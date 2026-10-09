@@ -275,15 +275,32 @@ public class SupplyOrchestrator {
      * @return 集群列表
      */
     public List<ClusterInfo> listClusters(EnvironmentType environment) {
-        ProviderDescriptor descriptor = registry.lookup(environment);
+        // 与 listAllClusters 同口径：单环境列表对“provider 未注册/被禁用/不可达”返回**空列表 + warn**，
+        // 而不是把异常抛给控制器（此前会让 GET /api/v1/clusters/{env} 变 400/500）。
+        // 理由：对列表端点，“该环境暂无可用集群”是正常结果；错误细节记日志、不泄露到响应。
+        ProviderDescriptor descriptor;
+        try {
+            descriptor = registry.lookup(environment);
+        } catch (IllegalArgumentException e) {
+            log.warn("listClusters: environment 无可用 provider，返回空列表 env={} reason={}",
+                    environment, e.getMessage());
+            return List.of();
+        }
         log.debug("listClusters env={} provider={}", environment, descriptor.getName());
 
         String url = descriptor.getRestBaseUrl();
-        JsonNode response = webClient.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .block();
+        JsonNode response;
+        try {
+            response = webClient.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(JsonNode.class)
+                    .block();
+        } catch (RuntimeException e) {
+            log.warn("listClusters: provider 调用失败，返回空列表 env={} provider={} reason={}",
+                    environment, descriptor.getName(), e.getMessage());
+            return List.of();
+        }
 
         List<ClusterInfo> result = new ArrayList<>();
         if (response != null && response.isArray()) {
