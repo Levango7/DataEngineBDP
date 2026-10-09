@@ -131,6 +131,98 @@ jobs:
           echo "✓ 清理完成"
 
   # ============================================================
+  # 扩栈规格 E2E（台账 #57① 的 CI 容量方案 A，docs/nightly-stack-expansion-runner-plan.md）
+  # 目的：5 个“栈外”服务（vector / ai-assistant / query-api /
+  #       infra-orchestrator / lineage-analyzer）单独跑在**精简栈**里，
+  #       避免与 18 个基础服务挤在同一个 ~7GB runner 上
+  #       （#385 两次 dispatch 均 `it-encaps-layer is unhealthy` 的真因是内存容量）。
+  # 精简栈 = encaps-layer（登录）+ prometheus + 5 个 nightly-extra 服务；
+  # 仅按名启动这些服务（及其 depends_on），不跑 Python/其它 Java。
+  # 仅非 PR 触发（PR 的稳定子集不需要这些服务，不为其加 ~15 分钟）。
+  # 说明：8 个 spec 已由 #392 改为“**仅 404 才 skip**”⇒ 服务就绪时断言自动生效。
+  # ============================================================
+  playwright-e2e-expanded:
+    name: Playwright E2E（扩栈规格 #57①）
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    timeout-minutes: 60
+    # 仅本 job 用扩栈端口；全局默认（playwright.config.ts）仍是 18080 兜底，
+    # **不动全局默认**，否则基础 job（不启扩栈服务）会拿到 500 而非 404，
+    # 使 #392 的“仅 404 才 skip”失效（#395 dispatch 实测教训）。
+    env:
+      VITE_VECTOR_TARGET: http://127.0.0.1:18091
+      VITE_AI_TARGET: http://127.0.0.1:18092
+      VITE_OPS_TARGET: http://127.0.0.1:18097
+      VITE_INFRA_ORCHESTRATOR_TARGET: http://127.0.0.1:18098
+      VITE_LINEAGE_TARGET: http://127.0.0.1:18099
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 启动精简后端栈（仅扩栈规格所需）
+        working-directory: tests/integration
+        run: |
+          echo "启动精简栈：encaps-layer + prometheus + 5 个 nightly-extra 服务"
+          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
+                encaps-layer prometheus vector-engine ai-assistant query-api \
+                infra-orchestrator lineage-analyzer; then
+            echo "::error::精简栈启动失败或健康检查超时"
+            docker compose --profile nightly-extra ps -a || true
+            exit 1
+          fi
+          echo "✓ 精简栈就绪"
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: |
+          if [ -f "package-lock.json" ]; then npm ci; else npm install; fi
+
+      - name: 安装 Chromium 浏览器
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 运行扩栈相关的 API/401 断言（精简栈不支持 DOM 所需的全部基础服务）
+        working-directory: frontend
+        # 只跑“API 返回 xxx / 未认证返回 401”这类**接口级**断言：它们只需
+        # encaps-layer(登录) + 目标服务；DOM 用例还依赖 encaps-tenant 等基础服务，
+        # 精简栈不具备（#395 dispatch 实测：DOM 大面积 element not found）。
+        run: |
+          npx playwright test \
+            tests/e2e/vector.spec.ts \
+            tests/e2e/ai-assistant.spec.ts \
+            tests/e2e/cluster-overview.spec.ts \
+            tests/e2e/dashboard.spec.ts \
+            tests/e2e/data-lineage.spec.ts \
+            tests/e2e/lineage.spec.ts \
+            tests/e2e/infra-k8s.spec.ts \
+            tests/e2e/infra-machine.spec.ts \
+            --grep "返回 200|返回 401"
+
+      - name: 上传 Playwright 报告与结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-expanded-report
+          path: |
+            frontend/tests/e2e-report/
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 清理 docker-compose 栈
+        if: always()
+        working-directory: tests/integration
+        run: |
+          docker compose --profile nightly-extra down -v --remove-orphans || true
+
+  # ============================================================
   # K3s 链路 burn-in 套件（允许失败）：单节点 K3s 上运行四条链路 pytest
   # 执行入口：tests/integration/run_k3s_integration.py（仓库既有入口脚本）
   #   内部逐链路调用 pytest 运行 tests/integration/k3s/test_chain*.py
