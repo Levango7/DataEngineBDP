@@ -1,0 +1,24 @@
+###############################################################################
+# real-time-pipeline Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "real-time-pipeline.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 端口转发访问（本地调试）:
+   kubectl port-forward svc/{{ include "real-time-pipeline.serviceName" . }} 18090:18090 -n {{ .Release.Namespace }}
+
+4. 查看日志:
+   kubectl logs -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+###############################################################################
+# 上游依赖（按需在集群内提供，否则相关能力降级）:
+#   Iceberg REST Catalog / Flink SQL Gateway / NebulaGraph / rule-engine
+# 完整生产配置请引用:
+#   helm upgrade --install {{ .Release.Name }} design/deploy/charts/real-time-pipeline #     -f design/deploy/values/real-time-pipeline-values.yaml -n {{ .Release.Namespace }}
+###############################################################################

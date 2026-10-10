@@ -1,0 +1,138 @@
+# ============================================================================
+# real-time-pipeline Helm Chart 默认 values
+# 关联：design/deploy/values/real-time-pipeline-values.yaml（如存在则引用，深度调优配置）
+# 台账 #2：本 chart 为该服务补齐"部署单元"（此前仅有 Dockerfile，集群里没有承载者，
+# 而治理闭环的两条跨进程边都跑在本进程里，见 docs/KNOWN-FAILURES.md #2/#6）。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+image:
+  repository: "docker.m.daocloud.io/sq-real-time-pipeline"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+# 该进程内含 Flink 作业提交与事件轮询，多副本需注意轮询重复消费 —— 默认单副本，
+# 扩容前请先确认幂等（事件处理以 commit 事件 ID 去重，见服务 README「架构」）。
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 18090
+  containerPort: 18090
+
+# ---- 资源配额（Java + 内嵌 Flink 客户端，参照同族服务默认档）----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # 镜像 Dockerfile 用 busybox adduser（alpine）建 appuser，默认 uid=1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（应用自带 /api/v1/health，见 HealthController）----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 18090
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 18090
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- 可写点（只读根配套）----
+# 与 securityContext.readOnlyRootFilesystem: true 配套：嵌入式 Tomcat 启动需要在 /tmp
+# 建部署临时目录，只读根会导致 "FileSystemException: /tmp/tomcat.PORT.RANDOM" ⇒
+# "Unable to start web server"（sql-gateway 实测教训）。故本 chart 默认开 /tmp emptyDir；
+# /app/logs 同理（镜像 WORKDIR=/app，日志目录）。
+tmp:
+  enabled: true
+logs:
+  enabled: true
+  mountPath: /app/logs
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 ----
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget ----
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+auth:
+  # 指向已存在的 Secret，其 jwtSecretKey 指定的键将作为 JWT_SECRET 注入容器；
+  # 须与 JWT 签发端（encaps-layer / Keycloak）一致，否则接口全部 401。
+  # 留空表示不注入（例如仅内网调用、由服务网格承担鉴权的场景）。
+  jwtSecretName: ""
+  jwtSecretKey: jwt-secret
+
+# ---- 环境变量（非敏感，全部进 ConfigMap）----
+env:
+  SERVER_PORT: "18090"
+  JAVA_OPTS: ""
+  LOG_LEVEL: info
+  # 上游依赖端点（默认值与 application.yml 一致，生产按实际 Service 覆盖）
+  ICEBERG_REST_CATALOG_URL: "http://iceberg-rest:8181"
+  ICEBERG_POLL_INTERVAL_MS: "1000"
+  FLINK_SQL_GATEWAY_URL: "http://flink-sql-gateway:8083"
+  FLINK_SUBMIT_TIMEOUT_MS: "10000"
+  NEBULA_GRAPHD_HOST: "nebula-graphd"
+  NEBULA_GRAPHD_PORT: "9669"
+  NEBULA_SPACE: "lineage"
+  RULE_ENGINE_URL: "http://rule-engine:8083"
+  # 台账 #6 阶段 3：质量规则单一来源（rule-engine 为权威）；默认关，保持 additive
+  GOVERNANCE_QUALITY_SOURCE_ENABLED: "false"
+  METADATA_COLLECT_TIMEOUT_MS: "5000"
+  ALERT_LATENCY_TARGET_MS: "5000"
+  PIPELINE_P95_TARGET_MS: "10000"
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config: {}
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+# 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集；应用经 actuator 暴露 prometheus）----
+serviceMonitor:
+  enabled: false
+  path: /actuator/prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

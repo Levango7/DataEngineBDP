@@ -311,6 +311,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/governance/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "real-time-pipeline:18090": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/governance/assets/**",
           "upstream": {
             "type": "roundrobin",

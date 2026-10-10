@@ -2,9 +2,12 @@
 # 含义：该组件有 Dockerfile，但没有同名 Chart，镜像名也不在任何 Chart/k3s 清单里
 #       ⇒ 只能在 tests/integration/docker-compose.yml 的测试拓扑里跑，生产不可部署。
 # 销账条件：补齐 Chart 或在 k3s manifest 中引用其镜像后，重跑脚本从本名单移除。
-# 2026-10-10：encaps-data / encaps-gateway 为 nightly 扩栈补了 Dockerfile（此前仓内无构建
-# 单元、连集成拓扑都跑不了）。构建单元就位后，这两个"无部署单元"缺口被静态门禁首次显形
-# ——属既有欠债转明，非新增组件；生产 Chart 仍为未立项项（台账 #57① 与"无 Chart 组件"族）。
+# 说明（2026-10-10，勿写在 uncovered: 之下——解析要求列表连续）：
+#  · +#57①（扩栈第二期）给 encaps-data / encaps-gateway 补了 Dockerfile，二者由此从"无构建单元"
+#    变为"可构建但无部署单元"，缺口转明（既有欠债，非新增组件）；
+#  · -本批给 platform/governance/real-time-pipeline 补了 Helm Chart（design/deploy/charts/
+#    real-time-pipeline），缺口 15→14 —— 台账 #2 里"最要紧"的一项（治理闭环两条跨进程边都在
+#    该进程里跑而集群无承载者）已闭环。
 uncovered:
   - "platform/batch-pipeline"
   - "platform/batch-pipeline/docker/spark-cluster"
@@ -13,7 +16,6 @@ uncovered:
   - "platform/encaps-tenant"
   - "platform/finops/cost-model"
   - "platform/finops/dashboard"
-  - "platform/governance/real-time-pipeline"
   - "platform/karmada/api"
   - "platform/karmada/docker/mock-cluster"
   - "platform/karmada/failover/api"
