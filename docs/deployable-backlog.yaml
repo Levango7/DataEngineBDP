@@ -5,8 +5,9 @@
 # 说明（2026-10-11，勿写在 uncovered: 之下——解析要求列表连续）：
 #  · +#57①（扩栈第二期）给 encaps-data / encaps-gateway 补 Dockerfile ⇒ 二者从"无构建单元"变为
 #    "可构建但无部署单元"，缺口转明（既有欠债，非新增组件）；
-#  · -本批给 real-time-pipeline 补 chart（15→14）：治理闭环两条跨进程边终于有集群承载者；
-#  · -本批给 encaps-tenant 补 chart（14→13）：其 prod 建表缺口（#63）已同日结清，chart 的 prod 路径可用。
+#  · -real-time-pipeline 补 chart（15→14）：治理闭环两条跨进程边终于有集群承载者；
+#  · -encaps-tenant 补 chart（14→13）：其 prod 建表缺口（#63）已同日结清，chart 的 prod 路径可用；
+#  · -query-api 补 chart（13→12）：dashboard/cluster-overview 的数据源，此前不可部署。
 uncovered:
   - "platform/batch-pipeline"
   - "platform/batch-pipeline/docker/spark-cluster"
@@ -20,4 +21,3 @@ uncovered:
   - "platform/karmada/failover/engine"
   - "platform/karmada/federated-query"
   - "platform/llm-gateway/evaluation"
-  - "platform/observability/query-api"

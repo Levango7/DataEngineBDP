@@ -1,0 +1,23 @@
+###############################################################################
+# query-api Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "query-api.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 探活:
+   kubectl port-forward svc/{{ include "query-api.serviceName" . }} 8090:8090 -n {{ .Release.Namespace }}
+   curl http://127.0.0.1:8090/api/v1/health
+
+###############################################################################
+# 必填（缺一应用即 fatal / 不可用）:
+#   auth.jwtSigningKeySecret（JWT_SIGNING_KEY，≥32 字节，须与签发端一致）
+#   env.PROMETHEUS_URL（默认指向集群内 prometheus:9090）
+# 可选：ALERTMANAGER_URL / CORS_ALLOWED_ORIGINS / OPS_COMPONENTS / JWT_ISSUER
+# 生产**禁止**设置 QUERY_API_K8S_MOCK（那是无 k8s 测试栈的空数据 mock）
+###############################################################################
