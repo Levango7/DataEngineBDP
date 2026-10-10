@@ -573,6 +573,14 @@ jobs:
           # 先跑合成正反例（篡改冻结存档 / 新增旁文件 / 空集合三向），再跑真判定
           python3 scripts/check-chart-ownership.py --self-test
           python3 scripts/check-chart-ownership.py
+      - name: chart 敏感信息注入卫生校验（ConfigMap 无敏感键 / 敏感 env 走 Secret / values 无弱口令）
+        # 台账 #12：2026-10-10 全量复核 88 个 Chart 结论=现状达标（19 个用 secretKeyRef/Secret 模板；
+        # ConfigMap data 段零敏感键；values 零弱口令），本步把结论固化为门禁防再回归；
+        # 同批修掉 nacos 的 MYSQL_SERVICE_PASSWORD 字面量（改 valueFrom.secretKeyRef + secret.yaml 承载）。
+        # 先跑合成正反例（三类规则正例 + 引用键/非敏感键反例），再跑真判定。
+        run: |
+          python3 scripts/check-chart-secret-hygiene.py --self-test
+          python3 scripts/check-chart-secret-hygiene.py
 
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |

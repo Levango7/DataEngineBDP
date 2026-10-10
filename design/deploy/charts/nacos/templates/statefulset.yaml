@@ -71,8 +71,13 @@ spec:
               value: {{ .Values.mysql.database | quote }}
             - name: MYSQL_SERVICE_USER
               value: {{ .Values.mysql.username | quote }}
+            # 口令走 Secret（台账 #12）：不再以字面量进 Pod spec；
+            # Secret 由 mysql.existingSecret 提供，或由本 chart 的 secret.yaml 渲染。
             - name: MYSQL_SERVICE_PASSWORD
-              value: {{ .Values.mysql.password | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nacos.mysqlPasswordSecretName" . }}
+                  key: {{ .Values.mysql.passwordKey | default "password" | quote }}
             {{- end }}
           ports:
             - name: http

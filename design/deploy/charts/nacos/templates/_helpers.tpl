@@ -51,3 +51,10 @@ Fail-fast 校验：auth.enabled 且 tokenSecretKey 为空时渲染失败。
 {{- end -}}
 {{- .Values.auth.tokenSecretKey -}}
 {{- end -}}
+
+{{/*
+MySQL 口令 Secret 名：优先 values.mysql.existingSecret，否则用 chart 自渲染的 <fullname>-mysql（见 templates/secret.yaml）。
+*/}}
+{{- define "nacos.mysqlPasswordSecretName" -}}
+{{- .Values.mysql.existingSecret | default (printf "%s-mysql" (include "nacos.fullname" .)) -}}
+{{- end -}}
