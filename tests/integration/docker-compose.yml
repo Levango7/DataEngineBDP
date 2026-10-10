@@ -45,13 +45,17 @@ services:
       # 测试栈放宽至 600（application.yml: login-rpm=${RATE_LIMIT_LOGIN_RPM:5}）
       - RATE_LIMIT_LOGIN_RPM=600
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       # encaps-layer 无 /api/v1/health 控制器，使用 Spring Boot Actuator 端点
       # （application.yml 已暴露 health，SecurityConfig 已放行 /actuator/health）
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -79,11 +83,15 @@ services:
       # 关闭 encaps-layer 侧 TenantController（防同前缀双注册，见 EncapsTenantApplicationIT）
       - ENCAPS_LAYER_TENANT_CONTROLLER_ENABLED=false
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -108,11 +116,15 @@ services:
       encaps-layer:
         condition: service_healthy
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "curl", "-f", "http://localhost:8081/api/v1/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -161,11 +173,15 @@ services:
       encaps-layer:
         condition: service_healthy
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -191,11 +207,15 @@ services:
       encaps-layer:
         condition: service_healthy
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "curl", "-f", "http://localhost:8084/api/v1/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -227,11 +247,15 @@ services:
       cost-model:
         condition: service_healthy
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "curl", "-f", "http://localhost:8085/api/v1/health"]
       interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -610,11 +634,15 @@ services:
       - CLOUD_PROVIDER_ENABLED=false
       - PRIVATE_PROVIDER_ENABLED=false
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 15
-      start_period: 30s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -639,11 +667,15 @@ services:
       # H2 内存库 + Flyway 关闭：零外部依赖即可启动。
       - FLYWAY_ENABLED=false
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8086/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 15
-      start_period: 30s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -668,11 +700,15 @@ services:
       # 默认 H2 库落在 ${user.home}/.shuqing，显式改到镜像内已赋权的 /app/data
       - SCHEDULER_DB_URL=jdbc:h2:file:/app/data/scheduler-data;AUTO_SERVER=TRUE
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:18086/actuator/health"]
       interval: 5s
       timeout: 3s
-      retries: 15
-      start_period: 30s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -695,11 +731,15 @@ services:
       - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
       - CORS_ORIGINS=http://localhost:5173
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "wget", "-qO-", "http://localhost:8083/api/v1/health"]
       interval: 5s
       timeout: 3s
-      retries: 15
-      start_period: 30s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
@@ -721,11 +761,15 @@ services:
       - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
       - CORS_ORIGINS=http://localhost:5173
     healthcheck:
+      # 启动容差（2026-10-10 实测）：`docker compose up --wait` 对**瞬时 unhealthy** 立即失败，
+      # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
+      # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
+      # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       test: ["CMD", "wget", "-qO-", "http://localhost:8082/api/v1/health"]
       interval: 5s
       timeout: 3s
-      retries: 15
-      start_period: 30s
+      retries: 30
+      start_period: 90s
     networks:
       - it-net
 
