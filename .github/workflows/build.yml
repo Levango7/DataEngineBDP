@@ -260,18 +260,23 @@ jobs:
             # - encaps-layer / encaps-tenant / sql-gateway / rule-engine / tag-engine /
             #   cost-model / dashboard / metadata-collector / real-time-pipeline /
             #   infra-orchestrator / infra-provider-cloud / infra-provider-private /
-            #   infra-provider-xinchang / federated-query / lineage-analyzer / java(knative):
+            #   infra-provider-xinchang / federated-query / lineage-analyzer /
+            #   encaps-data / encaps-gateway / stream-batch-scheduler / java(knative):
             #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
             #   注：本清单须与「全仓 Dockerfile 中使用根相对 COPY platform/ 的模块集合」保持一致；
             #       漏项会使 buildx 因上下文错位而报 `"/platform/<mod>/src": not found`
-            #       （2026-09-24 起 encaps-tenant 漏项，导致 Build & Push Java Images 长期红）。
+            #       （2026-09-24 起 encaps-tenant 漏项，导致 Build & Push Java Images 长期红；
+            #        2026-10-10 扩栈第二期给 encaps-data/encaps-gateway/stream-batch-scheduler
+            #        补 Dockerfile，按同一约定同步登记——ci.yml 的 Docker Build Verify 腿是按
+            #        `^COPY[[:space:]]+platform/` 自适应判上下文的，不受本清单影响）。
             build_ctx="$mod_dir"
             dockerfile_arg=""
             case "$mod_name" in
               encaps-layer|encaps-tenant|sql-gateway|rule-engine|tag-engine|\
               cost-model|dashboard|metadata-collector|real-time-pipeline|\
               infra-orchestrator|infra-provider-cloud|infra-provider-private|\
-              infra-provider-xinchang|federated-query|lineage-analyzer|java)
+              infra-provider-xinchang|federated-query|lineage-analyzer|\
+              encaps-data|encaps-gateway|stream-batch-scheduler|java)
                 build_ctx="."
                 dockerfile_arg="-f $df"
                 ;;

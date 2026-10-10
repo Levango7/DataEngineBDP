@@ -28,8 +28,13 @@ import java.util.Map;
  * </ul>
  */
 @Slf4j
+// 类名即 bean 名（台账 #57① 扩栈实测）：本模块 classpath 依赖 encaps-layer，两者同根包 `...encaps`
+// 且各有一个异常处理器类。原先两边都叫 GlobalExceptionHandler ⇒ 默认 bean 名相同 ⇒
+// 组件扫描抛 ConflictingBeanDefinitionException，进程启动即死（该模块此前从未部署过，无人发现）。
+// 注意：不能靠 `@ControllerAdvice("x")` 改名——该注解的 value 是"作用的包"过滤，不是 bean 名
+// （踩过：写完仍报同名冲突）。故改为按类名区分：本类更名 EncapsDataExceptionHandler，行为不变。
 @ControllerAdvice
-public class GlobalExceptionHandler {
+public class EncapsDataExceptionHandler {
 
     /** 参数校验失败（@Valid 触发）。 */
     @ExceptionHandler(MethodArgumentNotValidException.class)

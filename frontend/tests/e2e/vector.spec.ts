@@ -34,7 +34,10 @@ test.describe('向量引擎（/vector）', () => {
     const probe = await request.get(`${apiBase}/vector`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    test.skip(probe.status() !== 200, 'KNOWN-FAILURES #57① 栈外 vector-engine 缺席（探针非 200）时该页表不渲染，断言不可达；详见 docs/KNOWN-FAILURES.md #57')
+    test.skip(
+      probe.status() !== 200,
+      'KNOWN-FAILURES #57① 栈外 vector-engine 缺席（探针非 200）时该页表不渲染，断言不可达；详见 docs/KNOWN-FAILURES.md #57'
+    )
     // 先等本页渲染完成：/vector 的 h1 唯一（上一页 Dashboard 的 h1 是"工作台"）。
     // 否则 waitForSelector('table') 会命中切页过渡期残留的 Dashboard 待办表，
     // 表头被拼成"申请申请人操作"（实测），随后对"集合/维度/条数"的断言必失败。
@@ -50,12 +53,16 @@ test.describe('向量引擎（/vector）', () => {
   })
 
   test('向量集合 API 返回 200 数组', async ({ request }) => {
-    // 无条件 skip（台账 #57 裁决②）：/vector 属栈外服务，nightly compose 未起，代理回落 encaps-layer 必 404
-    test.skip(true, 'KNOWN-FAILURES #57 栈外服务未进 nightly compose（/vector → vector-engine），回落 encaps-layer:18080 必 404；详见 docs/KNOWN-FAILURES.md #57')
+    // 条件式 skip（台账 #57①）：vector-engine 已进栈（nightly-extra，宿主 18091）；
+    // 缺席时回落 encaps-layer 得 404 ⇒ 跳过，服务在栈时照常断言。
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/vector`, {
       headers: { Authorization: `Bearer ${token}` }
     })
+    test.skip(
+      resp.status() === 404,
+      'KNOWN-FAILURES #57① 栈外 vector-engine 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57'
+    )
     expect(resp.status()).toBe(200)
     const json = await resp.json()
     // 契约：vector-engine（Go）返回**裸数组**（frontend/src/api/vector.ts listCollections(): VectorCollection[]），

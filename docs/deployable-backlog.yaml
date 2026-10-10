@@ -2,9 +2,14 @@
 # 含义：该组件有 Dockerfile，但没有同名 Chart，镜像名也不在任何 Chart/k3s 清单里
 #       ⇒ 只能在 tests/integration/docker-compose.yml 的测试拓扑里跑，生产不可部署。
 # 销账条件：补齐 Chart 或在 k3s manifest 中引用其镜像后，重跑脚本从本名单移除。
+# 2026-10-10：encaps-data / encaps-gateway 为 nightly 扩栈补了 Dockerfile（此前仓内无构建
+# 单元、连集成拓扑都跑不了）。构建单元就位后，这两个"无部署单元"缺口被静态门禁首次显形
+# ——属既有欠债转明，非新增组件；生产 Chart 仍为未立项项（台账 #57① 与"无 Chart 组件"族）。
 uncovered:
   - "platform/batch-pipeline"
   - "platform/batch-pipeline/docker/spark-cluster"
+  - "platform/encaps-data"
+  - "platform/encaps-gateway"
   - "platform/encaps-tenant"
   - "platform/finops/cost-model"
   - "platform/finops/dashboard"

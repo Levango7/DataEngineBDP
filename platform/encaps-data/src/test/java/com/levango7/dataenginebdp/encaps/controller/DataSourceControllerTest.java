@@ -13,6 +13,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,5 +149,61 @@ class DataSourceControllerTest {
 
         assertThat(resp.getStatusCode().value()).isEqualTo(201);
         assertThat(repository.countByTenantId("tenant_b")).isEqualTo(1);
+    }
+
+    @Test
+    void list_returnsPagedEnvelope() {
+        seed("ds-a", "tenant_a");
+        seed("ds-b", "tenant_a");
+        seed("ds-c", "tenant_a");
+
+        Map<String, Object> page1 = controller().list(null, null, 1, 2).getBody();
+        assertThat(page1).isNotNull();
+        assertThat(page1.get("total")).isEqualTo(3);
+        assertThat(page1.get("page")).isEqualTo(1);
+        assertThat(page1.get("pageSize")).isEqualTo(2);
+        assertThat((List<?>) page1.get("list")).hasSize(2);
+
+        Map<String, Object> page2 = controller().list(null, null, 2, 2).getBody();
+        assertThat(page2).isNotNull();
+        assertThat((List<?>) page2.get("list")).hasSize(1);
+        assertThat(page2.get("total")).isEqualTo(3);
+    }
+
+    @Test
+    void list_outOfRangePageKeepsRealTotal() {
+        seed("ds-only", "tenant_a");
+
+        Map<String, Object> body = controller().list(null, null, 99, 20).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat((List<?>) body.get("list")).isEmpty();
+        assertThat(body.get("total")).isEqualTo(1); // 越界仍带真实总数，客户端分页器需要
+    }
+
+    @Test
+    void list_keywordFiltersByNameOrHost() {
+        seed("orders-ds", "tenant_a");
+        seed("logs-ds", "tenant_a");
+
+        Map<String, Object> byName = controller().list(null, "orders", 1, 20).getBody();
+        assertThat(byName).isNotNull();
+        assertThat(byName.get("total")).isEqualTo(1);
+
+        // 主机命中（seed 统一 127.0.0.1）
+        Map<String, Object> byHost = controller().list(null, "127.0.0.1", 1, 20).getBody();
+        assertThat(byHost).isNotNull();
+        assertThat(byHost.get("total")).isEqualTo(2);
+    }
+
+    @Test
+    void list_respectsTenantIsolation() {
+        seed("ds-a", "tenant_a");
+        seed("ds-b", "tenant_b");
+
+        Map<String, Object> body = controller().list(null, null, 1, 20).getBody();
+
+        assertThat(body).isNotNull();
+        assertThat(body.get("total")).isEqualTo(1); // 当前租户上下文只看到自己的数据源
     }
 }

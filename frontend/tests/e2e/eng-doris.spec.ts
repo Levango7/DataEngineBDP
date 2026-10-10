@@ -34,15 +34,23 @@ test.describe('Doris 引擎管理（/eng-doris）', () => {
     await expect(page.locator('.el-table').first()).toBeVisible({ timeout: 15_000 })
   })
 
-  test('Doris 节点 API 返回 200（Bearer 认证）', async ({ request }) => {
+  test('Doris 节点 API 返回 200 或引擎降级 503（Bearer 认证）', async ({ request }) => {
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/doris/nodes`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-        // 条件式 skip（台账 #57①）：encaps-data 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 条件式 skip（台账 #57①）：encaps-data 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
     // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
     test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 encaps-data 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
-expect(resp.status()).toBe(200)
+    // Doris 节点列表依赖真实 Doris FE，CI 栈内不存在该引擎：
+    // 200 = 引擎在线；503 = 已声明的引擎不可用降级（DorisControllerTest 已钉此行为，body 必须带原因）；
+    // 其余状态（500/502/…）一律失败——不用 skip 吞掉半坏。
+    if (resp.status() === 503) {
+      const json = await resp.json()
+      expect(String(json?.data?.error ?? '')).toContain('Doris')
+    } else {
+      expect(resp.status()).toBe(200)
+    }
   })
 
   test('Doris 节点 API 未认证返回 401', async ({ request }) => {

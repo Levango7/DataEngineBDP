@@ -155,6 +155,11 @@ jobs:
       VITE_OPS_TARGET: http://127.0.0.1:18097
       VITE_INFRA_ORCHESTRATOR_TARGET: http://127.0.0.1:18098
       VITE_LINEAGE_TARGET: http://127.0.0.1:18099
+      # 第二期三服务（本批补齐 Dockerfile）：作业/流批→stream-batch-scheduler、
+      # 数据源与引擎→encaps-data、网关→encaps-gateway
+      VITE_STREAM_BATCH_TARGET: http://127.0.0.1:18103
+      VITE_ENCAPS_DATA_TARGET: http://127.0.0.1:18104
+      VITE_ENCAPS_GATEWAY_TARGET: http://127.0.0.1:18105
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -201,6 +206,14 @@ jobs:
             tests/e2e/lineage.spec.ts \
             tests/e2e/infra-k8s.spec.ts \
             tests/e2e/infra-machine.spec.ts
+
+      - name: 运行第二期 7 个 spec 的 API/401 断言（完整栈）
+        working-directory: frontend
+        # 这 7 个文件的服务（stream-batch-scheduler / encaps-data / encaps-gateway）本批才进栈，
+        # 其 DOM 用例尚未在完整栈下验证过 ⇒ 本步只跑已本地验证的接口级断言（14/14 passed）；
+        # 完整栈就绪后如需放开这 7 个文件的 DOM 用例，另批验证后再改。
+        run: |
+          npx playwright test             tests/e2e/gateway.spec.ts             tests/e2e/datasources.spec.ts             tests/e2e/eng-doris.spec.ts             tests/e2e/eng-kafka.spec.ts             tests/e2e/eng-flink.spec.ts             tests/e2e/eng-spark.spec.ts             tests/e2e/job-management.spec.ts             --grep "返回 200|返回 401"
 
       - name: 上传 Playwright 报告与结果
         if: always()

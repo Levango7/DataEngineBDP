@@ -27,18 +27,21 @@ test.describe('数据源管理（/datasources）', () => {
     await expect(search.first()).toBeVisible()
   })
 
-  test('数据源列表 API 返回 200 数组', async ({ request }) => {
+  test('数据源列表 API 返回 200 分页对象（PagedResult）', async ({ request }) => {
     const token = await getApiToken(request)
     const resp = await request.get(`${apiBase}/datasources`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-        // 条件式 skip（台账 #57①）：encaps-data 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
+    // 条件式 skip（台账 #57①）：encaps-data 缺席时代理回落 encaps-layer 得 404 ⇒ 跳过；
     // 服务在栈（本地 dev / 未来 runner 扩容）时照常断言，半坏（500/契约不符）不会被吞。
     test.skip(resp.status() === 404, 'KNOWN-FAILURES #57① 栈外 encaps-data 缺席（回落 encaps-layer 404），断言不可达；详见 docs/KNOWN-FAILURES.md #57')
-expect(resp.status()).toBe(200)
+    expect(resp.status()).toBe(200)
     const json = await resp.json()
     expect(json).toHaveProperty('data')
+    // 平台统一分页对象：DataSourceController 曾返回裸数组，与前端 datasource.ts 的
+    // PagedResult 契约冲突（页面表格恒空）——2026-10-10 已收口，见台账 #57①
     expect(json.data).toHaveProperty('list')
+    expect(typeof json.data.total).toBe('number')
   })
 
   test('数据源 API 未认证返回 401', async ({ request }) => {

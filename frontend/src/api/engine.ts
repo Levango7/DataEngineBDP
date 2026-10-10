@@ -8,7 +8,7 @@
  * - JobController                 /jobs (type=batch_spark / stream_flink)
  * - StreamBatchSchedulerController /stream-batch
  * - SqlGatewayController          /sql/engines, /sql/execute, /sql/explain
- * - DataSourceController          /datasources (type=kafka / iotdb)
+ * - DataSourceController          /datasources (type=kafka / iotdb；PagedResult，取 list)
  * - 专用 Kafka / IoTDB 端点
  *
  * 所有方法通过 `@/api/client` 的 get/post/put/del 调用，
@@ -869,9 +869,11 @@ export interface TopicCreateRequest {
 
 /**
  * 列出 Kafka 集群（数据源）
+ *
+ * `/datasources` 返回平台统一分页对象（{list,total,page,pageSize}），此处取 list 字段。
  */
 export function getKafkaClusters(): Promise<KafkaCluster[]> {
-  return get<KafkaCluster[]>('/datasources', { type: 'kafka' })
+  return get<PagedResult<KafkaCluster>>('/datasources', { type: 'kafka' }).then((r) => r.list ?? [])
 }
 
 /**
@@ -983,9 +985,13 @@ export interface ThroughputPoint {
 
 /**
  * 列出 IoTDB 实例（数据源）
+ *
+ * 同 getKafkaClusters：`/datasources` 已收口为 PagedResult，取 list 字段。
  */
 export function getIotdbInstances(): Promise<IotdbInstance[]> {
-  return get<IotdbInstance[]>('/datasources', { type: 'iotdb' })
+  return get<PagedResult<IotdbInstance>>('/datasources', { type: 'iotdb' }).then(
+    (r) => r.list ?? []
+  )
 }
 
 /**
