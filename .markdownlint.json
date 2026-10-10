@@ -7,5 +7,6 @@
   "MD034": false,
   "MD036": false,
   "MD040": false,
-  "MD050": { "style": "asterisk" }
+  "MD050": { "style": "asterisk" },
+  "MD060": false
 }
