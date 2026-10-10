@@ -87,6 +87,12 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # encaps-layer 单体拓扑，该前缀在拆分实施前仍不可达——与 /tenants 裁决（指向 encaps-layer）并不矛盾，
     # 二者依据不同：/tenants 因 /invites、/registrations 仅 encaps-layer 提供。
     "/api/v1/projects": "encaps-tenant",
+    # encaps-layer 与 encaps-data 都声明 /api/v1/search（两模块 classpath 同根包、各有一个 SearchController）：
+    # 前端 types/search.ts 的 SearchResponse 契约要求 `tookMs`、`hasMore`、`suggestions`（无限滚动 + 会话追踪），
+    # 三个键**只有 encaps-data 版返回**（640 行，ES 检索 + LIKE 回退，另含 /export/{taskId}+cancel 异步导出）；
+    # encaps-layer 版是 101 行桩（只返回 list/total/page/pageSize/format/url，无 tookMs/hasMore/suggestions）。
+    # 故裁决给 encaps-data。
+    "/api/v1/search": "encaps-data",
 }
 
 # 已裁决的共享前缀：经取证确认"保持共享、不路由"（不再计入待裁决冲突；

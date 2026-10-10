@@ -266,6 +266,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/datasources/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/deployments/**",
           "upstream": {
             "type": "roundrobin",
@@ -280,6 +289,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/doris/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
             }
           }
         },
@@ -329,6 +347,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/flink/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/governance/**",
           "upstream": {
             "type": "roundrobin",
@@ -365,6 +392,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/iotdb/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/jobs/**",
           "upstream": {
             "type": "roundrobin",
@@ -379,6 +415,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/kafka/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
             }
           }
         },
@@ -549,7 +594,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "encaps-layer:8080": 1
+              "encaps-data:8083": 1
             }
           }
         },

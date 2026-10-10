@@ -1,0 +1,18 @@
+apiVersion: v2
+name: encaps-data
+description: "封装层数据域 - 数据源 CRUD / 引擎监控（Doris/Kafka/Flink/IoTDB）/ 全文检索 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - encaps
+  - tenant
+  - workspace
+  - quota
+  - shuqing-platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-encaps
