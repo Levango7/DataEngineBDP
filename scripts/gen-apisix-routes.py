@@ -77,6 +77,16 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # business-portal 的 dashboards.py:1-7 显式声明"对齐 analyze.ts 契约"，:72-74 收 page/pageSize/keyword，
     # :82-101 逐字段映射 key/label/value/unit/latencySec。
     "/api/v1/dashboards": "business-portal",
+    # encaps-layer 与 encaps-tenant 都声明 /api/v1/projects（两个 ProjectController 同名同路径）：
+    # 前端 project.ts:93 要 `get<PagedResult<Project>>('/projects', params)` —— 需要 **list** 端点 + PagedResult
+    # {list,total,page,size} 契约；encaps-layer 版只有 /{id}* 系列、**无 list**（ProjectController.java 全 120 行），
+    # encaps-tenant 版显式声明"list 返回前端 PagedResult 契约"并实现该类端点（217 行，ROADMAP 前后端接线）。
+    # 故裁决给 encaps-tenant（= 租户/项目/账户/工作空间/配额域的拆分承接方；其 chart 部署时显式关闭
+    # encaps-layer 侧租户域控制器 ENCAPS_LAYER_TENANT_CONTROLLER_ENABLED=false）。
+    # 注：当前该前缀未路由（生产不可达）；本裁决使其在 encaps-tenant 部署后可路由。若集群只跑
+    # encaps-layer 单体拓扑，该前缀在拆分实施前仍不可达——与 /tenants 裁决（指向 encaps-layer）并不矛盾，
+    # 二者依据不同：/tenants 因 /invites、/registrations 仅 encaps-layer 提供。
+    "/api/v1/projects": "encaps-tenant",
 }
 
 # 已裁决的共享前缀：经取证确认"保持共享、不路由"（不再计入待裁决冲突；
