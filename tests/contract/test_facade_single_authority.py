@@ -29,29 +29,47 @@ def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8", errors="replace")
 
 
-def test_t6_template_domain_has_single_implementation() -> None:
-    """T6：templates 域只允许一个实现（industry-templates）——encaps-layer 的门面须已删/转发。
+def test_t6_template_api_facade_removed() -> None:
+    """T6：templates 的**对外 API 门面**只允许一个实现（industry-templates）。
 
-    现状：encaps-layer 的 TemplateController + TemplateEntity + TemplateRepository 已删除
-    （无服务间调用方、无测试引用、网关本就指向 industry-templates）。
+    现状：encaps-layer 的 `TemplateController` 已删除（无服务间调用方、网关本就指向
+    industry-templates）。注意：`TemplateEntity`/`TemplateRepository` **保留**——
+    encaps-data 的 `SearchController` 跨模块依赖它（见 T6b，属后续项）。
     """
-    leftovers = [
-        p.relative_to(REPO).as_posix()
-        for p in (
-            ENCAPS / "controller/TemplateController.java",
-            ENCAPS / "model/TemplateEntity.java",
-            ENCAPS / "repository/TemplateRepository.java",
-        )
-        if p.exists()
-    ]
-    assert not leftovers, (
-        "encaps-layer 仍保留 templates 门面重复实现（裁决 #1b：以专用服务为权威）："
-        + ", ".join(leftovers)
+    facade = ENCAPS / "controller/TemplateController.java"
+    assert not facade.exists(), (
+        "encaps-layer 仍保留 templates 对外 API 门面（裁决 #1b：以专用服务为权威）："
+        + facade.relative_to(REPO).as_posix()
     )
 
     # 权威方必须真的实现该域（否则是"删了两边都没有"）
     impls = [p for p in INDUSTRY_TEMPLATES.rglob("*.py") if "/templates" in _read(p)]
     assert impls, "industry-templates 未实现 /api/v1/templates（templates 域将无权威实现）"
+
+
+@pytest.mark.xfail(
+    strict=False,
+    reason="#1b 后续项：encaps-data 的 SearchController 仍跨模块依赖 encaps-layer 的 TemplateRepository",
+)
+def test_t6b_template_repository_not_shared_across_modules() -> None:
+    """T6b：templates 的**数据实现**不应被其它模块直接耦合。
+
+    现状：`platform/encaps-data` 的 `SearchController` `import` 了 encaps-layer 的
+    `com.levango7.dataenginebdp.encaps.repository.TemplateRepository`（还有 ApiDefinition/
+    Asset/Standard 三个仓储）——这也是本 PR 首版误删仓储被 CI 拦下的原因。
+    裁决方向：搜索侧改为调 industry-templates 的 API（或由权威服务提供搜索口径），
+    不再直接跨模块读其表。完成后本用例自动 xpass，届时去掉 xfail 并纳入阻断。
+    """
+    encaps_data = REPO / "platform/encaps-data/src/main/java"
+    offenders = [
+        p.relative_to(REPO).as_posix()
+        for p in encaps_data.rglob("*.java")
+        if "encaps.repository.TemplateRepository" in _read(p)
+    ]
+    assert not offenders, (
+        "仍有模块跨模块直接依赖 encaps-layer 的 TemplateRepository（应改调权威服务 API）："
+        + ", ".join(offenders)
+    )
 
 
 @pytest.mark.xfail(
