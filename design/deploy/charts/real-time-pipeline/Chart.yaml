@@ -1,0 +1,18 @@
+apiVersion: v2
+name: real-time-pipeline
+description: "实时治理管道 - Iceberg 事件监听 / Flink CDC 血缘解析 / CEP 质量规则 / 治理闭环编排 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - real-time
+  - governance
+  - lineage
+  - quality
+  - shuqing-platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-governance
