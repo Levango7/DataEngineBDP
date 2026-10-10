@@ -3,7 +3,7 @@
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
 - 前端入口：`frontend/src/api/*.ts`（共 37 个文件）
-- 后端前缀：Java 71 / Python 21 / Go 13（含显式注册表 4 项）
+- 后端前缀：Java 70 / Python 21 / Go 13（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 
@@ -436,12 +436,12 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
 |---|---|---|---|
-| `/templates`  | `/templates` | encaps-layer, industry-templates | ✅ |
-| `/templates/${id}` （1 变量） | `/templates` | encaps-layer, industry-templates | ✅ |
-| `/templates/${id}/deploy` （1 变量） | `/templates` | encaps-layer, industry-templates | ✅ |
-| `/templates/${id}/preview` （1 变量） | `/templates` | encaps-layer, industry-templates | ✅ |
-| `/templates/categories`  | `/templates` | encaps-layer, industry-templates | ✅ |
-| `/templates/${id}/deployments` （1 变量） | `/templates` | encaps-layer, industry-templates | ✅ |
+| `/templates`  | `/templates` | industry-templates | ✅ |
+| `/templates/${id}` （1 变量） | `/templates` | industry-templates | ✅ |
+| `/templates/${id}/deploy` （1 变量） | `/templates` | industry-templates | ✅ |
+| `/templates/${id}/preview` （1 变量） | `/templates` | industry-templates | ✅ |
+| `/templates/categories`  | `/templates` | industry-templates | ✅ |
+| `/templates/${id}/deployments` （1 变量） | `/templates` | industry-templates | ✅ |
 
 ## tenant.ts
 
