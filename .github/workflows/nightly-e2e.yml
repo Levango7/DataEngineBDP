@@ -132,14 +132,22 @@ jobs:
 
   # ============================================================
   # 扩栈规格 E2E（台账 #57① 的 CI 容量方案 A，docs/nightly-stack-expansion-runner-plan.md）
-  # 目的：5 个“栈外”服务（vector / ai-assistant / query-api /
-  #       infra-orchestrator / lineage-analyzer）单独跑在**精简栈**里，
-  #       避免与 18 个基础服务挤在同一个 ~7GB runner 上
-  #       （#385 两次 dispatch 均 `it-encaps-layer is unhealthy` 的真因是内存容量）。
-  # 精简栈 = encaps-layer（登录）+ prometheus + 5 个 nightly-extra 服务；
+  # 目的：10 个“栈外/扩栈”服务（vector / ai-assistant / query-api /
+  #       infra-orchestrator / lineage-analyzer / stream-batch-scheduler /
+  #       encaps-data / encaps-gateway 等）单独跑在**精简栈**里，
+  #       避免与基础服务挤在同一个 ~7GB runner 上。
+  #       **容量实证**：#385 两次、#401 一次（完整栈 `--profile nightly-extra up -d`）
+  #       均以 `it-encaps-layer is unhealthy` 收场——2026-10-10 dispatch
+  #       run 38015350893 实测拉起约 30 个容器时 encaps-layer/encaps-tenant 双双
+  #       unhealthy、多个 JVM 卡在 Created ⇒ 标准 runner 装不下完整栈，
+  #       本 job 维持精简栈；DOM 用例需方案 D（更大 runner，见
+  #       docs/nightly-stack-expansion-runner-plan.md）。
+  # 精简栈 = encaps-layer（登录）+ prometheus + 9 个 nightly-extra 服务；
   # 仅按名启动这些服务（及其 depends_on），不跑 Python/其它 Java。
   # 仅非 PR 触发（PR 的稳定子集不需要这些服务，不为其加 ~15 分钟）。
-  # 说明：8 个 spec 已由 #392 改为“**仅 404 才 skip**”⇒ 服务就绪时断言自动生效。
+  # 说明：15 个 spec 已由 #392/#400 改为“**仅 404 才 skip**”⇒ 服务就绪时断言自动生效；
+  #       本 job 只跑接口级断言（`--grep "返回 200|返回 401"`）——DOM 用例需要
+  #       encaps-tenant 等完整基础栈，标准 runner 装不下。
   # ============================================================
   playwright-e2e-expanded:
     name: Playwright E2E（扩栈规格 #57①）
@@ -171,19 +179,22 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: 启动完整后端栈（基础栈 + 扩栈服务；DOM 用例还需 encaps-tenant 等）
+      - name: 启动扩栈精简栈（encaps-layer + prometheus + 9 个 nightly-extra 服务）
         working-directory: tests/integration
-        # #397 已给 8 个 Java 服务加 mem_limit（cgroup 感知，JVM 不再按宿主机 ≈7GB 算堆）。
-        # 本 job 起**完整栈**以覆盖 DOM 用例（此前精简栈因缺 encaps-tenant 等而 DOM 大面积红）。
-        # 若仍不稳，退路是更大 runner（方案 D，见 docs/nightly-stack-expansion-runner-plan.md）。
+        # #397 给 Java 服务补的 mem_limit 是 cgroup 边界（JVM 不再按宿主机 ≈7GB 算堆），
+        # 但仍不足以把 ~30 个容器的完整栈塞进标准 runner（本批 dispatch run 38015350893
+        # 实测 `it-encaps-layer is unhealthy`、多个 JVM 卡 Created）⇒ 恢复按名启动的精简栈。
         run: |
-          echo "启动完整栈（--profile nightly-extra，全部服务）"
-          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 900; then
-            echo "::error::完整栈启动失败或健康检查超时"
+          echo "启动精简栈：encaps-layer + prometheus + 9 个 nightly-extra 服务"
+          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
+                encaps-layer prometheus vector-engine ai-assistant query-api \
+                infra-orchestrator lineage-analyzer \
+                stream-batch-scheduler encaps-data encaps-gateway; then
+            echo "::error::精简栈启动失败或健康检查超时"
             docker compose --profile nightly-extra ps -a || true
             exit 1
           fi
-          echo "✓ 完整栈就绪"
+          echo "✓ 精简栈就绪"
 
       - name: 安装前端依赖
         working-directory: frontend
@@ -194,8 +205,11 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: 运行扩栈相关的 8 个 spec（含 DOM，完整栈）
+      - name: 运行扩栈相关 15 个 spec 的 API/401 断言（精简栈）
         working-directory: frontend
+        # 15 个文件的接口级断言（每文件 200 + 401 两例）：8 个第一期为 #395/#392 既有，
+        # 7 个第二期为 #400 新增（本地 14/14 passed，服务在精简栈内真跑）。
+        # DOM 用例不在此跑：需要 encaps-tenant 等完整基础栈，标准 runner 装不下（方案 D）。
         run: |
           npx playwright test \
             tests/e2e/vector.spec.ts \
@@ -205,16 +219,15 @@ jobs:
             tests/e2e/data-lineage.spec.ts \
             tests/e2e/lineage.spec.ts \
             tests/e2e/infra-k8s.spec.ts \
-            tests/e2e/infra-machine.spec.ts
-
-      - name: 运行第二期 7 个 spec 的 API/401 断言（完整栈）
-        working-directory: frontend
-        # 这 7 个文件的服务（stream-batch-scheduler / encaps-data / encaps-gateway）本批才进栈，
-        # 其 DOM 用例尚未在完整栈下验证过 ⇒ 本步只跑已本地验证的接口级断言（14/14 passed）；
-        # 完整栈就绪后如需放开这 7 个文件的 DOM 用例，另批验证后再改。
-        run: |
-          npx playwright test             tests/e2e/gateway.spec.ts             tests/e2e/datasources.spec.ts             tests/e2e/eng-doris.spec.ts             tests/e2e/eng-kafka.spec.ts             tests/e2e/eng-flink.spec.ts             tests/e2e/eng-spark.spec.ts             tests/e2e/job-management.spec.ts             --grep "返回 200|返回 401"
-
+            tests/e2e/infra-machine.spec.ts \
+            tests/e2e/gateway.spec.ts \
+            tests/e2e/datasources.spec.ts \
+            tests/e2e/eng-doris.spec.ts \
+            tests/e2e/eng-kafka.spec.ts \
+            tests/e2e/eng-flink.spec.ts \
+            tests/e2e/eng-spark.spec.ts \
+            tests/e2e/job-management.spec.ts \
+            --grep "返回 200|返回 401"
       - name: 上传 Playwright 报告与结果
         if: always()
         uses: actions/upload-artifact@v4
