@@ -1,0 +1,24 @@
+###############################################################################
+# encaps-tenant Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "encaps-tenant.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 端口转发访问（本地调试）:
+   kubectl port-forward svc/{{ include "encaps-tenant.serviceName" . }} 8081:8081 -n {{ .Release.Namespace }}
+
+4. 查看日志:
+   kubectl logs -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+###############################################################################
+# prod profile 必填（缺一即启动失败，属刻意设计）:
+#   auth.jwtSecretName / db.existingSecret / crypto.existingSecret 三项 Secret
+#   + env: SPRING_PROFILES_ACTIVE=prod、DB_URL、DB_USERNAME、CORS_ORIGINS、FLYWAY_SCHEMA
+# 详见本 chart README。
+###############################################################################

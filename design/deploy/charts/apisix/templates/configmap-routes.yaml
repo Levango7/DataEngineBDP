@@ -32,6 +32,24 @@ data:
           }
         },
         {
+          "uri": "/api/v1/account/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/admin/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/agents/**",
           "upstream": {
             "type": "roundrobin",
@@ -459,7 +477,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "encaps-layer:8080": 1
+              "encaps-tenant:8081": 1
             }
           }
         },
@@ -478,6 +496,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/quotas/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
             }
           }
         },
@@ -667,6 +694,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/workspaces/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
             }
           }
         },

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "encaps-tenant.serviceName" . }}
+  labels:
+    {{- include "encaps-tenant.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port | int }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "encaps-tenant.selectorLabels" . | nindent 4 }}
