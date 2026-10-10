@@ -356,6 +356,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/gateway/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-gateway:8082": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/governance/**",
           "upstream": {
             "type": "roundrobin",

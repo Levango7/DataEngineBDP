@@ -93,6 +93,13 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # encaps-layer 版是 101 行桩（只返回 list/total/page/pageSize/format/url，无 tookMs/hasMore/suggestions）。
     # 故裁决给 encaps-data。
     "/api/v1/search": "encaps-data",
+    # encaps-gateway 与 open-api-catalog 都声明 /api/v1/apis：
+    # 前端 apiCatalog.ts（BASE='/apis'）用到完整 API 生命周期 —— /{id}/submit-review、/approve、/reject、
+    # /publish、/deprecate；这些端点**只有 open-api-catalog 实现**
+    # （openapi_catalog/api/routers/apis.py），encaps-gateway 的 ApiCatalogController 只有 /{id} 的 GET/PUT/DELETE。
+    # 另：vite 代理本就把它指向 open-api-catalog（VITE_API_CATALOG_TARGET 默认 :8090）。
+    # 故裁决给 open-api-catalog。
+    "/api/v1/apis": "open-api-catalog",
 }
 
 # 已裁决的共享前缀：经取证确认"保持共享、不路由"（不再计入待裁决冲突；
