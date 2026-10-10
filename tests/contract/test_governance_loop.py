@@ -175,3 +175,33 @@ def test_t4_outbound_calls_carry_credentials_the_server_accepts() -> None:
     assert not violations, (
         "出站调用缺服务端可接受的凭据形态（裁决 A）。命中：\n  - " + "\n  - ".join(violations)
     )
+
+
+@pytest.mark.xfail(
+    strict=False,
+    reason="#6 阶段 3 未实施：pipeline 尚未从 rule-engine 拉取规则；完成后自动 xpass",
+)
+def test_t5_quality_rules_have_a_single_source_of_truth() -> None:
+    """T5（阶段 3 契约，Q1=rule-engine 权威）：流式质量规则必须**从 rule-engine 拉取**。
+
+    判定面（沿用 T1 的教训：断言**接线/行为**，不断言类名）：pipeline 主源码内
+    必须出现对 rule-engine 质量规则端点 `/api/v1/quality/rules` 的调用接线
+    （WebClient / RestClient / URL 常量均可）。
+
+    预期状态：**当前 xfail（阶段 3 未实施）**。现状是 pipeline 只经自身
+    `GovernanceController` 的进程内 `ruleRegistry` 注册（重启即空、多实例各一套），
+    rule-engine 里配的规则不作用于任何自动评估（草案断点 C）。
+    阶段 3（pipeline 从 rule-engine 拉规则 + 缓存降级 + 去重）完成后本用例自动
+    xpass，届时去掉 xfail 标记并纳入阻断。
+    """
+    needle = "/api/v1/quality/rules"
+    wired = [
+        src.relative_to(REPO).as_posix()
+        for src in _java_sources(PIPELINE)
+        if needle in src.read_text(encoding="utf-8", errors="replace")
+    ]
+    assert wired, (
+        "pipeline 未从 rule-engine 拉取质量规则（草案断点 C / Q1 未落地）："
+        f"主源码内没有任何文件引用 {needle}。阶段 3 应新增 RuleEngineRuleSource 之类的接线，"
+        "把 rule-engine 作为规则唯一权威源，并定 rule-engine 不可用时的降级策略。"
+    )
