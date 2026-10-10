@@ -35,6 +35,12 @@ mysql:
   port: 3306
   database: "nacos"
   username: "nacos"
+  # 口令注入（台账 #12 加固）：MYSQL_SERVICE_PASSWORD 不再以字面量进 Pod spec，
+  # 改为 valueFrom.secretKeyRef。两种给值方式（二选一）：
+  #   ① existingSecret 指向已有 Secret（生产推荐，由密钥管理/部署方创建）；
+  #   ② 直接给 password，此时 chart 渲染 <fullname>-mysql Secret 承载它（本地/演示）。
+  existingSecret: ""
+  passwordKey: "password"
   password: ""
 
 # ---- 资源配额（参照 apollo 资源标准 0.2C/512Mi ~ 1C/1Gi） ----
