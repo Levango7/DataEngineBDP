@@ -5,12 +5,11 @@
 # 说明（2026-10-11，勿写在 uncovered: 之下——解析要求列表连续）：
 #  · +#57①（扩栈第二期）给 encaps-data / encaps-gateway 补 Dockerfile ⇒ 二者从"无构建单元"变为
 #    "可构建但无部署单元"，缺口转明（既有欠债，非新增组件）；
-#  · -real-time-pipeline（15→14）、-encaps-tenant（14→13，其 prod 建表缺口 #63 已同日结清）、
-#    -query-api（13→12）、-encaps-data（12→11）、-encaps-gateway（11→10）各补 Helm Chart。
+#  · -real-time-pipeline（15→14）、-encaps-tenant（14→13，其 prod 建表缺口 #63 当日结清）、
+#    -query-api（13→12）、-encaps-data（12→11）、-encaps-gateway（11→10）、-cost-model（10→9）各补 chart。
 uncovered:
   - "platform/batch-pipeline"
   - "platform/batch-pipeline/docker/spark-cluster"
-  - "platform/finops/cost-model"
   - "platform/finops/dashboard"
   - "platform/karmada/api"
   - "platform/karmada/docker/mock-cluster"
