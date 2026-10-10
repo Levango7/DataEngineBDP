@@ -1,0 +1,157 @@
+# ============================================================================
+# encaps-data Helm Chart 默认 values
+# 台账 #2：本 chart 为该服务补齐"部署单元"；其 prod profile 的建表缺口（#63）已于
+# 2026-10-11 用 V3__baseline_shared_model.sql（20 表）结清，故 prod 路径可用（见 README）。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+image:
+  repository: "docker.m.daocloud.io/sq-encaps-data"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicaCount: 2
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8083
+  containerPort: 8083
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # encaps-layer 家族镜像 Dockerfile 内 appuser 固化为 uid/gid=1001
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查 ----
+# 路径对齐 Spring Boot actuator；**startup 探针必须开启**：本服务 20 个 JPA 仓库
+# + Hibernate 初始化在 CI/kind 实测启动 40–60s，liveness 默认 delay 会在启动完成前
+# 探失败并掐死容器（lastState exit=137、日志停在 Hibernate 中段——kind-smoke 实证）。
+probes:
+  startup:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    # 10s × 30 = 300s 启动上限；起来后交给 liveness/readiness
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 3
+  liveness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- 可写点（只读根配套；三条均为本仓实测教训）----
+tmp:
+  # Tomcat 启动要在 /tmp 建部署临时目录（"FileSystemException: /tmp/tomcat.PORT.RANDOM"）
+  enabled: true
+logs:
+  enabled: true
+  mountPath: /app/logs
+data:
+  # **本服务默认库就是 H2 文件**（application.yml: jdbc:h2:file:./data/encaps-data-db，
+  # WORKDIR=/app ⇒ /app/data），故默认**开启**：只读根下否则报
+  # "FileSystemException: /app/data/…-db.trace.db: Read-only file system"。
+  # 生产建议改 PostgreSQL（DB_URL/DB_USERNAME/DB_PASSWORD）+ 迁移（见 docs/db-migration-backlog.yaml）；
+  # 持久化场景把 storageClassName 指向 PVC（复用同一挂载点 /app/data）。
+  enabled: true
+  storageClassName: ""
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 / PDB ----
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Secret 注入（三项，留空则不注入；prod 必填清单见 README）----
+auth:
+  # JWT_SECRET：须与签发端（encaps-layer / Keycloak）一致，否则接口全部 401
+  jwtSecretName: ""
+  jwtSecretKey: jwt-secret
+db:
+  # DB_PASSWORD（prod profile 必需；application-prod.yml 里 DB_PASSWORD 无默认值）
+  existingSecret: ""
+  passwordKey: db-password
+crypto:
+  # ENCRYPT_KEY：凭据加密（信创路线，32 位 hex；与 encaps-layer 同键，可复用同一 Secret）
+  existingSecret: ""
+  encryptKeyKey: encrypt-key
+credentialKey:
+  # CREDENTIAL_ENCRYPTION_KEY：凭据加密（国际路线，Base64 编码的 32 字节 AES-256 密钥）。
+  # ⚠️ CredentialEncryptorConfig 是**条件装配**：CREDENTIAL_ENCRYPTION_KEY 与 ENCRYPT_KEY
+  # **至少其一必填**，否则 CredentialEncryptor bean 不注册、DataSourceController 起不来
+  # （2026-10-10 扩栈进 CI 时实测踩过：上下文启动失败）。
+  existingSecret: ""
+  credentialKeyKey: credential-encryption-key
+
+# ---- 环境变量（非敏感，全部进 ConfigMap）----
+env:
+  ENCAPS_DATA_PORT: "8083"
+  LOG_LEVEL: info
+  JAVA_OPTS: ""
+  # 默认 H2 文件库；生产改 PG（例：jdbc:postgresql://postgresql:5432/shuqing?currentSchema=encaps_data）
+  DB_URL: ""
+  DB_USERNAME: ""
+  # 前端来源（跨域；生产按实际域名覆盖）
+  CORS_ORIGINS: ""
+  # Hibernate DDL：默认 update（本模块暂无迁移，见 docs/db-migration-backlog.yaml）；
+  # 生产接 PG 后建议 validate + 迁移
+  DDL_AUTO: ""
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config: {}
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+serviceMonitor:
+  enabled: false
+  path: /actuator/prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
