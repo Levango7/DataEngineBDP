@@ -65,7 +65,7 @@
 | 3 | visible=false 时不应渲染 drawer | 同上 |
 | 4 | 点击 overlay 应触发 close 事件 | 事件绑定方式变更 |
 | 5 | 点击关闭按钮应触发 close 事件 | 同上 |
-| 6 | 按下 ESC 键应触发 close 事件 | 同上 |
+| 6 | 按下 ESC 键应触发 close 事件 | 同上 **2026-10-10 阶段 3 契约先行**：新增 `tests/contract/test_governance_loop.py::test_t5`（可失败契约，xfail，非阻断）——断言 pipeline 主源码必须出现对 rule-engine 质量规则端点 `/api/v1/quality/rules` 的拉取接线；阶段 3（Q1=rule-engine 权威）完成后自动 xpass，届时去掉 xfail 并纳入阻断。 |
 | 7 | 应包含 role="dialog" 属性 | 无障碍属性缺失或测试选择器不匹配 |
 | 8 | 应包含 aria-modal="true" 属性 | 同上 |
 | 9 | 打开时 body overflow 应为 hidden | side effect 测试环境隔离问题 |
