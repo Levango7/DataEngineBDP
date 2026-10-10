@@ -74,15 +74,28 @@ def test_t6b_template_repository_not_shared_across_modules() -> None:
 
 @pytest.mark.xfail(
     strict=False,
-    reason="#1b 后续项：encaps-layer 的 LLMOpsService 尚未退化为转发到 llmops 服务",
+    reason=(
+        "#1b 后续项：encaps-layer 的 LLMOpsService 尚未退化为转发——**阻塞于 llmops 服务契约不全**："
+        "前端 llmops.ts 需要的 POST /llmops/models、POST /llmops/eval-metrics、"
+        "GET /llmops/finetune(+/\{taskId\})、/llmops/inference-services 在 platform/llmops 里尚不存在"
+        "（它只有 GET models、GET eval-metrics、POST finetune、POST human-eval）。"
+    ),
 )
 def test_t7_llmops_domain_has_single_authority() -> None:
-    """T7：llmops 域的 models/eval-metrics/finetune 实现应只在一处。
+    """T7：llmops 域的实现应只在一处（以专用服务 `platform/llmops` 为权威）。
 
-    现状：encaps-layer 的 LLMOpsService 自持 MlModelRepository / FinetuneTaskRepository /
-    EvalMetricRepository / InferenceServiceRepository，与 `platform/llmops` 服务重复
-    （同一业务域两套建表 ⇒ 数据分裂）。裁决要求退化为**转发**（仅 `/inference-services`
-    可暂留本地，直至其也迁入专用服务）。完成后本用例自动 xpass，届时去掉 xfail 并纳入阻断。
+    现状：encaps-layer 的 `LLMOpsService` 自持 MlModelRepository / FinetuneTaskRepository /
+    EvalMetricRepository / InferenceServiceRepository，与 `platform/llmops` 重复
+    （同一业务域两套建表 ⇒ 数据分裂）。
+
+    **为何不能"直接代理"就完**（2026-10-10 逐路由实测）：`platform/llmops` 已有一个
+    `routers/frontend.py` 明确"对齐 frontend/src/api/llmops.ts"，但只实现了其中一半：
+    ✅ GET /llmops/models、GET /llmops/eval-metrics、POST /llmops/finetune、POST /llmops/human-eval
+    ❌ POST /llmops/models（前端注册模型）、POST /llmops/eval-metrics、
+       GET /llmops/finetune + /{taskId}（前端列表/状态）、/llmops/inference-services
+    ⇒ 先把缺的四个补齐（并决定 `/inference-services` 是否迁入 llmops），才能把
+    encaps-layer 退化为转发、并把网关 `/api/v1/llmops` 整体改指 llmops 服务。
+    完成后本用例自动 xpass，届时去掉 xfail 并纳入阻断。
     """
     svc = ENCAPS / "service/LLMOpsService.java"
     assert svc.is_file(), "结构变更：未找到 LLMOpsService.java（需更新本契约）"
