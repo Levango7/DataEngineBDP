@@ -1,0 +1,38 @@
+# 台账 #30：kind 场景的镜像覆盖——用「CI/本地 docker build + kind load」的镜像，
+# 不再依赖不可达的 harbor.shuqing.io 或不存在的 docker.m.daocloud.io/sq-* 标签
+# （此前是 kind-smoke「假绿」的根因）。
+#
+# 用法（与 deploy/local-up.sh 的 EXTRA_VALUES 配合，仅在 kind + 本地镜像时加载）：
+#   docker build -t sq-catalog:kind-local ... && kind load docker-image sq-catalog:kind-local --name <cluster>
+#   CLUSTER=<cluster> EXTRA_VALUES=deploy/local/values-local-images.yaml bash deploy/local-up.sh
+# pullPolicy 用 IfNotPresent：镜像已 kind load 进节点，无需再拉。
+encaps-layer:
+  image:
+    repository: sq-encapsulation
+    tag: kind-local
+    pullPolicy: IfNotPresent
+sql-gateway:
+  image:
+    repository: sq-sql-gateway
+    tag: kind-local
+    pullPolicy: IfNotPresent
+catalog:
+  image:
+    repository: sq-catalog
+    tag: kind-local
+    pullPolicy: IfNotPresent
+rule-engine:
+  image:
+    repository: sq-rule-engine
+    tag: kind-local
+    pullPolicy: IfNotPresent
+nl2sql:
+  image:
+    repository: sq-nl2sql
+    tag: kind-local
+    pullPolicy: IfNotPresent
+open-api-catalog:
+  image:
+    repository: sq-open-api-catalog
+    tag: kind-local
+    pullPolicy: IfNotPresent
