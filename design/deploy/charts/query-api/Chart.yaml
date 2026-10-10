@@ -1,0 +1,17 @@
+apiVersion: v2
+name: query-api
+description: "统一查询 API - 平台/租户双视图 Prometheus 查询（ops / cluster 端点后端）- 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - observability
+  - query
+  - prometheus
+  - shuqing-platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-observability

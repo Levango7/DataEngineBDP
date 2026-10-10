@@ -1,0 +1,125 @@
+# ============================================================================
+# query-api Helm Chart 默认 values
+# 台账 #2：本 chart 为该服务补齐"部署单元"（此前仅有 Dockerfile，生产不可部署）。
+# 它是 dashboard / cluster-overview 等页面的数据源（/api/v1/ops/**、/api/v1/cluster/** 后端）。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+image:
+  repository: "docker.m.daocloud.io/sq-query-api"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数（无状态查询代理，可水平扩）----
+replicaCount: 2
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8090
+  containerPort: 8090
+
+# ---- 资源配额（Go 服务，占用低）----
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # 镜像 Dockerfile：alpine addgroup -S app && adduser -S -G app app ⇒ uid=1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（应用自带 /api/v1/health，与 Dockerfile HEALTHCHECK 同路径）----
+# Go 服务启动快（毫秒级），不需要 startup 探针。
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 8090
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 8090
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- 可写点（只读根配套）----
+tmp:
+  # 只读根下若进程需要 /tmp 写入则开启（Go 服务通常不需要；保险起见默认开）
+  enabled: true
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 / PDB ----
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Secret 注入（敏感项，留空则不注入）----
+auth:
+  # JWT_SIGNING_KEY：**应用缺它启动即 fatal**（internal/middleware/auth.go:47 mustGetenv），
+  # 且须与签发端（encaps-layer / Keycloak）一致；值需 ≥32 字节。
+  jwtSigningKeySecret: ""
+  jwtSigningKeyKey: jwt-signing-key
+
+# ---- 环境变量（非敏感，全部进 ConfigMap）----
+env:
+  QUERY_API_PORT: "8090"
+  QUERY_API_VERSION: "0.1.0"
+  # 后端 Prometheus / Alertmanager 地址（集群内 Service 名）
+  PROMETHEUS_URL: "http://prometheus:9090"
+  ALERTMANAGER_URL: "http://alertmanager:9093"
+  # 平台方角色名与 JWT issuer（与签发端保持一致）
+  QUERY_API_PLATFORM_ROLE: "platform-ops"
+  JWT_ISSUER: "shuqing-bigdata"
+  # 前端来源（跨域；空表示不额外放行）
+  CORS_ALLOWED_ORIGINS: ""
+  # 纳入监控的组件清单（逗号分隔；空 = 全部）
+  OPS_COMPONENTS: ""
+  # 仅无 k8s 的集成/E2E 栈置 "true"（集群查询返回空数据 mock，**生产必须留空**）
+  QUERY_API_K8S_MOCK: ""
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config: {}
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+# 注意：本服务当前**未暴露 /metrics**（可观测性走 OTel），启用前请先为服务加指标端点。
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
