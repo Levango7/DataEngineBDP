@@ -26,6 +26,9 @@ CLUSTER=${CLUSTER:-dataengine-local}
 NS=dataengine
 UMBRELLA=design/deploy/charts/dataenginebdp-umbrella
 LOCAL_VALUES=deploy/local/values-local-core.yaml
+# 台账 #30：可选额外 values（如 kind + 本地构建镜像的 tag 覆盖文件
+# deploy/local/values-local-images.yaml）；不设则行为同旧。
+EXTRA_VALUES=${EXTRA_VALUES:-}
 
 log() { echo "[$(date '+%H:%M:%S')] $*"; }
 fail() { log "FAIL: $*"; exit 1; }
@@ -51,8 +54,14 @@ pass "依赖更新完成"
 echo "== 4/6 安装核心子集（封装层/SQL网关/目录/规则引擎/NL2SQL/开放API目录） =="
 # 注入本地开发 JWT 密钥（≥32 字符），catalog chart 默认值为空（fail-fast）
 LOCAL_JWT="local-dev-signing-key-change-me-0123456789abcdef"
+# 组装 helm -f 列表：基础 values + （可选）额外 values（保守处理 set -u）。
+HELM_FILES=(-f "$LOCAL_VALUES")
+if [[ -n "$EXTRA_VALUES" ]]; then
+  [[ -f "$EXTRA_VALUES" ]] || fail "EXTRA_VALUES 指向的文件不存在: $EXTRA_VALUES"
+  HELM_FILES+=(-f "$EXTRA_VALUES")
+fi
 helm upgrade --install dataengine "$UMBRELLA" \
-  -n "$NS" -f "$LOCAL_VALUES" \
+  -n "$NS" "${HELM_FILES[@]}" \
   --set "catalog.auth.jwtSigningKey=$LOCAL_JWT" \
   --wait --timeout 15m \
   || { log "安装失败：排查镜像拉取（见文件头说明）"; exit 1; }

@@ -57,7 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [profile-render]
-    continue-on-error: true  # CI环境资源限制可能导致kind集群创建失败，不阻断workflow
+    # 台账 #30：原来此处是 continue-on-error: true（镜像不可达 → “假绿”）；
+    # 现方案①在 CI 内 build + kind load 真实镜像，本 job 应真绿，故去掉 continue-on-error（不再假装成功）。
     steps:
       - uses: actions/checkout@v4
       - name: Write kind config
@@ -77,7 +78,28 @@ jobs:
           cluster_name: dataengine-e2e
           node_image: kindest/node:v1.29.2
           config: /tmp/kind-config.yaml
+      - name: Build & load core images into kind
+        # 台账 #30 方案①：自研镜像在 CI 内构建并 kind load，避免依赖不可达的
+        # harbor.shuqing.io / 不存在的 docker.m.daocloud.io/sq-* 标签（此前“假绿”的根因）。
+        # image.tag=kind-local 与 deploy/local/values-local-images.yaml 对齐。
+        run: |
+          set -euo pipefail
+          build_load() {  # <image> <dockerfile> <context>
+            echo "== build $1 (ctx=$3) =="
+            docker build -t "$1" -f "$2" "$3"
+            kind load docker-image "$1" --name dataengine-e2e
+          }
+          build_load sq-encapsulation:kind-local     platform/encaps-layer/Dockerfile     .
+          build_load sq-sql-gateway:kind-local       platform/sql-gateway/Dockerfile       .
+          build_load sq-catalog:kind-local           platform/catalog/Dockerfile           platform/catalog
+          build_load sq-rule-engine:kind-local       platform/rule-engine/Dockerfile       .
+          build_load sq-nl2sql:kind-local            platform/nl2sql/Dockerfile            platform/nl2sql
+          build_load sq-open-api-catalog:kind-local  platform/open-api-catalog/Dockerfile  platform/open-api-catalog
       - name: Deploy core subset
+        # 复用 kind-action 建的 dataengine-e2e 集群；EXTRA_VALUES 把 6 个服务指到刚 load 的本地镜像。
+        env:
+          CLUSTER: dataengine-e2e
+          EXTRA_VALUES: deploy/local/values-local-images.yaml
         run: |
           bash deploy/local-up.sh
       - name: Run smoke test
