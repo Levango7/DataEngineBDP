@@ -45,6 +45,12 @@ public class StreamingQualityRuleEngine {
     /** 表 → 规则 ID 列表（用于按表批量评估） */
     private final ConcurrentHashMap<String, List<String>> tableRuleIndex = new ConcurrentHashMap<>();
 
+    /** 规则来源健康度（最近一次刷新是否成功；台账 #6 阶段 3 降级可见性）。 */
+    private volatile boolean sourceHealthy = true;
+
+    /** 最近一次成功刷新时间戳（毫秒；0=从未）。 */
+    private volatile long lastRefreshAtMillis = 0L;
+
     @Autowired
     public StreamingQualityRuleEngine(QualityRuleEvaluator evaluator,
                                       QualityAlertEmitter alertEmitter,
@@ -93,6 +99,63 @@ public class StreamingQualityRuleEngine {
             evaluator.clearUniqueState(ruleId);
             log.info("Quality rule unregistered: ruleId={}", ruleId);
         }
+    }
+
+    /**
+     * 从来源刷新规则（台账 #6 阶段 3，Q1 裁决：rule-engine 为权威）。
+     *
+     * <p>失败**降级**：保留上次缓存（不抛、不清空），并把来源标为不健康；
+     * 返回空集时仅告警（本进程将跳过质量评估），绝不静默。
+     *
+     * @param source 规则来源；null 或未启用时为 no-op（保持 additivity）
+     */
+    public synchronized void refreshFromSource(QualityRuleSource source) {
+        if (source == null || !source.isEnabled()) {
+            return;
+        }
+        try {
+            List<QualityRule> rules = source.fetchRules();
+            replaceRules(rules);
+            sourceHealthy = true;
+            lastRefreshAtMillis = System.currentTimeMillis();
+            if (rules.isEmpty()) {
+                log.warn("质量规则来源返回空集：本进程将跳过质量评估（请检查 rule-engine 配置/租户）");
+            } else {
+                log.info("质量规则已从来源刷新：count={}", rules.size());
+            }
+        } catch (RuntimeException e) {
+            sourceHealthy = false;
+            log.warn("质量规则来源刷新失败（降级：沿用上次缓存 {} 条）：{}", ruleRegistry.size(), e.getMessage());
+        }
+    }
+
+    /** 用给定规则集替换注册表（先清空再索引，保证本地与来源一致）。 */
+    private void replaceRules(List<QualityRule> rules) {
+        ruleRegistry.clear();
+        tableRuleIndex.clear();
+        for (QualityRule rule : rules) {
+            if (rule == null || rule.getRuleId() == null || rule.getTableIdentifier() == null) {
+                continue;
+            }
+            ruleRegistry.put(rule.getRuleId(), rule);
+            tableRuleIndex.computeIfAbsent(rule.getTableIdentifier(), k -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                    .add(rule.getRuleId());
+        }
+    }
+
+    /** 规则来源是否健康（最近一次刷新是否成功）。 */
+    public boolean isSourceHealthy() {
+        return sourceHealthy;
+    }
+
+    /** 最近一次成功刷新的时间戳（毫秒；0=从未）。 */
+    public long getLastRefreshAtMillis() {
+        return lastRefreshAtMillis;
+    }
+
+    /** 当前注册表规则数（观测用）。 */
+    public int getRuleCount() {
+        return ruleRegistry.size();
     }
 
     /**

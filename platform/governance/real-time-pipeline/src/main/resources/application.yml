@@ -51,6 +51,17 @@ governance:
     alert-latency-target-ms: ${ALERT_LATENCY_TARGET_MS:5000}
     # 治理闭环 P95 目标（≤ 10s）
     pipeline闭环-p95-target-ms: ${PIPELINE_P95_TARGET_MS:10000}
+  # 台账 #6 阶段 3：质量规则单一来源（Q1 裁决：rule-engine 为权威）
+  rule-engine:
+    url: ${RULE_ENGINE_URL:http://rule-engine:8083}
+  quality:
+    # 是否启用"从 rule-engine 拉取规则"（默认关，保持改动 additive；开启后启动+定时刷新）
+    source-enabled: ${GOVERNANCE_QUALITY_SOURCE_ENABLED:false}
+    # 刷新间隔 / 首次延迟（毫秒）
+    refresh-ms: ${GOVERNANCE_QUALITY_REFRESH_MS:60000}
+    refresh-initial-delay-ms: ${GOVERNANCE_QUALITY_REFRESH_INITIAL_DELAY_MS:5000}
+    # 服务令牌租户（多租户逐租户拉取为后续项）
+    service-tenant: ${GOVERNANCE_QUALITY_SERVICE_TENANT:platform-admin}
 
 # JWT 配置（与平台其他组件保持一致）
 security:
