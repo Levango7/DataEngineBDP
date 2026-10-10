@@ -489,6 +489,12 @@ jobs:
         run: |
           python3 -m pip install -q pytest 2>/dev/null || true
           python3 -m pytest tests/contract/test_governance_loop.py -q
+      - name: 门面单一权威契约（台账 #1b）
+        # 裁决「以专用服务为权威」的静态契约：templates 域仅 industry-templates 实现；
+        # llmops 域的门面退化（退化为转发）尚为后续项，标 xfail。
+        run: |
+          python3 -m pip install -q pytest 2>/dev/null || true
+          python3 -m pytest tests/contract/test_facade_single_authority.py -q
       - name: 告警规则 → Prometheus Chart 副本一致性
         # 规则事实来源 platform/observability/rules/*.yaml，chart 只能读自身目录内文件，
         # 故用副本 + 本校验防止两处漂移（漂移会导致部署的规则与仓内规则不一致）。
