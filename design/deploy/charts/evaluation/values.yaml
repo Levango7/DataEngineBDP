@@ -1,0 +1,126 @@
+# ============================================================================
+# evaluation Helm Chart 默认 values
+# 台账 #2：本 chart 为该服务补齐"部署单元"（此前仅有 Dockerfile，生产不可部署）。
+# 它是 dashboard / cluster-overview 等页面的数据源（/api/v1/ops/**、/api/v1/cluster/** 后端）。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+image:
+  repository: "docker.m.daocloud.io/sq-evaluation"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数（无状态查询代理，可水平扩）----
+replicaCount: 2
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8086
+  containerPort: 8086
+
+# ---- 资源配额（Go 服务，占用低）----
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # 镜像 Dockerfile：alpine addgroup -S app && adduser -S -G app app ⇒ uid=1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（应用自带 /api/v1/health，与 Dockerfile HEALTHCHECK 同路径）----
+# Go 服务启动快（毫秒级），不需要 startup 探针。
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /health
+      port: 8086
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /health
+      port: 8086
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- 可写点（只读根配套）----
+tmp:
+  # 只读根下若进程需要 /tmp 写入则开启（Go 服务通常不需要；保险起见默认开）
+  enabled: true
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 / PDB ----
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Secret 注入（敏感项，留空则不注入）----
+auth:
+  # JWT_SECRET：须与签发端（encaps-layer / Keycloak）一致
+  jwtSecretName: ""
+  jwtSecretKey: jwt-secret
+llmGateway:
+  # LLM_GATEWAY_API_KEY：调用上游 llm-gateway 的 API Key（敏感，走 Secret）
+  apiKeySecret: ""
+  apiKeyKey: llm-gateway-api-key
+
+# ---- 环境变量（非敏感，全部进 ConfigMap）----
+env:
+  EVAL_PORT: "8086"
+  # 上游 llm-gateway（模型调用网关；默认指向集群内 Service，按实际 release 覆盖）
+  LLM_GATEWAY_URL: "http://llm-gateway:8084"
+  LLM_GATEWAY_TIMEOUT: "30"
+  EVAL_REQUEST_TIMEOUT: "300"
+  EVAL_MAX_CONCURRENCY: "4"
+  # JWT 校验（与签发端一致）
+  JWT_ISSUER: "shuqing-bigdata"
+  JWT_EXPECTED_ISSUER: "shuqing-bigdata"
+  AUTH_MODE: "jwt"
+  # 数据集缓存目录（默认 /app/data，只读根下由 chart 挂 emptyDir）
+  DATASET_CACHE_DIR: "/app/data"
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config: {}
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+# 注意：本服务当前**未暴露 /metrics**（可观测性走 OTel），启用前请先为服务加指标端点。
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
