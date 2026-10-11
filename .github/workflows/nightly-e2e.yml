@@ -417,7 +417,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 QEMU 与 buildx
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v3
 
       - name: arm64 构建冒烟（nl2sql，不推送）

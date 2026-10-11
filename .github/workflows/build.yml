@@ -134,7 +134,7 @@ jobs:
           npm run build
 
       - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -228,7 +228,7 @@ jobs:
           done < <(find platform -name pom.xml -not -path "*/target/*")
 
       - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -319,7 +319,7 @@ jobs:
           cache: true
 
       - name: 设置 QEMU（多架构构建前置）
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -376,7 +376,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
