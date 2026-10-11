@@ -134,6 +134,8 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     "governance/lineage-analyzer": "lineage-analyzer",
     "governance/real-time-pipeline": "real-time-pipeline",
     # 多级目录组件只认显式映射（见下方 129/196 行注释）：finops/cost-model 的 chart 名取目录 basename。
+    # finops/dashboard 的 chart 名取目录 basename（dashboard）。注意：/api/v1/dashboards 已按载荷契约裁决给 business-portal（见上方 T1 详注），本映射只为让 finops/dashboard 的其余前缀（/allocation、/suggestions 等）在 chart 就位后可路由。
+    "finops/dashboard": "dashboard",
     "finops/cost-model": "cost-model",
     "observability/query-api": "observability-query-api",
 }
