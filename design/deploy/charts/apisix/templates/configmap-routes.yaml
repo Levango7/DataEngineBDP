@@ -459,7 +459,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "encaps-layer:8080": 1
+              "llmops:8080": 1
             }
           }
         },

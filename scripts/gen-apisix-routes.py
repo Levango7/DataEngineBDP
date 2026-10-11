@@ -61,9 +61,10 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
     # 故生产网关把租户管理 API 统一指向 encaps-layer；encaps-tenant 仅供集群内直连。
     "/api/v1/tenants": "encaps-layer",
-    # llmops.ts 头注释明写对齐 encaps-layer LLMOpsController，且 /inference-services
-    # 只有它实现（llmops 服务仅有 models/finetune/eval-metrics/human-eval）。
-    "/api/v1/llmops": "encaps-layer",
+    # 台账 #1b Q1（2026-10-10）：/api/v1/llmops 权威 = **llmops 服务**——
+    # encaps-layer 的 LLMOps 门面已退场，llmops 服务端契约由 PR #421 补齐
+    # （9 端点 + 形状对齐 llmops.ts，含 /inference-services）。
+    "/api/v1/llmops": "llmops",
     # template.ts 要 /{id}/deploy、/{id}/preview、/{id}/deployments、/categories ——
     # 只有 industry-templates 全实现（encaps-layer 的 TemplateController 仅 list/get/create）。
     "/api/v1/templates": "industry-templates",

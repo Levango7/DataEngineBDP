@@ -35,6 +35,8 @@ const stack = {
   ai: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18080',
   models: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:18080',
   registry: process.env.VITE_REGISTRY_TARGET || 'http://127.0.0.1:18089',
+  // llmops 域（台账 #1b Q1）：单一权威 = llmops 服务（compose 18106）
+  llmops: process.env.VITE_LLMOPS_TARGET || 'http://127.0.0.1:18106',
   streamBatch: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18080',
   // infra-orchestrator（/api/v1/clusters）与 lineage-analyzer（/lineage）均未纳入
   // tests/integration/docker-compose.yml 的 nightly 栈；按本文件既定策略（栈外服务
@@ -114,6 +116,7 @@ export default defineConfig({
       VITE_AI_TARGET: stack.ai,
       VITE_MODELS_TARGET: stack.models,
       VITE_REGISTRY_TARGET: stack.registry,
+      VITE_LLMOPS_TARGET: stack.llmops,
       VITE_STREAM_BATCH_TARGET: stack.streamBatch,
       VITE_INFRA_ORCHESTRATOR_TARGET: stack.infraOrchestrator,
       VITE_LINEAGE_TARGET: stack.lineage

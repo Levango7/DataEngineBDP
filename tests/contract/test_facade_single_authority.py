@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -47,10 +48,6 @@ def test_t6_template_api_facade_removed() -> None:
     assert impls, "industry-templates 未实现 /api/v1/templates（templates 域将无权威实现）"
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="#1b 后续项：encaps-data 的 SearchController 仍跨模块依赖 encaps-layer 的 TemplateRepository",
-)
 def test_t6b_template_repository_not_shared_across_modules() -> None:
     """T6b：templates 的**数据实现**不应被其它模块直接耦合。
 
@@ -72,18 +69,6 @@ def test_t6b_template_repository_not_shared_across_modules() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "#1b 后续项：encaps-layer 的 llmops 门面尚未退场。llmops 服务端契约已于 PR #421 补齐；"
-        "剩余前置（**必须原子完成**，拆开做会弄红当前全绿的 nightly）："
-        "① `design/deploy/charts/` 下**无 first-class llmops chart 目录**（仅 umbrella 里的 llmops-*.tgz 依赖包），"
-        "而网关生成器 `gen-apisix-routes.py::collect_chart_ports()` 只认 `charts/*/values.yaml` 有 service.port 的目录 ⇒ `/api/v1/llmops` 目前无法路由到 llmops；"
-        "② 测试栈 `tests/integration/docker-compose.yml` 与 nightly 栈里**没有 llmops 服务**；"
-        "③ 前端 E2E 经 Vite 代理（默认 encaps-layer:18080）打该前缀。"
-        "故需一次性：补 first-class chart + 网关改指 llmops + 测试栈补 llmops + Vite 改指 + 删除 encaps-layer LLMOps 门面（T7 转阻断）。"
-    ),
-)
 def test_t7_llmops_domain_has_single_authority() -> None:
     """T7：llmops 域的实现应只在一处（以专用服务 `platform/llmops` 为权威）。
 
@@ -100,20 +85,21 @@ def test_t7_llmops_domain_has_single_authority() -> None:
     encaps-layer 退化为转发、并把网关 `/api/v1/llmops` 整体改指 llmops 服务。
     完成后本用例自动 xpass，届时去掉 xfail 并纳入阻断。
     """
-    svc = ENCAPS / "service/LLMOpsService.java"
-    assert svc.is_file(), "结构变更：未找到 LLMOpsService.java（需更新本契约）"
-    text = _read(svc)
-    duplicated = [
-        name
-        for name in (
-            "MlModelRepository",
-            "FinetuneTaskRepository",
-            "EvalMetricRepository",
-            "InferenceServiceRepository",
+    facade = [
+        p.relative_to(REPO).as_posix()
+        for p in (
+            ENCAPS / "controller/LLMOpsController.java",
+            ENCAPS / "service/LLMOpsService.java",
         )
-        if name in text
+        if p.exists()
     ]
-    assert not duplicated, (
-        "encaps-layer 的 LLMOpsService 仍自持重复仓储（应退化为转发到 llmops 服务）："
-        + ", ".join(duplicated)
+    assert not facade, (
+        "encaps-layer 仍保留 llmops 门面（Q1：权威应为 llmops 服务）："
+        + ", ".join(facade)
+    )
+
+    # 网关归属：/api/v1/llmops 必须指向 llmops chart（而非 encaps-layer）
+    gen = _read(REPO / "scripts/gen-apisix-routes.py")
+    assert re.search(r'"(/api/v1/llmops|/api/v1/llmops)"\s*:\s*"llmops"', gen), (
+        'gen-apisix-routes.py 的 PREFIX_OWNER_OVERRIDES 未把 /api/v1/llmops 指向 llmops'
     )
