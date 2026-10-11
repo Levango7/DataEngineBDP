@@ -32,8 +32,12 @@ spec:
       {{- if .Values.securityContext.enabled }}
       securityContext:
         runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
-        runAsUser: {{ .Values.securityContext.runAsUser }}
-        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        {{- with .Values.securityContext.runAsUser }}
+        runAsUser: {{ . }}
+        {{- end }}
+        {{- with .Values.securityContext.runAsGroup }}
+        runAsGroup: {{ . }}
+        {{- end }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
       # k8s 会为同命名空间的 Service 向 Pod 注入 服务名_PORT=tcp://IP:PORT 形式的链接变量；
@@ -84,8 +88,12 @@ spec:
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
-            runAsUser: {{ .Values.securityContext.runAsUser }}
-            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            {{- with .Values.securityContext.runAsUser }}
+            runAsUser: {{ . }}
+            {{- end }}
+            {{- with .Values.securityContext.runAsGroup }}
+            runAsGroup: {{ . }}
+            {{- end }}
             allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
             readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
             capabilities:

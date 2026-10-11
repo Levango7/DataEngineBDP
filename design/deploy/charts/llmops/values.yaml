@@ -31,12 +31,14 @@ resources:
 
 
 # ---- 安全上下文（Pod/Container 安全加固）----
+# 镜像 Dockerfile 的 app 用户由 useradd --system 创建（uid 非固定，python:3.11-slim 实测 999）
+# ⇒ 不设 runAsUser/runAsGroup（写死 1000 会让进程落到不存在于 /etc/passwd 的 uid 上，
+#   且 /app 下 app:app 属主文件对 uid 1000 只读）；只留 runAsNonRoot + fsGroup
+#   （kubelet 把 fsGroup 加进容器补充组，emptyDir 仍可写）。同族约定见 ai-assistant/business-portal 等。
 securityContext:
   enabled: true
   runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  fsGroup: 999
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
   capabilities:
@@ -44,11 +46,13 @@ securityContext:
       - ALL
 
 # ---- 健康检查 ----
+# 路径为 /health：健康路由未挂 API 前缀（llmops/api/app.py: include_router(health.router)）；
+# 原 /api/v1/health 实测 404，liveness 会按 failureThreshold 反复重启 Pod。
 probes:
   liveness:
     enabled: true
     httpGet:
-      path: /api/v1/health
+      path: /health
       port: 8080
     initialDelaySeconds: 30
     periodSeconds: 10
@@ -56,7 +60,7 @@ probes:
   readiness:
     enabled: true
     httpGet:
-      path: /api/v1/health
+      path: /health
       port: 8080
     initialDelaySeconds: 10
     periodSeconds: 5

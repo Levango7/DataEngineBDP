@@ -29,6 +29,11 @@ LABEL org.opencontainers.image.title="sq-llmops" \
       org.opencontainers.image.version="0.1.0" \
       org.opencontainers.image.source="https://github.com/shuqing/sq-llmops"
 
+# 系统依赖（curl 用于健康检查；本服务此前未装——见下方 HEALTHCHECK 注释）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # 拷贝虚拟环境
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" \
@@ -43,8 +48,11 @@ COPY --from=builder --chown=app:app /build/llmops/ ./llmops/
 COPY --chown=app:app main.py ./
 
 # 健康检查
+# 路径为 /health：本服务健康路由未挂 API 前缀（llmops/api/app.py: include_router(health.router)）。
+# 此前两处缺陷叠加——镜像未装 curl + 探不存在的 /api/v1/health——使容器无论应用是否正常
+# 都不可能 healthy（2026-10-11 实测：宿主 curl /api/v1/health 得 404、容器内无 curl 可执行）。
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -fsS http://localhost:8080/api/v1/health || exit 1
+    CMD curl -fsS http://localhost:8080/health || exit 1
 
 EXPOSE 8080
 
