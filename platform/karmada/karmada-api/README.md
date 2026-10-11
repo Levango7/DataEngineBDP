@@ -61,7 +61,7 @@ curl -X POST http://localhost:8090/api/v1/propagation-policies \
 ## 本地运行
 
 ```bash
-cd platform/karmada/api
+cd platform/karmada/karmada-api
 go mod tidy
 go run main.go
 ```
