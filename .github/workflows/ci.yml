@@ -336,10 +336,11 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 yamllint
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y yamllint
+      - name: 安装 yamllint（版本锁定）
+        # 2026-10-11：apt 安装的是"当时最新版"，runner 镜像更新后样式规则变严，
+        # 曾使存量 chart/values 无码转红（doris-values/argo-rollouts 等 410 条 warning 级被判错）。
+        # 与 python-lint 的 requirements-lint.txt 同理，这里锁版本：pip 安装 1.35.1。
+        run: pip install yamllint==1.35.1 -q
 
       - name: 校验 design/deploy/values/ 下的 YAML 文件
         run: |

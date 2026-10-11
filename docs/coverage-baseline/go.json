@@ -8,8 +8,8 @@
   "llm-gateway": 54,
   "observability/query-api": 32,
   "infra-provider-baremetal": 47,
-  "karmada/api": 56,
-  "karmada/failover/api": 30,
-  "karmada/failover/engine": 30,
-  "ai-assistant": 37
+  "ai-assistant": 37,
+  "karmada/karmada-api": 56,
+  "karmada/failover/failover-api": 30,
+  "karmada/failover/failover-engine": 30
 }
