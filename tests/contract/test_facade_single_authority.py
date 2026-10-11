@@ -48,10 +48,6 @@ def test_t6_template_api_facade_removed() -> None:
     assert impls, "industry-templates 未实现 /api/v1/templates（templates 域将无权威实现）"
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="#1b 后续项：encaps-data 的 SearchController 仍跨模块依赖 encaps-layer 的 TemplateRepository",
-)
 def test_t6b_template_repository_not_shared_across_modules() -> None:
     """T6b：templates 的**数据实现**不应被其它模块直接耦合。
 

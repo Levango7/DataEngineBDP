@@ -3,7 +3,6 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.encaps.repository.ApiDefinitionRepository;
 import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
-import com.levango7.dataenginebdp.encaps.repository.TemplateRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import jakarta.validation.constraints.NotBlank;
@@ -54,7 +53,6 @@ public class SearchController {
     private final AssetRepository assetRepository;
     private final ApiDefinitionRepository apiRepository;
     private final StandardRepository standardRepository;
-    private final TemplateRepository templateRepository;
     private final ElasticsearchIndexer esIndexer;
 
     /**
@@ -210,13 +208,6 @@ public class SearchController {
                         "name", s.getName(),
                         "type", s.getType(),
                         "source", "standard")));
-        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId, pageRequest).getContent().stream()
-                .filter(t -> contains(t.getName(), q) || contains(t.getDescription(), q))
-                .forEach(t -> results.add(Map.of(
-                        "id", String.valueOf(t.getId()),
-                        "name", t.getName(),
-                        "type", "template",
-                        "source", "template")));
         return results;
     }
 
@@ -231,13 +222,11 @@ public class SearchController {
                 .forEach(a -> types.add("asset:" + a.getType()));
         types.add("api");
         types.add("standard");
-        types.add("template");
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("sources", List.of(
                 Map.of("value", "asset", "label", "数据资产"),
                 Map.of("value", "api", "label", "API"),
-                Map.of("value", "standard", "label", "标准"),
-                Map.of("value", "template", "label", "模板")));
+                Map.of("value", "standard", "label", "标准")));
         body.put("types", types.stream().distinct().map(t -> Map.of("value", t, "label", t)).toList());
         body.put("tags", List.of());
         return ResponseEntity.ok(body);
@@ -260,9 +249,6 @@ public class SearchController {
         apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
                 .filter(a -> a.getName().toLowerCase(Locale.ROOT).contains(k))
                 .limit(3).forEach(a -> out.add(a.getName()));
-        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
-                .filter(t -> t.getName().toLowerCase(Locale.ROOT).contains(k))
-                .limit(3).forEach(t -> out.add(t.getName()));
         return ResponseEntity.ok(out);
     }
 
