@@ -43,7 +43,10 @@ class Settings(BaseSettings):
     # ---- server ----
     host: str = Field(default="0.0.0.0", description="监听地址")
     port: int = Field(default=8080, ge=1, le=65535, description="监听端口")
-    logLevel: str = Field(default="info", description="日志级别")
+    # 驼峰字段必须显式写含前缀的 validation_alias：pydantic-settings 只把「字段名（或别名）」
+    # 大写后拼 env_prefix，驼峰字段名 logLevel → 期望变量 LLMOPS_LOGLEVEL，与实际部署所用的
+    # LLMOPS_LOG_LEVEL 不匹配 ⇒ 环境变量被静默忽略（容器内 pydantic-settings 2.15.0 实测）。
+    logLevel: str = Field(default="info", validation_alias="LLMOPS_LOG_LEVEL", description="日志级别")
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
@@ -51,20 +54,26 @@ class Settings(BaseSettings):
     #   AI_MODE=mock  → storeType=mock（内存 Mock，零依赖）
     #   AI_MODE=real  → storeType=mlflow（真实 MLflow 后端）
     #   AI_MODE 未设置 → 使用 LLMOPS_STORE_TYPE 显式配置
-    storeType: Literal["mock", "mlflow"] = Field(default="mlflow", description="存储类型: mock / mlflow")
+    storeType: Literal["mock", "mlflow"] = Field(
+        default="mlflow",
+        validation_alias="LLMOPS_STORE_TYPE",
+        description="存储类型: mock / mlflow",
+    )
 
     # ---- mlflow ----
     mlflowUri: str = Field(
         default="http://localhost:5000",
+        validation_alias="LLMOPS_MLFLOW_URI",
         description="MLflow Tracking URI",
     )
     mlflowRegistryUri: str = Field(
         default="",
+        validation_alias="LLMOPS_MLFLOW_REGISTRY_URI",
         description="MLflow Registry URI（空则同 tracking uri）",
     )
 
     # ---- api ----
-    apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
+    apiPrefix: str = Field(default="/api/v1", validation_alias="LLMOPS_API_PREFIX", description="API 路由前缀")
 
     @field_validator("logLevel")
     @classmethod

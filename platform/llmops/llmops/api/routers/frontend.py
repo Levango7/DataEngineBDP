@@ -49,10 +49,12 @@ def _now() -> str:
 
 def _to_model_view(m: ModelInfo) -> dict[str, Any]:
     """ModelInfo → 前端 ModelRegistry（对齐 encaps-layer#toModelView）。"""
-    version = str(m.currentVersion) if getattr(m, "currentVersion", None) else (
-        str(m.versions[-1].version) if m.versions else "1"
+    version = (
+        str(m.currentVersion)
+        if getattr(m, "currentVersion", None)
+        else (str(m.versions[-1].version) if m.versions else "1")
     )
-    algorithm = (getattr(m.params, "architecture", None) or m.type.value if hasattr(m.type, "value") else str(m.type))
+    algorithm = getattr(m.params, "architecture", None) or m.type.value if hasattr(m.type, "value") else str(m.type)
     registered = getattr(m, "createdAt", None) or getattr(m, "updatedAt", None)
     return {
         "id": m.id,
@@ -101,10 +103,12 @@ async def frontend_register_model(
         description=payload.get("description"),
         tenantId=ctx.tenantId,
         tags={
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "trainJobId": payload.get("trainJobId"),
                 "modelPath": payload.get("modelPath"),
-            }.items() if v
+            }.items()
+            if v
         },
     )
     try:
