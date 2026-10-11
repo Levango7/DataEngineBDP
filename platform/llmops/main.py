@@ -23,7 +23,7 @@ def main() -> None:
         factory=True,
         host=settings.host,
         port=settings.port,
-        log_level=settings.log_level,
+        log_level=settings.logLevel,  # Settings 字段为驼峰（logLevel）；蛇形访问曾致容器启动即 AttributeError（Integration Test 红）
         reload=settings.reload,
     )
 

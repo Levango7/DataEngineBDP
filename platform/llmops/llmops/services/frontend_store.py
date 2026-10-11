@@ -18,10 +18,10 @@
 
 from __future__ import annotations
 
-import threading
-import uuid
 from datetime import datetime, timezone
+import threading
 from typing import Any, Optional
+import uuid
 
 
 def _now() -> str:
