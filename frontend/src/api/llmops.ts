@@ -1,7 +1,7 @@
 /**
  * LLMOps API（L4.5）
  *
- * 后端：platform/encaps-layer LLMOpsController
+ * 后端：platform/llmops（台账 #1b Q1：单一权威；encaps-layer 门面已退场）
  * 端点前缀：/api/v1/llmops
  *
  * 提供大模型注册、微调、评估、部署一体化运营能力。
@@ -14,7 +14,7 @@ const BASE = '/llmops'
 /** 模型状态 */
 export type ModelStatus = 'DRAFT' | 'REGISTERED' | 'DEPLOYED' | 'ARCHIVED' | 'FAILED' | string
 
-/** 模型注册项（对齐后端 LLMOpsController#toModelView） */
+/** 模型注册项（对齐 llmops services/frontend_store + routers/frontend） */
 export interface ModelRegistry {
   id: string
   name: string
@@ -45,7 +45,7 @@ export interface ModelRegisterParams {
   description?: string
 }
 
-/** 评估指标（对齐后端 LLMOpsController#toEvalMetricView） */
+/** 评估指标（对齐 llmops routers/frontend（前端契约）） */
 export interface EvalMetric {
   id: string
   /** 模型名 */
@@ -89,7 +89,7 @@ export interface FinetuneParams {
 /** 微调任务状态 */
 export type FinetuneStatus = 'SUBMITTED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | string
 
-/** 微调任务结果（对齐后端 LLMOpsController#toFinetuneView） */
+/** 微调任务结果（对齐 llmops routers/frontend（前端契约）） */
 export interface FinetuneResult {
   taskId: string
   modelName: string
@@ -109,7 +109,7 @@ export interface FinetuneResult {
 /** 推理服务状态 */
 export type InferenceStatus = 'DEPLOYING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'SCALING' | string
 
-/** 推理服务（对齐后端 LLMOpsController#toInferenceView） */
+/** 推理服务（对齐 llmops routers/frontend（前端契约）） */
 export interface InferenceService {
   id: string
   serviceName: string

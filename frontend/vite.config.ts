@@ -240,6 +240,13 @@ export default defineConfig({
         changeOrigin: true
       },
 
+      // LLMOps 域（台账 #1b Q1）：模型/评估/微调/推理的单一权威 = llmops 服务。
+      // 必须在下方 /api 兜底之前，否则 /api/v1/llmops/** 会落到 encaps-layer。
+      '/api/v1/llmops': {
+        target: process.env.VITE_LLMOPS_TARGET || 'http://127.0.0.1:18106',
+        changeOrigin: true
+      },
+
       // ============================================================
       // 通用 /api 代理（兜底，必须放在所有细粒度代理之后）
       // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
