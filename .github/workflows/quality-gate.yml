@@ -40,7 +40,7 @@ jobs:
 
       - name: 获取前置工作流运行结果
         id: workflow_results
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             // 获取最近的工作流运行记录
@@ -97,7 +97,7 @@ jobs:
             core.info(`Quality Gate 结论: ${overall}（失败 ${failCount} 个工作流）`);
 
       - name: 生成 Quality Gate 报告
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const results = JSON.parse('${{ steps.workflow_results.outputs.results_json }}');
@@ -128,7 +128,7 @@ jobs:
             await summary.write();
 
       - name: 设置 GitHub Status Check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const overall = '${{ steps.workflow_results.outputs.overall }}';
