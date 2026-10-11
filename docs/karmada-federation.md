@@ -1,6 +1,6 @@
 # 多集群联邦 Karmada 架构与使用指南
 
-> 版本：2026-09-11 ｜ 状态：**骨架已交付，真实多集群验证待执行** ｜ 关联文档：[Karmada 控制面 README](../platform/karmada/README.md)、[故障迁移 README](../platform/karmada/failover/README.md)、[联邦查询 README](../platform/karmada/federated-query/README.md)、[PropagationPolicy API](../platform/karmada/api/README.md)
+> 版本：2026-09-11 ｜ 状态：**骨架已交付，真实多集群验证待执行** ｜ 关联文档：[Karmada 控制面 README](../platform/karmada/README.md)、[故障迁移 README](../platform/karmada/failover/README.md)、[联邦查询 README](../platform/karmada/federated-query/README.md)、[PropagationPolicy API](../platform/karmada/karmada-api/README.md)
 
 ## 一、文档目的
 
@@ -45,9 +45,9 @@
 | 组件 | 目录 | 技术栈 | 端口 | 职责 | 成熟度 |
 | --- | --- | --- | --- | --- | --- |
 | **Karmada 控制面** | `platform/karmada/`（Helm values） | Karmada 1.10+ | — | 多集群管理控制面（apiserver/etcd/scheduler） | 部署配置就绪 |
-| **karmada-api** | `platform/karmada/api/` | Go 1.26+ / Gin | 8090 | PropagationPolicy CRUD 控制台 API | 骨架（策略 CRUD 未接控制面） |
-| **failover-api** | `platform/karmada/failover/api/` | Go 1.26+ / Gin | — | OverridePolicy + Failover 控制台 API | 骨架 |
-| **failover-engine** | `platform/karmada/failover/engine/` | Go 1.26+ | — | 集群健康检查 + 故障迁移决策引擎 | 骨架 |
+| **karmada-api** | `platform/karmada/karmada-api/` | Go 1.26+ / Gin | 8090 | PropagationPolicy CRUD 控制台 API | 骨架（策略 CRUD 未接控制面） |
+| **failover-api** | `platform/karmada/failover/failover-api/` | Go 1.26+ / Gin | — | OverridePolicy + Failover 控制台 API | 骨架 |
+| **failover-engine** | `platform/karmada/failover/failover-engine/` | Go 1.26+ | — | 集群健康检查 + 故障迁移决策引擎 | 骨架 |
 | **federated-query** | `/platform/karmada/federated-query/` | Java 17 / Spring Boot 4.1.1 | 8094 | 跨集群查询路由 + 表定位 + 结果归并 | 骨架 |
 
 ### 2.3 成员集群
@@ -315,7 +315,7 @@ kubectl get clusters
 # 预期：3 个集群均为 Ready
 
 # 5. 部署 karmada-api / failover / federated-query
-helm install karmada-api platform/karmada/api/
+helm install karmada-api platform/karmada/karmada-api/
 helm install failover platform/karmada/failover/
 helm install federated-query platform/karmada/federated-query/
 
@@ -463,7 +463,7 @@ done
 | 文档 | 路径 | 关联内容 |
 | --- | --- | --- |
 | Karmada 控制面 README | [platform/karmada/README.md](../platform/karmada/README.md) | 控制面部署 + 成员集群纳管 |
-| PropagationPolicy API | [platform/karmada/api/README.md](../platform/karmada/api/README.md) | 传播策略 CRUD API |
+| PropagationPolicy API | [platform/karmada/karmada-api/README.md](../platform/karmada/karmada-api/README.md) | 传播策略 CRUD API |
 | 故障迁移 README | [platform/karmada/failover/README.md](../platform/karmada/failover/README.md) | OverridePolicy + Failover |
 | 联邦查询 README | [platform/karmada/federated-query/README.md](../platform/karmada/federated-query/README.md) | 跨集群查询路由与归并 |
 | 组件成熟度矩阵 | [component-maturity.md](component-maturity.md) | karmada-api / karmada-federated-query / karmada-failover 成熟度 |
