@@ -315,13 +315,23 @@ def test_openapi_docs_accessible(client):
 
 
 def test_frontend_eval_metrics(client):
-    """GET /api/v1/llmops/eval-metrics 返回指标列表."""
+    """GET /api/v1/llmops/eval-metrics 返回前端 EvalMetric 契约（台账 #1b/Q1）。
+
+    旧版返回硬编码样例 {modelName,metric,value,sampleSize}；现对齐 frontend EvalMetric。
+    """
+    created = client.post(
+        "/api/v1/llmops/eval-metrics",
+        json={"modelName": "shuqing-7b", "evalType": "auto", "accuracy": 0.5, "dataset": "d1"},
+    )
+    assert created.status_code == 201, created.text
     resp = client.get("/api/v1/llmops/eval-metrics")
     assert resp.status_code == 200
     metrics = resp.json()
     assert isinstance(metrics, list)
     assert len(metrics) > 0
-    assert metrics[0]["metric"] in ("rouge_l", "bleu", "accuracy")
+    # 前端字段契约（不再有旧的 "metric" 占位键）
+    assert "accuracy" in metrics[0]
+    assert "metric" not in metrics[0]
 
 
 def test_frontend_eval_metrics_filtered(client):
@@ -332,27 +342,31 @@ def test_frontend_eval_metrics_filtered(client):
 
 
 def test_frontend_finetune(client):
-    """POST /api/v1/llmops/finetune 提交微调任务（需先注册基座模型）."""
+    """POST /api/v1/llmops/finetune 提交微调任务（前端契约，台账 #1b/Q1）。
+
+    前端 FinetuneResult 用 taskId（不再是 jobId），状态取值 queued/running 等；
+    baseModel/outputModelName 亦按前端字段命名归一。
+    """
     base_model_id = _register_model(client, name="qiong-7B")
     resp = client.post(
         "/api/v1/llmops/finetune",
         json={
-            "baseModelId": base_model_id,
-            "outputModelName": "shuqing-7b-finetuned",
-            "dataset": "train.jsonl",
+            "modelName": "shuqing-7b-finetuned",
+            "baseModel": base_model_id,
+            "trainingData": "train.jsonl",
             "epochs": 3,
-            "learningRate": 2e-4,
-            "batchSize": 8,
         },
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["status"] in ("queued", "created")
-    assert body["jobId"]
+    assert body["status"] in ("queued", "running", "RUNNING", "QUEUED")
+    assert body["taskId"]
 
 
 def test_frontend_human_eval(client):
-    """POST /api/v1/llmops/human-eval 触发人工评估."""
+    """POST /api/v1/llmops/human-eval 触发人工评估（前端契约 {metricId,modelName,status}）。"""
     resp = client.post("/api/v1/llmops/human-eval", json={"modelName": "shuqing-7b"})
     assert resp.status_code == 200
-    assert resp.json()["status"] == "created"
+    body = resp.json()
+    assert body["status"] == "queued"
+    assert body["metricId"] and body["modelName"]
