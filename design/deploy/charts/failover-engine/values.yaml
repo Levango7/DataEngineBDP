@@ -1,0 +1,105 @@
+# ============================================================================
+# failover-engine Helm Chart 默认 values
+# 台账 #2/#64：karmada 系改名（karmada-api / failover-api / failover-engine）后的部署单元。
+# karmada 系部署单元（台账 #64 方案 A 改名后补齐）。
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-failover-engine"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8095
+  containerPort: 8095
+
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # 镜像 Dockerfile 用 useradd --system（uid 非固定）⇒ 不设 runAsUser，交给镜像 USER；
+  # fsGroup 供 emptyDir 挂载分组可写（kubelet 会把 fsGroup 加进容器补充组）。
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8095
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8095
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+
+tmp:
+  enabled: true
+data:
+  # 内嵌 DB 是文件（（无 DB 文件） ⇒ /app/data/*.db），只读根下必须可写
+  enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+karmada:
+  # KARMADA_API_TOKEN：访问 Karmada 控制面的 Bearer token（敏感，走 Secret）
+  apiTokenSecret: ""
+  apiTokenKey: karmada-api-token
+
+env:
+  FAILOVER_ENGINE_PORT: "8095"
+  FAILOVER_ENGINE_VERSION: ""
+  # Karmada 控制面地址（按集群实际覆盖）
+  KARMADA_API_URL: ""
+  # 健康检测与迁移参数（应用默认同值）
+  PROMETHEUS_URL: "http://prometheus:9090"
+  FAILOVER_PRIMARY_CLUSTER: ""
+  FAILOVER_BACKUP_CLUSTERS: ""
+  FAILOVER_DETECTION_WINDOW: ""
+  FAILOVER_HEALTH_CHECK_INTERVAL: ""
+  FAILOVER_MIGRATION_TIMEOUT: ""
+
+config: {}
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

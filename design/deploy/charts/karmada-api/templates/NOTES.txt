@@ -1,0 +1,19 @@
+###############################################################################
+# karmada-api Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. Service:
+   kubectl get svc {{ include "karmada-api.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 探活:
+   kubectl port-forward svc/{{ include "karmada-api.serviceName" . }} 8090:8090 -n {{ .Release.Namespace }}
+   curl http://127.0.0.1:8090/api/v1/health
+
+###############################################################################
+# 必填/建议: auth.jwtSecretName（JWT_SECRET）+ KARMADA_API_SERVER / KARMADA_KUBECONFIG（按集群实际）
+###############################################################################

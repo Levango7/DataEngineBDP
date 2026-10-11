@@ -1,0 +1,119 @@
+# ============================================================================
+# federated-query Helm Chart 默认 values
+# 台账 #2/#64：karmada 系改名（karmada-api / failover-api / failover-engine）后的部署单元。
+# karmada 系部署单元（台账 #64 方案 A 改名后补齐）。
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-federated-query"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8094
+  containerPort: 8094
+
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  # 镜像 Dockerfile 用 useradd --system（uid 非固定）⇒ 不设 runAsUser，交给镜像 USER；
+  # fsGroup 供 emptyDir 挂载分组可写（kubelet 会把 fsGroup 加进容器补充组）。
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8094
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8094
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    failureThreshold: 3
+  # Java 服务冷启动（同族实测 40–80s）：startup 先兜住，起来后交给 liveness/readiness
+  startup:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8094
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 3
+
+tmp:
+  enabled: true
+data:
+  # 内嵌 DB 是文件（（无本地 DB 文件） ⇒ /app/data/*.db），只读根下必须可写
+  enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+auth:
+  # JWT_SECRET：须与签发端一致
+  jwtSecretName: ""
+  jwtSecretKey: jwt-secret
+mtls:
+  # mTLS keystore/truststore 口令（FEDERATED #D：默认关；开启 MTLS_ENABLED 时必填）
+  keyStorePasswordSecret: ""
+  keyStorePasswordKey: keystore-password
+  trustStorePasswordSecret: ""
+  trustStorePasswordKey: truststore-password
+
+env:
+  # ⚠️ 生产必须置 live（应用默认 mock=远端为 mock-cluster 测试桩）
+  FEDERATED_CLUSTER_MODE: ""
+  # Karmada 控制面地址（按集群实际覆盖；应用默认 https://localhost:5443）
+  KARMADA_API: ""
+  # 元数据目录服务（集群内 Service）
+  CATALOG_BASE_URL: "http://catalog:8080/api/v1/catalog"
+  JWT_ISSUER: "shuqing-bigdata"
+  # mTLS（默认关；开启时另需挂载 keystore/truststore 文件卷——本 chart 首版未含文件卷，见 README）
+  MTLS_ENABLED: ""
+  ALERT_WEBHOOK_URL: ""
+
+config: {}
+
+networkPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false
+  path: /actuator/prometheus
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
