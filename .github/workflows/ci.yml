@@ -82,9 +82,9 @@ jobs:
             platform/catalog/go.sum
             platform/dqctl/go.sum
             platform/infra-provider-baremetal/go.sum
-            platform/karmada/api/go.sum
-            platform/karmada/failover/api/go.sum
-            platform/karmada/failover/engine/go.sum
+            platform/karmada/karmada-api/go.sum
+            platform/karmada/failover/failover-api/go.sum
+            platform/karmada/failover/failover-engine/go.sum
             platform/llm-gateway/go.sum
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
@@ -1155,9 +1155,9 @@ jobs:
             platform/catalog/go.sum
             platform/dqctl/go.sum
             platform/infra-provider-baremetal/go.sum
-            platform/karmada/api/go.sum
-            platform/karmada/failover/api/go.sum
-            platform/karmada/failover/engine/go.sum
+            platform/karmada/karmada-api/go.sum
+            platform/karmada/failover/failover-api/go.sum
+            platform/karmada/failover/failover-engine/go.sum
             platform/llm-gateway/go.sum
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
@@ -2576,7 +2576,7 @@ jobs:
                       ['find', 'platform', '-name', 'go.mod', '-not', '-path', '*/vendor/*'],
                       text=True
                   ).splitlines()
-                  # 用相对 platform/ 的路径作为模块名（避免 basename 冲突，如 karmada/api 与 karmada/failover/api）
+                  # 用相对 platform/ 的路径作为模块名（历史教训：karmada/api 与 karmada/failover/api 曾因 basename 同为 api 撞名，2026-10-11 已改名为 karmada-api / failover-api 根治，见台账 #64）
                   return {l.replace('/go.mod', '')[len('platform/'):] for l in out if l}
               except Exception:
                   return set()
