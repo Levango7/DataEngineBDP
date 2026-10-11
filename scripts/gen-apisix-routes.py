@@ -133,6 +133,8 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     "governance/metadata-collector": "metadata-collector",
     "governance/lineage-analyzer": "lineage-analyzer",
     "governance/real-time-pipeline": "real-time-pipeline",
+    # 多级目录组件只认显式映射（见下方 129/196 行注释）：finops/cost-model 的 chart 名取目录 basename。
+    "finops/cost-model": "cost-model",
     "observability/query-api": "observability-query-api",
 }
 

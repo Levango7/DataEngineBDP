@@ -1,0 +1,18 @@
+apiVersion: v2
+name: cost-model
+description: "FinOps 成本模型 - 计量采集 / 定价与成本测算 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - finops
+  - metering
+  - pricing
+  - cost
+  - shuqing-platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-finops
