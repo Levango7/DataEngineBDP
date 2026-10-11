@@ -1,0 +1,21 @@
+###############################################################################
+# evaluation Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "evaluation.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 探活:
+   kubectl port-forward svc/{{ include "evaluation.serviceName" . }} 8086:8086 -n {{ .Release.Namespace }}
+   curl http://127.0.0.1:8086/health
+# 必填/建议:
+#   auth.jwtSecretName（JWT_SECRET，须与签发端一致）
+#   llmGateway.apiKeySecret（LLM_GATEWAY_API_KEY，调用上游网关的 Key）
+#   env.LLM_GATEWAY_URL（默认指向集群内 llm-gateway，按实际 release 覆盖）
+# 可选：EVAL_REQUEST_TIMEOUT / EVAL_MAX_CONCURRENCY / JWT_ISSUER / AUTH_MODE
+###############################################################################
