@@ -2166,7 +2166,7 @@ jobs:
         #   故暂降级为不阻断，并由下一步每次运行打印醒目提示（不会静默失效）。
         #   一旦确认依赖图可用，请删除本 continue-on-error 与下方提示步骤以恢复阻断。
         continue-on-error: true
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
 
