@@ -1,0 +1,19 @@
+###############################################################################
+# failover-api Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. Service:
+   kubectl get svc {{ include "failover-api.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 探活:
+   kubectl port-forward svc/{{ include "failover-api.serviceName" . }} 8094:8094 -n {{ .Release.Namespace }}
+   curl http://127.0.0.1:8094/api/v1/health
+
+###############################################################################
+# 必填/建议: auth.jwtSecretName（JWT_SECRET）
+###############################################################################

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: failover-engine
+description: "故障转移引擎 - 集群健康检测与迁移执行（依赖 Karmada 控制面与 Prometheus）- 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - karmada
+  - failover
+  - engine
+namespace: sq-karmada

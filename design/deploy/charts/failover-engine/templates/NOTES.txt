@@ -1,0 +1,19 @@
+###############################################################################
+# failover-engine Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. Service:
+   kubectl get svc {{ include "failover-engine.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 探活:
+   kubectl port-forward svc/{{ include "failover-engine.serviceName" . }} 8095:8095 -n {{ .Release.Namespace }}
+   curl http://127.0.0.1:8095/healthz
+
+###############################################################################
+# 必填/建议: karmada.apiTokenSecret（KARMADA_API_TOKEN）+ KARMADA_API_URL / FAILOVER_PRIMARY_CLUSTER 等
+###############################################################################

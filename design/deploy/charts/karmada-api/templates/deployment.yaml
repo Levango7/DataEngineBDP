@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "karmada-api.fullname" . }}
+  labels:
+    {{- include "karmada-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | int }}
+  selector:
+    matchLabels:
+      {{- include "karmada-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "karmada-api.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
+      volumes:
+        {{- if and .Values.tmp .Values.tmp.enabled }}
+        - name: tmp
+          emptyDir: {}
+        {{- end }}
+        {{- if and .Values.data .Values.data.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort | int }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "karmada-api.configmapName" . }}
+          {{- if or .Values.auth.jwtSecretName }}
+          env:
+            {{- if .Values.auth.jwtSecretName }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.jwtSecretName }}
+                  key: {{ .Values.auth.jwtSecretKey | default "jwt-secret" }}
+            {{- end }}
+          {{- end }}
+
+          volumeMounts:
+            {{- if and .Values.tmp .Values.tmp.enabled }}
+            - name: tmp
+              mountPath: /tmp
+            {{- end }}
+            {{- if and .Values.data .Values.data.enabled }}
+            - name: data
+              mountPath: /app/data
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.httpGet.path | quote }}
+              port: {{ .Values.probes.liveness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.httpGet.path | quote }}
+              port: {{ .Values.probes.readiness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+{{- range .Values.securityContext.capabilities.drop }}
+                - {{ . }}
+{{- end }}

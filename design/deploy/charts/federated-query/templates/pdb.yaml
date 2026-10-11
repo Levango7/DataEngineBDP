@@ -1,0 +1,15 @@
+{{- if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "federated-query.fullname" . }}
+  labels:
+    {{- include "federated-query.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable | int }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "federated-query.selectorLabels" . | nindent 6 }}
+{{- end -}}

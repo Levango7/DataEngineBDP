@@ -138,6 +138,11 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     # finops/dashboard 的 chart 名取目录 basename（dashboard）。注意：/api/v1/dashboards 已按载荷契约裁决给 business-portal（见上方 T1 详注），本映射只为让 finops/dashboard 的其余前缀（/allocation、/suggestions 等）在 chart 就位后可路由。
     "finops/dashboard": "dashboard",
     "finops/cost-model": "cost-model",
+    # karmada 系（2026-10-11 方案 A 改名后的目录）：chart 名 = 目录 basename
+    "karmada/karmada-api": "karmada-api",
+    "karmada/failover/failover-api": "failover-api",
+    "karmada/failover/failover-engine": "failover-engine",
+    "karmada/federated-query": "federated-query",
     "observability/query-api": "observability-query-api",
 }
 
