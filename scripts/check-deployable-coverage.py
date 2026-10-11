@@ -31,6 +31,16 @@ CHART_ROOT = os.path.join("design", "deploy", "charts")
 K3S_ROOT = os.path.join("deploy", "k3s", "manifests")
 SCAN_SUFFIXES = (".yaml", ".yml", ".tpl", ".json")
 
+# 非服务单元（2026-10-11 台账 #2 证据订正后重分类）：docker/ 子目录的辅助/测试镜像，
+# 属测试拓扑资产（CI 集群测试腿 / karmada 多集群模拟成员），**不适用生产 chart 口径**，
+# 文件与 docker-compose 用法全部保留——只是不进"生产部署缺口"清单。
+# 例：batch-pipeline/docker/spark-cluster=CI 集群测试腿专跑拓扑（ci.yml:1637 注释）；
+#     karmada/docker/mock-cluster=karmada 多集群模拟成员、federated-query 远端测试桩（ROADMAP:287）。
+NON_SERVICE_UNITS = {
+    "platform/batch-pipeline/docker/spark-cluster",
+    "platform/karmada/docker/mock-cluster",
+}
+
 
 def _git_files(pattern: str) -> list:
     out = subprocess.run(
@@ -51,7 +61,7 @@ def buildable_components() -> list:
         for p in _git_files("**/Dockerfile")
         if p.replace("\\", "/").startswith("platform/")
     }
-    return sorted(d for d in dirs if d)
+    return sorted(d for d in dirs if d and d not in NON_SERVICE_UNITS)
 
 
 def deployment_surface() -> str:

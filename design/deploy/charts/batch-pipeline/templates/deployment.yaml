@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "batch-pipeline.fullname" . }}
+  labels:
+    {{- include "batch-pipeline.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | int }}
+  selector:
+    matchLabels:
+      {{- include "batch-pipeline.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "batch-pipeline.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
+      volumes:
+        {{- if and .Values.tmp .Values.tmp.enabled }}
+        - name: tmp
+          emptyDir: {}
+        {{- end }}
+        {{- if and .Values.data .Values.data.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "batch-pipeline.configmapName" . }}
+          {{- if or .Values.auth.jwtSecretName .Values.storage.existingSecret .Values.minio.existingSecret }}
+          env:
+            {{- if .Values.auth.jwtSecretName }}
+            # 三路敏感值均走 Secret（台账 #12：不进 ConfigMap / Pod spec 字面量）
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.jwtSecretName }}
+                  key: {{ .Values.auth.jwtSecretKey | default "jwt-secret" }}
+            {{- end }}
+            {{- if .Values.storage.existingSecret }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.existingSecret }}
+                  key: {{ .Values.storage.accessKeyIdKey | default "access-key-id" }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.storage.existingSecret }}
+                  key: {{ .Values.storage.secretAccessKeyKey | default "secret-access-key" }}
+            {{- end }}
+            {{- if .Values.minio.existingSecret }}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret }}
+                  key: {{ .Values.minio.rootPasswordKey | default "root-password" }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            {{- if and .Values.tmp .Values.tmp.enabled }}
+            - name: tmp
+              mountPath: /tmp
+            {{- end }}
+            {{- if and .Values.data .Values.data.enabled }}
+            - name: data
+              mountPath: /app/data
+            {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            exec:
+              command: {{ toJson .Values.probes.liveness.exec.command }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+{{- range .Values.securityContext.capabilities.drop }}
+                - {{ . }}
+{{- end }}
