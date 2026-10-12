@@ -5,7 +5,7 @@ Settings 字段名是驼峰（budgetSoftLimit 等），pydantic-settings 只把�
 驼峰字段会落成 BP_BUDGETSOFTLIMIT，与部署所用的 BP_BUDGET_SOFT_LIMIT 不匹配 ⇒ 环境变量被**静默忽略**、
 配置回落默认值。修法：validation_alias=AliasChoices("BP_BUDGET_SOFT_LIMIT", "budgetSoftLimit")。
 
-第三个用例保护另一半语义：显式 alias 曾使「构造参数按字段名传入」被静默忽略
+第二个用例保护另一半语义：显式 alias 曾使「构造参数按字段名传入」被静默忽略
 （pydantic-settings 实测行为），而构造参数注入是本组件测试与调用方的既有用法，必须钉住。
 """
 
@@ -24,7 +24,14 @@ def test_constructor_arg_still_works(monkeypatch) -> None:
     assert Settings(budgetSoftLimit=True).budgetSoftLimit
 
 
-def test_env_var_beats_constructor(monkeypatch) -> None:
-    """pydantic-settings 语义：环境变量优先于初始化参数。"""
+def test_both_sources_bind_independently(monkeypatch) -> None:
+    """两个来源各自都能绑定（不对优先级断言）。
+
+    注意：初始化参数与环境变量的优先顺序在 pydantic-settings 版本间**相反**
+    （实测 2.5.2 环境变量赢、2.15.0 初始化参数赢；CI 用 2.15.0），故本测试只断言
+    两条入口都能把值送进字段，不锁定优先级——否则会在另一版本环境下假红。
+    """
+    monkeypatch.delenv("BP_BUDGET_SOFT_LIMIT", raising=False)
+    assert Settings(budgetSoftLimit=True).budgetSoftLimit  # 构造参数入口
     monkeypatch.setenv("BP_BUDGET_SOFT_LIMIT", "false")
-    assert not Settings(budgetSoftLimit=True).budgetSoftLimit
+    assert not Settings().budgetSoftLimit  # 环境变量入口
