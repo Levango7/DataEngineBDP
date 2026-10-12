@@ -563,6 +563,19 @@ jobs:
           python3 scripts/check-prod-schema-coverage.py --self-test
           python3 scripts/check-prod-schema-coverage.py
 
+      - name: 部署镜像引用校验（自研镜像必须钉在本仓产得出的 ghcr 坐标，只减不增）
+        # 台账 #65：ArgoCD 直接引用的 design/deploy/values/env/* 曾把自研镜像钉成
+        # docker.m.daocloud.io/sq-*（build.yml 从不往该宿主推）、sq-encapsulation（无此模块）、
+        # tag 0.1.0（CI 只打 latest / 40 位 sha）⇒ helm install 必然 ImagePullBackOff。
+        # 既有门禁只查反方向（有 Dockerfile 却没有部署单元，见 check-deployable-coverage.py），
+        # 这个方向今天没有覆盖位。chart 侧 48 条已知缺口登记在
+        # docs/deploy-image-reference-baseline.yaml（根因在 _generate_charts.py 的写死前缀，
+        # 手工改 chart values 会被下次生成冲掉，故留给 #65 的裁决）。
+        run: |
+          # 合成正反例先行，证明这条门禁不会"全绿地校验自己合成的命题"
+          python3 scripts/check-image-reference.py --self-test
+          python3 scripts/check-image-reference.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
