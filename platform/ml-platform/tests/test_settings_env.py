@@ -62,3 +62,35 @@ def testAiModeStillOverridesBackendType(monkeypatch, _cleanSettingsCache):
 def testConstructorKwargsStillWork():
     """按字段名直接构造仍可用（tests/conftest.py 依赖这条路）。"""
     assert Settings(backendType="mock").backendType == "mock"
+
+
+# ---- 2026-10-12 追加：直接构造 Settings() 也必须绑定 ML_*（与其余 7 个 Python 服务统一）----
+def testDirectConstructionBindsEnvVars_documentedNames():
+    """直接构造（不经 getSettings）时，ML_<UPPER_SNAKE> 同样必须生效。"""
+    import os
+
+    from ml_platform.config.settings import Settings
+
+    os.environ["ML_LOG_LEVEL"] = "warning"
+    os.environ["ML_BACKEND_TYPE"] = "spark"
+    try:
+        s = Settings()
+        assert s.logLevel == "warning"
+        assert s.backendType == "spark"
+    finally:
+        os.environ.pop("ML_LOG_LEVEL", None)
+        os.environ.pop("ML_BACKEND_TYPE", None)
+
+
+def testDirectConstructionUntouchedWhenEnvAbsent():
+    """未注入环境变量时取默认值（别名不得把默认值读成 None）。"""
+    import os
+
+    from ml_platform.config.settings import Settings
+
+    for k in ("ML_LOG_LEVEL", "ML_BACKEND_TYPE", "ML_MLFLOW_URI"):
+        os.environ.pop(k, None)
+    s = Settings()
+    assert s.logLevel == "info"
+    assert s.backendType == "sklearn"
+    assert s.mlflowUri == "http://localhost:5000"

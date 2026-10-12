@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.ruleengine.agent.tool;
 
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -87,16 +88,27 @@ public class ToolSandbox {
                     "Tool '" + toolName + "' not registered", elapsedMs(start));
         }
 
+        Future<Object> future = null;
         try {
-            Future<Object> future = executor.submit((Callable<Object>) () ->
+            future = executor.submit((Callable<Object>) () ->
                     tool.executor().execute(args == null ? Map.of() : args));
             Object result = future.get(timeout, TimeUnit.MILLISECONDS);
             return ToolInvocation.success(toolName, args, result, elapsedMs(start));
         } catch (TimeoutException e) {
-            log.warn("Tool '{}' invocation timed out after {}ms", toolName, timeout);
+            // 超时必须取消任务：本沙箱是固定线程池，未取消的死任务会永久占住线程
+            // （工具实现死循环/忽略中断时 4 个并发即耗尽池 → 后续调用全部排队超时 = 软性 DoS）。
+            // 与 CrossSourceExecutor 超时分支同一处置（futures.forEach(f -> f.cancel(true))）。
+            if (future != null) {
+                future.cancel(true);
+            }
+            log.warn("Tool '{}' invocation timed out after {}ms (task cancelled)", toolName, timeout);
             return ToolInvocation.failure(toolName, args, "TOOL_TIMEOUT",
                     "Tool '" + toolName + "' timed out after " + timeout + "ms", elapsedMs(start));
         } catch (InterruptedException e) {
+            // 中断同样取消任务，避免遗留线程（调用方主动取消/停机场景）。
+            if (future != null) {
+                future.cancel(true);
+            }
             Thread.currentThread().interrupt();
             return ToolInvocation.failure(toolName, args, "INTERRUPTED",
                     "Tool '" + toolName + "' invocation interrupted", elapsedMs(start));
@@ -125,8 +137,13 @@ public class ToolSandbox {
     }
 
     /**
-     * 关闭沙箱线程池。
+     * 关闭沙箱线程池（应用停机时调用）。
+     *
+     * <p>{@code @PreDestroy} 为 Spring 生命周期的唯一接线点：本类是 {@code @Component} 单例，
+     * 无此注解时该方法从未被调用（同仓同型：CrossSourceExecutor.shutdown()）。
+     * 线程为 daemon，不影响 JVM 退出，但停机时应回收并中断在跑的工具调用。</p>
      */
+    @PreDestroy
     public void shutdown() {
         executor.shutdownNow();
     }

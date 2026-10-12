@@ -55,7 +55,7 @@ from functools import lru_cache
 import os
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -71,52 +71,133 @@ class Settings(BaseSettings):
     )
 
     # ---- server ----
+    # 驼峰字段必须显式写含前缀的 validation_alias：pydantic-settings 只把「字段名（或别名）」
+    # 大写后拼 env_prefix，驼峰字段会落成 NL2SQL_LOGLEVEL 等，与实际部署所用的
+    # NL2SQL_LOG_LEVEL / NL2SQL_LLM_MODE 不匹配 ⇒ 环境变量被静默忽略
+    # （pydantic-settings 2.5.2 与 2.15.0 双版本实测；llmops 同型缺陷已修）。
     host: str = Field(default="0.0.0.0", description="监听地址")
     port: int = Field(default=8093, ge=1, le=65535, description="监听端口")
-    logLevel: str = Field(default="info", description="日志级别")
+    logLevel: str = Field(
+        default="info", validation_alias=AliasChoices("NL2SQL_LOG_LEVEL", "logLevel"), description="日志级别"
+    )
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- api ----
-    apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
+    apiPrefix: str = Field(
+        default="/api/v1", validation_alias=AliasChoices("NL2SQL_API_PREFIX", "apiPrefix"), description="API 路由前缀"
+    )
 
     # ---- catalog ----
     catalogUrl: str = Field(
         default="http://localhost:8082",
+        validation_alias=AliasChoices("NL2SQL_CATALOG_URL", "catalogUrl"),
         description="Catalog 元数据服务地址",
     )
-    catalogTimeout: float = Field(default=10.0, ge=0.1, description="Catalog 请求超时(秒)")
+    catalogTimeout: float = Field(
+        default=10.0,
+        ge=0.1,
+        validation_alias=AliasChoices("NL2SQL_CATALOG_TIMEOUT", "catalogTimeout"),
+        description="Catalog 请求超时(秒)",
+    )
 
     # ---- sql gateway ----
     sqlGatewayUrl: str = Field(
         default="http://localhost:8081",
+        validation_alias=AliasChoices("NL2SQL_SQL_GATEWAY_URL", "sqlGatewayUrl"),
         description="SQL 网关地址",
     )
-    sqlGatewayTimeout: float = Field(default=30.0, ge=0.1, description="SQL 网关请求超时(秒)")
-    defaultEngine: Literal["trino", "doris"] = Field(default="trino", description="默认查询引擎")
-    defaultLimit: int = Field(default=100, ge=1, le=10000, description="默认结果行数上限")
+    sqlGatewayTimeout: float = Field(
+        default=30.0,
+        ge=0.1,
+        validation_alias=AliasChoices("NL2SQL_SQL_GATEWAY_TIMEOUT", "sqlGatewayTimeout"),
+        description="SQL 网关请求超时(秒)",
+    )
+    defaultEngine: Literal["trino", "doris"] = Field(
+        default="trino",
+        validation_alias=AliasChoices("NL2SQL_DEFAULT_ENGINE", "defaultEngine"),
+        description="默认查询引擎",
+    )
+    defaultLimit: int = Field(
+        default=100,
+        ge=1,
+        le=10000,
+        validation_alias=AliasChoices("NL2SQL_DEFAULT_LIMIT", "defaultLimit"),
+        description="默认结果行数上限",
+    )
 
     # ---- llm ----
     llmMode: Literal["mock", "langchain", "http"] = Field(
         default="langchain",
+        validation_alias=AliasChoices("NL2SQL_LLM_MODE", "llmMode"),
         description="LLM 模式: mock（无外部依赖）/ langchain（LangChain SDK）/ http（httpx 直连 OpenAI 兼容 API）",
     )
     llmGatewayUrl: str = Field(
         default="http://localhost:8084",
+        validation_alias=AliasChoices("NL2SQL_LLM_GATEWAY_URL", "llmGatewayUrl"),
         description="LLM 网关地址（OpenAI 兼容 /v1/chat/completions）",
     )
-    llmModel: str = Field(default="qwen2.5-7b-instruct", description="LLM 模型名")
-    llmApiKey: str = Field(default="", description="LLM 网关 API Key")
-    llmTemperature: float = Field(default=0.0, ge=0.0, le=2.0, description="采样温度")
-    llmTimeout: float = Field(default=30.0, ge=1.0, description="LLM 请求超时(秒)")
-    llmMaxTokens: int = Field(default=1024, ge=1, description="最大生成 token 数")
+    llmModel: str = Field(
+        default="qwen2.5-7b-instruct",
+        validation_alias=AliasChoices("NL2SQL_LLM_MODEL", "llmModel"),
+        description="LLM 模型名",
+    )
+    llmApiKey: str = Field(
+        default="", validation_alias=AliasChoices("NL2SQL_LLM_API_KEY", "llmApiKey"), description="LLM 网关 API Key"
+    )
+    llmTemperature: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=2.0,
+        validation_alias=AliasChoices("NL2SQL_LLM_TEMPERATURE", "llmTemperature"),
+        description="采样温度",
+    )
+    llmTimeout: float = Field(
+        default=30.0,
+        ge=1.0,
+        validation_alias=AliasChoices("NL2SQL_LLM_TIMEOUT", "llmTimeout"),
+        description="LLM 请求超时(秒)",
+    )
+    llmMaxTokens: int = Field(
+        default=1024,
+        ge=1,
+        validation_alias=AliasChoices("NL2SQL_LLM_MAX_TOKENS", "llmMaxTokens"),
+        description="最大生成 token 数",
+    )
 
     # ---- 业务约束 ----
-    selectOnly: bool = Field(default=True, description="是否仅允许 SELECT 语句")
-    maxTables: int = Field(default=20, ge=1, description="单次上下文最大表数")
-    maxDialogueTurns: int = Field(default=5, ge=1, le=20, description="多轮对话最大轮次")
-    tenantId: str = Field(default="default", description="默认租户 ID")
-    maxSessions: int = Field(default=500, ge=1, description="内存会话容量上限（LRU 驱逐）")
-    sessionTtlSeconds: float = Field(default=1800.0, ge=1.0, description="会话空闲过期 TTL（秒）")
+    selectOnly: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("NL2SQL_SELECT_ONLY", "selectOnly"),
+        description="是否仅允许 SELECT 语句",
+    )
+    maxTables: int = Field(
+        default=20,
+        ge=1,
+        validation_alias=AliasChoices("NL2SQL_MAX_TABLES", "maxTables"),
+        description="单次上下文最大表数",
+    )
+    maxDialogueTurns: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        validation_alias=AliasChoices("NL2SQL_MAX_DIALOGUE_TURNS", "maxDialogueTurns"),
+        description="多轮对话最大轮次",
+    )
+    tenantId: str = Field(
+        default="default", validation_alias=AliasChoices("NL2SQL_TENANT_ID", "tenantId"), description="默认租户 ID"
+    )
+    maxSessions: int = Field(
+        default=500,
+        ge=1,
+        validation_alias=AliasChoices("NL2SQL_MAX_SESSIONS", "maxSessions"),
+        description="内存会话容量上限（LRU 驱逐）",
+    )
+    sessionTtlSeconds: float = Field(
+        default=1800.0,
+        ge=1.0,
+        validation_alias=AliasChoices("NL2SQL_SESSION_TTL_SECONDS", "sessionTtlSeconds"),
+        description="会话空闲过期 TTL（秒）",
+    )
 
     @field_validator("logLevel")
     @classmethod

@@ -5,6 +5,7 @@ import com.levango7.dataenginebdp.sqlgateway.parser.SqlDialect;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlParseException;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlParserService;
 import com.levango7.dataenginebdp.sqlgateway.service.BackendProxyService;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -314,6 +316,11 @@ public class CrossSourceExecutor {
                 if (r != null) {
                     partialResults.add(r);
                 }
+            } catch (CancellationException e) {
+                // 被取消（超时路径或外部取消）——报 QUERY_TIMEOUT 而非笼统的"收集失败"，
+                // 避免把"超时"读成"查询执行失败"而误导排障方向。
+                throw new CrossSourceException(CrossSourceException.QUERY_TIMEOUT,
+                        "跨源查询已取消/超时（部分子查询未完成）", e);
             } catch (Exception e) {
                 throw new CrossSourceException(CrossSourceException.QUERY_FAILED,
                         "收集查询结果失败: " + e.getMessage(), e);
@@ -440,7 +447,13 @@ public class CrossSourceExecutor {
 
     /**
      * 关闭线程池（应用停机时调用）。
+     *
+     * <p>{@code @PreDestroy} 为 Spring 生命周期的唯一接线点：本类是单例 {@code @Service}，
+     * 线程池随容器存在——无此注解时 {@code shutdown()} 从未被调用，停机时线程不回收
+     * （线程为 daemon，不影响 JVM 退出，但违反"优雅停机"契约）。
+     * 同仓样板：K8sClientService.destroy() / CollectionSchedulerService.shutdown()。</p>
      */
+    @PreDestroy
     public void shutdown() {
         threadPool.shutdown();
         try {

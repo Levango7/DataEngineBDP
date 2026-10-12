@@ -2,10 +2,12 @@ package com.levango7.dataenginebdp.sqlgateway.crosssource;
 
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlDialect;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlParserService;
+import jakarta.annotation.PreDestroy;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -33,6 +35,18 @@ class CrossSourceExecutorTest {
     @AfterAll
     static void tearDown() {
         EXECUTOR_FOR_TEST.shutdown();
+    }
+
+    // ===================== 生命周期接线（2026-10-12 回归） =====================
+
+    @Test
+    @DisplayName("shutdown — 已接 Spring 生命周期（@PreDestroy），停机时线程池必被回收")
+    void shutdown_isWiredToSpringLifecycle() throws NoSuchMethodException {
+        Method shutdown = CrossSourceExecutor.class.getMethod("shutdown");
+        assertThat(shutdown.getAnnotation(PreDestroy.class))
+                .as("shutdown() 必须标注 @PreDestroy——本类是单例 @Service，"
+                        + "无此注解时 Spring 停机不会调用它，线程池不回收")
+                .isNotNull();
     }
 
     // ===================== executeWithPlan =====================

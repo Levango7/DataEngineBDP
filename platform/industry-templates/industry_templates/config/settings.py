@@ -18,7 +18,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,21 +34,53 @@ class Settings(BaseSettings):
     )
 
     # ---- server ----
+    # 驼峰字段必须显式写含前缀的 validation_alias（同 llmops/knowledge-engine）：pydantic-settings
+    # 只把「字段名（或别名）」大写后拼 env_prefix，驼峰字段会落成 INDUSTRY_TEMPLATES_LOGLEVEL 等，
+    # 与部署所用的 INDUSTRY_TEMPLATES_LOG_LEVEL / _DEPLOY_MODE 不匹配 ⇒ 环境变量被静默忽略。
     host: str = Field(default="0.0.0.0", description="监听地址")
     port: int = Field(default=8091, ge=1, le=65535, description="监听端口")
-    logLevel: str = Field(default="info", description="日志级别")
+    logLevel: str = Field(
+        default="info",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_LOG_LEVEL", "logLevel"),
+        description="日志级别",
+    )
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- api ----
-    apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
+    apiPrefix: str = Field(
+        default="/api/v1",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_API_PREFIX", "apiPrefix"),
+        description="API 路由前缀",
+    )
 
     # ---- deploy ----
-    deployMode: Literal["mock", "helm"] = Field(default="helm", description="部署模式: mock / helm")
+    deployMode: Literal["mock", "helm"] = Field(
+        default="helm",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_DEPLOY_MODE", "deployMode"),
+        description="部署模式: mock / helm",
+    )
     # ---- helm ----
-    helmBin: str = Field(default="helm", description="helm 二进制路径")
-    helmKubeconfig: str = Field(default="", description="KUBECONFIG 路径（空表示使用默认）")
-    helmTimeout: int = Field(default=600, ge=1, description="helm 命令超时秒数")
-    chartBase: str = Field(default="./charts", description="Chart 查找基础路径")
+    helmBin: str = Field(
+        default="helm",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_HELM_BIN", "helmBin"),
+        description="helm 二进制路径",
+    )
+    helmKubeconfig: str = Field(
+        default="",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_HELM_KUBECONFIG", "helmKubeconfig"),
+        description="KUBECONFIG 路径（空表示使用默认）",
+    )
+    helmTimeout: int = Field(
+        default=600,
+        ge=1,
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_HELM_TIMEOUT", "helmTimeout"),
+        description="helm 命令超时秒数",
+    )
+    chartBase: str = Field(
+        default="./charts",
+        validation_alias=AliasChoices("INDUSTRY_TEMPLATES_CHART_BASE", "chartBase"),
+        description="Chart 查找基础路径",
+    )
 
     @field_validator("logLevel")
     @classmethod

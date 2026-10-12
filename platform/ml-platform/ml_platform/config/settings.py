@@ -30,7 +30,7 @@ from functools import lru_cache
 import os
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,9 +46,16 @@ class Settings(BaseSettings):
     )
 
     # ---- server ----
+    # 说明：本模块的既有约定是经 getSettings()（内部 _envKwargs 手工映射）读取环境变量；
+    # 2026-10-12 追加 validation_alias=AliasChoices，使「直接构造 Settings()」也能绑定
+    # ML_<UPPER_SNAKE>（与其余 7 个 Python 服务统一，两条入口结果一致）。
+    # 驼峰字段必须显式写含前缀别名：pydantic-settings 只把字段名/别名大写后拼 prefix，
+    # 驼峰会落成 ML_LOGLEVEL 而非部署所用的 ML_LOG_LEVEL。
     host: str = Field(default="0.0.0.0", description="监听地址")
     port: int = Field(default=8080, ge=1, le=65535, description="监听端口")
-    logLevel: str = Field(default="info", description="日志级别")
+    logLevel: str = Field(
+        default="info", validation_alias=AliasChoices("ML_LOG_LEVEL", "logLevel"), description="日志级别"
+    )
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
@@ -56,36 +63,52 @@ class Settings(BaseSettings):
     #   AI_MODE=mock  → backendType=mock（内存 Mock，零依赖）
     #   AI_MODE=real  → backendType=sklearn（真实 sklearn 后端）
     #   AI_MODE 未设置 → 使用 ML_BACKEND_TYPE 显式配置
-    backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(default="sklearn", description="ML 后端类型")
+    backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(
+        default="sklearn", validation_alias=AliasChoices("ML_BACKEND_TYPE", "backendType"), description="ML 后端类型"
+    )
 
     # ---- feature store ----
-    featureStoreType: Literal["mock", "redis"] = Field(default="redis", description="特征存储类型")
+    featureStoreType: Literal["mock", "redis"] = Field(
+        default="redis",
+        validation_alias=AliasChoices("ML_FEATURE_STORE_TYPE", "featureStoreType"),
+        description="特征存储类型",
+    )
 
     # ---- experiment store ----
-    experimentStoreType: Literal["mock", "mlflow"] = Field(default="mlflow", description="实验存储类型")
+    experimentStoreType: Literal["mock", "mlflow"] = Field(
+        default="mlflow",
+        validation_alias=AliasChoices("ML_EXPERIMENT_STORE_TYPE", "experimentStoreType"),
+        description="实验存储类型",
+    )
 
     # ---- mlflow ----
     mlflowUri: str = Field(
         default="http://localhost:5000",
+        validation_alias=AliasChoices("ML_MLFLOW_URI", "mlflowUri"),
         description="MLflow Tracking URI",
     )
     mlflowRegistryUri: str = Field(
         default="",
+        validation_alias=AliasChoices("ML_MLFLOW_REGISTRY_URI", "mlflowRegistryUri"),
         description="MLflow Registry URI（空则同 tracking uri）",
     )
     mlflowEnabled: bool = Field(
         default=False,
+        validation_alias=AliasChoices("ML_MLFLOW_ENABLED", "mlflowEnabled"),
         description="MLflow 总开关：true 时 backend 与 experiment_store 优先使用 mlflow",
     )
 
     # ---- redis ----
     redisUri: str = Field(
         default="redis://localhost:6379/0",
+        validation_alias=AliasChoices("ML_REDIS_URI", "redisUri"),
         description="Redis URI（特征存储后端）",
     )
 
     # ---- api ----
-    apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
+    apiPrefix: str = Field(
+        default="/api/v1", validation_alias=AliasChoices("ML_API_PREFIX", "apiPrefix"), description="API 路由前缀"
+    )
 
     @field_validator("logLevel")
     @classmethod
