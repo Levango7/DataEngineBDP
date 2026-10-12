@@ -18,7 +18,7 @@ from typing import Any, Optional
 
 from chunker.exceptions import ChunkerConfigError
 from chunker.models import ChunkConfig, Modality
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -123,15 +123,40 @@ class ChunkerSettings(BaseSettings):
     )
 
     # ---- server ----
+    # 驼峰字段必须显式写含前缀的 validation_alias：pydantic-settings 只把「字段名（或别名）」
+    # 大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，而本模块文档与部署所用的是
+    # 下划线规范名 CHUNKER_LOG_LEVEL ⇒ 文档名长期静默不生效（2026-10-12 实测订正）。
+    # 每个字段同时接受「规范下划线名（首选）」与「无下划线历史名（兜底）」，既有配置不受影响。
     host: str = Field(default="0.0.0.0", description="监听地址")
     port: int = Field(default=8090, ge=1, le=65535, description="监听端口")
-    logLevel: str = Field(default="info", description="日志级别")
+    logLevel: str = Field(
+        default="info",
+        validation_alias=AliasChoices("CHUNKER_LOG_LEVEL", "CHUNKER_LOGLEVEL", "logLevel"),
+        description="日志级别",
+    )
 
     # ---- chunker ----
-    configFile: Optional[str] = Field(default=None, description="YAML 配置文件路径")
-    defaultModality: str = Field(default="text", description="默认模态")
-    maxChunks: int = Field(default=10000, gt=0, description="单次切片上限")
-    enableEmbedding: bool = Field(default=False, description="是否启用 embedding")
+    configFile: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("CHUNKER_CONFIG_FILE", "CHUNKER_CONFIGFILE", "configFile"),
+        description="YAML 配置文件路径",
+    )
+    defaultModality: str = Field(
+        default="text",
+        validation_alias=AliasChoices("CHUNKER_DEFAULT_MODALITY", "CHUNKER_DEFAULTMODALITY", "defaultModality"),
+        description="默认模态",
+    )
+    maxChunks: int = Field(
+        default=10000,
+        gt=0,
+        validation_alias=AliasChoices("CHUNKER_MAX_CHUNKS", "CHUNKER_MAXCHUNKS", "maxChunks"),
+        description="单次切片上限",
+    )
+    enableEmbedding: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("CHUNKER_ENABLE_EMBEDDING", "CHUNKER_ENABLEEMBEDDING", "enableEmbedding"),
+        description="是否启用 embedding",
+    )
     tokenizer: str = Field(default="tiktoken", description="tokenizer 名称")
 
     # ---- 模态默认配置 ----
