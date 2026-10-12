@@ -576,6 +576,15 @@ jobs:
           python3 scripts/check-image-reference.py --self-test
           python3 scripts/check-image-reference.py
 
+      - name: chart 生成器表与文件一致性（防"跑一次 _generate_charts.py"静默回退镜像坐标）
+        # 台账 #65 的②：CHARTS 表长期落后于 values.yaml——表里把 hive-metastore/mlflow 的有效第三方镜像
+        # 登记成不存在的 sq-*，3 处仍指已退役的 k8s.gcr.io，3 个 tag 比文件低一档。
+        # 全量再生成会把这些回退写进文件，而 helm lint 只校验模板、看不出"值变旧了"。
+        # 基线在册的 5 个 chart 跳过比对（它们的坐标与模块映射本身待裁，见 #65 ②③）。
+        run: |
+          python3 scripts/check-chart-generator-drift.py --self-test
+          python3 scripts/check-chart-generator-drift.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
