@@ -4,10 +4,16 @@
 // 底层通过 VectorStore 接口抽象，支持 Mock（内存实现，用于测试）与 Milvus（生产实现）两种后端，
 // 通过环境变量 STORE_TYPE 切换。
 //
+// 默认行为（与 config.Load 的默认值一致）：STORE_TYPE 默认 "milvus"；
+// 若当前二进制未以 -tags milvus_enabled 构建，则由 newMilvusStoreOrFail **fail-fast 拒绝启动**
+// （不再静默降级为 Mock）——只有显式 STORE_TYPE=mock 或 MOCK_FALLBACK=true 才会使用内存 Mock。
+//
 // 启动示例：
 //
-//	STORE_TYPE=mock ./vector-engine
+//	go build -tags milvus_enabled ./                                   # 生产构建（链接真实 Milvus SDK）
 //	STORE_TYPE=milvus MILVUS_HOST=127.0.0.1 MILVUS_PORT=19530 ./vector-engine
+//
+//	STORE_TYPE=mock ./vector-engine                                    # 本地/测试（内存 Mock）
 package main
 
 import (
