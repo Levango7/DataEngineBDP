@@ -88,16 +88,19 @@ vector-engine/
 
 ## Milvus 启用
 
-默认构建使用 Mock 实现（零外部依赖）。生产环境通过 build tag `milvus_enabled` 链接真实 Milvus Go SDK。
+**运行时默认 `STORE_TYPE=milvus`**（`internal/config/config.go`），生产镜像以 build tag `milvus_enabled`
+链接真实 Milvus Go SDK（见 `Dockerfile`）。若当前二进制未带该 tag 而 `STORE_TYPE` 又是 milvus，
+服务 **fail-fast 拒绝启动**（不再静默降级为 Mock）；只有显式 `STORE_TYPE=mock`
+或应急开关 `MOCK_FALLBACK=true` 才使用内存 Mock（后者会打印显著告警）。
 
 ### 构建方式
 
 ```bash
-# 默认构建（Mock，无需 Milvus 服务）
+# 默认构建（不含 Milvus SDK；STORE_TYPE 需显式设为 mock 才能启动）
 go build ./...
-go test ./...
+go test ./...          # 单测用 Mock，不依赖外部服务
 
-# Milvus 构建（链接真实 SDK）
+# Milvus 构建（链接真实 SDK，生产用法）
 go build -tags milvus_enabled ./...
 go vet -tags milvus_enabled ./...
 ```
@@ -105,10 +108,7 @@ go vet -tags milvus_enabled ./...
 ### 运行方式
 
 ```bash
-# Mock 模式（默认）
-STORE_TYPE=mock ./vector-engine
-
-# Milvus 模式（需先用 -tags milvus_enabled 构建，并启动 Milvus 服务）
+# Milvus 模式（默认；需先用 -tags milvus_enabled 构建，并启动 Milvus 服务）
 STORE_TYPE=milvus \
   MILVUS_HOST=127.0.0.1 \
   MILVUS_PORT=19530 \
@@ -116,9 +116,13 @@ STORE_TYPE=milvus \
   MILVUS_USERNAME=root \
   MILVUS_PASSWORD=milvus \
   ./vector-engine
+
+# Mock 模式（本地/测试；内存实现，零外部依赖）
+STORE_TYPE=mock ./vector-engine
 ```
 
-若 `STORE_TYPE=milvus` 但未用 `milvus_enabled` 构建，服务会回退到 Mock 并打印告警。
+若 `STORE_TYPE=milvus` 而未用 `milvus_enabled` 构建：默认 **fail-fast 拒绝启动**；
+设 `MOCK_FALLBACK=true` 才回退 Mock 并打印告警（应急用，明确标注 NOT for production）。
 
 ### Milvus 集合 Schema 约定
 
@@ -152,26 +156,27 @@ STORE_TYPE=milvus \
 ## 开发
 
 ```bash
-# 编译（默认 Mock）
+# 编译（不含 Milvus SDK；运行时需 STORE_TYPE=mock）
 go build ./...
 
-# 编译（Milvus 真实实现）
+# 编译（Milvus 真实实现，生产用法）
 go build -tags milvus_enabled ./...
 
 # 测试（使用 Mock，无需外部服务）
 go test ./...
 
-# 运行（Mock 模式）
-go run .
+# 运行（默认 milvus；默认构建下会 fail-fast，故本地开发显式选 mock）
+STORE_TYPE=mock go run .
 
-# 运行（Milvus 模式）
+# 运行（Milvus 模式，需 -tags milvus_enabled 构建）
 STORE_TYPE=milvus MILVUS_HOST=127.0.0.1 MILVUS_PORT=19530 ./vector-engine
 ```
 
 ## 设计要点
 
 1. **接口抽象**：`VectorStore` 接口定义全部能力，上层不感知具体后端
-2. **Mock 优先**：默认构建使用 Mock 实现，零外部依赖，CI 友好
+2. **默认真实、显式降级**：运行时默认 `STORE_TYPE=milvus`（config.Load 默认值）；Mock 需显式指定，
+   未带 `milvus_enabled` tag 的构建在 milvus 模式下 **fail-fast**，避免以假存储冒充生产实例
 3. **Build tag 隔离**：Milvus SDK 通过 `milvus_enabled` tag 隔离，未启用时不链接 SDK，默认构建无需安装 SDK 即可编译
 4. **真实 SDK 集成**：启用 `milvus_enabled` 后，`internal/store/milvus/milvus_enabled.go` 委托 Milvus Go SDK v2.4.2 实现集合 CRUD、向量插入、ANN 检索与混合检索
 5. **深拷贝防护**：Mock 实现对插入的向量做深拷贝，避免外部修改污染内部状态
