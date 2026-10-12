@@ -95,7 +95,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "ASSET_EXCHANGE",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"ASSET_EXCHANGE_STORETYPE": "mock"},
+        "extra_env": {"ASSET_EXCHANGE_STORE_TYPE": "mock"},
     },
     "business_portal": {
         "dir": "platform/business-portal",
@@ -103,7 +103,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "BP",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"BP_STORETYPE": "mock"},
+        "extra_env": {"BP_STORE_TYPE": "mock"},
     },
     "open_api_catalog": {
         "dir": "platform/open-api-catalog",
@@ -111,7 +111,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "OPENAPI_CATALOG",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"OPENAPI_CATALOG_STORETYPE": "mock"},
+        "extra_env": {"OPENAPI_CATALOG_STORE_TYPE": "mock"},
     },
     "industry_templates": {
         "dir": "platform/industry-templates",
@@ -119,7 +119,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "INDUSTRY_TEMPLATES",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"INDUSTRY_TEMPLATES_DEPLOYMODE": "mock"},
+        "extra_env": {"INDUSTRY_TEMPLATES_DEPLOY_MODE": "mock"},
     },
     "knowledge_engine": {
         "dir": "platform/knowledge-engine",
@@ -127,9 +127,12 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "KE",
         "health_path": "/health",
         "health_status": "ok",
+        # 2026-10-12 订正：原用非下划线拼写（OPENAPI_CATALOG_STORE_TYPE / KE_STORE_TYPE 等），
+        # 那只在「pydantic-settings 不做下划线转换」的年代"能用"；各服务补 AliasChoices 后
+        # 规范下划线名生效、旧拼写不再绑定（见 platform/*/config/settings.py 与 PR #447）。
         "extra_env": {
-            "KE_STORETYPE": "mock",
-            "KE_EXTRACTORTYPE": "mock",
+            "KE_STORE_TYPE": "mock",
+            "KE_EXTRACTOR_TYPE": "mock",
         },
     },
 }

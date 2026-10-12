@@ -29,11 +29,14 @@ spec:
         # burn-in 集群未部署 NebulaGraph 与 LLM 网关：storeType 默认 nebula 会在配置
         # 校验期强制要求 KE_NEBULA_USER（实测启动即 ValidationError:
         # nebulaUser 不能为空），故与集成测试的取值保持一致
-        # （tests/integration/conftest.py 中 KE_STORETYPE/KE_EXTRACTORTYPE = mock）；
+        # （tests/integration/conftest.py 中 KE_STORE_TYPE/KE_EXTRACTOR_TYPE = mock）；
+        # 2026-10-12：原为非下划线拼写（KE_STORETYPE/KE_EXTRACTORTYPE）——那只在
+        # 「pydantic-settings 不做下划线转换」的年代"能用"，各服务补 AliasChoices 后
+        # 规范名生效、旧拼写不再绑定（PR #447）。
         # 生产请使用 helm charts（nebula 凭证走 Secret 注入，extractor 用 llm）。
-        - name: KE_STORETYPE
+        - name: KE_STORE_TYPE
           value: "mock"
-        - name: KE_EXTRACTORTYPE
+        - name: KE_EXTRACTOR_TYPE
           value: "mock"
         # jwt_auth.py 在 K8s 内未显式 AUTH_MODE 时会 fail-fast 抛 RuntimeError。
         # k3s 冒烟路径与集成测试一致走匿名放行，故显式设为 none；

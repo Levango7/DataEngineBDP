@@ -41,13 +41,20 @@ public class QuotaEnforcer {
     /** 兜底配额 */
     private final AgentQuota fallbackQuota;
 
-    /** 并发计数：role → tenantId → 当前并发数 */
+    /**
+     * 并发计数：role → tenantId → 当前并发数。
+     *
+     * <p>外层必须是线程安全 Map：计数在请求线程上惰性创建（computeIfAbsent），
+     * EnumMap 并发写入会破坏内部数组并可能为同一 role 造出**两个计数器实例**
+     * （各数各的 ⇒ 配额形同虚设）——2026-10-12 用 16 线程并发准入测试实测抓到
+     * （16 线程抢 3 名额曾有 4 个通过）。内层 ConcurrentHashMap 同理。</p>
+     */
     private final Map<Agent.Role, Map<String, AtomicInteger>> concurrentCounters =
-            new EnumMap<>(Agent.Role.class);
+            new ConcurrentHashMap<>();
 
-    /** 日调用计数：role → tenantId → 日期 → 当日调用数 */
+    /** 日调用计数：role → tenantId → 日期 → 当日调用数（外层同上，须线程安全） */
     private final Map<Agent.Role, Map<String, Map<LocalDate, AtomicInteger>>> dailyCounters =
-            new EnumMap<>(Agent.Role.class);
+            new ConcurrentHashMap<>();
 
     /**
      * 使用默认配额构造。
@@ -107,36 +114,42 @@ public class QuotaEnforcer {
             return null;
         }
 
-        // 1. 并发数检查
-        int currentConcurrent = concurrentCounter(role, tenantId).get();
+        // 1. 并发额度：先占后查（原子增量 → 判超 → 回滚）。
+        // 理由：原实现是"读计数 → 判限 → incrementAndGet"的 check-then-act，
+        // 两个并发线程可同时读到 max-1 而双双通过，实际并发达 max+1（配额承诺被突破）。
+        // 先 incrementAndGet 再比较则天然串行化：并发下只有拿到 <=max 名额的线程通过，
+        // 超出的线程立即回滚自己的增量，不会污染计数。
         int maxConcurrent = quota.getMaxConcurrentExecutions() != null
                 ? quota.getMaxConcurrentExecutions() : Integer.MAX_VALUE;
-        if (currentConcurrent >= maxConcurrent) {
+        AtomicInteger concurrent = concurrentCounter(role, tenantId);
+        int afterAcquire = concurrent.incrementAndGet();
+        if (afterAcquire > maxConcurrent) {
+            concurrent.decrementAndGet();  // 仅回滚自己的增量（对并发安全的回滚）
             log.warn("Quota exceeded: role={}, tenant={}, concurrent={}/{}",
-                    role, tenantId, currentConcurrent, maxConcurrent);
+                    role, tenantId, afterAcquire, maxConcurrent);
             return AgentResult.failure(role, AgentResult.Status.QUOTA_EXCEEDED,
                     "CONCURRENT_LIMIT_EXCEEDED",
-                    "Concurrent executions " + currentConcurrent + " >= limit " + maxConcurrent,
+                    "Concurrent executions " + afterAcquire + " > limit " + maxConcurrent,
                     0L, tenantId, null);
         }
 
-        // 2. 日调用检查
+        // 2. 日调用额度：同样"先占后查"；超限时连同并发额度一起回滚（本次未执行，不应计数）。
         int dailyLimit = quota.getDailyCallLimit() != null ? quota.getDailyCallLimit() : 0;
         if (dailyLimit > 0) {
-            int todayCalls = dailyCounter(role, tenantId, LocalDate.now()).get();
-            if (todayCalls >= dailyLimit) {
+            AtomicInteger daily = dailyCounter(role, tenantId, LocalDate.now());
+            int dailyAfter = daily.incrementAndGet();
+            if (dailyAfter > dailyLimit) {
+                daily.decrementAndGet();
+                concurrent.decrementAndGet();
                 log.warn("Quota exceeded: role={}, tenant={}, daily={}/{}",
-                        role, tenantId, todayCalls, dailyLimit);
+                        role, tenantId, dailyAfter, dailyLimit);
                 return AgentResult.failure(role, AgentResult.Status.QUOTA_EXCEEDED,
                         "DAILY_LIMIT_EXCEEDED",
-                        "Daily calls " + todayCalls + " >= limit " + dailyLimit,
+                        "Daily calls " + dailyAfter + " > limit " + dailyLimit,
                         0L, tenantId, null);
             }
         }
 
-        // 3. 获取配额（计数+1）
-        concurrentCounter(role, tenantId).incrementAndGet();
-        dailyCounter(role, tenantId, LocalDate.now()).incrementAndGet();
         return null;
     }
 
