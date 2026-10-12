@@ -6,9 +6,10 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-repository: "ghcr.io/levango7/sq-infra-provider-private"
-tag: "latest"
-pullPolicy: Always
+  repository: "ghcr.io/levango7/sq-infra-provider-private"
+  tag: "latest"
+  pullPolicy: Always
+
 # ---- 副本数 ----
 replicaCount: 1
 

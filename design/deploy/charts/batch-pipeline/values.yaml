@@ -5,9 +5,10 @@
 # ============================================================================
 
 image:
-repository: "ghcr.io/levango7/sq-batch-pipeline"
-tag: "latest"
-pullPolicy: Always
+  repository: "ghcr.io/levango7/sq-batch-pipeline"
+  tag: "latest"
+  pullPolicy: Always
+
 # worker 通常单副本（作业编排有状态）；扩副本前先确认作业互斥
 replicaCount: 1
 

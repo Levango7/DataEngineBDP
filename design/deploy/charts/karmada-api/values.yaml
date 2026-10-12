@@ -5,9 +5,10 @@
 # ============================================================================
 
 image:
-repository: "ghcr.io/levango7/sq-karmada-api"
-tag: "latest"
-pullPolicy: Always
+  repository: "ghcr.io/levango7/sq-karmada-api"
+  tag: "latest"
+  pullPolicy: Always
+
 replicaCount: 2
 
 service:

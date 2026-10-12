@@ -5,9 +5,10 @@
 
 # ---- 镜像配置（自研组件由 build.yml 构建为 sq-ai-assistant）----
 image:
-repository: "ghcr.io/levango7/sq-ai-assistant"
-tag: "latest"
-pullPolicy: Always
+  repository: "ghcr.io/levango7/sq-ai-assistant"
+  tag: "latest"
+  pullPolicy: Always
+
 # ---- 副本数 ----
 replicaCount: 1
 

@@ -5,9 +5,10 @@
 # ============================================================================
 
 image:
-repository: "ghcr.io/levango7/sq-federated-query"
-tag: "latest"
-pullPolicy: Always
+  repository: "ghcr.io/levango7/sq-federated-query"
+  tag: "latest"
+  pullPolicy: Always
+
 replicaCount: 1
 
 service:
