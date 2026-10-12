@@ -5,10 +5,9 @@
 
 # ---- 镜像配置（自研组件由 build.yml 构建为 sq-ai-assistant）----
 image:
-  repository: "docker.m.daocloud.io/sq-ai-assistant"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
-
+repository: "ghcr.io/levango7/sq-ai-assistant"
+tag: "latest"
+pullPolicy: Always
 # ---- 副本数 ----
 replicaCount: 1
 

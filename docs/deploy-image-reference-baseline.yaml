@@ -4,62 +4,17 @@
 # 销账条件：把 repository 改成 ghcr.io/levango7/sq-<可构建模块> 且 tag ∈ {latest, 40 位 sha}，
 #           然后重跑 --write-baseline（或直接删除对应条目）。
 known:
-- file: design/deploy/charts/ai-assistant/values.yaml
-  repository: "docker.m.daocloud.io/sq-ai-assistant"
-  tag: "0.1.0"
 - file: design/deploy/charts/asset-catalog/values.yaml
   repository: "docker.m.daocloud.io/sq-asset-catalog"
-  tag: "0.1.0"
-- file: design/deploy/charts/asset-exchange/values.yaml
-  repository: "harbor.shuqing.io/shuqing/asset-exchange"
-  tag: "2.0.0"
-- file: design/deploy/charts/batch-pipeline/values.yaml
-  repository: "docker.m.daocloud.io/sq-batch-pipeline"
-  tag: "0.1.0"
-- file: design/deploy/charts/business-portal/values.yaml
-  repository: "harbor.shuqing.io/shuqing/business-portal"
-  tag: "2.0.0"
-- file: design/deploy/charts/catalog/values.yaml
-  repository: "docker.m.daocloud.io/sq-catalog"
   tag: "0.1.0"
 - file: design/deploy/charts/chunker/values.yaml
   repository: "harbor.shuqing.io/shuqing/chunker"
   tag: "2.0.0"
-- file: design/deploy/charts/cost-model/values.yaml
-  repository: "docker.m.daocloud.io/sq-cost-model"
-  tag: "0.1.0"
-- file: design/deploy/charts/dashboard/values.yaml
-  repository: "docker.m.daocloud.io/sq-dashboard"
-  tag: "0.1.0"
 - file: design/deploy/charts/data-quality/values.yaml
   repository: "docker.m.daocloud.io/sq-data-quality"
   tag: "2.0.0"
-- file: design/deploy/charts/dqctl/values.yaml
-  repository: "docker.m.daocloud.io/sq-dqctl"
-  tag: "0.1.0"
-- file: design/deploy/charts/encaps-data/values.yaml
-  repository: "docker.m.daocloud.io/sq-encaps-data"
-  tag: "0.1.0"
-- file: design/deploy/charts/encaps-gateway/values.yaml
-  repository: "docker.m.daocloud.io/sq-encaps-gateway"
-  tag: "0.1.0"
 - file: design/deploy/charts/encaps-layer/values.yaml
   repository: "docker.m.daocloud.io/sq-encapsulation"
-  tag: "0.1.0"
-- file: design/deploy/charts/encaps-tenant/values.yaml
-  repository: "docker.m.daocloud.io/sq-encaps-tenant"
-  tag: "0.1.0"
-- file: design/deploy/charts/evaluation/values.yaml
-  repository: "docker.m.daocloud.io/sq-evaluation"
-  tag: "0.1.0"
-- file: design/deploy/charts/failover-api/values.yaml
-  repository: "docker.m.daocloud.io/sq-failover-api"
-  tag: "0.1.0"
-- file: design/deploy/charts/failover-engine/values.yaml
-  repository: "docker.m.daocloud.io/sq-failover-engine"
-  tag: "0.1.0"
-- file: design/deploy/charts/federated-query/values.yaml
-  repository: "docker.m.daocloud.io/sq-federated-query"
   tag: "0.1.0"
 - file: design/deploy/charts/finops/values.yaml
   repository: "harbor.shuqing.io/shuqing/finops"
@@ -67,84 +22,21 @@ known:
 - file: design/deploy/charts/flink-cdc/values.yaml
   repository: "harbor.shuqing.io/shuqing/flink-cdc"
   tag: "2.0.0"
-- file: design/deploy/charts/industry-templates/values.yaml
-  repository: "harbor.shuqing.io/shuqing/industry-templates"
-  tag: "2.0.0"
-- file: design/deploy/charts/infra-orchestrator/values.yaml
-  repository: "docker.m.daocloud.io/sq-infra-orchestrator"
-  tag: "0.1.0"
-- file: design/deploy/charts/infra-provider-baremetal/values.yaml
-  repository: "docker.m.daocloud.io/sq-infra-provider-baremetal"
-  tag: "0.1.0"
-- file: design/deploy/charts/infra-provider-cloud/values.yaml
-  repository: "docker.m.daocloud.io/sq-infra-provider-cloud"
-  tag: "0.1.0"
-- file: design/deploy/charts/infra-provider-private/values.yaml
-  repository: "docker.m.daocloud.io/sq-infra-provider-private"
-  tag: "0.1.0"
 - file: design/deploy/charts/infra-provider-xinchang/values.yaml
   repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
-  tag: "0.1.0"
-- file: design/deploy/charts/karmada-api/values.yaml
-  repository: "docker.m.daocloud.io/sq-karmada-api"
-  tag: "0.1.0"
-- file: design/deploy/charts/knowledge-engine/values.yaml
-  repository: "docker.m.daocloud.io/sq-knowledge-engine"
-  tag: "0.1.0"
-- file: design/deploy/charts/lineage-analyzer/values.yaml
-  repository: "docker.m.daocloud.io/sq-lineage-analyzer"
-  tag: "0.1.0"
-- file: design/deploy/charts/llm-gateway/values.yaml
-  repository: "docker.m.daocloud.io/sq-llm-gateway"
-  tag: "0.1.0"
-- file: design/deploy/charts/llmops/values.yaml
-  repository: "docker.m.daocloud.io/sq-llmops"
-  tag: "0.1.0"
-- file: design/deploy/charts/metadata-collector/values.yaml
-  repository: "docker.m.daocloud.io/sq-metadata-collector"
-  tag: "0.1.0"
-- file: design/deploy/charts/ml-platform/values.yaml
-  repository: "docker.m.daocloud.io/sq-ml-platform"
   tag: "0.1.0"
 - file: design/deploy/charts/model-finetuning/values.yaml
   repository: "harbor.shuqing.io/shuqing/model-finetuning"
   tag: "2.0.0"
-- file: design/deploy/charts/nl2sql/values.yaml
-  repository: "harbor.shuqing.io/shuqing/nl2sql"
-  tag: "2.0.0"
 - file: design/deploy/charts/observability/values.yaml
   repository: "harbor.shuqing.io/shuqing/observability"
   tag: "2.0.0"
-- file: design/deploy/charts/open-api-catalog/values.yaml
-  repository: "harbor.shuqing.io/shuqing/open-api-catalog"
-  tag: "2.0.0"
-- file: design/deploy/charts/query-api/values.yaml
-  repository: "docker.m.daocloud.io/sq-query-api"
-  tag: "0.1.0"
-- file: design/deploy/charts/real-time-pipeline/values.yaml
-  repository: "docker.m.daocloud.io/sq-real-time-pipeline"
-  tag: "0.1.0"
-- file: design/deploy/charts/rule-engine/values.yaml
-  repository: "docker.m.daocloud.io/sq-rule-engine"
-  tag: "0.1.0"
 - file: design/deploy/charts/ske-infra/values.yaml
   repository: "docker.m.daocloud.io/sq-ske-infra"
   tag: "1.31.0-0.1.0"
-- file: design/deploy/charts/sql-gateway/values.yaml
-  repository: "docker.m.daocloud.io/sq-sql-gateway"
-  tag: "0.1.0"
 - file: design/deploy/charts/storage-io/values.yaml
   repository: "harbor.shuqing.io/shuqing/storage-io"
   tag: "2.0.0"
-- file: design/deploy/charts/stream-batch-scheduler/values.yaml
-  repository: "harbor.shuqing.io/shuqing/stream-batch-scheduler"
-  tag: "2.0.0"
-- file: design/deploy/charts/tag-engine/values.yaml
-  repository: "docker.m.daocloud.io/sq-tag-engine"
-  tag: "0.1.0"
-- file: design/deploy/charts/vector-engine/values.yaml
-  repository: "docker.m.daocloud.io/sq-vector-engine"
-  tag: "0.1.0"
 - file: design/deploy/values/data-quality-values.yaml
   repository: "docker.m.daocloud.io/sq-data-quality"
   tag: "2.0.0"

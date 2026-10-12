@@ -5,10 +5,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-failover-api"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
-
+repository: "ghcr.io/levango7/sq-failover-api"
+tag: "latest"
+pullPolicy: Always
 replicaCount: 2
 
 service:

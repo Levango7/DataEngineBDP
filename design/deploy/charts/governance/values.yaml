@@ -9,10 +9,9 @@
 #（metadata-collector / lineage-analyzer / real-time-pipeline，均有 build.yml 构建的真实镜像）。
 # 生产环境请分别部署各组件 Chart，或在此按需指定真实组件镜像。
 image:
-  repository: "sq-lineage-analyzer"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
-
+repository: "ghcr.io/levango7/sq-lineage-analyzer"
+tag: "latest"
+pullPolicy: Always
 # ---- 副本数 ----
 replicas: 1
 

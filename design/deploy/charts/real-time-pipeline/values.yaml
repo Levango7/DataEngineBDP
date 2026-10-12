@@ -7,10 +7,9 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/sq-real-time-pipeline"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
-
+repository: "ghcr.io/levango7/sq-real-time-pipeline"
+tag: "latest"
+pullPolicy: Always
 # ---- 副本数 ----
 # 该进程内含 Flink 作业提交与事件轮询，多副本需注意轮询重复消费 —— 默认单副本，
 # 扩容前请先确认幂等（事件处理以 commit 事件 ID 去重，见服务 README「架构」）。
