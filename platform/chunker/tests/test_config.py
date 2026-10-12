@@ -159,12 +159,14 @@ class TestGetDefaultConfig:
 
 class TestEnvLoading:
     def test_env_override(self, monkeypatch):
-        # pydantic-settings v2 对 camelCase 字段使用无下划线环境变量名
-        # logLevel -> CHUNKER_LOGLEVEL, enableEmbedding -> CHUNKER_ENABLEEMBEDDING
+        # 2026-10-12 订正：本模块文档与部署用的是**下划线规范名**（CHUNKER_LOG_LEVEL 等）；
+        # 原先此处断言无下划线拼写（CHUNKER_LOGLEVEL）——那只在"框架不做下划线转换"的年代成立，
+        # 而文档里的规范名长期静默不生效。现 config.py 用 AliasChoices 同时接受两套拼写，
+        # 本测试按规范名断言（历史拼写另有 test_env_legacy_spelling_still_binds 兜底覆盖）。
         monkeypatch.setenv("CHUNKER_HOST", "127.0.0.1")
         monkeypatch.setenv("CHUNKER_PORT", "9999")
-        monkeypatch.setenv("CHUNKER_LOGLEVEL", "debug")
-        monkeypatch.setenv("CHUNKER_ENABLEEMBEDDING", "true")
+        monkeypatch.setenv("CHUNKER_LOG_LEVEL", "debug")
+        monkeypatch.setenv("CHUNKER_ENABLE_EMBEDDING", "true")
         s = ChunkerSettings()
         assert s.host == "127.0.0.1"
         assert s.port == 9999
@@ -172,17 +174,17 @@ class TestEnvLoading:
         assert s.enableEmbedding is True
 
     def test_env_case_insensitive(self, monkeypatch):
-        monkeypatch.setenv("CHUNKER_LOGLEVEL", "WARNING")
+        monkeypatch.setenv("CHUNKER_LOG_LEVEL", "WARNING")
         s = ChunkerSettings()
         assert s.logLevel == "warning"
 
     def test_env_default_modality(self, monkeypatch):
-        monkeypatch.setenv("CHUNKER_DEFAULTMODALITY", "image")
+        monkeypatch.setenv("CHUNKER_DEFAULT_MODALITY", "image")
         s = ChunkerSettings()
         assert s.defaultModality == "image"
 
     def test_env_max_chunks(self, monkeypatch):
-        monkeypatch.setenv("CHUNKER_MAXCHUNKS", "200")
+        monkeypatch.setenv("CHUNKER_MAX_CHUNKS", "200")
         s = ChunkerSettings()
         assert s.maxChunks == 200
 
@@ -190,6 +192,14 @@ class TestEnvLoading:
         monkeypatch.setenv("CHUNKER_TOKENIZER", "sentencepiece")
         s = ChunkerSettings()
         assert s.tokenizer == "sentencepiece"
+
+    def test_env_legacy_spelling_still_binds(self, monkeypatch):
+        """历史拼写（无内部下划线）保持可用——既有部署/脚本不受本次订正影响。"""
+        monkeypatch.setenv("CHUNKER_LOGLEVEL", "error")
+        monkeypatch.setenv("CHUNKER_MAXCHUNKS", "321")
+        s = ChunkerSettings()
+        assert s.logLevel == "error"
+        assert s.maxChunks == 321
 
 
 # ----------------------------------------------------------------------
