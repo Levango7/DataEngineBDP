@@ -5,9 +5,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-rule-engine"
-  tag: "0.1.0-dev"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-rule-engine"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 1
 

@@ -5,9 +5,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-sql-gateway"
-  tag: "0.1.0-staging"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-sql-gateway"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 2
 
