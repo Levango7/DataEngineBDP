@@ -6,9 +6,9 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/sq-encaps-data"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-encaps-data"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 副本数 ----
 replicaCount: 2

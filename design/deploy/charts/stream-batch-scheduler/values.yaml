@@ -6,9 +6,9 @@
 
 # ---- 镜像配置（国内镜像源）----
 image:
-  repository: "harbor.shuqing.io/shuqing/stream-batch-scheduler"
-  tag: "2.0.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-stream-batch-scheduler"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 副本数 ----
 replicaCount: 1

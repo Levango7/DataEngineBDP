@@ -18,8 +18,15 @@ import sys
 
 import os
 
-# 国内镜像源前缀
+# 第三方镜像的国内镜像源前缀（bitnami/redis、apache/airflow… 走这里）
 IMAGE_PREFIX = "docker.m.daocloud.io"
+# 自研镜像（image_repo 以 sq- 开头）的唯一产出方是 build.yml 的 GHCR 推送：
+# `ghcr.io/${REGISTRY_NS}/sq-<Dockerfile 所在目录名>`，tag 只有 latest 与 40 位 sha。
+# 2026-10-12 按台账 #65 方案一（生产 registry 定为 GHCR）与自研/第三方分流；
+# 此前两条线共用 IMAGE_PREFIX，于是 sq-* 被指到 docker.m.daocloud.io ⇒ helm install 必然
+# ImagePullBackOff，而门禁只查"有 Dockerfile 却无部署单元"的反方向，拦不住它。
+FIRST_PARTY_PREFIX = "ghcr.io/levango7"
+
 
 # 33 个新增 Chart 元数据清单
 # 字段: name, description, app_version, image_repo, image_tag, service_port,
@@ -203,21 +210,33 @@ namespace: {namespace}
 """
 
 
+def image_ref(image_repo):
+    """自研（sq- 前缀）走 GHCR，第三方走国内镜像源——两者不能共用一个前缀。"""
+    prefix = FIRST_PARTY_PREFIX if image_repo.startswith('sq-') else IMAGE_PREFIX
+    return f"{prefix}/{image_repo}"
+
+
 def gen_values_yaml(name, image_repo, image_tag, service_port,
                     replicas, cpu_req, mem_req, cpu_lim, mem_lim):
     """生成 values.yaml（无 Go template 语法，可用 f-string）"""
-    full_image = f"{IMAGE_PREFIX}/{image_repo}"
+    full_image = image_ref(image_repo)
+    first_party = image_repo.startswith('sq-')
+    # 自研镜像只能取 build.yml 真会打的 tag；表里的 semver（0.1.0 等）在 GHCR 上不存在。
+    tag = 'latest' if first_party else image_tag
+    pull_policy = 'Always' if first_party else 'IfNotPresent'
+    src_note = ('自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values'
+                if first_party else '第三方镜像源 docker.m.daocloud.io')
     return f"""# ============================================================================
 # {name} Helm Chart 默认 values
 # 关联：design/deploy/values/{name}-values.yaml（深度调优配置）
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（{src_note}）----
 image:
   repository: "{full_image}"
-  tag: "{image_tag}"
-  pullPolicy: IfNotPresent
+  tag: "{tag}"
+  pullPolicy: {pull_policy}
 
 # ---- 副本数 ----
 replicaCount: {replicas}
