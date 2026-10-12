@@ -2,10 +2,15 @@
 """Spring 组件扫描覆盖校验：防止带 stereotype 的类落在扫描根之外（运行期静默 404）。
 
 背景：rule-engine 的启动类在 `com.levango7.dataenginebdp.ruleengine`，而编排引擎整棵
-包树在 `com.levango7.dataenginebdp.rule.engine.orchestrator`（`rule.engine` ≠ `ruleengine`）。
+包树原在 `com.levango7.dataenginebdp.rule.engine.orchestrator`（`rule.engine` ≠ `ruleengine`）。
 Spring Boot 默认只扫启动类所在包及其子包，于是 `@RestController OrchestratorController`
-从未注册，`GET /api/v1/orchestrator/dags` 在真实进程里 404——而该模块 429 个单元测试
+从未注册，`GET /api/v1/orchestrator/dags` 在真实进程里 404——而该模块的单元测试
 （手工 new 出来的 POJO）全绿，完全看不见这件事。
+
+> 2026-10-12 更新：该模块的包名已收口——`rule.engine.*` 整棵树并入
+> `ruleengine.orchestrator.*`，启动类的 `scanBasePackages` 双根补丁随之移除
+> （见 PR "refactor(rule-engine): 包名收口"）。本门禁继续对所有模块生效，用于拦
+> **将来任何模块**再把 stereotype 类放到扫描根之外；历史那处只留作背景说明。
 
 判定口径：对每个含 @SpringBootApplication 的模块，取其有效扫描根
 （显式 scanBasePackages / @ComponentScan，否则为启动类所在包），模块内任何带
