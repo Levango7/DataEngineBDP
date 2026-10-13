@@ -177,6 +177,37 @@ def check(path: str) -> list[str]:
                 )
             if str(cfg.get("access.token.claim")).lower() != "true":
                 findings.append(f"client {cid}: tenant-id mapper 的 access.token.claim 未开启 ⇒ 声明不会进 token")
+
+    # D. Keycloak 24 的 declarative UserProfile：未声明的属性会被**静默丢弃**。
+    #
+    # tenant-id mapper 读的是 user attribute `tenantId`，而 Keycloak 24 默认的 profile 只声明
+    # username/email/firstName/lastName 四个属性。不把 unmanagedAttributePolicy 设为 ENABLED，
+    # 建用户时写的 attributes.tenantId 会被静默拒绝（API 返回 201，GET 却无 attributes），
+    # 导致 token 里 tenantId 恒为空 → TenantContext 为空 → JwtAuthFilter 401。
+    # （2026-10-13 真机实测确认；这是"代填"链路断的根因。）
+    #
+    # **为什么检查脚本而不是检查 realm JSON**：`usersProfile` 不是 partialImport 支持的
+    # 资源类型——写在 realm JSON 里会被静默忽略（实测 imported=8 但 policy 仍 null），
+    # 必须在导入后单独 `PUT users/profile`。所以本判据检查**导入脚本是否含这一步**，
+    # 而不是 JSON 里有没有那个键。
+    script = os.path.join(REPO_ROOT, "scripts", "import-keycloak-realm.sh")
+    try:
+        script_text = open(script, encoding="utf-8").read()
+    except OSError:
+        findings.append("找不到 %s，无法确认它是否设置 unmanagedAttributePolicy" % script)
+        script_text = ""
+    if "unmanagedAttributePolicy=ENABLED" not in script_text:
+        findings.append(
+            "import-keycloak-realm.sh 未设置 unmanagedAttributePolicy=ENABLED：Keycloak 24 的 "
+            "declarative UserProfile 会静默丢弃未声明属性 ⇒ 用户的 tenantId 属性写不进去 ⇒ "
+            "token 里 tenantId 为空 ⇒ TenantContext 为空 ⇒ 所有受保护端点 401"
+        )
+    # 反向：realm JSON 里写了 usersProfile 也要提醒（那个键无效，会误导后来者）
+    if "usersProfile" in doc:
+        findings.append(
+            "realm JSON 里出现了 usersProfile 键——它不是 partialImport 支持的资源类型，"
+            "写了会被静默忽略；正确做法是导入后单独 PUT users/profile（脚本已实现）"
+        )
     return findings
 
 

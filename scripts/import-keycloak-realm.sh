@@ -96,6 +96,25 @@ echo "==> 部分导入角色与客户端声明（同名对象按 OVERWRITE 处�
 run_kcadm create partialImport -r "$REALM" \
   -s ifResourceExistsAction=OVERWRITE -f "$SRC"
 
+echo "==> 放开 UserProfile 未声明属性（Keycloak 24 必需，否则 tenantId 写不进用户）"
+# 为什么必须单独这一步：Keycloak 24 启用 declarative UserProfile，默认只声明
+# username/email/firstName/lastName 四个属性，其余属性（含 tenant-id mapper 依赖的
+# `tenantId`）**在写入时被静默丢弃**——API 返回 201、GET 用户却看不到 attributes，
+# 服务端也不记错误。后果：token 里 tenantId 恒空 → TenantContext 为空 →
+# 所有受保护端点 401 Missing tenant identity。
+# 且 `usersProfile` **不是 partialImport 支持的资源类型**（放在 realm JSON 里会被忽略，
+# 实测 added=8 但 unmanagedAttributePolicy 仍为 null），必须导入后单独 PUT。
+# 实测（Keycloak 24.0）：PUT users/profile 设 ENABLED 后，attributes.tenantId 立即落盘，
+# 重新签发的 token 里 tenantId 正常出现。
+if run_kcadm get "users/profile" -r "$REALM" >/dev/null 2>&1; then
+  run_kcadm update "users/profile" -r "$REALM" \
+    -s unmanagedAttributePolicy=ENABLED >/dev/null
+  echo "    已设置 unmanagedAttributePolicy=ENABLED"
+else
+  echo "    ⚠️ 取不到 users/profile（Keycloak 版本可能不同），跳过；"
+  echo "       若用户 tenantId 写不进去，请手动确认该设置"
+fi
+
 echo "==> 校验 realm 角色已落地"
 # 角色清单与 design/deploy/keycloak/sq-realm-roles.json 保持一致，
 # 并由 scripts/check-keycloak-realm-fragment.py 与代码侧 @PreAuthorize 引用交叉核对

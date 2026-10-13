@@ -110,6 +110,10 @@
     "导致 SUPER_ADMIN / TENANT_ADMIN 在任何环境都无法授予 —— 所有 @PreAuthorize 端点必然 403。",
     "两个必需的角色声明映射（realm-roles / tenant-id mapper）不能省：",
     "前者保证角色进 access token，后者保证 TenantContext 有租户归属（多租户隔离依赖它）。",
+    "注意：usersProfile 的设置不要写进本文件——它不是 partialImport 支持的资源类型",
+    "（写了会被静默忽略，实测 imported 但 unmanagedAttributePolicy 仍为 null）。",
+    "Keycloak 24 需要单独执行 PUT users/profile 设 unmanagedAttributePolicy=ENABLED，",
+    "否则用户的 tenantId 属性会被 declarative UserProfile 静默丢弃；脚本已在导入后自动做这一步。",
     "导入方式见 scripts/import-keycloak-realm.sh 与 docs/Keycloak角色与登录配置.md。"
   ]
 }
