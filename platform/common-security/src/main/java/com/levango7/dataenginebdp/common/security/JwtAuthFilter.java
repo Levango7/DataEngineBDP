@@ -1,7 +1,11 @@
 package com.levango7.dataenginebdp.common.security;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
@@ -23,6 +27,7 @@ import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +60,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private static final String BEARER_PREFIX = "Bearer ";
+
+    /**
+     * 允许的签名算法白名单（显式拒绝 none / RSA-PSS / 其它密钥体系）。
+     *
+     * <p>HMAC 三档都要列：jjwt 的 {@code signWith(SecretKey)} 按密钥位宽自动选 alg，
+     * HS384/HS512 是合法且常见的形态（见 {@link #parseSignedClaims} 注释里的实测记录）。</p>
+     */
+    private static final String ALG_HS256 = "HS256";
+    private static final String ALG_HS384 = "HS384";
+    private static final String ALG_HS512 = "HS512";
+    private static final String ALG_RS256 = "RS256";
+
+    /** header 解析用（只读 alg/kid，不涉密） */
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String CLAIM_TENANT_ID = "tenantId";
     private static final String TENANT_HEADER = "X-Tenant-Id";
 
@@ -62,16 +81,124 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final String issuer;
 
     /**
-     * 构造过滤器。
+     * Keycloak RS256 公钥提供器（可选）。
+     *
+     * <p>为 {@code null} 时只验自签 HS256 token（与本次改动前完全一致）；非 {@code null} 时
+     * 按 token header 的 {@code alg} 自动分流：{@code HS256} 走 {@link #signingKey}，
+     * {@code RS256} 走本提供器（按 {@code kid} 拉 Keycloak JWKS 公钥）。</p>
+     */
+    private final JwksPublicKeyProvider jwksProvider;
+
+    /**
+     * 构造过滤器（仅 HS256 自签，行为与历史版本一致）。
      *
      * @param secret  JWT 签名密钥（HMAC-SHA），至少 256 bit（32 字节）
      * @param issuer  JWT issuer，校验 {@code iss} claim 必须匹配
      */
     public JwtAuthFilter(@Value("${app.security.jwt.secret}") String secret,
                          @Value("${app.security.jwt.issuer}") String issuer) {
+        this(secret, issuer, null);
+    }
+
+    /**
+     * 构造过滤器（支持 Keycloak RS256 双模式）。
+     *
+     * @param secret        HS256 签名密钥（自签通道，必须配置）
+     * @param issuer        JWT issuer 校验值（HS256 通道用；RS256 通道用 token 自带 iss）
+     * @param jwksProvider  Keycloak JWKS 提供器；{@code null} 表示不启用 RS256 通道
+     */
+    public JwtAuthFilter(@Value("${app.security.jwt.secret}") String secret,
+                         @Value("${app.security.jwt.issuer}") String issuer,
+                         JwksPublicKeyProvider jwksProvider) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.issuer = issuer;
+        this.jwksProvider = jwksProvider;
     }
+
+    /**
+     * 按 token 的 {@code alg} 分流验签。
+     *
+     * <ul>
+     *   <li>{@code HS256}：用自签密钥（{@link #signingKey}）+ 本地配置 issuer 校验；
+     *       这是历史唯一通道，行为保持不变。</li>
+     *   <li>{@code RS256}（Keycloak 签发）：仅当 {@link #jwksProvider} 已注入时可用，
+     *       按 {@code kid} 拉公钥；issuer 由 Keycloak 自己保证（token 自带 iss），
+     *       此处不拿本地 issuer 去比（本地 issuer 是"自签通道"的约定）。</li>
+     *   <li>其余 alg（{@code none}/RSA-PSS/…）：一律拒——显式白名单比"默认只支持某一种"更安全。</li>
+     *   <li>{@code HS384}/{@code HS512}：与 HS256 同族（同强度 HMAC，只是摘要位宽不同），
+     *       同样走自签密钥分支——jjwt 按密钥长度自动选出它们，拒掉会误伤合法部署。</li>
+     * </ul>
+     *
+     * <p>HS256 token 在未启用 JWKS 的模块上仍可验；反过来 RS256 token 在没配 JWKS 的
+     * 模块上会被拒（不再静默按 HS256 试一次——那只会得到无意义的验签失败）。</p>
+     */
+    private Jws<Claims> parseSignedClaims(String token) {
+        TokenHeader header = readHeader(token);
+
+        // 自签 HMAC 通道：HS256/HS384/HS512 同族同强度，全部放行走同一验签分支。
+        //
+        // 为什么必须三个都放行（2026-10-13 CI 实测教训）：jjwt 的
+        // `signWith(SecretKey)` **按密钥位宽自动推 alg**（javap 实证：
+        // 384≤bit<512 → HmacSHA384、≥512 → HmacSHA512），并不是固定 HS256。
+        // 因此一个 53 字节（424 bit）密钥签出的 token 就是 {"alg":"HS384"}；
+        // 若白名单只写 HS256，它会被 401 拒掉——这不是"异常算法"，而是合法且常见的形态。
+        // 真实生产风险同源：AuthController 用 hmacShaKeyFor(jwtSecret) 签发，
+        // 意图算法即 HS384，凡部署环境 JWT_SECRET ≥48 字节都会签出 HS384。
+        //
+        // 安全目标不变：这里拒的是 none / RSA-PSS / 以及任何"换了密钥体系"的 alg。
+        if (ALG_HS256.equals(header.alg)
+                || ALG_HS384.equals(header.alg)
+                || ALG_HS512.equals(header.alg)) {
+            return Jwts.parser()
+                    .verifyWith(signingKey)
+                    .requireIssuer(issuer)
+                    .build()
+                    .parseSignedClaims(token);
+        }
+        if (ALG_RS256.equals(header.alg)) {
+            if (jwksProvider == null) {
+                throw new JwtException("RS256 token 不被接受：未配置 JWKS 公钥提供器");
+            }
+            return Jwts.parser()
+                    .verifyWith(jwksProvider.resolve(header.kid))
+                    .build()
+                    .parseSignedClaims(token);
+        }
+        throw new JwtException("不支持的签名算法: " + header.alg);
+    }
+
+    /**
+     * 读 token header 的 {@code alg} 与 {@code kid}（不验签）。
+     *
+     * <p>为什么自己解而不是用 jjwt：jjwt 0.13 的 {@code Header} 只暴露
+     * {@code getAlgorithm()}，没有 kid 读取方法；而 {@code parseUnsecuredClaims}
+     * 只对"非 JWS 结构"（两段式）生效，遇到正常三段 JWS 直接抛异常——两条路都走不通。
+     * header 段（{@code base64url(JSON)}）本身不含签名信息、也不含秘密，先解析它只为了
+     * <b>选验签通道</b>；真正的验签与过期校验仍由后续 {@code parseSignedClaims} 完成，
+     * 因此不存在"读 header 即信任"的风险。</p>
+     */
+    private static TokenHeader readHeader(String token) {
+        int firstDot = token.indexOf('.');
+        if (firstDot <= 0) {
+            throw new JwtException("JWT 结构不合法");
+        }
+        String headerB64 = token.substring(0, firstDot);
+        JsonNode header;
+        try {
+            header = OBJECT_MAPPER.readTree(Base64.getUrlDecoder().decode(headerB64));
+        } catch (IOException | IllegalArgumentException e) {
+            throw new JwtException("JWT header 解析失败: " + e.getMessage());
+        }
+        String alg = header.path("alg").asText(null);
+        String kid = header.path("kid").asText(null);
+        return new TokenHeader(alg, kid);
+    }
+
+    /** header 的关键字段（仅用于选择验签通道）。 */
+    private record TokenHeader(String alg, String kid) {
+    }
+
+
 
     @Override
     public void doFilterInternal(HttpServletRequest request,
@@ -85,12 +212,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(BEARER_PREFIX.length()).trim();
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(signingKey)
-                    .requireIssuer(issuer)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            Jws<Claims> parsed = parseSignedClaims(token);
+            Claims claims = parsed.getPayload();
 
             // 从 JWT 提取的租户ID（用户所属租户）
             String jwtTenantId = claims.get(CLAIM_TENANT_ID, String.class);
@@ -110,6 +233,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             setAuthentication(userId, effectiveTenantId, extractAuthorities(claims));
 
             filterChain.doFilter(request, response);
+        } catch (JwksPublicKeyProvider.JwtKeyException e) {
+            // 取不到验签公钥（JWKS 端点故障 / kid 不存在）是**基础设施故障**，不是"token 不合法"：
+            // 返回 503 让调用方区分"稍后重试"与"拿有效 token 来"，绝不能 fail-open 放行，
+            // 也不该穿透成 500（那会被当成服务 bug 而不是上游故障）。
+            log.warn("JWT 验签公钥不可用: {}", e.getMessage());
+            sendServiceUnavailable(response, "token verification key unavailable");
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("JWT validation failed: {}", e.getMessage());
             sendUnauthorized(response, "invalid or expired JWT token");
@@ -246,6 +375,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private void sendForbidden(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"error\":\"" + escapeJson(message) + "\"}");
+    }
+
+    /**
+     * 503：验签公钥不可用（JWKS 故障 / kid 缺失）。
+     *
+     * <p>与 401 区分：401 = token 无效（换 token 也没用）；
+     * 503 = 服务端验签基础设施故障（重试可能恢复）。调用方可以据此决定是否退避重试。</p>
+     */
+    private void sendServiceUnavailable(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"" + escapeJson(message) + "\"}");
     }
