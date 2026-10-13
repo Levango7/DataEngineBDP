@@ -11,7 +11,10 @@
       "clustersMeta": "信创 {xinchuang} · 本地 {onprem} · 云VM {cloudVm}",
       "revenue": "本月营收",
       "alerts": "底座告警",
-      "alertsMeta": "已自动处置 {count}"
+      "alertsMeta": "已自动处置 {count}",
+      "workspaces": "工作空间",
+      "quotas": "配额",
+      "projects": "项目"
     },
     "envTitle": "环境矩阵",
     "envLoading": "正在加载环境矩阵...",

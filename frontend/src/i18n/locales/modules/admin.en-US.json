@@ -11,7 +11,10 @@
       "clustersMeta": "{xinchuang} Xinchuang · {onprem} on-prem · {cloudVm} cloud VM",
       "revenue": "Revenue This Month",
       "alerts": "Infra Alerts",
-      "alertsMeta": "{count} auto-handled"
+      "alertsMeta": "{count} auto-handled",
+      "workspaces": "Workspaces",
+      "quotas": "Quotas",
+      "projects": "Projects"
     },
     "envTitle": "Environment Matrix",
     "envLoading": "Loading environment matrix...",

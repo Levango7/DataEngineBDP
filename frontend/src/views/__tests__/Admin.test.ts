@@ -135,6 +135,24 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
     expect(meta).toBe('外部 — · 内部 —')
   })
 
+  it('已接入的三个计数正常渲染真实值（工作空间 / 配额 / 项目）', async () => {
+    const wrapper = await mountAdmin()
+    // 桩值来自后端真实仓储的 countByTenantId，不是硬编码
+    expect(kpiTextOf(wrapper, '工作空间')).toBe('2')
+    expect(kpiTextOf(wrapper, '配额')).toBe('2')
+    expect(kpiTextOf(wrapper, '项目')).toBe('3')
+  })
+
+  it('已接入字段若缺失，显示占位符而非空值（保证后端回归时可诊断）', async () => {
+    const adminApi = vi.mocked(await import('@/api/admin'))
+    adminApi.getKpi.mockResolvedValueOnce({ tenantTotal: 1 } as never)
+
+    const wrapper = await mountAdmin()
+    expect(kpiTextOf(wrapper, '工作空间')).toBe('—')
+    expect(kpiTextOf(wrapper, '配额')).toBe('—')
+    expect(kpiTextOf(wrapper, '项目')).toBe('—')
+  })
+
   it('占位符只兜「缺失」，不篡改后端返回的真实 0（防止有人改成恒显 —）', async () => {
     // 模拟将来后端真的接入了这些字段并返回真实 0
     const adminApi = vi.mocked(await import('@/api/admin'))
