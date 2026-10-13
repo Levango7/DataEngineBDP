@@ -36,7 +36,6 @@ class QuotaEnforcerConcurrencyTest {
         CountDownLatch done = new CountDownLatch(threads);
         AtomicInteger passed = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
-        AtomicInteger maxObserved = new AtomicInteger();
 
         for (int i = 0; i < threads; i++) {
             Thread t = new Thread(() -> {
@@ -53,9 +52,6 @@ class QuotaEnforcerConcurrencyTest {
                 } else {
                     failed.incrementAndGet();
                 }
-                // 采样观察到的并发快照（准入结束后不许超过上限）
-                maxObserved.accumulateAndGet(enforcer.currentConcurrent(Agent.Role.SQL, "t-concurrent"),
-                        Math::max);
                 done.countDown();
             });
             t.setDaemon(true);
@@ -67,7 +63,9 @@ class QuotaEnforcerConcurrencyTest {
 
         assertEquals(3, passed.get(), "通过数应恰好等于并发上限（超发=check-then-act 竞态复发）");
         assertEquals(threads - 3, failed.get());
-        assertTrue(maxObserved.get() <= 3, "并发计数快照不得越过上限，实测 " + maxObserved.get());
+        // 不要在这里断言 currentConcurrent 的瞬时快照 <= 上限：先占后查的实现里，
+        // 被拒线程 incrementAndGet 与回滚之间计数本来就是 max+1，采不采得到只取决于时序，
+        // 这条断言会随机判红（台账 #66）。真实契约由上面 passed/failed 与下面终值三处守着。
         assertEquals(3, enforcer.currentConcurrent(Agent.Role.SQL, "t-concurrent"));
     }
 

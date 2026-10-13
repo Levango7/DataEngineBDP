@@ -1,15 +1,25 @@
 /**
  * Admin.vue 单元测试
  *
- * 【回归守卫】后端 `/api/v1/admin/kpi`（`AdminController#kpi()`）目前**不返回**
- * `monthlyRevenue` / `alertCount` / `alertAutoHandled` / `clusterOnprem` / `clusterCloudVm`
- * —— 这些值需要跨服务聚合（营收→finops/billing、告警→observability），尚未实现。
+ * 【回归守卫】运营后台 KPI 的展示口径 —— "没有数据"必须与"数据是 0"可区分。
  *
- * 界面此前对这些位置写的是 `?? 0`，会渲染出一个**看起来很确定的 0**，
- * 运维据此判断"本月没有营收、底座没有告警" —— 这是界面在说谎。
+ * 2026-10-13 契约收口后，后端 `/api/v1/admin/kpi`（`AdminController#kpi()`）
+ * 只返回 4 个按租户口径的真实 count：
+ *   `tenantTotal` / `workspaceTotal` / `quotaTotal` / `projectTotal`
  *
- * 本用例把"未接入 ⇒ 显示占位符 `—`"钉死，防止有人图省事再改回 `?? 0`。
- * 若将来后端真的接入了这些字段，本用例会失败 —— 那时**应同步删掉本守卫**，
+ * 其余字段分两种死法，界面**一律显示占位符 `—`**，禁止用 `?? 0` 掩盖：
+ *   1. 后端从未返回：`monthlyRevenue`、`alertCount`、`alertAutoHandled`、
+ *      `clusterOnprem`、`clusterCloudVm`（需跨服务聚合，尚未实现）
+ *   2. 后端曾返回但是编造的，2026-10-13 已从契约删除：
+ *      `tenantExternal` / `tenantInternal` / `clusterTotal` / `clusterXinchuang`
+ *      （硬编码）、`assetTotal` / `apiTotal` / `datasourceTotal` / `syncTaskTotal`
+ *      （结构性恒 0：查询落到本服务 schema 的空副本表）
+ *
+ * 此前界面写 `?? 0`，会渲染出一个**看起来很确定的 0**，运维据此判断
+ * "本月没有营收、底座没有告警" —— 这是界面在说谎。
+ *
+ * 本用例把"未接入 ⇒ 显示占位符"钉死，防止有人图省事再改回 `?? 0`。
+ * 若将来后端真的接入了某些字段，本用例会失败 —— 那时**应同步删掉对应守卫**，
  * 而不是改断言去迁就。
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -32,28 +42,23 @@ const i18n = createI18n({
 })
 
 /**
- * 后端**真实**响应形状 —— 刻意不含 monthlyRevenue / alertCount / alertAutoHandled /
- * clusterOnprem / clusterCloudVm。照抄 `AdminController#kpi()` 的 body。
+ * 后端**真实**响应形状 —— 照抄收口后的 `AdminController#kpi()`，只有 4 个字段。
  *
  * 注意：`vi.mock` 的工厂会被提升到文件顶部，不能引用外部变量，所以下面的对象
  * 必须在工厂内部**内联**；此处保留一份注释副本仅作对照。
+ *
+ *   { tenantTotal: 1, workspaceTotal: 2, quotaTotal: 2, projectTotal: 3 }
  */
 vi.mock('@/api/admin', () => ({
   getKpi: vi.fn(() =>
     Promise.resolve({
       tenantTotal: 1,
-      tenantExternal: 0,
-      tenantInternal: 1,
-      clusterTotal: 1,
-      clusterXinchuang: 1,
       workspaceTotal: 2,
       quotaTotal: 2,
-      assetTotal: 0,
-      apiTotal: 0,
-      datasourceTotal: 0,
-      projectTotal: 3,
-      syncTaskTotal: 0
+      projectTotal: 3
       // 无 monthlyRevenue / alertCount / alertAutoHandled / clusterOnprem / clusterCloudVm
+      // 无 tenantExternal / tenantInternal / clusterTotal / clusterXinchuang（2026-10-13 已删）
+      // 无 assetTotal / apiTotal / datasourceTotal / syncTaskTotal（2026-10-13 已删）
     })
   ),
   getEnvMatrix: vi.fn(() => Promise.resolve([]))
@@ -80,13 +85,13 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
     return card.find('.kpi').text()
   }
 
-  /** 按标题文案找到对应卡片；找不到即抛错（同时给 TS 收窄类型） */
-  function cardOf(wrapper: Awaited<ReturnType<typeof mountAdmin>>, title: string) {
+  /** 按标题文案找到对应卡片，返回该卡片的 .meta 文本 */
+  function metaTextOf(wrapper: Awaited<ReturnType<typeof mountAdmin>>, title: string): string {
     const card = wrapper
       .findAll('.card')
       .find((c) => c.find('h3').exists() && c.find('h3').text() === title)
     if (!card) throw new Error(`未找到标题为「${title}」的卡片`)
-    return card
+    return card.find('.meta').text()
   }
 
   it('本月营收未接入时显示占位符，且不得显示 ¥0', async () => {
@@ -107,27 +112,65 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
 
   it('告警卡的「已自动处置」meta 也必须是占位符（此前是 0）', async () => {
     const wrapper = await mountAdmin()
-    const card = cardOf(wrapper, '底座告警')
-    const meta = card.find('.meta').text()
+    const meta = metaTextOf(wrapper, '底座告警')
     expect(meta).toContain('—')
     expect(meta).not.toContain('0')
   })
 
-  it('集群卡的 meta 中，未接入的本地/云VM 显示占位符，已接入的信创仍显示真实值', async () => {
+  it('集群实例卡：总数与信创数后端已无数据模型 ⇒ 整体显示占位符', async () => {
     const wrapper = await mountAdmin()
-    const card = cardOf(wrapper, '集群实例')
-    const meta = card.find('.meta').text()
-    // 信创 = 1（后端真实返回）
-    expect(meta).toContain('1')
-    // 本地 / 云VM 未接入 ⇒ 占位符
-    expect(meta).toContain('—')
-    expect(meta).not.toContain('本地 0')
-    expect(meta).not.toContain('云VM 0')
+    // 主数值：clusterTotal 已于 2026-10-13 从契约删除（曾硬编码 1）
+    expect(kpiTextOf(wrapper, '集群实例')).toBe('—')
+    // meta：信创 / 本地 / 云VM 三者全部未接入
+    const meta = metaTextOf(wrapper, '集群实例')
+    expect(meta).toBe('信创 — · 本地 — · 云VM —')
   })
 
-  it('已接入字段仍正常显示（不得因本次改动被误伤）', async () => {
+  it('租户卡：总数是真实 count，外部/内部已从契约删除 ⇒ 显示占位符', async () => {
     const wrapper = await mountAdmin()
+    // tenantTotal = 1 是后端真实返回（tenantRepository.count()），不是硬编码
     expect(kpiTextOf(wrapper, '租户总数')).toBe('1')
-    expect(kpiTextOf(wrapper, '集群实例')).toBe('1')
+    // 外部/内部后端已删除 ⇒ 占位符
+    const meta = metaTextOf(wrapper, '租户总数')
+    expect(meta).toBe('外部 — · 内部 —')
+  })
+
+  it('已接入的三个计数正常渲染真实值（工作空间 / 配额 / 项目）', async () => {
+    const wrapper = await mountAdmin()
+    // 桩值来自后端真实仓储的 countByTenantId，不是硬编码
+    expect(kpiTextOf(wrapper, '工作空间')).toBe('2')
+    expect(kpiTextOf(wrapper, '配额')).toBe('2')
+    expect(kpiTextOf(wrapper, '项目')).toBe('3')
+  })
+
+  it('已接入字段若缺失，显示占位符而非空值（保证后端回归时可诊断）', async () => {
+    const adminApi = vi.mocked(await import('@/api/admin'))
+    adminApi.getKpi.mockResolvedValueOnce({ tenantTotal: 1 } as never)
+
+    const wrapper = await mountAdmin()
+    expect(kpiTextOf(wrapper, '工作空间')).toBe('—')
+    expect(kpiTextOf(wrapper, '配额')).toBe('—')
+    expect(kpiTextOf(wrapper, '项目')).toBe('—')
+  })
+
+  it('占位符只兜「缺失」，不篡改后端返回的真实 0（防止有人改成恒显 —）', async () => {
+    // 模拟将来后端真的接入了这些字段并返回真实 0
+    const adminApi = vi.mocked(await import('@/api/admin'))
+    adminApi.getKpi.mockResolvedValueOnce({
+      tenantTotal: 1,
+      workspaceTotal: 2,
+      quotaTotal: 2,
+      projectTotal: 3,
+      clusterOnprem: 0,
+      clusterCloudVm: 0
+    } as never)
+
+    const wrapper = await mountAdmin()
+
+    // `?? NOT_WIRED` 只兜 nullish ⇒ 后端真给了 0 就该显示 0，不能被强行变成 —
+    const meta = metaTextOf(wrapper, '集群实例')
+    expect(meta).toBe('信创 — · 本地 0 · 云VM 0')
+    // 仍无数据模型的信创数保持占位符
+    expect(meta).toContain('信创 —')
   })
 })
