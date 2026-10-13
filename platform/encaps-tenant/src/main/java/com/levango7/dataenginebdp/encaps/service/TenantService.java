@@ -1,7 +1,7 @@
 package com.levango7.dataenginebdp.encaps.service;
 
-import com.levango7.dataenginebdp.encaps.model.Tenant;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
+import com.levango7.dataenginebdp.encapsshared.model.Tenant;
+import com.levango7.dataenginebdp.encapsshared.repository.TenantRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;

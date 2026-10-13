@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.common.GlobalExceptionHandler;
 import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
-import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
+import com.levango7.dataenginebdp.encapsshared.repository.ProjectRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

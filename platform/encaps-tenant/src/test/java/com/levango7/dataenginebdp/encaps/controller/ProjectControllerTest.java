@@ -1,7 +1,7 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.model.ProjectEntity;
-import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
+import com.levango7.dataenginebdp.encapsshared.model.ProjectEntity;
+import com.levango7.dataenginebdp.encapsshared.repository.ProjectRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

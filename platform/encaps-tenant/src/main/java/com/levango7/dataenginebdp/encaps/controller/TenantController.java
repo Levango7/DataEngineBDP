@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.model.Tenant;
+import com.levango7.dataenginebdp.encapsshared.model.Tenant;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.encaps.service.TenantService;
 import jakarta.validation.Valid;
