@@ -207,6 +207,7 @@ jobs:
           # 本 job 与 ci.yml trivy-scan 预装清单同步对齐（缺失会报 encaps-data SNAPSHOT 解析失败）
           for lib_pom in \
             "platform/common-security/pom.xml" \
+            "platform/encaps-shared-model/pom.xml" \
             "platform/encaps-layer/pom.xml" \
             "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
