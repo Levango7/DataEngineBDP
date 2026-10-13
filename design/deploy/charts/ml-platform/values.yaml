@@ -4,7 +4,7 @@
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values）----
 image:
   repository: "ghcr.io/levango7/sq-ml-platform"
   tag: "latest"
