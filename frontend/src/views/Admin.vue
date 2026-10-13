@@ -22,23 +22,23 @@
       <div class="grid g4">
         <div class="card">
           <h3>{{ t('admin.kpi.tenants') }}</h3>
-          <div class="kpi">{{ kpi?.tenantTotal ?? 0 }}</div>
+          <div class="kpi">{{ kpi?.tenantTotal ?? NOT_WIRED }}</div>
           <div class="meta">
             {{
               t('admin.kpi.tenantsMeta', {
-                external: kpi?.tenantExternal ?? 0,
-                internal: kpi?.tenantInternal ?? 0
+                external: kpi?.tenantExternal ?? NOT_WIRED,
+                internal: kpi?.tenantInternal ?? NOT_WIRED
               })
             }}
           </div>
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.clusters') }}</h3>
-          <div class="kpi">{{ kpi?.clusterTotal ?? 0 }}</div>
+          <div class="kpi">{{ kpi?.clusterTotal ?? NOT_WIRED }}</div>
           <div class="meta">
             {{
               t('admin.kpi.clustersMeta', {
-                xinchuang: num(kpi?.clusterXinchuang),
+                xinchuang: kpi?.clusterXinchuang ?? NOT_WIRED,
                 onprem: kpi?.clusterOnprem ?? NOT_WIRED,
                 cloudVm: kpi?.clusterCloudVm ?? NOT_WIRED
               })
@@ -120,11 +120,6 @@ function formatRevenue(v: number): string {
  * 未接入就显示 `—`，让"没有数据"与"数据是 0"可区分。
  */
 const NOT_WIRED = '—'
-
-/** 已接入字段：nullish 才回落 0；未接入字段请直接用 NOT_WIRED。 */
-function num(v: number | undefined | null): number {
-  return v ?? 0
-}
 
 /** 本月营收：后端未接入 ⇒ 显示占位符，不显示 ¥0。 */
 const revenueText = computed(() => {
