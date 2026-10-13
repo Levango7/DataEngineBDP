@@ -118,6 +118,24 @@ def check(path: str) -> list[str]:
                 f"但 realm 片段未定义它 ⇒ 该角色用户在运行期必 403"
             )
 
+    # B2. 角色 attributes 的值必须是**字符串数组**。
+    #
+    # Keycloak 的角色属性模型是 Map<String, List<String>>，写成单个字符串会在
+    # partialImport 时以 500 "unable to read contents from stream" 失败——该错误信息
+    # 完全不提属性，极难归因（2026-10-13 首次实跑导入时二分定位到此）。
+    # 服务端不记 ERROR 日志，只有这个 500，所以离线必须拦。
+    for role in doc.get("roles", {}).get("realm", []):
+        if not isinstance(role, dict):
+            continue
+        for key, value in (role.get("attributes") or {}).items():
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                findings.append(
+                    f"角色 {role.get('name')} 的 attributes.{key} 的值是 "
+                    f"{type(value).__name__}，应为「字符串数组」——Keycloak 的 "
+                    f"Map<String, List<String>> 模型不收单字符串，导入时以 500 "
+                    f'"unable to read contents from stream" 失败'
+                )
+
     # C. 两个必需 protocolMapper
     for client in doc.get("clients", []):
         if not isinstance(client, dict):
@@ -214,6 +232,15 @@ def self_test() -> int:
         got2 = check(p2)
         if not any(REALM_ROLE_MAPPER in f or TENANT_ATTR_MAPPER in f for f in got2):
             failures.append("反例（两个 mapper 都缺）应命中，却得到: %s" % got2)
+
+        # 反例 2：角色 attributes 的值写成单字符串（Keycloak 导入会 500）
+        bad_attr = json.loads(json.dumps(GOOD))
+        bad_attr["roles"]["realm"] = [{"name": r, "attributes": {"grants": "/api/v1/x"}} for r in sorted(used)]
+        p3 = os.path.join(tmp, "bad_attr.json")
+        json.dump(bad_attr, open(p3, "w", encoding="utf-8"))
+        got3 = check(p3)
+        if not any("attributes.grants" in f for f in got3):
+            failures.append("反例 2（attributes 单字符串）应命中，却得到: %s" % got3)
 
     if failures:
         print("FAIL: self-test 未通过")

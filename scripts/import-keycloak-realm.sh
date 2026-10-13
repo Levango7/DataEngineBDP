@@ -89,9 +89,12 @@ else
 fi
 
 echo "==> 部分导入角色与客户端声明（同名对象按 OVERWRITE 处理）"
-# -s 传 partial import 参数，-o resource=import 让 kcadm 输出导入摘要而非整个实体
+# -s 传 partial import 参数；-f 提供 realm 片段 JSON。
+# 注：曾写成 `-o resource=import`，但 kcadm 的 -o 是**无值开关**（"创建后把新资源打印到
+# stdout"），`resource=import` 会被当成非法选项直接报错——该脚本此前从未实跑，故没人发现。
+# （2026-10-13 首次实跑 Keycloak 24.0 时暴露并修正。）
 run_kcadm create partialImport -r "$REALM" \
-  -s ifResourceExistsAction=OVERWRITE -o resource=import -f "$SRC"
+  -s ifResourceExistsAction=OVERWRITE -f "$SRC"
 
 echo "==> 校验 realm 角色已落地"
 # 角色清单与 design/deploy/keycloak/sq-realm-roles.json 保持一致，
@@ -119,8 +122,12 @@ if [[ -n "$GRANT_USER" ]]; then
   ROLE_ID="$(run_kcadm get "roles/$GRANT_ROLE" -r "$REALM" \
     | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')"
   # role-mappings/realm 接受的是 JSON 数组
+  # 注：曾用 `-t` 传 body，但 kcadm 的 create **没有 -t 选项**（会报
+  # "Invalid option: -t"）——传 JSON body 的正确选项是 `-b`（或 -f - 走 stdin）。
+  # 该脚本此前从未实跑过 --grant 路径，所以这个错一直藏着。
+  # （2026-10-13 首次实跑授权时暴露并修正。）
   run_kcadm create "users/$UID_HEX/role-mappings/realm" \
-    -t '[{"id":"'"$ROLE_ID"'","name":"'"$GRANT_ROLE"'","composite":false,"clientRole":true}]' \
+    -b '[{"id":"'"$ROLE_ID"'","name":"'"$GRANT_ROLE"'","composite":false,"clientRole":true}]' \
     >/dev/null
   echo "    已授予 $GRANT_ROLE"
 fi

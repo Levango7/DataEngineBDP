@@ -14,7 +14,7 @@
         "description": "平台超级管理员：租户 CRUD、邀请码、跨租户审批、K8s 集群管理",
         "composite": false,
         "attributes": {
-          "grants": "/api/v1/tenants,/api/v1/invites,/api/v1/admin,/api/v1/k8s,/api/v1/audit"
+          "grants": ["/api/v1/tenants,/api/v1/invites,/api/v1/admin,/api/v1/k8s,/api/v1/audit"]
         }
       },
       {
@@ -22,7 +22,7 @@
         "description": "租户管理员：本租户内的注册审批与资源管理（不可跨租户）",
         "composite": false,
         "attributes": {
-          "grants": "/api/v1/registrations(本租户),/api/v1/workspaces,/api/v1/projects"
+          "grants": ["/api/v1/registrations(本租户),/api/v1/workspaces,/api/v1/projects"]
         }
       },
       {
@@ -36,7 +36,7 @@
         "description": "管理端点通用角色：定价配置（cost-model PricingController）与租户配额管理（encaps-tenant QuotaController）的类级 @PreAuthorize 要求",
         "composite": false,
         "attributes": {
-          "grants": "/api/v1/pricing,/api/v1/quotas"
+          "grants": ["/api/v1/pricing,/api/v1/quotas"]
         }
       },
       {
@@ -44,7 +44,7 @@
         "description": "治理域写角色：元数据采集任务的创建/更新/删除/触发/调度（metadata-collector CollectorController 七处写操作）",
         "composite": false,
         "attributes": {
-          "grants": "/api/v1/collector(写操作)"
+          "grants": ["/api/v1/collector(写操作)"]
         }
       },
       {
@@ -52,7 +52,7 @@
         "description": "基础设施管理角色：云集群与私有云集群的管理端点（infra-provider-cloud / infra-provider-private 的 ClusterController）",
         "composite": false,
         "attributes": {
-          "grants": "/api/v1/clusters(管理)"
+          "grants": ["/api/v1/clusters(管理)"]
         }
       },
       {
@@ -60,7 +60,7 @@
         "description": "SQL 网关路由规则写权限：可新增/变更查询路由与改写规则（SqlGatewayController 的 POST /api/v1/sql/routes）",
         "composite": false,
         "attributes": {
-          "grants": "POST /api/v1/sql/routes"
+          "grants": ["POST /api/v1/sql/routes"]
         }
       }
     ]
