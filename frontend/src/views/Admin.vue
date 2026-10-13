@@ -38,24 +38,22 @@
           <div class="meta">
             {{
               t('admin.kpi.clustersMeta', {
-                xinchuang: kpi?.clusterXinchuang ?? 0,
-                onprem: kpi?.clusterOnprem ?? 0,
-                cloudVm: kpi?.clusterCloudVm ?? 0
+                xinchuang: num(kpi?.clusterXinchuang),
+                onprem: kpi?.clusterOnprem ?? NOT_WIRED,
+                cloudVm: kpi?.clusterCloudVm ?? NOT_WIRED
               })
             }}
           </div>
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.revenue') }}</h3>
-          <div class="kpi s">
-            {{ t('common.currency') }} {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}
-          </div>
+          <div class="kpi s">{{ revenueText }}</div>
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.alerts') }}</h3>
-          <div class="kpi s">{{ kpi?.alertCount ?? 0 }}</div>
+          <div class="kpi s">{{ kpi?.alertCount ?? NOT_WIRED }}</div>
           <div class="meta">
-            {{ t('admin.kpi.alertsMeta', { count: kpi?.alertAutoHandled ?? 0 }) }}
+            {{ t('admin.kpi.alertsMeta', { count: kpi?.alertAutoHandled ?? NOT_WIRED }) }}
           </div>
         </div>
       </div>
@@ -87,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
 import { PageHeader } from '@/components/ui'
@@ -111,6 +109,28 @@ function formatRevenue(v: number): string {
   if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`
   return v.toFixed(0)
 }
+
+/**
+ * 未接入字段的占位符。
+ *
+ * 后端 `/api/v1/admin/kpi` 目前不返回 `clusterOnprem` / `clusterCloudVm` /
+ * `monthlyRevenue` / `alertCount` / `alertAutoHandled`（需跨服务聚合，尚未实现）。
+ * 此前这些位置写的是 `?? 0`，界面会显示一个**看起来很确定的 0**，
+ * 运维据此判断"本月没有营收、底座没有告警" —— 这是界面在说谎。
+ * 未接入就显示 `—`，让"没有数据"与"数据是 0"可区分。
+ */
+const NOT_WIRED = '—'
+
+/** 已接入字段：nullish 才回落 0；未接入字段请直接用 NOT_WIRED。 */
+function num(v: number | undefined | null): number {
+  return v ?? 0
+}
+
+/** 本月营收：后端未接入 ⇒ 显示占位符，不显示 ¥0。 */
+const revenueText = computed(() => {
+  const v = kpi.value?.monthlyRevenue
+  return v == null ? NOT_WIRED : `${t('common.currency')} ${formatRevenue(v)}`
+})
 
 const ENV_STATUS_CLS: Record<EnvStatus, string> = {
   healthy: 'g',
