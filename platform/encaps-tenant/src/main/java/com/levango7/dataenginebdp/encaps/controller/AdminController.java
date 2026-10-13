@@ -1,11 +1,8 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.repository.ApiDefinitionRepository;
-import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
-import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
+import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
-import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
@@ -26,12 +23,34 @@ import java.util.Map;
 /**
  * 运营后台端点（ROADMAP 前后端接线：前端 /admin）。
  *
- * <p>KPI 从真实仓储聚合（租户/工作空间/配额/资产/API/数据源/项目/同步任务），
- * 环境矩阵为轻量静态视图（真实集群状态见 query-api /cluster）。</p>
+ * <p>KPI 从真实仓储聚合，环境矩阵为轻量静态视图（真实集群状态见 query-api /cluster）。</p>
  *
  * <p><b>鉴权</b>：要求认证上下文（{@link TenantContext#getTenantId()} 非空），
  * 否则返回 403。KPI 聚合用 {@code count()} 而非 {@code findAll().size()}，
  * 避免全表加载造成 OOM。</p>
+ *
+ * <p><b>契约只包含"本服务能诚实算出的数"</b>（2026-10-13 收口，见 PR #451 的后续）。
+ * 此前本端点返回两类<b>编造值</b>，运维会当真实 KPI 读，比返回 {@code null} 更糟：</p>
+ *
+ * <ol>
+ *   <li><b>硬编码</b>：{@code tenantExternal=0} / {@code tenantInternal=1} /
+ *       {@code clusterTotal=1} / {@code clusterXinchuang=1} —— 无对应数据模型，
+ *       写死在代码里；</li>
+ *   <li><b>结构性恒 0</b>：{@code assetTotal} / {@code apiTotal} /
+ *       {@code datasourceTotal} —— 这三张表由 encaps-layer / encaps-gateway /
+ *       encaps-data 写入 <b>encaps_layer</b> schema，而本服务的
+ *       {@code currentSchema=encaps_tenant}，实体 {@code @Table} 又未带
+ *       schema 前缀 ⇒ 查询落到 {@code encaps_tenant} 的空副本上，永远返回 0。
+ *       {@code syncTaskTotal} 同理：本服务没有 sync_task 的写入方。</li>
+ * </ol>
+ *
+ * <p>这些字段已全部从响应中移除，前端对应字段标 {@code @deprecated} 并显示占位符。
+ * 要恢复它们，必须先解决<b>跨 schema 数据归属</b>问题（台账 #63），
+ * 而不是把占位符改回 {@code ?? 0}。</p>
+ *
+ * <p><b>租户口径</b>：{@code tenantTotal} 是本服务 schema 内 {@code tenants}
+ * 表的真实行数。注意 encaps-layer 的 {@code TenantController} 也写同名表
+ * （落在 encaps_layer schema）⇒ 全平台租户数需先收敛双写问题，此处不作跨 schema 猜测。</p>
  */
 @Slf4j
 @RestController
@@ -40,34 +59,29 @@ import java.util.Map;
 @RequestMapping("/api/v1/admin")
 public class AdminController {
 
+    private final TenantRepository tenantRepository;
     private final WorkspaceRepository workspaceRepository;
     private final QuotaRepository quotaRepository;
-    private final AssetRepository assetRepository;
-    private final ApiDefinitionRepository apiRepository;
-    private final DataSourceRepository dataSourceRepository;
     private final ProjectRepository projectRepository;
-    private final SyncTaskRepository syncTaskRepository;
 
-    /** KPI 总览（要求认证上下文）。 */
+    /**
+     * KPI 总览（要求认证上下文）。
+     *
+     * <p>仅返回本服务能诚实算出的四个计数：租户总数、工作空间数、配额数、项目数。
+     * 已下线的字段与原因见类注释。</p>
+     */
     @Operation(summary = "KPI 总览")
     @GetMapping("/kpi")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> kpi() {
         String tenantId = requireTenant();
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("tenantTotal", 1);
-        body.put("tenantExternal", 0);
-        body.put("tenantInternal", 1);
-        body.put("clusterTotal", 1);
-        body.put("clusterXinchuang", 1);
-        // 用 count() 替代 findAll().size()，避免全表加载造成 OOM
-        body.put("workspaceTotal", workspaceRepository.count());
+        body.put("tenantTotal", tenantRepository.count());
+        // 用 count() 替代 findAll().size()，避免全表加载造成 OOM；
+        // 且必须带 tenantId —— 此前 workspaceRepository.count() 是全表计数，口径跨了租户
+        body.put("workspaceTotal", workspaceRepository.countByTenantId(tenantId));
         body.put("quotaTotal", quotaCount(tenantId));
-        body.put("assetTotal", assetRepository.countByTenantId(tenantId));
-        body.put("apiTotal", apiRepository.countByTenantId(tenantId));
-        body.put("datasourceTotal", dataSourceRepository.countByTenantId(tenantId));
         body.put("projectTotal", projectRepository.countByTenantId(tenantId));
-        body.put("syncTaskTotal", syncTaskRepository.countByTenantId(tenantId));
         return ResponseEntity.ok(body);
     }
 
@@ -85,9 +99,11 @@ public class AdminController {
     @GetMapping("/env-matrix")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> envMatrix() {
-        requireTenant();
-        // 用 count() 替代 findAll().size()，避免全表加载造成 OOM
-        long workspaces = workspaceRepository.count();
+        // 同样按租户口径收口：此前 workspaceRepository.count() 是全表计数，
+        // 任何一个租户都能看到全平台的工作空间数。
+        // 注意 namespaceCount 映射的是工作空间数，该字段命名与语义不符属既有问题，
+        // 本次只收口租户口径，不改指标含义。
+        long workspaces = workspaceRepository.countByTenantId(requireTenant());
         return ResponseEntity.ok(List.of(
                 envRow("xinchuang", "信创环境", workspaces, 3, "kubeadm + 国产化组件"),
                 envRow("onprem", "本地数据中心", workspaces, 3, "kubeadm + 离线镜像"),

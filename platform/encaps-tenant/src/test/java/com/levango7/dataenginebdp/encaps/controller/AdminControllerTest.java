@@ -2,12 +2,10 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.common.GlobalExceptionHandler;
+import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
-import com.levango7.dataenginebdp.encaps.repository.ApiDefinitionRepository;
-import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
-import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
-import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
+import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,13 +18,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * {@link AdminController} 的租户上下文 fail-closed 契约测试。
+ * {@link AdminController} 的租户上下文 fail-closed 契约 + KPI 契约测试。
  *
- * <p>存在的理由（台账 #56 续十二新增待裁残留）：本类此前在缺租户上下文时抛
+ * <p><b>一、fail-closed 语义</b>（台账 #56 续十二新增待裁残留）：本类此前在缺租户上下文时抛
  * {@code ResponseStatusException(UNAUTHORIZED)}（→ 401），而
  * {@code AccountController} / {@code ProjectController} / {@code QuotaController} /
  * {@code WorkspaceController} 抛 {@code MissingTenantContextException}（→ 403）。
@@ -35,11 +39,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 把用户无故踢出。批次 B（PR #366）统一了字符串租户键，却漏掉了本类。</p>
  *
  * <p>下面两条断言即该语义对齐的回归位：任一被改回 401，本类必须转红。</p>
+ *
+ * <p><b>二、KPI 契约只含"能诚实算出的数"</b>（2026-10-13 收口）：
+ * 此前本端点返回两类编造值，运维会当真实 KPI 读，比返回 {@code null} 更糟 ——</p>
+ * <ol>
+ *   <li>硬编码：{@code tenantExternal=0} / {@code tenantInternal=1} /
+ *       {@code clusterTotal=1} / {@code clusterXinchuang=1}；</li>
+ *   <li>结构性恒 0：{@code assetTotal} / {@code apiTotal} /
+ *       {@code datasourceTotal} / {@code syncTaskTotal} —— 查询落到本服务
+ *       schema 的空副本表。</li>
+ * </ol>
+ * <p>{@link #kpi_returnsOnlyHonestCounts()} 即该契约的回归位：
+ * 这些字段任何一个被加回来，本类必须转红。</p>
  */
 @ExtendWith(MockitoExtension.class)
 class AdminControllerTest {
 
     private static final String TEST_TENANT_ID = "100";
+
+    @Mock
+    private TenantRepository tenantRepository;
 
     @Mock
     private WorkspaceRepository workspaceRepository;
@@ -48,19 +67,7 @@ class AdminControllerTest {
     private QuotaRepository quotaRepository;
 
     @Mock
-    private AssetRepository assetRepository;
-
-    @Mock
-    private ApiDefinitionRepository apiRepository;
-
-    @Mock
-    private DataSourceRepository dataSourceRepository;
-
-    @Mock
     private ProjectRepository projectRepository;
-
-    @Mock
-    private SyncTaskRepository syncTaskRepository;
 
     @InjectMocks
     private AdminController adminController;
@@ -112,5 +119,33 @@ class AdminControllerTest {
 
         mockMvc.perform(get("/api/v1/admin/kpi"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/admin/kpi — 契约只含 4 个诚实计数，编造字段不得回归（2026-10-13 收口）")
+    void kpi_returnsOnlyHonestCounts() throws Exception {
+        // 给定：每个仓储返回一个可区分的已知值
+        when(tenantRepository.count()).thenReturn(1L);
+        when(workspaceRepository.countByTenantId(anyString())).thenReturn(2L);
+        when(quotaRepository.findByTenantId(anyString()))
+                .thenReturn(List.of(mock(Quota.class), mock(Quota.class)));
+        when(projectRepository.countByTenantId(anyString())).thenReturn(3L);
+
+        mockMvc.perform(get("/api/v1/admin/kpi"))
+                .andExpect(status().isOk())
+                // 四个能诚实算出的计数，且值是打桩的已知值（不是硬编码）
+                .andExpect(jsonPath("$.tenantTotal").value(1))
+                .andExpect(jsonPath("$.workspaceTotal").value(2))
+                .andExpect(jsonPath("$.quotaTotal").value(2))
+                .andExpect(jsonPath("$.projectTotal").value(3))
+                // 编造字段一个都不许回来
+                .andExpect(jsonPath("$.tenantExternal").doesNotExist())
+                .andExpect(jsonPath("$.tenantInternal").doesNotExist())
+                .andExpect(jsonPath("$.clusterTotal").doesNotExist())
+                .andExpect(jsonPath("$.clusterXinchuang").doesNotExist())
+                .andExpect(jsonPath("$.assetTotal").doesNotExist())
+                .andExpect(jsonPath("$.apiTotal").doesNotExist())
+                .andExpect(jsonPath("$.datasourceTotal").doesNotExist())
+                .andExpect(jsonPath("$.syncTaskTotal").doesNotExist());
     }
 }
