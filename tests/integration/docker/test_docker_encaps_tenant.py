@@ -228,13 +228,18 @@ def test_admin_kpi(api_client, encaps_tenant_url):
     resp = api_client.get(encaps_tenant_url + "/api/v1/admin/kpi")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
-    # 2026-10-13 收口：只保留 4 个按租户口径的真实 count
-    for key in ("tenantTotal", "workspaceTotal", "quotaTotal", "projectTotal"):
+    # 2026-10-13 收口：只保留 3 个按租户口径的真实 count
+    for key in ("workspaceTotal", "quotaTotal", "projectTotal"):
         assert key in body
-    # 已下线的编造字段不得回归：
+    # 已下线的字段不得回归：
     #   tenantExternal/tenantInternal/clusterTotal/clusterXinchuang —— 曾硬编码
     #   assetTotal/apiTotal/datasourceTotal/syncTaskTotal —— 曾结构性恒 0
+    #   tenantTotal —— 读的是 encaps_tenant.tenants 孤儿副本：
+    #     网关把 /api/v1/tenants/** 路由到 encaps-layer，前端读的是
+    #     encaps_layer.tenants；本表只在直连 8081 绕过网关时才被写
+    #     （本用例的 encaps_tenant_url 就是直连 18090）⇒ 生产恒空表，不能作为 KPI
     for key in (
+        "tenantTotal",
         "tenantExternal",
         "tenantInternal",
         "clusterTotal",
