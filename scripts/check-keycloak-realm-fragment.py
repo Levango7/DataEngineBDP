@@ -118,6 +118,24 @@ def check(path: str) -> list[str]:
                 f"但 realm 片段未定义它 ⇒ 该角色用户在运行期必 403"
             )
 
+    # B2. 角色 attributes 的值必须是**字符串数组**。
+    #
+    # Keycloak 的角色属性模型是 Map<String, List<String>>，写成单个字符串会在
+    # partialImport 时以 500 "unable to read contents from stream" 失败——该错误信息
+    # 完全不提属性，极难归因（2026-10-13 首次实跑导入时二分定位到此）。
+    # 服务端不记 ERROR 日志，只有这个 500，所以离线必须拦。
+    for role in doc.get("roles", {}).get("realm", []):
+        if not isinstance(role, dict):
+            continue
+        for key, value in (role.get("attributes") or {}).items():
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                findings.append(
+                    f"角色 {role.get('name')} 的 attributes.{key} 的值是 "
+                    f"{type(value).__name__}，应为「字符串数组」——Keycloak 的 "
+                    f"Map<String, List<String>> 模型不收单字符串，导入时以 500 "
+                    f'"unable to read contents from stream" 失败'
+                )
+
     # C. 两个必需 protocolMapper
     for client in doc.get("clients", []):
         if not isinstance(client, dict):
@@ -159,6 +177,37 @@ def check(path: str) -> list[str]:
                 )
             if str(cfg.get("access.token.claim")).lower() != "true":
                 findings.append(f"client {cid}: tenant-id mapper 的 access.token.claim 未开启 ⇒ 声明不会进 token")
+
+    # D. Keycloak 24 的 declarative UserProfile：未声明的属性会被**静默丢弃**。
+    #
+    # tenant-id mapper 读的是 user attribute `tenantId`，而 Keycloak 24 默认的 profile 只声明
+    # username/email/firstName/lastName 四个属性。不把 unmanagedAttributePolicy 设为 ENABLED，
+    # 建用户时写的 attributes.tenantId 会被静默拒绝（API 返回 201，GET 却无 attributes），
+    # 导致 token 里 tenantId 恒为空 → TenantContext 为空 → JwtAuthFilter 401。
+    # （2026-10-13 真机实测确认；这是"代填"链路断的根因。）
+    #
+    # **为什么检查脚本而不是检查 realm JSON**：`usersProfile` 不是 partialImport 支持的
+    # 资源类型——写在 realm JSON 里会被静默忽略（实测 imported=8 但 policy 仍 null），
+    # 必须在导入后单独 `PUT users/profile`。所以本判据检查**导入脚本是否含这一步**，
+    # 而不是 JSON 里有没有那个键。
+    script = os.path.join(REPO_ROOT, "scripts", "import-keycloak-realm.sh")
+    try:
+        script_text = open(script, encoding="utf-8").read()
+    except OSError:
+        findings.append("找不到 %s，无法确认它是否设置 unmanagedAttributePolicy" % script)
+        script_text = ""
+    if "unmanagedAttributePolicy=ENABLED" not in script_text:
+        findings.append(
+            "import-keycloak-realm.sh 未设置 unmanagedAttributePolicy=ENABLED：Keycloak 24 的 "
+            "declarative UserProfile 会静默丢弃未声明属性 ⇒ 用户的 tenantId 属性写不进去 ⇒ "
+            "token 里 tenantId 为空 ⇒ TenantContext 为空 ⇒ 所有受保护端点 401"
+        )
+    # 反向：realm JSON 里写了 usersProfile 也要提醒（那个键无效，会误导后来者）
+    if "usersProfile" in doc:
+        findings.append(
+            "realm JSON 里出现了 usersProfile 键——它不是 partialImport 支持的资源类型，"
+            "写了会被静默忽略；正确做法是导入后单独 PUT users/profile（脚本已实现）"
+        )
     return findings
 
 
@@ -214,6 +263,15 @@ def self_test() -> int:
         got2 = check(p2)
         if not any(REALM_ROLE_MAPPER in f or TENANT_ATTR_MAPPER in f for f in got2):
             failures.append("反例（两个 mapper 都缺）应命中，却得到: %s" % got2)
+
+        # 反例 2：角色 attributes 的值写成单字符串（Keycloak 导入会 500）
+        bad_attr = json.loads(json.dumps(GOOD))
+        bad_attr["roles"]["realm"] = [{"name": r, "attributes": {"grants": "/api/v1/x"}} for r in sorted(used)]
+        p3 = os.path.join(tmp, "bad_attr.json")
+        json.dump(bad_attr, open(p3, "w", encoding="utf-8"))
+        got3 = check(p3)
+        if not any("attributes.grants" in f for f in got3):
+            failures.append("反例 2（attributes 单字符串）应命中，却得到: %s" % got3)
 
     if failures:
         print("FAIL: self-test 未通过")
