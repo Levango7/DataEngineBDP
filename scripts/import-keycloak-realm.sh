@@ -10,6 +10,9 @@
 #   bash scripts/import-keycloak-realm.sh                    # kubectl exec 进 Pod 执行 kcadm
 #   bash scripts/import-keycloak-realm.sh --server http://127.0.0.1:8081   # 本地 port-forward
 #
+# 离线自检（不需要 Keycloak / kubectl / 凭据，CI 可跑）：
+#   bash scripts/import-keycloak-realm.sh --verify-only      # 只校验 realm 片段与代码侧契约
+#
 # 可选命名空间/realm：KEYCLOAK_NAMESPACE=sq-platform KEYCLOAK_REALM=sq
 # 给用户授角色：--grant <用户名> <角色名>
 #   bash scripts/import-keycloak-realm.sh --grant platform-root SUPER_ADMIN
@@ -22,13 +25,15 @@ REALM="${KEYCLOAK_REALM:-sq}"
 SERVER=""
 GRANT_USER=""
 GRANT_ROLE=""
+VERIFY_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --server) SERVER="${2:?--server 需要地址}"; shift 2 ;;
     --grant)
       GRANT_USER="${2:?--grant 需要用户名}"; GRANT_ROLE="${3:?--grant 需要角色名}"; shift 3 ;;
-    -h|--help) sed -n '1,22p' "$0"; exit 0 ;;
+    --verify-only) VERIFY_ONLY=1; shift ;;
+    -h|--help) sed -n '1,24p' "$0"; exit 0 ;;
     *) echo "未知参数: $1（见 --help）" >&2; exit 2 ;;
   esac
 done
@@ -37,6 +42,14 @@ if [[ ! -f "$REALM_FILE" ]]; then
   echo "ERROR: 找不到 realm 片段 $REALM_FILE" >&2
   exit 2
 fi
+
+# 离线自检：不起服务、不连集群、不需要凭据。校验 realm 片段自身正确性
+# 以及它与代码侧 @PreAuthorize 角色引用的一致性——这些错误在真机导入成功之后
+# 才会以 403 形式暴露，届时很难归因到 realm 文件，故先离线拦一道。
+if [[ "$VERIFY_ONLY" -eq 1 ]]; then
+  exec python3 "$REPO_ROOT/scripts/check-keycloak-realm-fragment.py" "$@"
+fi
+
 if [[ -z "${KEYCLOAK_ADMIN:-}" || -z "${KEYCLOAK_ADMIN_PASSWORD:-}" ]]; then
   echo "ERROR: 需先 export KEYCLOAK_ADMIN 与 KEYCLOAK_ADMIN_PASSWORD" >&2
   exit 2
@@ -81,8 +94,11 @@ run_kcadm create partialImport -r "$REALM" \
   -s ifResourceExistsAction=OVERWRITE -o resource=import -f "$SRC"
 
 echo "==> 校验 realm 角色已落地"
+# 角色清单与 design/deploy/keycloak/sq-realm-roles.json 保持一致，
+# 并由 scripts/check-keycloak-realm-fragment.py 与代码侧 @PreAuthorize 引用交叉核对
+# （缺角色的症状是运行期 403，而导入时毫无报错——所以这一步是必要的）。
 missing=0
-for want in SUPER_ADMIN TENANT_ADMIN USER; do
+for want in SUPER_ADMIN TENANT_ADMIN USER ADMIN GOVERNANCE_WRITER INFRA_ADMIN SQL_GATEWAY_WRITER; do
   if run_kcadm get "roles/$want" -r "$REALM" >/dev/null 2>&1; then
     echo "    ✓ $want"
   else
