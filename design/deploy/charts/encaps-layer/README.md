@@ -55,9 +55,9 @@ helm template encaps-layer design/deploy/charts/encaps-layer -n sq-system
 
 | 参数 | 说明 | 默认值 |
 | --- | --- | --- |
-| `image.repository` | 镜像仓库地址 | `docker.m.daocloud.io/sq-encapsulation` |
-| `image.tag` | 镜像标签 | `0.1.0` |
-| `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
+| `image.repository` | 镜像仓库地址 | `ghcr.io/levango7/sq-encaps-layer` |
+| `image.tag` | 镜像标签 | `latest`（可变 tag） |
+| `image.pullPolicy` | 镜像拉取策略 | `Always`（可变 tag 必须 Always，否则吃到缓存旧镜像） |
 | `replicaCount` | 副本数 | `2` |
 | `service.type` | Service 类型 | `ClusterIP` |
 | `service.port` | Service 端口 | `8080` |
@@ -86,9 +86,9 @@ helm template encaps-layer design/deploy/charts/encaps-layer -n sq-system
 ```yaml
 # encaps-layer 自定义配置示例
 image:
-  repository: "docker.m.daocloud.io/sq-encapsulation"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-encaps-layer"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 2
 

@@ -142,7 +142,7 @@ CHARTS = [
 
     # ===== 平台核心类 (10) =====
     ("encaps-layer", "封装层 - K8s 产品化业务语义翻译", "0.1.0",
-     "sq-encapsulation", "0.1.0", 8080, "platform", "sq-system",
+     "sq-encaps-layer", "0.1.0", 8080, "platform", "sq-system",
      "encapsulation,platform", 2, "0.5", "1Gi", "1", "2Gi"),
     ("sql-gateway", "SQL 网关 - Calcite/ANTLR 联邦查询", "0.1.0",
      "sq-sql-gateway", "0.1.0", 8080, "platform", "sq-engine",

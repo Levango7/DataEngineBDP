@@ -13,9 +13,6 @@ known:
 - file: design/deploy/charts/data-quality/values.yaml
   repository: "docker.m.daocloud.io/sq-data-quality"
   tag: "2.0.0"
-- file: design/deploy/charts/encaps-layer/values.yaml
-  repository: "docker.m.daocloud.io/sq-encapsulation"
-  tag: "0.1.0"
 - file: design/deploy/charts/finops/values.yaml
   repository: "harbor.shuqing.io/shuqing/finops"
   tag: "2.0.0"
