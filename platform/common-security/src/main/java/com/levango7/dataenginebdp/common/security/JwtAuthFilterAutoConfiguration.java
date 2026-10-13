@@ -2,11 +2,13 @@ package com.levango7.dataenginebdp.common.security;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -68,6 +70,15 @@ public class JwtAuthFilterAutoConfiguration {
     /** JWT issuer 配置项 */
     static final String ISSUER_PROPERTY = "app.security.jwt.issuer";
 
+    /**
+     * Keycloak JWKS 端点配置项（可选）。
+     *
+     * <p>配置后过滤器同时接受 Keycloak 签发的 RS256 token（按 {@code kid} 从该端点拉公钥）；
+     * 不配置则仅验自签 HS256 token——与历史行为完全一致。形如
+     * {@code https://<kc>/realms/<realm>/protocol/openid-connect/certs}。</p>
+     */
+    static final String JWKS_URI_PROPERTY = "app.security.jwt.jwks-uri";
+
     /** HMAC-SHA 签名密钥最低字节数（256 bit） */
     static final int MIN_SECRET_BYTES = 32;
 
@@ -77,14 +88,29 @@ public class JwtAuthFilterAutoConfiguration {
      * <p>需要特化扩展（如 SM2 国密、OIDC）的模块应自行声明 {@link JwtAuthFilter} Bean，
      * 本方法将自动退让。</p>
      *
-     * @param secret JWT 签名密钥
-     * @param issuer JWT issuer
+     * @param secret       JWT 签名密钥
+     * @param issuer       JWT issuer
+     * @param jwksProvider 可选；仅当配置了 {@value #JWKS_URI_PROPERTY} 时容器内才有该 Bean
      * @return 通用 JwtAuthFilter 实例
      */
     @Bean
     public JwtAuthFilter defaultJwtAuthFilter(@Value("${" + SECRET_PROPERTY + "}") String secret,
-                                              @Value("${" + ISSUER_PROPERTY + "}") String issuer) {
-        return new JwtAuthFilter(secret, issuer);
+                                              @Value("${" + ISSUER_PROPERTY + "}") String issuer,
+                                              ObjectProvider<JwksPublicKeyProvider> jwksProvider) {
+        return new JwtAuthFilter(secret, issuer, jwksProvider.getIfAvailable());
+    }
+
+    /**
+     * Keycloak JWKS 公钥提供器（仅在配置了 {@value #JWKS_URI_PROPERTY} 时创建）。
+     *
+     * <p>用 {@link ConditionalOnProperty} 而非无条件创建：未配置该项时（本地/测试/无 Keycloak
+     * 环境）连 HTTP 客户端都不该初始化，保持零外部依赖的启动路径。</p>
+     */
+    @Bean
+    @ConditionalOnProperty(name = JWKS_URI_PROPERTY)
+    public JwksPublicKeyProvider jwksPublicKeyProvider(
+            @Value("${" + JWKS_URI_PROPERTY + "}") String jwksUri) {
+        return new JwksPublicKeyProvider(jwksUri, null, null, null);
     }
 
     /**
