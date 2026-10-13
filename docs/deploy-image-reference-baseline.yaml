@@ -1,0 +1,39 @@
+# 部署配置里"自研镜像引用"的已知缺口基线（scripts/check-image-reference.py --write-baseline 生成）
+# 含义：这些引用指向本仓产不出的坐标（错宿主 / 错模块名 / 错 tag），
+#       门禁对它们只登记不判红；新增缺口或本表条目已被修掉都会判红（只减不增）。
+# 销账条件：把 repository 改成 ghcr.io/levango7/sq-<可构建模块> 且 tag ∈ {latest, 40 位 sha}，
+#           然后重跑 --write-baseline（或直接删除对应条目）。
+known:
+- file: design/deploy/charts/asset-catalog/values.yaml
+  repository: "docker.m.daocloud.io/sq-asset-catalog"
+  tag: "0.1.0"
+- file: design/deploy/charts/chunker/values.yaml
+  repository: "harbor.shuqing.io/shuqing/chunker"
+  tag: "2.0.0"
+- file: design/deploy/charts/data-quality/values.yaml
+  repository: "docker.m.daocloud.io/sq-data-quality"
+  tag: "2.0.0"
+- file: design/deploy/charts/finops/values.yaml
+  repository: "harbor.shuqing.io/shuqing/finops"
+  tag: "2.0.0"
+- file: design/deploy/charts/flink-cdc/values.yaml
+  repository: "harbor.shuqing.io/shuqing/flink-cdc"
+  tag: "2.0.0"
+- file: design/deploy/charts/infra-provider-xinchang/values.yaml
+  repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
+  tag: "0.1.0"
+- file: design/deploy/charts/model-finetuning/values.yaml
+  repository: "harbor.shuqing.io/shuqing/model-finetuning"
+  tag: "2.0.0"
+- file: design/deploy/charts/observability/values.yaml
+  repository: "harbor.shuqing.io/shuqing/observability"
+  tag: "2.0.0"
+- file: design/deploy/charts/ske-infra/values.yaml
+  repository: "docker.m.daocloud.io/sq-ske-infra"
+  tag: "1.31.0-0.1.0"
+- file: design/deploy/charts/storage-io/values.yaml
+  repository: "harbor.shuqing.io/shuqing/storage-io"
+  tag: "2.0.0"
+- file: design/deploy/values/data-quality-values.yaml
+  repository: "docker.m.daocloud.io/sq-data-quality"
+  tag: "2.0.0"

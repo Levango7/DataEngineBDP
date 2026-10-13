@@ -6,9 +6,9 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/sq-evaluation"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-evaluation"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 副本数（无状态查询代理，可水平扩）----
 replicaCount: 2

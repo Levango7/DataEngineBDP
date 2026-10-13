@@ -5,9 +5,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-karmada-api"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-karmada-api"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 2
 

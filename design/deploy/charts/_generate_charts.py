@@ -18,8 +18,15 @@ import sys
 
 import os
 
-# 国内镜像源前缀
+# 第三方镜像的国内镜像源前缀（bitnami/redis、apache/airflow… 走这里）
 IMAGE_PREFIX = "docker.m.daocloud.io"
+# 自研镜像（image_repo 以 sq- 开头）的唯一产出方是 build.yml 的 GHCR 推送：
+# `ghcr.io/${REGISTRY_NS}/sq-<Dockerfile 所在目录名>`，tag 只有 latest 与 40 位 sha。
+# 2026-10-12 按台账 #65 方案一（生产 registry 定为 GHCR）与自研/第三方分流；
+# 此前两条线共用 IMAGE_PREFIX，于是 sq-* 被指到 docker.m.daocloud.io ⇒ helm install 必然
+# ImagePullBackOff，而门禁只查"有 Dockerfile 却无部署单元"的反方向，拦不住它。
+FIRST_PARTY_PREFIX = "ghcr.io/levango7"
+
 
 # 33 个新增 Chart 元数据清单
 # 字段: name, description, app_version, image_repo, image_tag, service_port,
@@ -30,7 +37,7 @@ CHARTS = [
      "sq-ske-infra", "1.28.0-0.1.0", 6443, "infrastructure", "kube-system",
      "ske,kubernetes,infra", 1, "0.5", "512Mi", "1", "1Gi"),
     ("cni-cilium", "Cilium CNI - eBPF 网络栈取代 kube-proxy", "1.15.0",
-     "cilium/cilium", "v1.15.0", 4240, "infrastructure", "kube-system",
+     "cilium/cilium", "v1.16.0", 4240, "infrastructure", "kube-system",
      "cni,cilium,network", 1, "0.5", "512Mi", "2", "2Gi"),
     ("csi-juicefs", "JuiceFS CSI 驱动 - 云原生对象存储挂载", "1.2.0",
      "juicedata/juicefs-csi-driver", "v1.2.0", 9443, "infrastructure", "kube-system",
@@ -42,21 +49,21 @@ CHARTS = [
      "metallb/metallb-controller", "v0.14.0", 7472, "infrastructure", "kube-system",
      "loadbalancer,metallb,bgp", 1, "0.5", "256Mi", "1", "512Mi"),
     ("node-problem-detector", "节点问题检测 - 内核与 kubelet 异常巡检", "0.8.0",
-     "k8s.gcr.io/node-problem-detector", "v0.8.0", 20256, "infrastructure", "kube-system",
+     "registry.k8s.io/node-problem-detector", "v0.8.0", 20256, "infrastructure", "kube-system",
      "node,health,detector", 3, "0.1", "128Mi", "0.5", "256Mi"),
     ("cluster-autoscaler", "集群自动扩缩容 - 节点池弹性扩容", "1.28.0",
-     "k8s.gcr.io/cluster-autoscaler", "v1.28.0", 8085, "infrastructure", "kube-system",
+     "registry.k8s.io/cluster-autoscaler", "v1.31.0", 8085, "infrastructure", "kube-system",
      "autoscaler,cluster,elastic", 1, "0.5", "512Mi", "2", "2Gi"),
     ("keda", "KEDA 弹性伸缩 - 事件驱动自动扩缩容", "2.13.0",
-     "ghcr.io/kedacore/keda", "2.13.0", 8080, "infrastructure", "kube-system",
+     "ghcr.io/kedacore/keda", "2.16.0", 8080, "infrastructure", "kube-system",
      "keda,autoscaling,event", 1, "0.5", "256Mi", "1", "1Gi"),
     ("descheduler", "重调度器 - 节点负载均衡再平衡", "0.30.0",
-     "k8s.gcr.io/descheduler", "v0.30.0", 8080, "infrastructure", "kube-system",
+     "registry.k8s.io/descheduler", "v0.30.0", 8080, "infrastructure", "kube-system",
      "descheduler,scheduling,balance", 1, "0.5", "256Mi", "1", "1Gi"),
 
     # ===== 大数据引擎类 (10) =====
     ("hive-metastore", "Hive Metastore 元数据服务 - 兼容 Hive 3.1 协议", "3.1.3",
-     "sq-hive-metastore", "3.1.3-0.1.0", 9083, "engine", "sq-engine",
+     "bitsondatadev/hive-metastore", "2.3.9", 9083, "engine", "sq-engine",
      "hive,metastore,big-data", 2, "1", "2Gi", "2", "4Gi"),
     ("iceberg-rest", "Iceberg REST Catalog - 表格式 REST 元服务", "0.7.0",
      "tabulario/iceberg-rest-catalog", "0.7.0", 8181, "engine", "sq-engine",
@@ -83,7 +90,7 @@ CHARTS = [
      "milvusdb/milvus", "v2.4.0", 19530, "engine", "sq-intelligent",
      "milvus,vector,database", 2, "1", "2Gi", "2", "4Gi"),
     ("mlflow", "MLflow 模型管理 - 实验追踪与模型注册", "2.14.0",
-     "sq-mlflow", "2.14.0-0.1.0", 5000, "engine", "sq-intelligent",
+     "ghcr.io/mlflow/mlflow", "2.16.1", 5000, "engine", "sq-intelligent",
      "mlflow,mlops,ml", 1, "0.5", "1Gi", "1", "2Gi"),
 
     # ===== 数据集成与调度类 (1) =====
@@ -135,7 +142,7 @@ CHARTS = [
 
     # ===== 平台核心类 (10) =====
     ("encaps-layer", "封装层 - K8s 产品化业务语义翻译", "0.1.0",
-     "sq-encapsulation", "0.1.0", 8080, "platform", "sq-system",
+     "sq-encaps-layer", "0.1.0", 8080, "platform", "sq-system",
      "encapsulation,platform", 2, "0.5", "1Gi", "1", "2Gi"),
     ("sql-gateway", "SQL 网关 - Calcite/ANTLR 联邦查询", "0.1.0",
      "sq-sql-gateway", "0.1.0", 8080, "platform", "sq-engine",
@@ -203,21 +210,33 @@ namespace: {namespace}
 """
 
 
+def image_ref(image_repo):
+    """自研（sq- 前缀）走 GHCR，第三方走国内镜像源——两者不能共用一个前缀。"""
+    prefix = FIRST_PARTY_PREFIX if image_repo.startswith('sq-') else IMAGE_PREFIX
+    return f"{prefix}/{image_repo}"
+
+
 def gen_values_yaml(name, image_repo, image_tag, service_port,
                     replicas, cpu_req, mem_req, cpu_lim, mem_lim):
     """生成 values.yaml（无 Go template 语法，可用 f-string）"""
-    full_image = f"{IMAGE_PREFIX}/{image_repo}"
+    full_image = image_ref(image_repo)
+    first_party = image_repo.startswith('sq-')
+    # 自研镜像只能取 build.yml 真会打的 tag；表里的 semver（0.1.0 等）在 GHCR 上不存在。
+    tag = 'latest' if first_party else image_tag
+    pull_policy = 'Always' if first_party else 'IfNotPresent'
+    src_note = ('自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values'
+                if first_party else '第三方镜像源 docker.m.daocloud.io')
     return f"""# ============================================================================
 # {name} Helm Chart 默认 values
 # 关联：design/deploy/values/{name}-values.yaml（深度调优配置）
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（{src_note}）----
 image:
   repository: "{full_image}"
-  tag: "{image_tag}"
-  pullPolicy: IfNotPresent
+  tag: "{tag}"
+  pullPolicy: {pull_policy}
 
 # ---- 副本数 ----
 replicaCount: {replicas}

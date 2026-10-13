@@ -5,9 +5,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-batch-pipeline"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-batch-pipeline"
+  tag: "latest"
+  pullPolicy: Always
 
 # worker 通常单副本（作业编排有状态）；扩副本前先确认作业互斥
 replicaCount: 1

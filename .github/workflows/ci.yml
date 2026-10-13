@@ -563,6 +563,28 @@ jobs:
           python3 scripts/check-prod-schema-coverage.py --self-test
           python3 scripts/check-prod-schema-coverage.py
 
+      - name: 部署镜像引用校验（自研镜像必须钉在本仓产得出的 ghcr 坐标，只减不增）
+        # 台账 #65：ArgoCD 直接引用的 design/deploy/values/env/* 曾把自研镜像钉成
+        # docker.m.daocloud.io/sq-*（build.yml 从不往该宿主推）、sq-encapsulation（无此模块）、
+        # tag 0.1.0（CI 只打 latest / 40 位 sha）⇒ helm install 必然 ImagePullBackOff。
+        # 既有门禁只查反方向（有 Dockerfile 却没有部署单元，见 check-deployable-coverage.py），
+        # 这个方向今天没有覆盖位。chart 侧 48 条已知缺口登记在
+        # docs/deploy-image-reference-baseline.yaml（根因在 _generate_charts.py 的写死前缀，
+        # 手工改 chart values 会被下次生成冲掉，故留给 #65 的裁决）。
+        run: |
+          # 合成正反例先行，证明这条门禁不会"全绿地校验自己合成的命题"
+          python3 scripts/check-image-reference.py --self-test
+          python3 scripts/check-image-reference.py
+
+      - name: chart 生成器表与文件一致性（防"跑一次 _generate_charts.py"静默回退镜像坐标）
+        # 台账 #65 的②：CHARTS 表长期落后于 values.yaml——表里把 hive-metastore/mlflow 的有效第三方镜像
+        # 登记成不存在的 sq-*，3 处仍指已退役的 k8s.gcr.io，3 个 tag 比文件低一档。
+        # 全量再生成会把这些回退写进文件，而 helm lint 只校验模板、看不出"值变旧了"。
+        # 基线在册的 5 个 chart 跳过比对（它们的坐标与模块映射本身待裁，见 #65 ②③）。
+        run: |
+          python3 scripts/check-chart-generator-drift.py --self-test
+          python3 scripts/check-chart-generator-drift.py
+
       - name: chart 资产键名规则校验（防 ConfigMap 键含 "/" 被 API Server 拒绝）
         # KNOWN-FAILURES #36 同类缺陷防护：finance-template 两处副本
         # （design/deploy/charts 发布权威 + platform/industry-templates/charts 门禁侧）
@@ -588,6 +610,19 @@ jobs:
         run: |
           python3 scripts/check-chart-secret-hygiene.py --self-test
           python3 scripts/check-chart-secret-hygiene.py
+
+      - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
+        # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
+        # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，
+        # 而文档与部署写的是下划线规范名 ⇒ 规范名静默不生效（症状只是"配置回落默认值"，
+        # 从 CI 红里几乎看不出来）。本步固化两类判据防再回归：
+        #   A. 部署侧（k3s manifests / 集成 compose）带某服务前缀的 env 名必须在绑定面内；
+        #   B. 驼峰字段必须显式声明含前缀的 validation_alias。
+        # 注意：**无下划线拼写本身不算缺陷**（字段名大写那条路始终可绑定，实测确认）。
+        # 先跑合成正反例（正例无命中 / 驼峰无 alias、部署第三种拼写各命中预期面），再跑真判定。
+        run: |
+          python3 scripts/check-python-env-binding.py --self-test
+          python3 scripts/check-python-env-binding.py
 
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |

@@ -6,9 +6,9 @@
 
 # ---- 镜像配置（国内镜像源）----
 image:
-  repository: "harbor.shuqing.io/shuqing/business-portal"
-  tag: "2.0.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-business-portal"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 副本数 ----
 replicaCount: 1

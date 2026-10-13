@@ -3,7 +3,8 @@
 
 // Package main 提供 Milvus store 的构建开关。
 //
-// 默认构建（无 build tag）下，newMilvusStore 返回 nil，main.go 会回退到 Mock 实现。
+// 默认构建（无 build tag）下，newMilvusStore 返回 nil；main.go 的 newMilvusStoreOrFail
+// 据此 **fail-fast 拒绝启动**（仅当 MOCK_FALLBACK=true 时才回退 Mock 并打印告警）。
 // 启用 Milvus 实现需通过 `-tags milvus_enabled` 构建，此时会链接真实的 Milvus Go SDK。
 //
 // 这种 stub + 实现分离的策略保证了：
