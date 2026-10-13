@@ -611,6 +611,19 @@ jobs:
           python3 scripts/check-chart-secret-hygiene.py --self-test
           python3 scripts/check-chart-secret-hygiene.py
 
+      - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
+        # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
+        # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，
+        # 而文档与部署写的是下划线规范名 ⇒ 规范名静默不生效（症状只是"配置回落默认值"，
+        # 从 CI 红里几乎看不出来）。本步固化两类判据防再回归：
+        #   A. 部署侧（k3s manifests / 集成 compose）带某服务前缀的 env 名必须在绑定面内；
+        #   B. 驼峰字段必须显式声明含前缀的 validation_alias。
+        # 注意：**无下划线拼写本身不算缺陷**（字段名大写那条路始终可绑定，实测确认）。
+        # 先跑合成正反例（正例无命中 / 驼峰无 alias、部署第三种拼写各命中预期面），再跑真判定。
+        run: |
+          python3 scripts/check-python-env-binding.py --self-test
+          python3 scripts/check-python-env-binding.py
+
       - name: pre-commit hook 语法与一致性（Sprint 2.2 L2，本地契约门禁前移）
         run: |
           if [ -f .githooks/pre-commit ]; then
