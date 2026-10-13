@@ -224,12 +224,27 @@ def test_account_upgrade(api_client, encaps_tenant_url, numeric_tenant_token):
 # 运营后台
 # ---------------------------------------------------------------------------
 def test_admin_kpi(api_client, encaps_tenant_url):
-    """验证 GET /admin/kpi 返回 200 且 KPI 字段齐全。"""
+    """验证 GET /admin/kpi 返回 200，且契约只含能诚实算出的 KPI 字段。"""
     resp = api_client.get(encaps_tenant_url + "/api/v1/admin/kpi")
     assert resp.status_code == 200
     body = unwrap_response(resp.json())
-    for key in ("tenantTotal", "workspaceTotal", "quotaTotal", "assetTotal", "projectTotal"):
+    # 2026-10-13 收口：只保留 4 个按租户口径的真实 count
+    for key in ("tenantTotal", "workspaceTotal", "quotaTotal", "projectTotal"):
         assert key in body
+    # 已下线的编造字段不得回归：
+    #   tenantExternal/tenantInternal/clusterTotal/clusterXinchuang —— 曾硬编码
+    #   assetTotal/apiTotal/datasourceTotal/syncTaskTotal —— 曾结构性恒 0
+    for key in (
+        "tenantExternal",
+        "tenantInternal",
+        "clusterTotal",
+        "clusterXinchuang",
+        "assetTotal",
+        "apiTotal",
+        "datasourceTotal",
+        "syncTaskTotal",
+    ):
+        assert key not in body
 
 
 def test_admin_env_matrix(api_client, encaps_tenant_url):
