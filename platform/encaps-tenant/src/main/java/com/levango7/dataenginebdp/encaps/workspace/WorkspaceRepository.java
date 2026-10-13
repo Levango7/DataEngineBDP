@@ -21,4 +21,14 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, Long> {
      * @return 该租户下的 Workspace 列表（不会返回 null）
      */
     List<Workspace> findByTenantId(String tenantId);
+
+    /**
+     * 统计该租户下的 Workspace 数量。
+     *
+     * <p>派生查询，Spring Data JPA 运行期生成实现。</p>
+     *
+     * @param tenantId 租户 ID
+     * @return 该租户下的 Workspace 数量
+     */
+    long countByTenantId(String tenantId);
 }

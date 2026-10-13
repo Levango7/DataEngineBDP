@@ -169,4 +169,31 @@ class JwtAuthFilterAutoConfigurationTest {
             // 测试替身：不做任何处理
         }
     }
+
+    @Test
+    @DisplayName("配置 jwks-uri → 额外创建 JwksPublicKeyProvider（启用 Keycloak RS256 通道）")
+    void shouldCreateJwksProviderWhenUriConfigured() {
+        contextRunner
+                .withPropertyValues("app.security.jwt.secret=" + VALID_SECRET,
+                        "app.security.jwt.issuer=test-issuer",
+                        "app.security.jwt.jwks-uri=https://kc.example.com/realms/shuqing/protocol/openid-connect/certs")
+                .run(context -> {
+                    assertThat(context).hasSingleBean(JwksPublicKeyProvider.class);
+                    assertThat(context).hasSingleBean(JwtAuthFilter.class);
+                });
+    }
+
+    @Test
+    @DisplayName("不配置 jwks-uri → 不创建 provider（HS256-only，与历史行为完全一致）")
+    void shouldNotCreateJwksProviderWhenUriAbsent() {
+        contextRunner
+                .withPropertyValues("app.security.jwt.secret=" + VALID_SECRET,
+                        "app.security.jwt.issuer=test-issuer")
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(JwksPublicKeyProvider.class);
+                    // 过滤器仍在，且不因 provider 缺失而创建失败
+                    assertThat(context).hasSingleBean(JwtAuthFilter.class);
+                });
+    }
+
 }
