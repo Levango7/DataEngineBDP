@@ -5,7 +5,6 @@ import com.levango7.dataenginebdp.encaps.common.GlobalExceptionHandler;
 import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,9 +55,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminControllerTest {
 
     private static final String TEST_TENANT_ID = "100";
-
-    @Mock
-    private TenantRepository tenantRepository;
 
     @Mock
     private WorkspaceRepository workspaceRepository;
@@ -122,10 +118,9 @@ class AdminControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/admin/kpi — 契约只含 4 个诚实计数，编造字段不得回归（2026-10-13 收口）")
+    @DisplayName("GET /api/v1/admin/kpi — 契约只含 3 个诚实计数，编造/读错表字段不得回归（2026-10-13 收口）")
     void kpi_returnsOnlyHonestCounts() throws Exception {
         // 给定：每个仓储返回一个可区分的已知值
-        when(tenantRepository.count()).thenReturn(1L);
         when(workspaceRepository.countByTenantId(anyString())).thenReturn(2L);
         when(quotaRepository.findByTenantId(anyString()))
                 .thenReturn(List.of(mock(Quota.class), mock(Quota.class)));
@@ -133,12 +128,14 @@ class AdminControllerTest {
 
         mockMvc.perform(get("/api/v1/admin/kpi"))
                 .andExpect(status().isOk())
-                // 四个能诚实算出的计数，且值是打桩的已知值（不是硬编码）
-                .andExpect(jsonPath("$.tenantTotal").value(1))
+                // 三个能诚实算出的计数，且值是打桩的已知值（不是硬编码）
                 .andExpect(jsonPath("$.workspaceTotal").value(2))
                 .andExpect(jsonPath("$.quotaTotal").value(2))
                 .andExpect(jsonPath("$.projectTotal").value(3))
-                // 编造字段一个都不许回来
+                // tenantTotal：读的是 encaps_tenant.tenants 孤儿副本（网关把
+                // /api/v1/tenants/** 路由到 encaps-layer）⇒ 生产恒空表，不得回归
+                .andExpect(jsonPath("$.tenantTotal").doesNotExist())
+                // 曾编造的字段一个都不许回来
                 .andExpect(jsonPath("$.tenantExternal").doesNotExist())
                 .andExpect(jsonPath("$.tenantInternal").doesNotExist())
                 .andExpect(jsonPath("$.clusterTotal").doesNotExist())

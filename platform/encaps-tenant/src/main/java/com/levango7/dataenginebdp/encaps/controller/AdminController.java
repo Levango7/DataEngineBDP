@@ -1,7 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
@@ -48,9 +47,13 @@ import java.util.Map;
  * 要恢复它们，必须先解决<b>跨 schema 数据归属</b>问题（台账 #63），
  * 而不是把占位符改回 {@code ?? 0}。</p>
  *
- * <p><b>租户口径</b>：{@code tenantTotal} 是本服务 schema 内 {@code tenants}
- * 表的真实行数。注意 encaps-layer 的 {@code TenantController} 也写同名表
- * （落在 encaps_layer schema）⇒ 全平台租户数需先收敛双写问题，此处不作跨 schema 猜测。</p>
+ * <p><b>租户口径（{@code tenantTotal} 已于 2026-10-13 移除）</b>：
+ * 网关（`configmap-routes.yaml`）把 {@code /api/v1/tenants/**} 路由到
+ * <b>encaps-layer</b>，前端租户页读的是 {@code encaps_layer.tenants}；
+ * 本服务的 {@code encaps_tenant.tenants} 是<b>只有直连才会写</b>的孤儿副本
+ * ⇒ 在生产拓扑下恒为空表，{@code count()} 恒为 0。
+ * 该值无法在本服务内诚实算出，故从响应移除、前端显示占位符；
+ * 要恢复须先按「网关权威」收敛数据归属（encaps-shared-model 抽取）。</p>
  */
 @Slf4j
 @RestController
@@ -59,7 +62,6 @@ import java.util.Map;
 @RequestMapping("/api/v1/admin")
 public class AdminController {
 
-    private final TenantRepository tenantRepository;
     private final WorkspaceRepository workspaceRepository;
     private final QuotaRepository quotaRepository;
     private final ProjectRepository projectRepository;
@@ -67,7 +69,7 @@ public class AdminController {
     /**
      * KPI 总览（要求认证上下文）。
      *
-     * <p>仅返回本服务能诚实算出的四个计数：租户总数、工作空间数、配额数、项目数。
+     * <p>仅返回本服务能诚实算出的三个计数：工作空间数、配额数、项目数。
      * 已下线的字段与原因见类注释。</p>
      */
     @Operation(summary = "KPI 总览")
@@ -76,7 +78,6 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> kpi() {
         String tenantId = requireTenant();
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("tenantTotal", tenantRepository.count());
         // 用 count() 替代 findAll().size()，避免全表加载造成 OOM；
         // 且必须带 tenantId —— 此前 workspaceRepository.count() 是全表计数，口径跨了租户
         body.put("workspaceTotal", workspaceRepository.countByTenantId(tenantId));

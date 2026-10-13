@@ -130,14 +130,16 @@ function formatRevenue(v: number): string {
  * **A. 未接入 ⇒ 一律 `NOT_WIRED`**
  *    后端不返回 `clusterOnprem` / `clusterCloudVm` /
  *    `monthlyRevenue` / `alertCount` / `alertAutoHandled`（需跨服务聚合，尚未实现），
- *    以及 2026-10-13 从契约删除的 `tenantExternal` / `tenantInternal` /
- *    `clusterTotal` / `clusterXinchuang`（后端曾硬编码 / 结构性恒 0）。
+ *    2026-10-13 从契约删除的 `tenantExternal` / `tenantInternal` /
+ *    `clusterTotal` / `clusterXinchuang`（后端曾硬编码 / 结构性恒 0），
+ *    以及 `tenantTotal`（读的是 `encaps_tenant.tenants` 孤儿副本 ——
+ *    网关把 `/api/v1/tenants/**` 路由到 encaps-layer，该表生产恒空）。
  *    这些位置此前写 `?? 0`，界面会显示一个**看起来很确定的 0**，
  *    运维据此判断"本月没有营收、底座没有告警" —— 这是界面在说谎。
  *    未接入就显示 `—`，让"没有数据"与"数据是 0"可区分。
  *
  * **B. 已接入 ⇒ 显示真实 count**
- *    `tenantTotal` / `workspaceTotal` / `quotaTotal` / `projectTotal`
+ *    `workspaceTotal` / `quotaTotal` / `projectTotal`
  *    是后端按租户口径的真实计数（见 `AdminController#kpi()`）。
  *    这里仍然写 `?? NOT_WIRED` 而不是裸渲染，是为了在后端**回归**
  *    （某天又不返回该字段）时显示 `—` 而不是空字符串，保持可诊断。

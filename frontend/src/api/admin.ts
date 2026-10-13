@@ -17,11 +17,11 @@ const BASE = '/admin'
  * ⚠️ 字段分两组，改动前务必看清 —— 这里此前是错的（前端声明了后端根本不返回的字段）：
  *
  * 【已接入】后端 `AdminController#kpi()` 实际返回（`/api/v1/admin/kpi`）。
- *   `tenantTotal` / `workspaceTotal` / `quotaTotal` / `projectTotal`
- *   —— 均为按租户口径的真实 count（2026-10-13 收口：此前后 4 个里有硬编码和恒 0）。
+ *   `workspaceTotal` / `quotaTotal` / `projectTotal`
+ *   —— 均为按租户口径的真实 count。
  *
  * 【未接入】后端**不返回**，前端拿到的永远是 `undefined`。
- *   分两种死法，都不许用 `?? 0` 掩盖：
+ *   分三种死法，都不许用 `?? 0` 掩盖：
  *     - **后端从未返回**：`monthlyRevenue`（需 finops/billing）、
  *       `alertCount` / `alertAutoHandled`（需 observability）、
  *       `clusterOnprem` / `clusterCloudVm`（需集群清单）
@@ -32,6 +32,11 @@ const BASE = '/admin'
  *       的空副本表，结构性恒 0；真实数据由 encaps-layer/gateway/data 写在
  *       `encaps_layer` schema）、
  *       `syncTaskTotal`（本服务无 sync_task 写入方）
+ *     - **`tenantTotal`：读得到但读的是孤儿副本（2026-10-13 补删）**。
+ *       网关 `configmap-routes.yaml` 把 `/api/v1/tenants/**` 路由到 **encaps-layer**，
+ *       前端租户页读的是 `encaps_layer.tenants`；本服务的 `encaps_tenant.tenants`
+ *       只在「直连 8081 绕过网关」时才会被写（集成测试就是这么写的，故 IT 测不出来）
+ *       ⇒ 生产拓扑下恒为空表，`count()` 恒为 0。无法在本服务内诚实算出，故移除。
  *
  * **界面必须对「未接入」字段显示占位符，不得用 `?? 0` 兜底**：
  * 那会让运维看到「本月营收 ¥0 / 告警数 0」并据此判断“真的没有营收、没有告警”，
@@ -39,11 +44,6 @@ const BASE = '/admin'
  */
 export interface AdminKpi {
   // ---------- 已接入（后端实际返回，按租户口径真实 count）----------
-  /**
-   * 租户总数。本服务 schema 内 `tenants` 表的真实行数。
-   * ⚠️ 全平台口径需先收敛 encaps-layer 的同名双写，见后端 AdminController 类注释。
-   */
-  tenantTotal: number
   /** 工作空间数（当前调用租户下） */
   workspaceTotal: number
   /** 配额数（当前调用租户下） */
@@ -52,6 +52,8 @@ export interface AdminKpi {
   projectTotal: number
 
   // ---------- 未接入（后端不返回，勿用 ?? 0 兜底）----------
+  /** @deprecated 读的是孤儿副本表（`encaps_tenant.tenants` 恒空）—— 界面应显示占位符 */
+  tenantTotal?: number
   /** @deprecated 后端从未返回（无集群注册表）—— 界面应显示占位符 */
   clusterOnprem?: number
   /** @deprecated 后端从未返回（无集群注册表）—— 界面应显示占位符 */

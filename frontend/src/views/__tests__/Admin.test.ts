@@ -4,16 +4,20 @@
  * 【回归守卫】运营后台 KPI 的展示口径 —— "没有数据"必须与"数据是 0"可区分。
  *
  * 2026-10-13 契约收口后，后端 `/api/v1/admin/kpi`（`AdminController#kpi()`）
- * 只返回 4 个按租户口径的真实 count：
- *   `tenantTotal` / `workspaceTotal` / `quotaTotal` / `projectTotal`
+ * 只返回 3 个按租户口径的真实 count：
+ *   `workspaceTotal` / `quotaTotal` / `projectTotal`
  *
- * 其余字段分两种死法，界面**一律显示占位符 `—`**，禁止用 `?? 0` 掩盖：
+ * 其余字段分三种死法，界面**一律显示占位符 `—`**，禁止用 `?? 0` 掩盖：
  *   1. 后端从未返回：`monthlyRevenue`、`alertCount`、`alertAutoHandled`、
  *      `clusterOnprem`、`clusterCloudVm`（需跨服务聚合，尚未实现）
  *   2. 后端曾返回但是编造的，2026-10-13 已从契约删除：
  *      `tenantExternal` / `tenantInternal` / `clusterTotal` / `clusterXinchuang`
  *      （硬编码）、`assetTotal` / `apiTotal` / `datasourceTotal` / `syncTaskTotal`
  *      （结构性恒 0：查询落到本服务 schema 的空副本表）
+ *   3. `tenantTotal`：**读得到但读的是孤儿副本**（2026-10-13 补删）。
+ *      网关把 `/api/v1/tenants/**` 路由到 encaps-layer，前端租户页读的是
+ *      `encaps_layer.tenants`；`encaps_tenant.tenants` 只在直连 8081 绕过网关时
+ *      才会被写 ⇒ 生产恒空表。集成测试测不出来（它就是直连的）。
  *
  * 此前界面写 `?? 0`，会渲染出一个**看起来很确定的 0**，运维据此判断
  * "本月没有营收、底座没有告警" —— 这是界面在说谎。
@@ -42,20 +46,20 @@ const i18n = createI18n({
 })
 
 /**
- * 后端**真实**响应形状 —— 照抄收口后的 `AdminController#kpi()`，只有 4 个字段。
+ * 后端**真实**响应形状 —— 照抄收口后的 `AdminController#kpi()`，只有 3 个字段。
  *
  * 注意：`vi.mock` 的工厂会被提升到文件顶部，不能引用外部变量，所以下面的对象
  * 必须在工厂内部**内联**；此处保留一份注释副本仅作对照。
  *
- *   { tenantTotal: 1, workspaceTotal: 2, quotaTotal: 2, projectTotal: 3 }
+ *   { workspaceTotal: 2, quotaTotal: 2, projectTotal: 3 }
  */
 vi.mock('@/api/admin', () => ({
   getKpi: vi.fn(() =>
     Promise.resolve({
-      tenantTotal: 1,
       workspaceTotal: 2,
       quotaTotal: 2,
       projectTotal: 3
+      // 无 tenantTotal（2026-10-13 补删：读的是 encaps_tenant.tenants 孤儿副本，生产恒空）
       // 无 monthlyRevenue / alertCount / alertAutoHandled / clusterOnprem / clusterCloudVm
       // 无 tenantExternal / tenantInternal / clusterTotal / clusterXinchuang（2026-10-13 已删）
       // 无 assetTotal / apiTotal / datasourceTotal / syncTaskTotal（2026-10-13 已删）
@@ -126,10 +130,13 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
     expect(meta).toBe('信创 — · 本地 — · 云VM —')
   })
 
-  it('租户卡：总数是真实 count，外部/内部已从契约删除 ⇒ 显示占位符', async () => {
+  it('租户卡：总数读的是孤儿副本 ⇒ 已补删，显示占位符（不得出现 0）', async () => {
     const wrapper = await mountAdmin()
-    // tenantTotal = 1 是后端真实返回（tenantRepository.count()），不是硬编码
-    expect(kpiTextOf(wrapper, '租户总数')).toBe('1')
+    // tenantTotal 已于 2026-10-13 补删：网关把 /api/v1/tenants/** 路由到 encaps-layer，
+    // encaps_tenant.tenants 生产恒空 ⇒ 显示 0 会误导（真实租户在 encaps_layer.tenants）
+    const text = kpiTextOf(wrapper, '租户总数')
+    expect(text).toBe('—')
+    expect(text).not.toContain('0')
     // 外部/内部后端已删除 ⇒ 占位符
     const meta = metaTextOf(wrapper, '租户总数')
     expect(meta).toBe('外部 — · 内部 —')
@@ -145,7 +152,7 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
 
   it('已接入字段若缺失，显示占位符而非空值（保证后端回归时可诊断）', async () => {
     const adminApi = vi.mocked(await import('@/api/admin'))
-    adminApi.getKpi.mockResolvedValueOnce({ tenantTotal: 1 } as never)
+    adminApi.getKpi.mockResolvedValueOnce({} as never)
 
     const wrapper = await mountAdmin()
     expect(kpiTextOf(wrapper, '工作空间')).toBe('—')
@@ -157,7 +164,6 @@ describe('Admin.vue — 未接入 KPI 字段的展示口径', () => {
     // 模拟将来后端真的接入了这些字段并返回真实 0
     const adminApi = vi.mocked(await import('@/api/admin'))
     adminApi.getKpi.mockResolvedValueOnce({
-      tenantTotal: 1,
       workspaceTotal: 2,
       quotaTotal: 2,
       projectTotal: 3,
