@@ -1,0 +1,28 @@
+# 集成测试栈 AUTH_MODE 棘轮基线（scripts/check-it-auth-mode.py）
+# 只减不增：清偿一项请删除其条目后重跑校验；新增项会使 CI 变红。
+# 生成：python3 scripts/check-it-auth-mode.py --write-baseline
+known:
+- service: asset-exchange
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
+- service: business-portal
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
+- service: evaluation
+  kind: "undeclared"
+  detail: "未声明 AUTH_MODE ⇒ jwt_auth 回落缺省 none（匿名 admin 放行）"
+- service: finetuning-loop
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
+- service: industry-templates
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
+- service: llm-gateway
+  kind: "undeclared"
+  detail: "未声明 AUTH_MODE ⇒ jwt_auth 回落缺省 none（匿名 admin 放行）"
+- service: model-registry
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
+- service: open-api-catalog
+  kind: "none"
+  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
