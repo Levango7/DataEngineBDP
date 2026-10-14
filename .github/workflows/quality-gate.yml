@@ -27,6 +27,13 @@ permissions:
   actions: read
   pull-requests: write
 
+# 同一来源分支只保留最新一次聚合：本工作流由 workflow_run 下游触发（CI/Security/CodeQL/SonarQube
+# 每完成一次就多排一条），实测队列抽样中 58/100 条是 Quality Gate、队头已排 3h+、
+# 全仓吞吐仅 19-21 run/小时。聚合器语义是"最新状态覆盖"，故 cancel-in-progress 安全。
+concurrency:
+  group: quality-gate-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================
   # 聚合工作流结果：检查所有前置工作流的结论
