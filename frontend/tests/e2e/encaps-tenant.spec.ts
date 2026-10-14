@@ -95,8 +95,11 @@ test.describe('运营后台 /admin', () => {
     expect(resp.status()).toBe(200)
     const json = await resp.json()
     expect(json).toHaveProperty('code', 0)
-    expect(json.data).toHaveProperty('tenantTotal')
     expect(json.data).toHaveProperty('workspaceTotal')
+    expect(json.data).toHaveProperty('quotaTotal')
+    expect(json.data).toHaveProperty('projectTotal')
+    // tenantTotal 已于 2026-10-13 移出 KPI 契约（它读孤儿副本表、生产恒 0），反向钉住防其回流
+    expect(json.data).not.toHaveProperty('tenantTotal')
   })
 
   test('运营后台 API 未认证返回 401', async ({ request }) => {
