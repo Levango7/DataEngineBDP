@@ -340,9 +340,16 @@ services:
     environment:
       - LOOP_PORT=18088
       - LOOP_MOCK_MODE=true
-      # 集成测试环境显式开发模式（生产默认强制 JWT，需 JWT_SECRET）
-      - LOOP_DEV_MODE=true
-      - AUTH_MODE=none
+      # 2026-10-14 台账 #68①第 2 步：翻 AUTH_MODE=jwt 并补齐此前缺失的 JWT_SECRET。
+      # 原形态 AUTH_MODE=none ⇒ app/jwt_auth.py:75 缺省即匿名 admin 放行，任何未带 token 的
+      # 请求都能进 /api/v1/loop/*（loop_routes.py:49-52 的唯一守卫被短路）——夜间若有未认证 401
+      # 断言，打到本服务会恒真失明。与本栈其余 python 域用同一 41 字节密钥（HS256）。
+      # LOOP_DEV_MODE 同步置 false：config.py:96-103 的安全校验只在非 dev_mode 下要求
+      # jwt_secret 存在且 ≥32 字节；若留着 true，服务侧自检关闭而 jwt_auth 侧强制，口径不一致。
+      # /health 不受影响：它注册在 app 上（main.py:156），不在带鉴权依赖的 router 内 ⇒ 健康检查仍通过。
+      - LOOP_DEV_MODE=false
+      - AUTH_MODE=jwt
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
       - FINETUNE_URL=http://it-finetuning:8095
       - EVALUATION_URL=http://it-evaluation:8086
       - REGISTRY_URL=http://it-model-registry:18089
