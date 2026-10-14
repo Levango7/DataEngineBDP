@@ -160,7 +160,7 @@ CHARTS = [
      "sq-infra-orchestrator", "0.1.0", 8080, "platform", "sq-system",
      "orchestrator,infra,platform", 1, "0.5", "1Gi", "1", "2Gi"),
     ("infra-provider-xinchang", "信创供应 - 鲲鹏/海光/飞腾资源供应", "0.1.0",
-     "sq-infra-provider-xinchuang", "0.1.0", 8080, "platform", "sq-system",
+     "sq-infra-provider-xinchang", "0.1.0", 8080, "platform", "sq-system",
      "provider,xinchuang,infra", 1, "0.5", "512Mi", "1", "1Gi"),
     ("infra-provider-baremetal", "本地 DC 供应 - 裸金属资源供应", "0.1.0",
      "sq-infra-provider-baremetal", "0.1.0", 8080, "platform", "sq-system",

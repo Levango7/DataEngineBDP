@@ -16,9 +16,6 @@ known:
 - file: design/deploy/charts/flink-cdc/values.yaml
   repository: "harbor.shuqing.io/shuqing/flink-cdc"
   tag: "2.0.0"
-- file: design/deploy/charts/infra-provider-xinchang/values.yaml
-  repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
-  tag: "0.1.0"
 - file: design/deploy/charts/model-finetuning/values.yaml
   repository: "harbor.shuqing.io/shuqing/model-finetuning"
   tag: "2.0.0"
