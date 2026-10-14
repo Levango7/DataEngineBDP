@@ -766,3 +766,109 @@ class TestStats:
         body = resp.json()
         assert "deployment" in body
         assert "models" in body
+
+
+# ============================================================
+# 18. 鉴权强制（台账 #68①）：compose 声明的 AUTH_MODE 必须真的拦得住
+# ============================================================
+# 为什么需要这一组：本文件其余 22 个用例跑在 loop_client fixture 里，该 fixture 于
+# :104 强制 LOOP_DEV_MODE=true 且从不发 Authorization 头 ⇒ 在 AUTH_MODE=none 的旧形态下
+# 它们全部匿名通过，"未认证要 401"这件事在这个服务上从来没有断言（夜间 E2E 的 401 断言
+# 也因此对 python 域失明）。这里的两组判据是双向的：既钉住 compose 的声明，也钉住运行时行为，
+# 任一侧退回匿名放行都会转红。
+_IT_COMPOSE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
+)
+_AUTH_KEYS = ("AUTH_MODE", "JWT_SECRET", "LOOP_DEV_MODE")
+
+
+def _compose_loop_env() -> dict:
+    """读 docker-compose.yml 里 finetuning-loop 的 env 原文（不用来路不明的副本）."""
+    import yaml
+
+    with open(_IT_COMPOSE, encoding="utf-8") as fh:
+        doc = yaml.safe_load(fh)
+    env = {}
+    for item in doc["services"]["finetuning-loop"].get("environment") or []:
+        key, _, value = str(item).partition("=")
+        env[key] = value
+    return env
+
+
+def _hs256_token(secret: str, claims: dict) -> str:
+    """手工签 HS256：与被测组件 app/jwt_auth.py 的验签实现对齐，不引入 PyJWT 依赖。"""
+    import base64
+    import hashlib
+    import hmac
+    import json
+
+    def b64(raw: bytes) -> str:
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    signing = "%s.%s" % (
+        b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode()),
+        b64(json.dumps(claims, separators=(",", ":")).encode()),
+    )
+    sig = hmac.new(secret.encode(), signing.encode(), hashlib.sha256).digest()
+    return "%s.%s" % (signing, b64(sig))
+
+
+class TestLoopAuthEnforcement:
+    """闭环编排服务的 JWT 强制校验."""
+
+    def test_compose_declares_jwt_with_secret(self):
+        """compose 必须显式 AUTH_MODE=jwt 且密钥够长（缺密钥会让容器起不来）."""
+        env = _compose_loop_env()
+        assert env.get("AUTH_MODE") == "jwt", (
+            "finetuning-loop 退回匿名放行：app/jwt_auth.py 缺省 none ⇒ /api/v1/loop/* 无 token 可达"
+        )
+        assert len(env.get("JWT_SECRET", "")) >= 32, "AUTH_MODE=jwt 必须配 JWT_SECRET（>=32 字节）"
+
+    def test_unauthenticated_calls_rejected(self, loop_client):
+        """按 compose 的鉴权配置实跑：无 token 401、带合法 token 放行、/health 不受连坐."""
+        if loop_client is None:
+            pytest.skip("HTTP 模式下由夜间栈提供鉴权，本用例走 TestClient 进程内实例")
+        env = _compose_loop_env()
+        missing = [k for k in _AUTH_KEYS if k not in env]
+        assert not missing, "compose 里 finetuning-loop 缺这些鉴权键：%s" % missing
+        saved = {k: os.environ.get(k) for k in _AUTH_KEYS}
+        try:
+            for k in _AUTH_KEYS:
+                os.environ[k] = env[k]
+
+            denied = _loop_request("GET", "/api/v1/loop/tasks", loop_client)
+            assert denied.status_code == 401, (
+                "未带 token 却返回 %s（鉴权未生效）：%s" % (denied.status_code, denied.text)
+            )
+
+            token = _hs256_token(env["JWT_SECRET"], {
+                "sub": "it-identity", "tenantId": "test-tenant",
+                "role": "admin", "exp": int(time.time()) + 3600,
+            })
+            # 放行用例走 /stats（纯本地聚合，不触发对 finetune/eval/registry 的下游调用）：
+            # 本 fixture 是进程内实例，compose 里的容器 DNS 名在这里不可解析。
+            allowed = _loop_request(
+                "GET", "/api/v1/loop/stats", loop_client,
+                headers={"Authorization": "Bearer " + token},
+            )
+            assert allowed.status_code == 200, (
+                "合法 HS256 token 被拒：%s %s" % (allowed.status_code, allowed.text)
+            )
+            assert "totalTasks" in allowed.json()
+
+            forged = _loop_request(
+                "GET", "/api/v1/loop/tasks", loop_client,
+                headers={"Authorization": "Bearer not.a.jwt"},
+            )
+            assert forged.status_code == 401, "伪造 token 未被拒：%s" % forged.status_code
+
+            # /health 注册在 app 上而非带 Depends(getAuthContext) 的 router 内，
+            # 翻 AUTH_MODE 不得连坐 compose 的 healthcheck（否则 --wait 超时阻断整条泳道）
+            health = _loop_request("GET", "/health", loop_client)
+            assert health.status_code == 200, "健康检查被鉴权连坐：%s" % health.status_code
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
