@@ -11,18 +11,12 @@ known:
 - service: evaluation
   kind: "undeclared"
   detail: "未声明 AUTH_MODE ⇒ jwt_auth 回落缺省 none（匿名 admin 放行）"
-- service: finetuning-loop
-  kind: "none"
-  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
 - service: industry-templates
   kind: "none"
   detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
 - service: llm-gateway
   kind: "undeclared"
   detail: "未声明 AUTH_MODE ⇒ jwt_auth 回落缺省 none（匿名 admin 放行）"
-- service: model-registry
-  kind: "none"
-  detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
 - service: open-api-catalog
   kind: "none"
   detail: "显式 AUTH_MODE=none ⇒ 业务路由匿名可达，401 断言恒真"
