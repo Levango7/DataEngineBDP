@@ -12,9 +12,9 @@
 # ============================================================================
 
 image:
-  repository: "docker.m.daocloud.io/sq-data-quality"
-  tag: "2.0.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-batch-pipeline"
+  tag: "latest"
+  pullPolicy: Always
 
 # 容器启动命令：API 服务模式（镜像默认 CMD 为批处理 CLI，此处覆盖）
 command: ["python"]
