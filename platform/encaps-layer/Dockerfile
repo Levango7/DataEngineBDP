@@ -16,6 +16,15 @@ RUN mvn -B -q install -N
 COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
 COPY platform/common-security/src ./platform/common-security/src
 RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
+
+# 安装内部依赖库 encaps-shared-model（Tenant / ProjectEntity 等跨服务共享实体）
+# ⚠️ 必须显式安装：下面的构建只带 -f 单个 pom，不会构建 reactor 里的其它模块，
+#    漏掉这步会报 "Could not find artifact ...:encaps-shared-model:jar:0.1.0-SNAPSHOT"
+#    （2026-10-13 抽出该模块时 CI 的 ZAP DAST job 实测抓到的缺陷）
+COPY platform/encaps-shared-model/pom.xml ./platform/encaps-shared-model/pom.xml
+COPY platform/encaps-shared-model/src ./platform/encaps-shared-model/src
+RUN mvn -B -q -f platform/encaps-shared-model/pom.xml install -DskipTests
+
 # 复制模块 pom.xml 和源码
 COPY platform/encaps-layer/pom.xml ./
 RUN mvn -B -q dependency:go-offline -f pom.xml

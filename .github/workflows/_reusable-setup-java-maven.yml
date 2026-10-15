@@ -45,6 +45,7 @@ jobs:
           fi
           for lib_pom in \
             "platform/common-security/pom.xml" \
+            "platform/encaps-shared-model/pom.xml" \
             "platform/encaps-layer/pom.xml" \
             "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do

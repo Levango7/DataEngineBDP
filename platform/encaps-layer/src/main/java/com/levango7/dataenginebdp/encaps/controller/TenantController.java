@@ -1,7 +1,7 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.model.Tenant;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
+import com.levango7.dataenginebdp.encapsshared.model.Tenant;
+import com.levango7.dataenginebdp.encapsshared.repository.TenantRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
