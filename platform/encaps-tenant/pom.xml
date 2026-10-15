@@ -147,6 +147,19 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!-- 2026-10-15：本仓从未配置 failsafe，*IT 类在任何 Maven 生命周期里都不跑。
+                         EncapsTenantApplicationIT（全 context 启动冒烟）正是双注册器启动崩溃的
+                         守门人，却从未执行——崩溃直漏到 CI 的 docker/E2E 栈才暴露
+                         （it-encaps-tenant exited (1)）。显式把 *IT 纳入 surefire 常态运行。
+                         K8sWorkspaceTranslatorIT 自带 @EnabledIfSystemProperty(k8s.it=true)，
+                         未启用时自动跳过，不阻塞普通构建。 -->
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
                 </configuration>
             </plugin>
             <plugin>

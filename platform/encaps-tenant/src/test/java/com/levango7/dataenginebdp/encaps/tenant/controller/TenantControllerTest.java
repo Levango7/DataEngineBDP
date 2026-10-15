@@ -1,8 +1,8 @@
-package com.levango7.dataenginebdp.encaps.controller;
+package com.levango7.dataenginebdp.encaps.tenant.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encapsshared.model.Tenant;
-import com.levango7.dataenginebdp.encaps.service.TenantService;
+import com.levango7.dataenginebdp.encaps.tenant.service.TenantService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

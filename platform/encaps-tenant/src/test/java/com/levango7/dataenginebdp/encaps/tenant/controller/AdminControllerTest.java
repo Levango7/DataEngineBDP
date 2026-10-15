@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.controller;
+package com.levango7.dataenginebdp.encaps.tenant.controller;
 
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.common.GlobalExceptionHandler;

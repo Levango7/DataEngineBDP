@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.controller;
+package com.levango7.dataenginebdp.encaps.tenant.controller;
 
 import com.levango7.dataenginebdp.encaps.common.MissingTenantContextException;
 import com.levango7.dataenginebdp.encapsshared.model.ProjectEntity;
