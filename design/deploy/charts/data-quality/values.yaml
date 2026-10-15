@@ -4,14 +4,17 @@
 #       （ingest→validate→clean→compute→output）的 FastAPI 提交/查询壳。
 # 关联：design/deploy/values/data-quality-values.yaml（环境调优配置）
 # 镜像：platform/batch-pipeline Dockerfile 构建（python:3.12-slim 多阶段，
-#       内含 batch_pipeline 包 + config/ + 依赖 vendor），推送为 sq-data-quality。
+#       内含 batch_pipeline 包 + config/ + 依赖 vendor），build.yml 按 Dockerfile
+#       所在目录名推送为 **sq-batch-pipeline**（此前写 sq-data-quality 是本仓产不出的名字）。
+# 与 worker 型 chart `batch-pipeline` 同镜像、不同角色：本 chart 用下面的 command/args
+#       把容器从批处理 CLI 切到 FastAPI 服务态（API_PORT 由 service.containerPort 供入）。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（生产 registry 已定为 GHCR，见台账 #65①）----
 image:
-  repository: "docker.m.daocloud.io/sq-data-quality"
-  tag: "2.0.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-batch-pipeline"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 容器启动命令（覆盖镜像默认 CMD 的批处理 CLI，改为 API 服务模式）----
 command: ["python"]

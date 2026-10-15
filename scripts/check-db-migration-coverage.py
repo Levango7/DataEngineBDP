@@ -40,7 +40,18 @@ BACKLOG = REPO_ROOT / "docs" / "db-migration-backlog.yaml"
 # 其 @Entity 由引用方服务（宿主）的迁移承载 —— 如 common-security 的表随宿主服务
 # schema 建。既不要求自带迁移，也不进待补清单（依据：docs/db-migration-backlog.yaml
 # 对该模块的登记说明 + README 模块口径"扣 4 个库形态组件"）。
-LIBRARY_MODULES: set[str] = {"platform/common-security"}
+LIBRARY_MODULES: set[str] = {
+    "platform/common-security",
+    # 2026-10-13 新增：从 encaps-layer 抽出的跨服务共享实体与仓储
+    # （Tenant / ProjectEntity 及对应 Repository）。
+    # 形态与 common-security 同构：无 src/main/resources/application.yml、
+    # pom 无 postgresql 依赖、无 @SpringBootApplication ⇒ 不独立部署。
+    # 两张表由**引用方**的迁移承载，且是两份、分属各自 schema：
+    #   · encaps-layer → encaps_layer.tenants / encaps_layer.project
+    #   · encaps-tenant → encaps_tenant.tenants / encaps_tenant.project
+    #     （后者即 encaps-tenant 的 V3__baseline_shared_model.sql）
+    "platform/encaps-shared-model",
+}
 
 
 def jpa_modules() -> dict[str, int]:

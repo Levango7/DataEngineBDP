@@ -1,7 +1,8 @@
-package com.levango7.dataenginebdp.encaps.controller;
+package com.levango7.dataenginebdp.encaps.tenant.controller;
 
-import com.levango7.dataenginebdp.encaps.model.ProjectEntity;
-import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
+import com.levango7.dataenginebdp.encaps.TenantJpaSliceConfig;
+import com.levango7.dataenginebdp.encapsshared.model.ProjectEntity;
+import com.levango7.dataenginebdp.encapsshared.repository.ProjectRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,9 +19,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * ProjectController 单元测试（H2 + 真实 Repository）。
+ *
+ * <p><b>2026-10-15 上下文改造</b>：原先 {@code @ContextConfiguration(classes = EncapsTenantApplication)}
+ * ——切片本不该带全量组件扫描，只因旧版应用的<b>隐式</b>扫描在 @DataJpaTest 切片中
+ * 不执行才"碰巧"能跑。应用改为显式 {@code @ComponentScan} 白名单后，切片会执行该
+ * 扫描（这是 Spring Boot 的已知行为：隐式扫描不执行、显式注解会），把 encaps-layer 的
+ * {@code SecurityConfig}（{@code @Configuration}，TypeExcludeFilter 不排除
+ * @Configuration；@DataJpaTest 的 excludeFilters 也不压制显式 @ComponentScan，已实证）
+ * 拉进切片，而其依赖的 {@code RateLimitFilter} 只由 common-security 自动配置提供
+ * （切片不加载）⇒ 上下文失败。</p>
+ *
+ * <p>改为自带 {@code @SpringBootConfiguration} 的最小切片配置（{@link TenantJpaSliceConfig}，
+ * 刻意置于测试根包 {@code ...encaps} 而非本包——本包在应用 {@code @ComponentScan}
+ * 白名单内，配置类若在此会被全 context 测试扫到并造成仓储重复注册，CI 已实证）。
+ * 只装配本测试所需的 encapsshared 实体与仓储，JPA 自动配置由 @DataJpaTest 切片自带。</p>
  */
 @DataJpaTest
-@ContextConfiguration(classes = com.levango7.dataenginebdp.encaps.EncapsTenantApplication.class)
+@ContextConfiguration(classes = TenantJpaSliceConfig.class)
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class ProjectControllerTest {
 

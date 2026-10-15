@@ -87,6 +87,15 @@
             <artifactId>common-security</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
+        <!-- 封装层跨服务共享实体与仓储（Tenant / Project）。
+             2026-10-13 从本模块抽到独立模块，供 encaps-tenant 复用而不必依赖整个
+             encaps-layer jar（否则会把本模块全部 20 个实体与 Controller 带进它的
+             组件扫描范围，见 encaps-shared-model/pom.xml 的模块说明）。 -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>encaps-shared-model</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
         <!-- OAuth2 Resource Server：引入 spring-security-oauth2-resource-server 及 JOSE/JWT 支持 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

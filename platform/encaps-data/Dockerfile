@@ -17,6 +17,10 @@ RUN mvn -B -q install -N
 COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
 COPY platform/common-security/src ./platform/common-security/src
 RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
+# encaps-shared-model：encaps-layer 的依赖，必须显式安装（本构建只带 -f 单个 pom）
+COPY platform/encaps-shared-model/pom.xml ./platform/encaps-shared-model/pom.xml
+COPY platform/encaps-shared-model/src ./platform/encaps-shared-model/src
+RUN mvn -B -q -f platform/encaps-shared-model/pom.xml install -DskipTests
 COPY platform/encaps-layer/pom.xml ./platform/encaps-layer/pom.xml
 COPY platform/encaps-layer/src ./platform/encaps-layer/src
 RUN mvn -B -q -f platform/encaps-layer/pom.xml install -DskipTests

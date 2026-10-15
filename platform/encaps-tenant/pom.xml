@@ -29,7 +29,25 @@
             <artifactId>swagger-annotations-jakarta</artifactId>
             <version>2.2.22</version>
         </dependency>
-        <!-- 封装层核心：提供 common/model/repository/security 共享代码 -->
+        <!-- 封装层跨服务共享实体与仓储（Tenant / Project）。
+             2026-10-13 抽出本模块的目的：让 Tenant/ProjectEntity 落在
+             `com.levango7.dataenginebdp.encapsshared`（**刻意不是 `...encaps` 的子包**），
+             从而 encaps-tenant 的 @EntityScan 可以只列这两个实体所在的包，
+             而**不必**列出 `...encaps.model` —— 后者会把 encaps-layer 的全部
+             20 个实体一起拉进持久单元（即 V3__baseline_shared_model.sql 那 20 张
+             空副本表的来源）。 -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>encaps-shared-model</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <!-- ⚠️ 临时保留：本服务仍借用 encaps-layer 的 `encaps.common`
+             （MissingTenantContextException / GlobalExceptionHandler）与
+             `encaps.security`（AuditLog 注解 + AuditLogAspect 切面）。
+             后者是**等保 2.0（GB/T 22239-2019 8.1.4.3）安全审计项**的实现，
+             无条件 @Aspect @Component 装配 —— 直接删掉本依赖会让本服务的
+             @AuditLog 静默失效（合规回归）。
+             下一步（独立 PR）：把 common/security 那一片一并迁到共享模块后再摘除。 -->
         <dependency>
             <groupId>com.levango7.dataenginebdp</groupId>
             <artifactId>encaps-layer</artifactId>
@@ -129,6 +147,19 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!-- 2026-10-15：本仓从未配置 failsafe，*IT 类在任何 Maven 生命周期里都不跑。
+                         EncapsTenantApplicationIT（全 context 启动冒烟）正是双注册器启动崩溃的
+                         守门人，却从未执行——崩溃直漏到 CI 的 docker/E2E 栈才暴露
+                         （it-encaps-tenant exited (1)）。显式把 *IT 纳入 surefire 常态运行。
+                         K8sWorkspaceTranslatorIT 自带 @EnabledIfSystemProperty(k8s.it=true)，
+                         未启用时自动跳过，不阻塞普通构建。 -->
+                    <includes>
+                        <include>**/Test*.java</include>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                        <include>**/*TestCase.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
                 </configuration>
             </plugin>
             <plugin>

@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.encaps.security;
 import com.levango7.dataenginebdp.encaps.model.InviteCode;
 import com.levango7.dataenginebdp.encaps.model.UserRegistration;
 import com.levango7.dataenginebdp.encaps.repository.InviteCodeRepository;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
+import com.levango7.dataenginebdp.encapsshared.repository.TenantRepository;
 import com.levango7.dataenginebdp.encaps.repository.UserRegistrationRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
