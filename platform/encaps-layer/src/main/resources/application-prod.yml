@@ -37,3 +37,12 @@ management:
   endpoint:
     health:
       show-details: when-authorized  # 生产环境：健康详情仅认证用户可见
+
+# 2026-10-16：关闭 OpenAPI/Swagger 端点（安全审计发现生产匿名可访问 /v3/api-docs 与
+# /swagger-ui/**；层侧 SecurityConfig 的 permitAll 没了匹配路由即空转）。
+# dev/测试 profile 不设此项 ⇒ 默认开启（springdoc 缺省 enabled=true）。
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
