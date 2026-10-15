@@ -1,7 +1,7 @@
-package com.levango7.dataenginebdp.encaps.service;
+package com.levango7.dataenginebdp.encaps.tenant.service;
 
-import com.levango7.dataenginebdp.encaps.model.Tenant;
-import com.levango7.dataenginebdp.encaps.repository.TenantRepository;
+import com.levango7.dataenginebdp.encapsshared.model.Tenant;
+import com.levango7.dataenginebdp.encapsshared.repository.TenantRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

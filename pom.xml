@@ -199,6 +199,7 @@
         <module>platform/encaps-data</module>
         <module>platform/encaps-gateway</module>
         <module>platform/encaps-layer</module>
+        <module>platform/encaps-shared-model</module>
         <module>platform/encaps-tenant</module>
         <module>platform/finops/billing</module>
         <module>platform/finops/cost-model</module>

@@ -1,6 +1,6 @@
-package com.levango7.dataenginebdp.encaps.repository;
+package com.levango7.dataenginebdp.encapsshared.repository;
 
-import com.levango7.dataenginebdp.encaps.model.Tenant;
+import com.levango7.dataenginebdp.encapsshared.model.Tenant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

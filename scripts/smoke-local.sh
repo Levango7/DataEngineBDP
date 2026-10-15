@@ -56,7 +56,7 @@ if command -v mvn >/dev/null 2>&1; then
   else
     fail "mvn install 父POM（治理模块前置）"
   fi
-  for lib_pom in platform/common-security platform/encaps-layer platform/sql-gateway; do
+  for lib_pom in platform/common-security platform/encaps-shared-model platform/encaps-layer platform/sql-gateway; do
     if (cd "$ROOT/$lib_pom" && mvn install -B -q -DskipTests >/dev/null 2>&1); then
       pass "mvn install $lib_pom"
     else

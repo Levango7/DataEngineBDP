@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.model;
+package com.levango7.dataenginebdp.encapsshared.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
