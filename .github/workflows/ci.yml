@@ -611,6 +611,23 @@ jobs:
           python3 scripts/check-chart-secret-hygiene.py --self-test
           python3 scripts/check-chart-secret-hygiene.py
 
+      - name: Keycloak realm 片段离线自检（角色齐备 + 两个必需 mapper + 与代码侧 @PreAuthorize 一致）
+        # 背景：platform 鉴权只认 JWT 的 realm_access.roles，而 realm 片段（sq-realm-roles.json）
+        # 从未实跑导入。它一旦缺角色或缺 protocolMapper，症状是运行期 @PreAuthorize
+        # 全 403、TenantContext 取不到租户——**导入时毫无报错**，事后极难归因。
+        # 本步不起 Keycloak、不连集群，静态核对：
+        #   A. roles.realm 非空；
+        #   B. 代码侧 @PreAuthorize 引用的角色（全平台 Java 源码 grep、排除 Javadoc 注释）
+        #      在 realm 里都有定义——缺一个该端点必 403；
+        #   C. 两个必需 protocolMapper 存在且配置正确（realm-roles / tenant-id）：
+        #      前者保证角色进 token，后者保证租户归属（多租户隔离依赖它）。
+        # 同批修复：补入 ADMIN / GOVERNANCE_WRITER / INFRA_ADMIN 三个被真注解引用
+        # 但 realm 未定义的角色（门禁首次真判定当场抓出）。
+        # 等价的离线入口：bash scripts/import-keycloak-realm.sh --verify-only
+        run: |
+          python3 scripts/check-keycloak-realm-fragment.py --self-test
+          python3 scripts/check-keycloak-realm-fragment.py
+
       - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
         # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
         # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，
