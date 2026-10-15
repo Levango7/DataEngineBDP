@@ -517,7 +517,11 @@ export function authGuard(
         ? to.query.redirect[0]
         : to.query.redirect
       // 只接受站内绝对路径；协议相对（//host）与 scheme 形态一律忽略，防开放重定向
-      if (typeof rawRedirect === 'string' && rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')) {
+      if (
+        typeof rawRedirect === 'string' &&
+        rawRedirect.startsWith('/') &&
+        !rawRedirect.startsWith('//')
+      ) {
         return { path: rawRedirect }
       }
       return { path: '/dashboard' }
