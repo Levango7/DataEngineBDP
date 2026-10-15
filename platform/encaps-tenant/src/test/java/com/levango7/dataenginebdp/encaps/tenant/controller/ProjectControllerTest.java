@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.tenant.controller;
 
+import com.levango7.dataenginebdp.encaps.TenantJpaSliceConfig;
 import com.levango7.dataenginebdp.encapsshared.model.ProjectEntity;
 import com.levango7.dataenginebdp.encapsshared.repository.ProjectRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
@@ -8,9 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.boot.persistence.autoconfigure.EntityScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
@@ -31,22 +29,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 拉进切片，而其依赖的 {@code RateLimitFilter} 只由 common-security 自动配置提供
  * （切片不加载）⇒ 上下文失败。</p>
  *
- * <p>改为自带 {@code @SpringBootConfiguration} 的最小切片配置：显式类里包含
- * @SpringBootConfiguration 时启动器不再按包搜索（否则会同时发现 tenant 与 layer
- * 两个应用类而报 "Found multiple @SpringBootConfiguration"）。只装配本测试所需的
- * encapsshared 实体与仓储，JPA 自动配置由 @DataJpaTest 切片自带。</p>
+ * <p>改为自带 {@code @SpringBootConfiguration} 的最小切片配置（{@link TenantJpaSliceConfig}，
+ * 刻意置于测试根包 {@code ...encaps} 而非本包——本包在应用 {@code @ComponentScan}
+ * 白名单内，配置类若在此会被全 context 测试扫到并造成仓储重复注册，CI 已实证）。
+ * 只装配本测试所需的 encapsshared 实体与仓储，JPA 自动配置由 @DataJpaTest 切片自带。</p>
  */
 @DataJpaTest
-@ContextConfiguration(classes = ProjectControllerTest.JpaSliceConfig.class)
+@ContextConfiguration(classes = TenantJpaSliceConfig.class)
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class ProjectControllerTest {
-
-    /** 最小 JPA 切片配置：只要 encapsshared 的实体与仓储。 */
-    @SpringBootConfiguration
-    @EntityScan(basePackages = "com.levango7.dataenginebdp.encapsshared.model")
-    @EnableJpaRepositories(basePackages = "com.levango7.dataenginebdp.encapsshared.repository")
-    static class JpaSliceConfig {
-    }
 
     @Autowired
     private ProjectRepository repository;
