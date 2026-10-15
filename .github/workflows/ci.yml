@@ -938,6 +938,7 @@ jobs:
           # fat jar），否则即使装进本地库，下游仍取不到 CredentialEncryptor 等类。
           for lib_pom in \
             "platform/common-security/pom.xml" \
+            "platform/encaps-shared-model/pom.xml" \
             "platform/encaps-layer/pom.xml" \
             "platform/encaps-data/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
@@ -2357,9 +2358,10 @@ jobs:
               || echo "::warning::parent POM 安装失败"
           fi
           # 依赖序预装库模块（与 java-build-test 预装清单对齐，顺序不可颠倒）：
-          # common-security → encaps-layer → encaps-data → sql-gateway
+          # common-security → encaps-shared-model → encaps-layer → encaps-data → sql-gateway
           for lib_pom in \
             platform/common-security/pom.xml \
+            platform/encaps-shared-model/pom.xml \
             platform/encaps-layer/pom.xml \
             platform/encaps-data/pom.xml \
             platform/sql-gateway/pom.xml; do

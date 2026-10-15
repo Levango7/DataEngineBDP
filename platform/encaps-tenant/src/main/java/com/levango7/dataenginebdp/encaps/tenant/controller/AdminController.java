@@ -1,6 +1,6 @@
-package com.levango7.dataenginebdp.encaps.controller;
+package com.levango7.dataenginebdp.encaps.tenant.controller;
 
-import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
+import com.levango7.dataenginebdp.encapsshared.repository.ProjectRepository;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.workspace.WorkspaceRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
