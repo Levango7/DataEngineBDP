@@ -77,18 +77,44 @@ def table_of_entity(text: str):
 
 
 def scan_roots(module: str) -> set:
-    """应用真正扫描的包：@SpringBootApplication 所在包 + 显式 basePackages。"""
-    roots = set()
+    """持久单元真正扫描的包。
+
+    **Spring 语义：显式 @EntityScan 取代默认（应用包根），不是叠加。**
+
+    2026-10-13 修正：此前本函数无条件把 @SpringBootApplication 所在包加进
+    扫描根，于是"显式收窄的 @EntityScan"被叠加而非取代 ⇒ 依赖模块里同包前缀
+    的实体会被误判成本模块持久单元的一部分。抽 encaps-shared-model 时暴露：
+    encaps-tenant 已把 @EntityScan 收窄到 quota/workspace/encapsshared，
+    门禁却仍按 `...encaps` 前缀把 encaps-layer 的 16 个实体算进来、误报缺表。
+
+    回归位：self_test 的 svc-a/svc-b 均不带 @EntityScan，仍走默认回落分支，
+    故本条修改不改变它们的判定。
+    """
+    app_pkgs: set = set()
+    entity_roots: set = set()
+    component_roots: set = set()
+    has_entity_scan = False
+
     for f in glob.glob(os.path.join(module, "src/main/java/**/*.java"), recursive=True):
         text = _read(f)
         if "@SpringBootApplication" in text:
-            roots.add(_package_of(text))
-        for m in re.finditer(
-            r"@(?:EntityScan|ComponentScan|SpringBootApplication)\s*\(([^)]*)\)", text, re.S
-        ):
+            app_pkgs.add(_package_of(text))
+        for m in re.finditer(r"@EntityScan\s*\(([^)]*)\)", text, re.S):
+            has_entity_scan = True
+            for key in ("basePackages", "value"):
+                for b in re.finditer(key + r"\s*=\s*\{?\s*\"([^\"]+)\"", m.group(1)):
+                    entity_roots.add(b.group(1))
+        for m in re.finditer(r"@ComponentScan\s*\(([^)]*)\)", text, re.S):
             for key in ("basePackages", "scanBasePackages", "value"):
                 for b in re.finditer(key + r"\s*=\s*\{?\s*\"([^\"]+)\"", m.group(1)):
-                    roots.add(b.group(1))
+                    component_roots.add(b.group(1))
+
+    if has_entity_scan:
+        # 显式声明 ⇒ 取代默认包根
+        roots = entity_roots
+    else:
+        # 未声明 ⇒ 回落应用包根（并保留原行为里的 @ComponentScan 并集）
+        roots = app_pkgs | component_roots
     return {r for r in roots if r}
 
 
@@ -253,6 +279,34 @@ def self_test() -> int:  # pylint: disable=too-many-return-statements
         else:
             print("  [FAIL] 自检④：过期基线条目没被判红")
             ok = False
+
+        # 自检⑤：显式 @EntityScan 必须**取代**默认包根，而不是叠加。
+        # （2026-10-13 抽 encaps-shared-model 时暴露的模型错误：
+        #   encaps-tenant 已把 @EntityScan 收窄到 quota/workspace/encapsshared，
+        #   门禁却仍按 `...encaps` 前缀把 encaps-layer 的 16 个实体算进来、误报缺表。）
+        app_c = os.path.join(tmp, "platform", "svc-c")
+        _mk(app_c, "src/main/java/com/x/root/App.java",
+            "package com.x.root;\n@SpringBootApplication\n"
+            "@EntityScan(basePackages = \"com.x.shared.model\")\n"
+            "public class App {}\n")
+        # 在应用包根下、但**不在** @EntityScan 声明范围内 ⇒ 不得计入
+        _mk(app_c, "src/main/java/com/x/root/legacy/LegacyEntity.java",
+            "package com.x.root.legacy;\n@Entity\n@Table(name = \"legacy_table\")\npublic class LegacyEntity {}\n")
+        # 在声明范围内 ⇒ 必须计入，且迁移已建 ⇒ 无缺口
+        _mk(app_c, "src/main/java/com/x/shared/model/SharedEntity.java",
+            "package com.x.shared.model;\n@Entity\n@Table(name = \"shared_table\")\npublic class SharedEntity {}\n")
+        _mk(app_c, "src/main/resources/db/migration/svc-c/V1__z.sql",
+            "create table shared_table (id bigint primary key);\n")
+
+        got_c = classify(tmp).get("platform/svc-c", [])
+        if "legacy_table" in got_c:
+            print("  [FAIL] 自检⑤：显式 @EntityScan 未取代默认包根（legacy_table 被误计入）")
+            ok = False
+        elif got_c:
+            print(f"  [FAIL] 自检⑤：svc-c 应无缺口，实得 {got_c}")
+            ok = False
+        else:
+            print("  [ok] 自检⑤：显式 @EntityScan 取代默认包根，范围外实体不计入")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     if os.path.exists(tmp):
