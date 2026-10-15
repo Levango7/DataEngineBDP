@@ -32,7 +32,6 @@ import io
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 
@@ -174,13 +173,14 @@ def check(root=ROOT, report=False):
     v = violations(rows)
     baseline = load_baseline(root)
     if report:
-        print('%-24s %-10s %-30s %-12s %6s %s' % ('service', 'in-scope', 'module_dir', 'AUTH_MODE',
-                                                  'secret', '判定'))
+        # 注意：这一列刻意不打任何源自 JWT_SECRET 的值（连长度都不打）——CodeQL 会把
+        # 从密钥 env 派生的输出判成 clear-text logging（实测 2 条 high 都来自这里）。
+        # 是否缺密钥由 detail/classify() 给出，不需要把数外信息带出来。
+        print('%-24s %-8s %-30s %-12s %s' % ('service', 'in-scope', 'module_dir', 'AUTH_MODE', '判定'))
         for r in rows:
-            print('%-24s %-10s %-30s %-12s %6d %s' % (
+            print('%-24s %-8s %-30s %-12s %s' % (
                 r['service'], 'yes' if r['in_scope'] else 'no', r['module_dir'],
-                r['auth_mode'] if r['auth_mode'] is not None else '<未声明>',
-                r['secret_len'], r['detail']))
+                r['auth_mode'] if r['auth_mode'] is not None else '<未声明>', r['detail']))
     new = [r for r in v if r['service'] not in baseline]
     stale = [s for s in baseline if s not in {r['service'] for r in v}]
     print('check-it-auth-mode.py 目标仓库：%s' % root)
@@ -226,16 +226,18 @@ def self_test():
         bad_invalid = make_module('svc-invalid')
         third = make_module('svc-thirdparty', with_jwt=False)
 
+        FAKE_SECRET = 'x' * 41  # 合成夹具专用假密钥：够长以过 >=32 判据，但不是可被识别的密钥形态
+        SEC = '      - JWT_SECRET=' + FAKE_SECRET + '\n'
         def blk(name, ctx, envlines):
             return ('  %s:\n    build:\n      context: %s\n      dockerfile: app/Dockerfile\n'
                     '    environment:\n%s\n' % (name, ctx, envlines))
 
         compose('services:\n'
-                + blk('svc-good', good, '      - AUTH_MODE=jwt\n      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long\n')
-                + blk('svc-undeclared', bad_undeclared, '      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long\n')
-                + blk('svc-none', bad_none, '      - AUTH_MODE=none\n      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long\n')
+                + blk('svc-good', good, '      - AUTH_MODE=jwt\n' + SEC)
+                + blk('svc-undeclared', bad_undeclared, SEC)
+                + blk('svc-none', bad_none, '      - AUTH_MODE=none\n' + SEC)
                 + blk('svc-nosecret', bad_nosecret, '      - AUTH_MODE=jwt\n')
-                + blk('svc-invalid', bad_invalid, '      - AUTH_MODE=off\n      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long\n')
+                + blk('svc-invalid', bad_invalid, '      - AUTH_MODE=off\n' + SEC)
                 + blk('svc-thirdparty', third, '      - FOO=bar\n'))
 
         # 0) 前置断言：合成件真的被扫到（否则后面全是假绿）
@@ -243,6 +245,8 @@ def self_test():
         assert rows is not None, '合成夹具未能扫描：%s' % err
         names = {r['service'] for r in rows}
         assert len(rows) == 6, '合成服务数应为 6，实为 %d' % len(rows)
+        assert names == {'svc-good', 'svc-undeclared', 'svc-none', 'svc-nosecret',
+                         'svc-invalid', 'svc-thirdparty'}, '夹具服务集合错了：%s' % sorted(names)
         scoped = {r['service'] for r in rows if r['in_scope']}
         assert scoped == {'svc-good', 'svc-undeclared', 'svc-none', 'svc-nosecret', 'svc-invalid'}, \
             '判据集合错了：%s' % scoped
