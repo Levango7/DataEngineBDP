@@ -120,7 +120,6 @@ def scan(root=ROOT):
             'module_dir': os.path.relpath(mdir, root).replace(os.sep, '/') if mdir else '<无 build 段>',
             'jwt_auth': rel or '-',
             'auth_mode': env.get('AUTH_MODE'),
-            'secret_len': len(env.get('JWT_SECRET', '')),
             'kind': kind,
             'detail': detail,
         })
