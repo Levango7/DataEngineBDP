@@ -512,6 +512,18 @@ export function authGuard(
 ): boolean | Record<string, unknown> {
   if (PUBLIC_PATHS.has(to.path)) {
     if (isAuthenticated) {
+      // 已登录再访问 /login?redirect=X 时保留 X：无条件弹 dashboard 会把守卫自己写入的目标页丢掉
+      const rawRedirect = Array.isArray(to.query.redirect)
+        ? to.query.redirect[0]
+        : to.query.redirect
+      // 只接受站内绝对路径；协议相对（//host）与 scheme 形态一律忽略，防开放重定向
+      if (
+        typeof rawRedirect === 'string' &&
+        rawRedirect.startsWith('/') &&
+        !rawRedirect.startsWith('//')
+      ) {
+        return { path: rawRedirect }
+      }
       return { path: '/dashboard' }
     }
     return true
