@@ -12,8 +12,13 @@ vi.mock('@/stores/auth', () => ({
 
 const { authGuard } = await import('@/router/index')
 
-function fakeRoute(path: string, fullPath?: string, meta: Record<string, unknown> = {}) {
-  return { path, fullPath: fullPath ?? path, meta } as never
+function fakeRoute(
+  path: string,
+  fullPath?: string,
+  meta: Record<string, unknown> = {},
+  query: Record<string, unknown> = {}
+) {
+  return { path, fullPath: fullPath ?? path, meta, query } as never
 }
 
 describe('authGuard 鉴权守卫（纯函数）', () => {
@@ -45,6 +50,26 @@ describe('authGuard 鉴权守卫（纯函数）', () => {
   it('已登录访问 /login → 跳回 /dashboard', () => {
     const result = authGuard(fakeRoute('/login'), true) as Record<string, unknown>
     expect(result.path).toBe('/dashboard')
+  })
+
+  // 台账 #69：夜间 auth.spec.ts:133 随机红就是因为这条分支把 redirect 查询丢掉，
+  // 登录成功后只剩 dashboard 兜底。守卫必须保留目标页。
+  it('已登录访问 /login?redirect=/jobs → 保留目标页，不丢进 dashboard', () => {
+    const result = authGuard(
+      fakeRoute('/login', '/login?redirect=%2Fjobs', {}, { redirect: '/jobs' }),
+      true
+    ) as Record<string, unknown>
+    expect(result.path).toBe('/jobs')
+  })
+
+  it('redirect 是站外形态 → 忽略并回 dashboard（防开放重定向）', () => {
+    for (const bad of ['//evil.example/x', 'https://evil.example', 'javascript:alert(1)']) {
+      const result = authGuard(
+        fakeRoute('/login', '/login', {}, { redirect: bad }),
+        true
+      ) as Record<string, unknown>
+      expect(result.path).toBe('/dashboard')
+    }
   })
 })
 

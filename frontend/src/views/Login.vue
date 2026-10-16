@@ -184,12 +184,14 @@ async function handleLogin() {
   }
   loading.value = true
   error.value = ''
+  // 必须在 await 之前取快照：登录成功会让守卫对 /login 再跑一次，那次导航会清空 route.query
+  const rawRedirect = Array.isArray(route.query.redirect)
+    ? route.query.redirect[0]
+    : route.query.redirect
+  const redirect = rawRedirect || '/dashboard'
   try {
     await auth.login(form.value.username, form.value.password)
     ElMessage.success(t('login.loginSuccess'))
-    const redirect = Array.isArray(route.query.redirect)
-      ? route.query.redirect[0] || '/dashboard'
-      : route.query.redirect || '/dashboard'
     router.replace(redirect)
   } catch (e) {
     error.value = `${t('login.loginFailed')}: ${e instanceof Error ? e.message : String(e)}`
