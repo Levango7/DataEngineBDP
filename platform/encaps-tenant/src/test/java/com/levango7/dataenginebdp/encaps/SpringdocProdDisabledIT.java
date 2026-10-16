@@ -26,10 +26,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * ⇒ 两个端点在生产<b>匿名可达</b>（API 结构元数据暴露）。</p>
  *
  * <p><b>为什么需要本类</b>：这正是"声称已关、实际没关"的治理问题形态——只靠注释与
- * 口头约定没有约束力，必须有测试把约定钉住。两类断言分别防两种回归：</p>
+ * 口头约定没有约束力，必须有测试把约定钉住。三类断言分别防三种回归：</p>
  * <ul>
- *   <li>{@link #prodProfileExplicitlyDisablesApiDocs()}：prod profile 里显式关闭两个
- *       springdoc 开关（防配置被后人删掉，注释承诺重新变成空话）；</li>
+ *   <li>{@link #prodProfileExplicitlyDisablesApiDocs()}：本服务（encaps-tenant）的 prod
+ *       profile 里显式关闭两个 springdoc 开关（防配置被后人删掉，注释承诺重新变成空话）；</li>
+ *   <li>{@link #layerProdProfileExplicitlyDisablesApiDocs()}：同一约定钉在
+ *       <b>encaps-layer</b> 的 prod profile 上——暴露面的源头在 layer 那条链上，
+ *       只测 tenant 侧等于源头无人守门；</li>
  *   <li>{@link #apiDocsAndSwaggerUiNotAnonymouslyServed()}：开关置关后端点不得再被
  *       匿名服务（4xx；不是 200）——防有人把 SecurityConfig 的 permitAll 又放开。</li>
  * </ul>
@@ -56,23 +59,53 @@ class SpringdocProdDisabledIT {
      * prod profile 必须显式关闭两个 springdoc 端点开关。
      * 读的是本模块 src/main/resources/application-prod.yml（surefire 的 CWD = 模块 basedir）。
      */
+    /**
+     * 同一约定也要钉在 <b>encaps-layer</b> 的 prod 配置上——暴露面就长在 layer 那条
+     * {@code SecurityConfig} 链上，只测 tenant 侧等于源头无人守门。
+     *
+     * <p>surefire 的 CWD 通常是模块 basedir（⇒ {@code ../encaps-layer/...}），但为防
+     * 不同调用方式把 CWD 换成仓库根，两种形态都试一次；都找不到就 fail-loud，
+     * 绝不静默跳过（静默跳过等于守卫自己失明）。</p>
+     */
+    @Test
+    void layerProdProfileExplicitlyDisablesApiDocs() throws Exception {
+        java.io.File f = new java.io.File("../encaps-layer/src/main/resources/application-prod.yml");
+        if (!f.isFile()) {
+            f = new java.io.File("platform/encaps-layer/src/main/resources/application-prod.yml");
+        }
+        assertThat(f.isFile())
+                .as("找不到 encaps-layer 的 application-prod.yml（CWD=%s），守卫不能空跑",
+                        new java.io.File("").getAbsolutePath())
+                .isTrue();
+
+        Map<String, Object> prod;
+        try (InputStream in = new java.io.FileInputStream(f)) {
+            prod = new Yaml().load(in);
+        }
+        assertProdDisablesApiDocs(prod, "encaps-layer");
+    }
+
     @Test
     void prodProfileExplicitlyDisablesApiDocs() throws Exception {
         Map<String, Object> prod;
         try (InputStream in = new java.io.FileInputStream("src/main/resources/application-prod.yml")) {
             prod = new Yaml().load(in);
         }
+        assertProdDisablesApiDocs(prod, "encaps-tenant");
+    }
 
+    /** 两个 springdoc 开关都必须显式为布尔 false——只关一个仍会暴露另一半。 */
+    private static void assertProdDisablesApiDocs(Map<String, Object> prod, String module) {
         Map<?, ?> springdoc = (Map<?, ?>) prod.get("springdoc");
         assertThat(springdoc)
-                .as("application-prod.yml 必须含 springdoc 段（2026-10-16 暴露面收口）")
+                .as("%s 的 application-prod.yml 必须含 springdoc 段（2026-10-16 暴露面收口）", module)
                 .isNotNull();
 
         assertThat(Boolean.FALSE.equals(((Map<?, ?>) springdoc.get("api-docs")).get("enabled")))
-                .as("prod 必须 springdoc.api-docs.enabled=false")
+                .as("%s 的 prod 必须 springdoc.api-docs.enabled=false", module)
                 .isTrue();
         assertThat(Boolean.FALSE.equals(((Map<?, ?>) springdoc.get("swagger-ui")).get("enabled")))
-                .as("prod 必须 springdoc.swagger-ui.enabled=false")
+                .as("%s 的 prod 必须 springdoc.swagger-ui.enabled=false", module)
                 .isTrue();
     }
 
