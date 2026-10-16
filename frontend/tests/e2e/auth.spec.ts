@@ -133,7 +133,9 @@ test.describe('登录流程', () => {
   test('登录后按 redirect 参数跳转回原页面', async ({ page }) => {
     // 直接访问 projects（会跳到 login?redirect=...）
     await page.goto('/#/projects', { waitUntil: 'domcontentloaded' })
-    await expect(page).toHaveURL(/#\/login/)
+    await page.waitForURL(/#\/login/, { timeout: 10_000 })
+    // 目标页必须在提交登录前就已在 URL 里；一旦被守卫弹成裸 /login，登录成功只会兜底去 dashboard
+    expect(decodeURIComponent(new URL(page.url()).hash)).toContain('redirect=/projects')
 
     // 在登录页填写账号
     await page.fill('input[autocomplete="username"]', 'admin')
