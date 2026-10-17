@@ -6,10 +6,10 @@
 # 双注册——本镜像 classpath 含 encaps-layer jar，其 TenantController 会被组件扫描带入）
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ---------- Stage 1: Build ----------
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /workspace
 
 # 安装父 POM 到本地仓库（multi-module 项目必需，build context 为项目根目录）
@@ -44,7 +44,7 @@ COPY platform/encaps-tenant/src ./src
 RUN mvn -B -q clean package -DskipTests
 
 # ---------- Stage 2: Runtime ----------
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
 # 创建非 root 用户运行应用

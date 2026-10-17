@@ -9,7 +9,8 @@
 # 目标冷启动：≤ 1s（Native Image，远优于 ≤ 3s 目标）
 # ============================================================================
 # ---------- 阶段 1：Maven 编译 ----------
-FROM docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17 AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 COPY pom.xml /build/pom.xml

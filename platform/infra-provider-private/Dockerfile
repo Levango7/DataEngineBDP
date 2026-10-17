@@ -8,7 +8,7 @@ ARG BASE_REGISTRY=docker.m.daocloud.io
 # =============================================================================
 # 阶段 1: 构建
 # =============================================================================
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
@@ -29,7 +29,7 @@ RUN mvn -B -q clean package -DskipTests -f pom.xml
 # =============================================================================
 # 阶段 2: 运行
 # =============================================================================
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="infra-provider-private" \
       org.opencontainers.image.description="数据引擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）" \
