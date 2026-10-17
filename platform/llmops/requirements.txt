@@ -21,4 +21,4 @@ pytest-asyncio>=1.4.0,<2.0  # 随 pytest 9 同步升级：0.25.2/0.26.0/1.0.0 �
 loguru==0.7.3
 
 # Utilities
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
