@@ -4,7 +4,9 @@
 #   Stage 1: Maven 构建 fat jar
 #   Stage 2: Eclipse Temurin JRE 17 运行
 # ============================================================================
-FROM maven:3.9-eclipse-temurin-17 AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn -B -q install -N
@@ -18,7 +20,7 @@ RUN mvn dependency:go-offline -f pom.xml -B
 COPY platform/karmada/federated-query/src ./src
 RUN mvn clean package -f pom.xml -DskipTests -B
 
-FROM eclipse-temurin:17-jre-alpine
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine
 
 # 创建非 root 用户（alpine 运行时使用 busybox 工具链，保持 root 执行）。
 RUN addgroup -S app && adduser -S -G app app

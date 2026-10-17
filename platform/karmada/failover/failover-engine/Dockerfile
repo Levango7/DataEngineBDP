@@ -6,7 +6,9 @@
 # ---------------------------------------------------------------------------
 # 阶段 1：编译
 # ---------------------------------------------------------------------------
-FROM golang:1.26-alpine AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/golang:1.26-alpine AS builder
 ARG TARGETARCH
 
 WORKDIR /build
@@ -24,7 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o f
 # ---------------------------------------------------------------------------
 # 阶段 2：运行
 # ---------------------------------------------------------------------------
-FROM alpine:3.20
+FROM ${BASE_REGISTRY}/library/alpine:3.20
 
 # 安装 ca-certificates（HTTPS 调用 Karmada/Prometheus 需要，保持 root 执行）。
 RUN apk add --no-cache ca-certificates tzdata

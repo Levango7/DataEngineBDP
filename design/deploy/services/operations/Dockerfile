@@ -6,7 +6,9 @@
 #   3. 内置 HEALTHCHECK
 #   4. 不再内置 ADMIN_TOKEN 默认值, 必须由 K8s Secret 注入
 # syntax=docker/dockerfile:1.6
-FROM python:3.11.7-slim-bookworm@sha256:9c6a0c4e6f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11.7-slim-bookworm@sha256:9c6a0c4e6f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4
 
 WORKDIR /app
 

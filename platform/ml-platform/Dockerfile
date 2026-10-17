@@ -2,7 +2,9 @@
 # ML Platform Dockerfile
 # 数据引擎大数据平台 L4.5.6 智能数据层 - 机器学习平台
 
-FROM python:3.11-slim AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -22,7 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
     && pip install --no-cache-dir .[sklearn]
 
 # ---------- runtime ----------
-FROM python:3.11-slim AS runtime
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS runtime
 
 LABEL org.opencontainers.image.title="sq-ml-platform" \
       org.opencontainers.image.description="Shuqing Big Data Platform - ML Platform (L4.5.6)" \

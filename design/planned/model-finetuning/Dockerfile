@@ -14,7 +14,9 @@
 
 # 基础镜像：选择 CUDA 12.1 镜像以支持 GPU 训练
 # Mock 模式下也可使用 python:3.11-slim 减小体积
-FROM python:3.11-slim AS base
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS base
 
 WORKDIR /app
 

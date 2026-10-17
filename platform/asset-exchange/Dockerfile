@@ -2,7 +2,9 @@
 # Asset Exchange Platform Dockerfile
 # 数据引擎大数据平台 L5.6 数据资产交易市场 - 资产交换平台
 
-FROM python:3.11-slim
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim
 
 WORKDIR /app
 

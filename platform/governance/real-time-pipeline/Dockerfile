@@ -2,7 +2,9 @@
 # 多阶段构建：Maven 编译 → JRE 运行
 
 # ============ Stage 1: Maven 编译 ============
-FROM maven:3.9-eclipse-temurin-17 AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
@@ -21,7 +23,7 @@ COPY platform/governance/real-time-pipeline/src ./src
 RUN mvn clean package -f pom.xml -DskipTests -B
 
 # ============ Stage 2: JRE 运行 ============
-FROM eclipse-temurin:17-jre-alpine
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 

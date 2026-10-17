@@ -1,6 +1,8 @@
 # 微调→评测→部署闭环编排服务 Dockerfile
 # 基于 python:3.11-slim 精简镜像
-FROM python:3.11-slim AS base
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS base
 
 # 设置工作目录
 WORKDIR /app

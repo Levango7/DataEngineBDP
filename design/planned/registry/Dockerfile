@@ -1,5 +1,7 @@
 # 模型仓库注册部署服务 Dockerfile
-FROM python:3.11-slim AS base
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS base
 
 WORKDIR /app
 
