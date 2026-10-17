@@ -126,6 +126,62 @@ def used_exceptions(root, files):
     return hits
 
 
+def check_compose(root):
+    """R5：凡带 build 的 compose 服务，必须把 BASE_REGISTRY 传进去。
+
+    否则选源只覆盖 direct buildx/docker build 那半边，compose 起的栈（Integration Test、
+    Playwright 这两条这轮真红过的腿）仍会吊死在 ARG 默认值的单点上。
+    """
+    bad = []
+    n_blocks = 0
+    n_files = 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in
+                       {'.git', 'node_modules', 'target', 'dist', 'build', 'venv',
+                        '.venv', '__pycache__', 'htmlcov', 'site-packages'}]
+        for fn in filenames:
+            if not (re.search(r'compose.*\.ya?ml$', fn, re.I)):
+                continue
+            p = os.path.join(dirpath, fn)
+            try:
+                import yaml
+                data = yaml.safe_load(io.open(p, encoding='utf-8', errors='replace'))
+            except Exception as exc:  # noqa: BLE001 解析失败必须说出来，不能跳过
+                bad.append((os.path.relpath(p, root).replace(os.sep, '/'), 'R5',
+                            'compose 解析失败（%s）——门禁不能对读不懂的文件放行' % str(exc)[:60]))
+                continue
+            svcs = (data or {}).get('services') or {}
+            if not svcs:
+                continue
+            n_files += 1
+            for name, spec in svcs.items():
+                b = (spec or {}).get('build')
+                if not b:
+                    continue
+                n_blocks += 1
+                rel = os.path.relpath(p, root).replace(os.sep, '/')
+                if isinstance(b, str):
+                    bad.append((rel, 'R5',
+                                '服务 %s 用 `build: <路径>` 简写形态，无处放 build args ⇒ '
+                                '选源切不到它；请改成 mapping 并加 args' % name))
+                    continue
+                args = b.get('args')
+                keys = set()
+                if isinstance(args, list):
+                    for a in args:
+                        if isinstance(a, str):
+                            keys.add(a.split('=', 1)[0].strip())
+                        elif isinstance(a, dict):
+                            keys.update(a.keys())
+                elif isinstance(args, dict):
+                    keys.update(args.keys())
+                if 'BASE_REGISTRY' not in keys:
+                    bad.append((rel, 'R5',
+                                '服务 %s 的 build 未传 BASE_REGISTRY ⇒ compose 侧仍在吃 ARG 默认值，'
+                                '加速器红时切不过去' % name))
+    return bad, n_blocks, n_files
+
+
 def run():
     root = _repo()
     files = dockerfiles(root)
@@ -139,6 +195,11 @@ def run():
     stale = sorted((set(EXTERNAL_HOST_PREFIXES) | {'spark-cluster-*'}) - used_exceptions(root, files))
     if stale:
         viol.append(('<例外表>', 'R4', '白名单条目无人使用，请删除：%s' % ', '.join(stale)))
+    c_bad, c_blocks, c_files = check_compose(root)
+    viol.extend(c_bad)
+    if c_files == 0:
+        print('::error::扫描失效：一个 compose 文件都没解析出 services（门禁失明，不放行）')
+        return 2
     n_bare = sum(1 for rel in files
                  for m in re.finditer(r'^FROM\s+([a-z0-9][\w.-]*:\S+)',
                                       io.open(os.path.join(root, rel), encoding='utf-8',
@@ -146,12 +207,13 @@ def run():
     print('check-dockerfile-base-registry.py 目标仓库：%s' % root)
     print('  Dockerfile %d 个；FROM 检查完成；直连 Docker Hub 短名 %d 条（允许，但不受选源切换影响）'
           % (len(files), n_bare))
+    print('  compose %d 个文件 / %d 个 build 服务已纳入 R5 检查' % (c_files, c_blocks))
     if viol:
         for rel, rule, msg in viol:
             print('  [违规][%s] %s: %s' % (rule, rel, msg))
         print('  ⇒ 共 %d 条' % len(viol))
         return 1
-    print('  ✓ base 镜像源形态合规（无硬编码加速器宿主、ARG 语义统一、例外表无过期）')
+    print('  ✓ base 镜像源形态合规（无硬编码加速器宿主、ARG 语义统一、例外表无过期、compose build args 齐全）')
     return 0
 
 
@@ -180,6 +242,14 @@ def self_test():
                              'FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17\n')
         put('ext/Dockerfile', 'FROM gcr.io/distroless/static-debian12:nonroot\n')
         put('bare/Dockerfile', 'FROM python:3.11-slim AS base\n')
+        # R5 的合成件：compose 的 build 有没有传 BASE_REGISTRY
+        put('c-missing/docker-compose.yml',
+            'services:\n  svc:\n    build:\n      context: .\n      dockerfile: Dockerfile\n')
+        put('c-ok/docker-compose.yml',
+            'x-base-args: &base-args\n  - BASE_REGISTRY=${BASE_REGISTRY:-docker.m.daocloud.io}\n'
+            'services:\n  svc:\n    build:\n      context: .\n      args: *base-args\n')
+        put('c-shorthand/docker-compose.yml',
+            'services:\n  svc:\n    build: ./ctx\n')
 
         def rules(root):
             out = []
@@ -208,6 +278,21 @@ def self_test():
             print('  [%s] %s' % ('PASS' if miss else 'FAIL', name))
             ok = ok and miss
         # 合成件必须真被扫到（否则上面全是假绿）
+        # R5：compose 侧三种形态各判各的
+        c_findings, c_blocks, c_files = check_compose(tmp)
+        cset = {rel.split('/')[0] for rel, _rule, _m in c_findings}
+        for name, want in [('R5 build 缺 BASE_REGISTRY 要被抓', 'c-missing'),
+                           ('R5 `build: ./ctx` 简写形态要被抓', 'c-shorthand')]:
+            hit = want in cset
+            print('  [%s] %s' % ('PASS' if hit else 'FAIL', name))
+            ok = ok and hit
+        good_ok = 'c-ok' not in cset
+        print('  [%s] R5 锚点引用形态不误报' % ('PASS' if good_ok else 'FAIL'))
+        ok = ok and good_ok
+        cnt_ok = (c_blocks == 3 and c_files == 3)
+        print('  [%s] compose build 块计数正确（%d 块 / %d 文件，期望 3/3）'
+              % ('PASS' if cnt_ok else 'FAIL', c_blocks, c_files))
+        ok = ok and cnt_ok
         n = len(dockerfiles(tmp))
         print('  [%s] 合成夹具真的被扫到（%d 个 Dockerfile）' % ('PASS' if n == 8 else 'FAIL', n))
         ok = ok and n == 8

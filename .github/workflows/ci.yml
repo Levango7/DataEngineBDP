@@ -2089,6 +2089,12 @@ jobs:
         # 基础镜像拉取超时（历史上 multi-arch 亦出现过），属基础设施抖动非代码缺陷；
         # 重试仍失败则照旧阻断并输出完整诊断日志
         run: |
+          # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
+          # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
+          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          export BASE_REGISTRY
           echo "启动 docker-compose 服务（第 1 次尝试）..."
           if docker compose up -d --wait; then
             echo "✓ 所有服务已启动（第 1 次尝试成功）"
