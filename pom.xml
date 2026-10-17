@@ -109,7 +109,7 @@
             <dependency>
                 <groupId>at.yawk.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
-                <version>1.11.4</version>
+                <version>1.12.0</version>
             </dependency>
             <!-- 2026-09-24 安全修复：commons-compress 1.22 为传递依赖（全仓未显式声明），
                  在此集中 pin。CVE-2023-42503 / CVE-2024-25710 / CVE-2024-26308。 -->
