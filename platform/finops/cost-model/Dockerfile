@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn -B -q install -N
@@ -19,7 +19,7 @@ COPY platform/finops/cost-model/src ./src
 RUN mvn -B -e -DskipTests clean package -f pom.xml
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
 # 创建非 root 用户（与其他 Java 组件保持一致）

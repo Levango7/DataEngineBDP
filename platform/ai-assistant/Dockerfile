@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
+FROM ${BASE_REGISTRY}/library/golang:1.26-alpine AS builder
 ARG TARGETARCH
 
 WORKDIR /build
@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -trimpath -ldflags="-s -w" -o /out/ai-assistant ./cmd/server
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
 
 RUN apk add --no-cache ca-certificates tzdata curl
 

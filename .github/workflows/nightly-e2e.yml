@@ -69,6 +69,12 @@ jobs:
         # 与 ci.yml integration-test 相同的门禁语义：栈起不来则 E2E 无意义，硬失败不跳过；
         # --wait 等待全部 healthcheck 通过，--wait-timeout 兜底防止无限等待
         run: |
+          # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
+          # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
+          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          export BASE_REGISTRY
           echo "启动 docker-compose 后端栈..."
           if ! docker compose up -d --wait --wait-timeout 600; then
             echo "::error::docker-compose 启动失败或健康检查超时，阻断"
@@ -185,6 +191,12 @@ jobs:
         # 但仍不足以把 ~30 个容器的完整栈塞进标准 runner（本批 dispatch run 38015350893
         # 实测 `it-encaps-layer is unhealthy`、多个 JVM 卡 Created）⇒ 恢复按名启动的精简栈。
         run: |
+          # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
+          # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
+          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          export BASE_REGISTRY
           echo "启动精简栈：encaps-layer + prometheus + 9 个 nightly-extra 服务"
           if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
                 encaps-layer prometheus vector-engine ai-assistant query-api \
@@ -305,6 +317,10 @@ jobs:
         # 由 conftest 的 ensure_k3s_services_deployed() 自身容忍 wait 超时，不拖红。
         run: |
           set -uo pipefail
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           images=""
           for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates lineage-analyzer; do
             dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
@@ -326,7 +342,7 @@ jobs:
               echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
               build_args=("$dir")
             fi
-            if docker build -q -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+            if docker build -q --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               images="$images sq/$comp:0.1.0"
             else
               echo "::warning::$comp 构建失败，跳过导入"
@@ -422,5 +438,9 @@ jobs:
 
       - name: arm64 构建冒烟（nl2sql，不推送）
         run: |
-          docker buildx build --platform linux/arm64 \
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          docker buildx build --platform linux/arm64 --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
             -f platform/nl2sql/Dockerfile platform/nl2sql >/dev/null && echo OK

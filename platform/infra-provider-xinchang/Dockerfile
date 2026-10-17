@@ -2,10 +2,10 @@
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
 # 默认使用 DaoCloud 公共加速，国外环境可传 --build-arg BASE_REGISTRY=docker.io/library
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ---------- Stage 1: Build ----------
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /workspace
 
 # 先复制 pom.xml，利用层缓存加速依赖下载
@@ -24,7 +24,7 @@ RUN mvn -B -q clean package -f pom.xml -DskipTests
 
 # ---------- Stage 2: Runtime ----------
 # 基础镜像：Eclipse Temurin 17 JRE Alpine（轻量，约 80MB）
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 WORKDIR /app
 
 # 创建非 root 用户运行应用（Alpine 使用 addgroup/adduser）
