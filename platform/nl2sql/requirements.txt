@@ -23,7 +23,7 @@ sqlparse==0.6.0          # 修复 PYSEC-2026-3696/3697/3698/3699/3923 + GHSA-27j
 # pip ResolutionImpossible（CI Build-Python 镜像构建失败根因之一）。
 # 三件套版本需联动：langchain-openai 1.6.0 → core>=1.6.0 + openai>=2.45,<4
 langchain-core==1.6.0
-langchain-openai==1.6.0
+langchain-openai==1.7.0
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
 openai==3.1.0
