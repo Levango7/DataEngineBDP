@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # =============================================================================
 # 阶段 1: 构建
 # =============================================================================
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
@@ -29,7 +29,7 @@ RUN mvn -B -q clean package -DskipTests -f pom.xml
 # =============================================================================
 # 阶段 2: 运行
 # =============================================================================
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
 
 LABEL org.opencontainers.image.title="sql-gateway" \
       org.opencontainers.image.description="数据引擎大数据平台 - 统一SQL网关" \

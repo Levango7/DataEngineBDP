@@ -10,7 +10,8 @@
 #   5. init container 预加载函数代码（见 kservice.yaml）。
 # 目标冷启动：≤ 3s（slim 镜像 + 预编译 .pyc + 依赖预装）
 # ============================================================================
-FROM docker.m.daocloud.io/library/python:3.12-slim AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+FROM ${BASE_REGISTRY}/library/python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -28,7 +29,7 @@ RUN python -m compileall /build/app/
 # ----------------------------------------------------------------------------
 # runtime 阶段：极简镜像
 # ----------------------------------------------------------------------------
-FROM docker.m.daocloud.io/library/python:3.12-slim AS runtime
+FROM ${BASE_REGISTRY}/library/python:3.12-slim AS runtime
 
 # 从 builder 复制预装依赖与预编译字节码
 COPY --from=builder /install /usr/local

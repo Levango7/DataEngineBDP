@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ---------- Stage 1: Build ----------
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /workspace
 
 # 先复制 pom.xml，利用层缓存加速依赖下载
@@ -26,7 +26,7 @@ COPY platform/governance/lineage-analyzer/src ./src
 RUN mvn -B -q clean package -f pom.xml -DskipTests
 
 # ---------- Stage 2: Runtime ----------
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="lineage-analyzer" \
       org.opencontainers.image.description="数据引擎大数据平台 - 数据血缘分析引擎" \

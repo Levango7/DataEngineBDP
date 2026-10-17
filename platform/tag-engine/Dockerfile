@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
 # ============ 构建阶段 ============
 # multi-module 项目：build context 必须为项目根目录（与 rule-engine 等组件一致）。
 # 此前组件目录 context 下 COPY pom.xml 解析不到父 POM，buildx 报 "/src" not found。
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
 # 安装父 POM 到本地仓库（multi-module 项目必需）
@@ -27,7 +27,7 @@ COPY platform/tag-engine/src ./src
 RUN mvn -B -e -DskipTests clean package -f pom.xml
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
 # 创建非 root 用户（与其他 Java 组件保持一致）

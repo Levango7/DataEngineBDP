@@ -246,6 +246,10 @@ jobs:
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
           platforms="${{ github.event.inputs.platforms || 'linux/amd64' }}"
           img_count=0
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -284,6 +288,7 @@ jobs:
             esac
             docker buildx build \
               --platform "$platforms" \
+              --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
@@ -337,6 +342,10 @@ jobs:
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
           platforms="${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}"
           img_count=0
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -350,6 +359,7 @@ jobs:
             echo "============================================"
             docker buildx build \
               --platform "$platforms" \
+              --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
@@ -394,6 +404,10 @@ jobs:
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
           platforms="${{ github.event.inputs.platforms || 'linux/amd64' }}"
           img_count=0
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -407,6 +421,7 @@ jobs:
             echo "============================================"
             docker buildx build \
               --platform "$platforms" \
+              --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \

@@ -46,7 +46,14 @@ data-quality:
   enabled: true  # 数据质量 - 规则引擎质量稽核
   # 详细配置见 design/deploy/charts/data-quality/values.yaml
 asset-catalog:
-  enabled: true  # 资产目录 - 数据资产编目
+  # 2026-10-14 停用（台账 #65）：本 chart 无对应可构建模块——platform/ 下不存在 asset-catalog/Dockerfile，
+  # 而 build.yml 只产 `sq-<Dockerfile 所在目录名>`，故其镜像 docker.m.daocloud.io/sq-asset-catalog:0.1.0 必然
+  # ImagePullBackOff（默认 umbrella 渲染实测可见，见 docs/deploy-image-reference-baseline.yaml 同条）。
+  # 资产目录能力实际由 encaps-layer 的 AssetController 提供（platform/encaps-layer/.../AssetController.java:45
+  # @RequestMapping("/api/v1/governance/assets")），而 encaps-layer 在本文件 :22 已 enabled: true
+  # ⇒ 这不是删功能，是撤掉一份同工作的坏副本。改坐标（指到 sq-encaps-layer）会造出两个 Deployment 跑同一负载，
+  #   所以此处只停用、不重定向。恢复条件：真的建出 platform/asset-catalog 模块，或决定把该 chart 摘除。
+  enabled: false
   # 详细配置见 design/deploy/charts/asset-catalog/values.yaml
 
 # ===== 自研智能/AI组件（默认禁用） =====
@@ -252,6 +259,12 @@ industry-templates:
   enabled: false  # 行业模板
   # 详细配置见 design/deploy/charts/industry-templates/values.yaml
 finops:
+  # 2026-10-14 补注（台账 #65）：镜像 harbor.shuqing.io/shuqing/finops 本产不出（platform/ 下无 finops/Dockerfile，
+  # 只有 finops/cost-model 与 finops/dashboard 两个真模块）。它已随 charts/finops-2.0.0.tgz 打进 umbrella，
+  # 但 enabled: false ⇒ 默认渲染里没有它（实测：默认 install 只渲染 9 个镜像，asset-catalog 在列、finops 不在列）。
+  # 它也不是"坐标写错"：FinOps 的两段能力已由 cost-model（计量/定价）与 dashboard（看板）两个 chart 承担
+  # （两者 Chart.yaml:18 都钉在 namespace: sq-finops，镜像已是 ghcr.io/levango7/sq-cost-model / sq-dashboard）
+  # ⇒ 本 chart 是重复骨架，摘除还是留着等真模块，属待裁项，此处不改语义。
   enabled: false  # FinOps成本运营
   # 详细配置见 design/deploy/charts/finops/values.yaml
 open-api-catalog:
