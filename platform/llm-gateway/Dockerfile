@@ -20,7 +20,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/llm-gateway .
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
 # 安装最小运行时依赖（ca-certificates 用于 HTTPS 调用大模型 API，curl 用于 healthcheck）。
 RUN apk add --no-cache ca-certificates tzdata curl

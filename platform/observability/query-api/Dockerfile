@@ -23,7 +23,7 @@ RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/query-api .
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
 # 安装最小运行时依赖。
 RUN apk add --no-cache ca-certificates tzdata curl

@@ -25,7 +25,7 @@ RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -tags milvus_enabled -trimpath -ldflags="-s -w" -o /out/vector-engine .
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
 # 安装最小运行时依赖。
 RUN apk add --no-cache ca-certificates tzdata curl

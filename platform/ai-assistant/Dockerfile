@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -trimpath -ldflags="-s -w" -o /out/ai-assistant ./cmd/server
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
 RUN apk add --no-cache ca-certificates tzdata curl
 

@@ -41,7 +41,7 @@ RUN mkdir -p /out/config && cp -r src/config/config.yaml /out/config/config.yaml
 ###############################################################################
 # 阶段2: 运行
 ###############################################################################
-FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
 # 安装最小运行时依赖
 RUN apk add --no-cache ca-certificates tzdata curl && \
