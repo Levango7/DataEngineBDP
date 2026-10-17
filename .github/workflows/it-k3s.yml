@@ -87,6 +87,10 @@ jobs:
         run: |
           set -uo pipefail
           built=()
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           for comp in $CHAIN_IMAGES; do
             dir="platform/$comp"
             [ -d "$dir" ] || dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
@@ -104,7 +108,7 @@ jobs:
               echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
               build_args=("$dir")
             fi
-            if docker build -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+            if docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               built+=("sq/$comp:0.1.0")
             else
               echo "::warning::$comp 构建失败，跳过"

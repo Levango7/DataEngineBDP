@@ -305,6 +305,10 @@ jobs:
         # 由 conftest 的 ensure_k3s_services_deployed() 自身容忍 wait 超时，不拖红。
         run: |
           set -uo pipefail
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           images=""
           for comp in encaps-layer sql-gateway nl2sql infra-orchestrator knowledge-engine industry-templates lineage-analyzer; do
             dir=$(find platform -maxdepth 2 -type d -name "$comp" | head -1)
@@ -326,7 +330,7 @@ jobs:
               echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
               build_args=("$dir")
             fi
-            if docker build -q -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+            if docker build -q --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               images="$images sq/$comp:0.1.0"
             else
               echo "::warning::$comp 构建失败，跳过导入"
@@ -422,5 +426,9 @@ jobs:
 
       - name: arm64 构建冒烟（nl2sql，不推送）
         run: |
-          docker buildx build --platform linux/arm64 \
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          docker buildx build --platform linux/arm64 --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
             -f platform/nl2sql/Dockerfile platform/nl2sql >/dev/null && echo OK
