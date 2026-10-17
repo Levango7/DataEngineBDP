@@ -1,14 +1,18 @@
 # 数擎运营后台 operations-api 镜像
 # 多 arch: 由 deploy/ci/build-images.yaml 以 buildx 产出 amd64 + arm64 (信创额外 openEuler 变体)
 # 安全基线:
-#   1. 基础镜像钉到具体小版本 + digest (生产替换为真实 sha256)
+#   1. 基础镜像钉到具体小版本 + digest
+#      （2026-10-17 换掉原先的占位 sha256：那串 "9c6a0c4e6f4f4f4f…" 是设计稿留下的假值，
+#        按它解析必然 manifest unknown；现值取自 docker.m.daocloud.io 的
+#        Docker-Content-Digest，按 tag 与按 digest 各取一次均 200。
+#        注：钉 digest 后换源要同步换——digest 是内容地址，跨宿主只对同一 manifest 成立）
 #   2. 非 root 运行 (UID/GID 1000)
 #   3. 内置 HEALTHCHECK
 #   4. 不再内置 ADMIN_TOKEN 默认值, 必须由 K8s Secret 注入
 # syntax=docker/dockerfile:1.6
 ARG BASE_REGISTRY=docker.m.daocloud.io
 
-FROM ${BASE_REGISTRY}/library/python:3.11.7-slim-bookworm@sha256:9c6a0c4e6f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4f4
+FROM ${BASE_REGISTRY}/library/python:3.11.7-slim-bookworm@sha256:53d6284a40eae6b625f22870f5faba6c54f2a28db9027408f4dee111f1e885a2
 
 WORKDIR /app
 
