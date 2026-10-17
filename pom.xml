@@ -40,7 +40,7 @@
               jackson3 线 3.1.7 —— 仍为同线 patch 级，兼容性风险同上；已确认
               两 BOM 存在于 Maven Central（HTTP 200）。 -->
         <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
-        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <jackson-bom.version>3.2.3</jackson-bom.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
