@@ -520,8 +520,9 @@ jobs:
           TRIVY_BASE_HOST="${TRIVY_BASE_HOST:-docker.m.daocloud.io}"
           echo "[trivy-image] 展开 \${BASE_REGISTRY} 用宿主：$TRIVY_BASE_HOST"
           # T-06: 遍历 Dockerfile，提取 FROM 基础镜像并扫描
-          # 范围口径（2026-10-17 现查）：CI 会构建/出货的镜像 = 42 个 Dockerfile
-          #   （含 Dockerfile.multiarch 这类变体；design/** 的 9 个设计稿不计入，理由见下面那段）
+          # 范围口径（2026-10-17 实测）：全仓 51 个 Dockerfile（含 Dockerfile.* 变体），
+          #   design/** 7 个不计入（CI 从不构建），非 design 44 个，
+          #   再排掉 3 个辅助目录（mock-cluster / spark-cluster / node-image）后 **40 个在扫描范围内**。
           # 旧注释"覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）"是 2026-09 的分解，
           #   此后新增过服务与变体文件，别再照抄那个数——镜像数是扫出来的，不是推出来的。
           # 排除：
@@ -534,7 +535,7 @@ jobs:
           #     参照既有 mock-cluster / spark-cluster 的排除原则处理。
           EXCLUDE_DIRS="mock-cluster spark-cluster node-image"
           # 扫描范围（2026-10-17 主理人裁定，记在台账 #74）：**只扫 CI 会构建/出货的镜像**。
-          # design/** 下有 9 个设计稿 Dockerfile，CI 从不构建（build.yml 的 glob 只 find platform），
+          # design/** 下有 7 个设计稿 Dockerfile（实测 find 计数），CI 从不构建（build.yml 的 glob 只 find platform），
           # 把它们算进这条门禁只会产出"无法行动"的红——本轮实测这 2 个设计稿基座独占 103/122 条命中。
           # 排除不是静默：下面把跳过的数量打出来；设计稿若真开工，基座新鲜度由 #74 重新评估。
           draft_skipped="$(find ./design \( -name Dockerfile -o -name 'Dockerfile.*' \) 2>/dev/null | wc -l | tr -d ' ')"
