@@ -2,7 +2,9 @@
 # LLMOps Platform Dockerfile
 # 数据引擎大数据平台 L4.5.3 智能数据层 - LLMOps 运营平台
 
-FROM python:3.11-slim AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -22,7 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
     && pip install --no-cache-dir .
 
 # ---------- runtime ----------
-FROM python:3.11-slim AS runtime
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS runtime
 
 LABEL org.opencontainers.image.title="sq-llmops" \
       org.opencontainers.image.description="Shuqing Big Data Platform - LLMOps (L4.5.3)" \

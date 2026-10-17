@@ -11,14 +11,16 @@
 # ────────────────────────────────────────────────────────────────
 
 # ── Stage 1: builder ────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.12-slim AS builder
 WORKDIR /build
 COPY requirements.txt .
 # 装到 /install（便于 runtime 阶段精确拷贝，不含 pip/setuptools 等工具）
 RUN pip install --no-cache-dir --target=/install -r requirements.txt
 
 # ── Stage 2: runtime ────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM ${BASE_REGISTRY}/library/python:3.12-slim AS runtime
 WORKDIR /app
 
 # 拷贝 builder 阶段安装的依赖

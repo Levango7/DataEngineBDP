@@ -2,7 +2,9 @@
 # Industry Templates Platform Dockerfile
 # 数据引擎大数据平台 L5.7 行业应用模板 - 行业应用模板平台
 
-FROM python:3.11-slim
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim
 
 WORKDIR /app
 

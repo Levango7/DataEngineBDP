@@ -2,7 +2,9 @@
 # Business Portal Dockerfile
 # 数据引擎大数据平台 L5.4 业务门户 - 多租户业务门户
 
-FROM python:3.11-slim
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim
 
 WORKDIR /app
 

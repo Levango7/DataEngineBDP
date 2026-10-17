@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 # 多阶段构建：构建阶段
-FROM golang:1.26-alpine AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/golang:1.26-alpine AS builder
 ARG TARGETARCH
 
 WORKDIR /build
@@ -14,7 +16,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o dqctl .
 
 # 运行阶段：最小化镜像
-FROM alpine:3.19
+FROM ${BASE_REGISTRY}/library/alpine:3.20
 
 # 创建非 root 用户。
 RUN addgroup -S app && adduser -S -G app app

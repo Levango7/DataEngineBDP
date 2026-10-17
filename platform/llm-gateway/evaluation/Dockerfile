@@ -4,7 +4,9 @@
 # 构建：docker build -t shuqing/evaluation:0.1.0 -f platform/llm-gateway/evaluation/Dockerfile platform/llm-gateway/evaluation
 # 运行：docker run -p 18086:8086 -e LLM_GATEWAY_URL=http://it-llm-gateway:8084 shuqing/evaluation:0.1.0
 
-FROM python:3.11-slim AS base
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS base
 
 # 设置工作目录
 WORKDIR /app

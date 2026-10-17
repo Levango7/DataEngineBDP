@@ -10,9 +10,13 @@
   R3 经 `${BASE_REGISTRY}` 拉的 Docker Hub 官方镜像必须写全 `library/`；
   R4 非 Docker Hub 宿主与本地构建产物走显式白名单，且白名单必须"被用到"——
      白名单里有没人用的条目也算门禁过期（判红），防止例外越积越多。
+  R6 **禁直连 Docker Hub 的 base**（`FROM python:3.11-slim`、`FROM bitnami/kafka:3.7` 这类）：
+     这类写法绕开选源，Hub 侧限流或网络抖动时切不到加速器上。
 
-直写 Docker Hub 短名（`FROM python:3.11-slim`）**是允许的**：那 20 个文件本来就没挂加速器，
-把它们也改钉镜像源等于把更多腿绑到同一个单点上，方向反了（#72 里写明了这个取舍）。
+R6 是 #72 的收尾一刀，**收回本文件原先"直写短名是允许的"这个取舍**：当时顾虑是"把更多腿绑到
+同一个单点"；实测下来短名形态本身就是第二个单点（直连 `registry-1.docker.io`，匿名拉取还叠一层
+限流），而 `${BASE_REGISTRY}` 的末端候选就是 `docker.io`——改完之后两条腿都在，红一个换另一个。
+唯一保留的例外是 `scratch`（Docker 内置基座，不联网）。
 
 退出码：0 通过；1 有违规；2 扫描失效（找不到任何 Dockerfile ⇒ 门禁失明，绝不静默全绿）。
 用法：
@@ -33,6 +37,8 @@ OFFICIAL = {'maven', 'eclipse-temurin', 'golang', 'alpine', 'python', 'node', 'n
 # 只列**真被用到**的：R4 会把无人使用的条目判红，所以这条例外表不会随时间堆成垃圾场。
 EXTERNAL_HOST_PREFIXES = ('gcr.io/', 'kindest/')
 LOCAL_ARTIFACT_RE = re.compile(r'^spark-cluster-[a-z0-9-]+:')
+# Docker 内置基座：根本不联网解析，不能也不需要挂任何宿主
+NO_PULL_BASES = {'scratch'}
 
 # 自检用的目标仓库（默认是真实仓库；--self-test 会换成合成件目录）
 TARGET = [ROOT]
@@ -101,13 +107,13 @@ def check_file(root, rel):
         if (ref.startswith('${BASE_REGISTRY}') or ref.startswith('$BASE_REGISTRY')
                 or any(ref.startswith(h + '/') for h in ACCEL_HOSTS)):
             continue
+        if ref in NO_PULL_BASES:
+            continue              # scratch 之类别名：Docker 内置，根本不联网解析
         if ref.startswith(EXTERNAL_HOST_PREFIXES) or LOCAL_ARTIFACT_RE.match(ref):
             continue
-        if '/' not in ref and ':' in ref:
-            continue          # Docker Hub 短名（直连，允许）
-        if '/' in ref and ref.split('/')[0] not in ('library',) and '.' not in ref.split('/')[0]:
-            continue          # Docker Hub 命名空间镜像（minio/minio 等），直连允许
-        bad.append(('R4', 'FROM "%s" 既不走 BASE_REGISTRY 也不在例外表里，需要显式归类' % ref))
+        bad.append(('R6', 'FROM "%s" 直连 Docker Hub、不参选源 ⇒ 加速器或 Hub 一侧出问题时这条切不过去；'
+                          '请改成 ARG BASE_REGISTRY + `FROM ${BASE_REGISTRY}/library/…` 形态'
+                          '（本地构建产物请让名字匹配 spark-cluster-* 例外表）' % ref))
     return bad
 
 
@@ -200,13 +206,14 @@ def run():
     if c_files == 0:
         print('::error::扫描失效：一个 compose 文件都没解析出 services（门禁失明，不放行）')
         return 2
-    n_bare = sum(1 for rel in files
-                 for m in re.finditer(r'^FROM\s+([a-z0-9][\w.-]*:\S+)',
-                                      io.open(os.path.join(root, rel), encoding='utf-8',
-                                              errors='replace').read(), re.M))
+    n_sw = sum(1 for rel in files
+               for m in re.finditer(r'^FROM\s+\$\{?BASE_REGISTRY\}?/\S+',
+                                    io.open(os.path.join(root, rel), encoding='utf-8',
+                                            errors='replace').read(), re.M))
     print('check-dockerfile-base-registry.py 目标仓库：%s' % root)
-    print('  Dockerfile %d 个；FROM 检查完成；直连 Docker Hub 短名 %d 条（允许，但不受选源切换影响）'
-          % (len(files), n_bare))
+    print('  Dockerfile %d 个；参选源 FROM %d 条（走 ${BASE_REGISTRY}）；'
+          '其余只允许例外表里的外部宿主与本地构建产物（R6 拦直连短名）'
+          % (len(files), n_sw))
     print('  compose %d 个文件 / %d 个 build 服务已纳入 R5 检查' % (c_files, c_blocks))
     if viol:
         for rel, rule, msg in viol:
@@ -242,6 +249,9 @@ def self_test():
                              'FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17\n')
         put('ext/Dockerfile', 'FROM gcr.io/distroless/static-debian12:nonroot\n')
         put('bare/Dockerfile', 'FROM python:3.11-slim AS base\n')
+        put('namespaced/Dockerfile', 'FROM bitnami/kafka:3.7\n')
+        put('nopull/Dockerfile', 'FROM scratch\nCOPY bin /app\n')
+        put('localart/Dockerfile', 'FROM spark-cluster-spark-master:latest\n')
         # R5 的合成件：compose 的 build 有没有传 BASE_REGISTRY
         put('c-missing/docker-compose.yml',
             'services:\n  svc:\n    build:\n      context: .\n      dockerfile: Dockerfile\n')
@@ -264,6 +274,8 @@ def self_test():
             'R2 默认值带路径要被抓': ('r2-path', 'R2'),
             'R2 没有 ARG 声明要被抓': ('r2-nodecl', 'R2'),
             'R3 官方镜像缺 library/ 要被抓': ('r3', 'R3'),
+            'R6 直连 Docker Hub 短名要被抓': ('bare', 'R6'),
+            'R6 直连 Hub 命名空间形态要被抓': ('namespaced', 'R6'),
         }
         got = rules(tmp)
         for name, pair in expect.items():
@@ -272,8 +284,10 @@ def self_test():
             ok = ok and hit
         for name, pair in [('R2 正例不误报', ('good', 'R2')),
                            ('R3 正例不误报', ('good', 'R3')),
-                           ('外部宿主 gcr.io 不误报', ('ext', 'R4')),
-                           ('Docker Hub 短名不误报', ('bare', 'R4'))]:
+                           ('R6 走 ${BASE_REGISTRY} 的正例不误报', ('good', 'R6')),
+                           ('外部宿主 gcr.io 不误报', ('ext', 'R6')),
+                           ('scratch 内置基座不误报', ('nopull', 'R6')),
+                           ('本地构建产物不误报', ('localart', 'R6'))]:
             miss = pair not in got
             print('  [%s] %s' % ('PASS' if miss else 'FAIL', name))
             ok = ok and miss
@@ -294,8 +308,8 @@ def self_test():
               % ('PASS' if cnt_ok else 'FAIL', c_blocks, c_files))
         ok = ok and cnt_ok
         n = len(dockerfiles(tmp))
-        print('  [%s] 合成夹具真的被扫到（%d 个 Dockerfile）' % ('PASS' if n == 8 else 'FAIL', n))
-        ok = ok and n == 8
+        print('  [%s] 合成夹具真的被扫到（%d 个 Dockerfile，期望 11）' % ('PASS' if n == 11 else 'FAIL', n))
+        ok = ok and n == 11
         # 扫描集为空必须判红
         empty = os.path.join(tmp, 'empty-dir')
         os.makedirs(empty, exist_ok=True)

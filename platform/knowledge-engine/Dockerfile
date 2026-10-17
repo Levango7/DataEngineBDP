@@ -2,7 +2,9 @@
 # Knowledge Engineering Engine Dockerfile
 # 数据引擎大数据平台 L4.5.2 智能数据层 - 知识工程引擎
 
-FROM python:3.11-slim AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS builder
 
 WORKDIR /build
 
@@ -22,7 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
     && pip install --no-cache-dir .
 
 # ---------- runtime ----------
-FROM python:3.11-slim AS runtime
+FROM ${BASE_REGISTRY}/library/python:3.11-slim AS runtime
 
 LABEL org.opencontainers.image.title="sq-knowledge-engine" \
       org.opencontainers.image.description="Shuqing Big Data Platform - Knowledge Engineering Engine (L4.5.2)" \

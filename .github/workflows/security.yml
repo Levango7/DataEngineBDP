@@ -508,8 +508,23 @@ jobs:
       - name: 全量扫描所有 Docker 镜像（遍历所有 Dockerfile）
         run: |
           mkdir -p reports/trivy
-          # T-06: 遍历所有 Dockerfile，提取 FROM 基础镜像并扫描
-          # 覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）
+          # FROM 里的 ${BASE_REGISTRY} 是**构建期**变量，trivy 拿到字面量只会 FATAL：
+          #   could not parse reference: ${BASE_REGISTRY}/library/golang:1.26-alpine
+          # 而旧写法 `if trivy … | tee` 判的是 tee 的退码（Actions 默认 bash 不开 pipefail），
+          # 于是 FATAL 之后照样打印 "✓ 无 HIGH/CRITICAL 漏洞"，fail_count 也不涨 ——
+          # 实测（main `161e480e` 的 Security run `39012829707`，job `117338792535`）：
+          # 汇总打印「共扫描 18 个基础镜像 / 失败 0 / 所有镜像扫描通过」，其中 4 条是占位符、
+          # 1 条是占位 digest，全都一次都没真扫过，job 却是 success。
+          # 现在先把占位宿主展开成选源结果，再按"扫描有没有执行成功"单独判红。
+          TRIVY_BASE_HOST="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
+          TRIVY_BASE_HOST="${TRIVY_BASE_HOST:-docker.m.daocloud.io}"
+          echo "[trivy-image] 展开 \${BASE_REGISTRY} 用宿主：$TRIVY_BASE_HOST"
+          # T-06: 遍历 Dockerfile，提取 FROM 基础镜像并扫描
+          # 范围口径（2026-10-17 实测）：全仓 51 个 Dockerfile（含 Dockerfile.* 变体），
+          #   design/** 7 个不计入（CI 从不构建），非 design 44 个，
+          #   再排掉 3 个辅助目录（mock-cluster / spark-cluster / node-image）后 **40 个在扫描范围内**。
+          # 旧注释"覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）"是 2026-09 的分解，
+          #   此后新增过服务与变体文件，别再照抄那个数——镜像数是扫出来的，不是推出来的。
           # 排除：
           #   mock-cluster（测试用 mock）
           #   spark-cluster（第三方 Spark 镜像，由供应商维护）
@@ -519,8 +534,15 @@ jobs:
           #     真实漏洞 —— 门禁因此长期为红且失去信噪比。
           #     参照既有 mock-cluster / spark-cluster 的排除原则处理。
           EXCLUDE_DIRS="mock-cluster spark-cluster node-image"
+          # 扫描范围（2026-10-17 主理人裁定，记在台账 #74）：**只扫 CI 会构建/出货的镜像**。
+          # design/** 下有 7 个设计稿 Dockerfile（实测 find 计数），CI 从不构建（build.yml 的 glob 只 find platform），
+          # 把它们算进这条门禁只会产出"无法行动"的红——本轮实测这 2 个设计稿基座独占 103/122 条命中。
+          # 排除不是静默：下面把跳过的数量打出来；设计稿若真开工，基座新鲜度由 #74 重新评估。
+          draft_skipped="$(find ./design \( -name Dockerfile -o -name 'Dockerfile.*' \) 2>/dev/null | wc -l | tr -d ' ')"
+          echo "::notice::扫描范围＝CI 构建的镜像；跳过 design/** 的 ${draft_skipped} 个设计稿 Dockerfile（台账 #74）"
           scan_count=0
           fail_count=0
+          exec_fail=0
           declare -a seen_images
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
@@ -543,6 +565,13 @@ jobs:
               [ -z "$from_line" ] && continue
               # 提取镜像名（去掉 FROM 关键字和 AS alias）
               base_image=$(echo "$from_line" | sed -E 's/^FROM[[:space:]]+//I; s/[[:space:]]+AS[[:space:]].*//I' | tr -d '[:space:]')
+              # 把构建期占位宿主展开成真实可选宿主（否则 trivy 直接 FATAL，见上面的取证注记）
+              case "$base_image" in
+                *'${BASE_REGISTRY}'*)
+                  base_image="${base_image//'${BASE_REGISTRY}'/$TRIVY_BASE_HOST}" ;;
+                *'$BASE_REGISTRY'*)
+                  base_image="${base_image//'$BASE_REGISTRY'/$TRIVY_BASE_HOST}" ;;
+              esac
               # 跳过 scratch 和空值
               [ -z "$base_image" ] && continue
               [ "$base_image" = "scratch" ] && continue
@@ -565,30 +594,52 @@ jobs:
               # 保持阻断模式：HIGH/CRITICAL 漏洞 exit-code=1
               # --ignore-unfixed：仅扫描已有修复的漏洞
               safe_name=$(echo "$base_image" | tr '/:@' '___')
-              if trivy image --exit-code 1 --format sarif \
+              per_log="reports/trivy/${safe_name}.run.log"
+              # 用 `|| trivy_rc=$?` 取真实退码：Actions 的 bash 只开 -e 不开 pipefail，
+              # 旧的 `if trivy … | tee` 判的是 tee，任何 FATAL 都会被吞成"通过"。
+              trivy_rc=0
+              trivy image --exit-code 1 --format sarif \
                 --output "reports/trivy/${safe_name}.sarif" \
                 --scanners vuln --severity HIGH,CRITICAL \
                 --ignore-unfixed \
-                "$base_image" 2>&1 | tee -a reports/trivy/scan.log; then
-                echo "✓ $base_image 无 HIGH/CRITICAL 漏洞"
-              else
+                --ignorefile "$GITHUB_WORKSPACE/docs/trivy-image-ignore.yaml" \
+                "$base_image" >"$per_log" 2>&1 || trivy_rc=$?
+              cat "$per_log" >> reports/trivy/scan.log
+              if grep -qE 'FATAL|could not parse reference|unable to initialize|manifest unknown|denied' "$per_log"; then
+                echo "::error::扫描未执行成功：$mod_name -> $base_image（trivy rc=$trivy_rc）⇒ 这一条没有产出任何漏洞结论，不能算通过"
+                exec_fail=$((exec_fail + 1))
+              elif [ "$trivy_rc" -ne 0 ]; then
                 echo "::error::$base_image ($mod_name) 发现 HIGH/CRITICAL 漏洞"
                 fail_count=$((fail_count + 1))
+              else
+                echo "✓ $base_image 无 HIGH/CRITICAL 漏洞"
               fi
             done < <(grep -iE '^FROM[[:space:]]' "$df" 2>/dev/null)
-          done < <(find . -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*" \
-            -not -path "*/.git/*" 2>/dev/null | sort)
+          done < <(find . \( -name Dockerfile -o -name 'Dockerfile.*' \) \
+            -not -path "*/target/*" -not -path "*/node_modules/*" -not -path "*/.git/*" \
+            -not -path "./design/*" 2>/dev/null | sort)
           echo ""
           echo "============================================"
           echo "  Trivy 镜像扫描汇总"
           echo "============================================"
           echo "共扫描 $scan_count 个基础镜像（去重后）"
           echo "失败（有 HIGH/CRITICAL 漏洞）: $fail_count"
+          echo "未执行成功（镜像名解析不了/拉取失败等，等于零覆盖）: $exec_fail"
+          # 三类都要阻断：漏扫与"扫出没漏洞"必须可比，否则占位符形态会让这条门禁静默空跑
+          # （#602 之后 main 上就是这么绿的：18 条里 4 条 FATAL 被 tee 吞掉，打印"全部通过"）。
+          if [ "$scan_count" -eq 0 ]; then
+            echo "::error::判据集合为空：一个基础镜像都没扫到 ⇒ 这条门禁失明，不放行"
+            exit 1
+          fi
+          if [ "$exec_fail" -gt 0 ]; then
+            echo "::error::有 $exec_fail 条扫描根本没执行成功，无法得出"无漏洞"结论，阻断 CI"
+            exit 1
+          fi
           if [ "$fail_count" -gt 0 ]; then
             echo "::error::共有 $fail_count 个镜像存在 HIGH/CRITICAL 漏洞，阻断 CI"
             exit 1
           fi
-          echo "✓ 所有镜像扫描通过"
+          echo "✓ $scan_count 个基础镜像全部扫描执行成功且无 HIGH/CRITICAL 漏洞"
 
       - name: 合并镜像扫描 SARIF
         # 2026-09-24 修复：原先直接上传目录 reports/trivy（内含每个镜像一个 SARIF），

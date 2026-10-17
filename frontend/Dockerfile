@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 # 多阶段构建：构建阶段
-FROM node:22-alpine AS build
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/node:22-alpine AS build
 
 LABEL org.opencontainers.image.source="https://github.com/Levango7/DataEngineBDP"
 LABEL org.opencontainers.image.description="DataEngineBDP frontend console"
@@ -18,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # 运行阶段：最小化镜像
-FROM nginx:alpine
+FROM ${BASE_REGISTRY}/library/nginx:alpine
 
 COPY --from=build /build/dist /usr/share/nginx/html
 

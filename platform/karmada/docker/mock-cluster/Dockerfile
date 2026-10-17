@@ -4,7 +4,9 @@
 # 用途：集成测试中模拟 Karmada 成员集群
 # ============================================================================
 
-FROM python:3.12-slim
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/python:3.12-slim
 
 # 安装 wget（用于 healthcheck）。
 RUN apt-get update && apt-get install -y --no-install-recommends wget \

@@ -24,7 +24,9 @@
 # Worker 的 Python 次版本一致（否则 PYTHON_VERSION_MISMATCH，2026-08-28
 # 实测集群 Python 任务全灭），故基座必须钉扎以保持 worker python3=3.12。
 # 下方 apt 安装后另有构建期断言，基座再漂移时 fail-fast。
-FROM eclipse-temurin:17-jre-noble
+ARG BASE_REGISTRY=docker.m.daocloud.io
+
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-noble
 
 # ── 元数据 ──────────────────────────────────────────────────────
 LABEL maintainer="batch-pipeline DevOps"
