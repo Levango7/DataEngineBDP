@@ -39,8 +39,10 @@
               2.21.6 / 3.1.6 被再次判定为 HIGH，官方修复版为 jackson2 线 2.21.7、
               jackson3 线 3.1.7 —— 仍为同线 patch 级，兼容性风险同上；已确认
               两 BOM 存在于 Maven Central（HTTP 200）。 -->
-        <jackson-2-bom.version>2.21.7</jackson-2-bom.version>
-        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <jackson-2-bom.version>2.22.3</jackson-2-bom.version>
+        <jackson-bom.version>3.2.3</jackson-bom.version>
+
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -86,7 +88,7 @@
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
-                <version>1.85</version>
+                <version>1.86</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -109,14 +111,14 @@
             <dependency>
                 <groupId>at.yawk.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
-                <version>1.11.4</version>
+                <version>1.12.0</version>
             </dependency>
             <!-- 2026-09-24 安全修复：commons-compress 1.22 为传递依赖（全仓未显式声明），
                  在此集中 pin。CVE-2023-42503 / CVE-2024-25710 / CVE-2024-26308。 -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.26.0</version>
+                <version>1.28.0</version>
             </dependency>
             <!-- 2026-09-26 安全修复（Trivy fs run #1241 明细；三项均为传递依赖，
                  全仓无显式版本声明，故按上面同款做法在此集中 pin）：
@@ -136,7 +138,7 @@
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.11.4</version>
+                <version>1.12.2</version>
             </dependency>
             <dependency>
                 <groupId>commons-beanutils</groupId>
@@ -229,7 +231,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.13.0</version>
+                    <version>3.16.0</version>
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
