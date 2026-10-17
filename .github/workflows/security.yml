@@ -511,7 +511,7 @@ jobs:
           # FROM 里的 ${BASE_REGISTRY} 是**构建期**变量，trivy 拿到字面量只会 FATAL：
           #   could not parse reference: ${BASE_REGISTRY}/library/golang:1.26-alpine
           # 而旧写法 `if trivy … | tee` 判的是 tee 的退码（Actions 默认 bash 不开 pipefail），
-          # 于是 FATAL 之后照样打印 "✓ 无 HIGH/CRITICAL 漏洞"，fail_count 也不涨 —— 
+          # 于是 FATAL 之后照样打印 "✓ 无 HIGH/CRITICAL 漏洞"，fail_count 也不涨 ——
           # 实测（main `161e480e` 的 Security run `39012829707`，job `117338792535`）：
           # 汇总打印「共扫描 18 个基础镜像 / 失败 0 / 所有镜像扫描通过」，其中 4 条是占位符、
           # 1 条是占位 digest，全都一次都没真扫过，job 却是 success。
@@ -519,8 +519,11 @@ jobs:
           TRIVY_BASE_HOST="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
           TRIVY_BASE_HOST="${TRIVY_BASE_HOST:-docker.m.daocloud.io}"
           echo "[trivy-image] 展开 \${BASE_REGISTRY} 用宿主：$TRIVY_BASE_HOST"
-          # T-06: 遍历所有 Dockerfile，提取 FROM 基础镜像并扫描
-          # 覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）
+          # T-06: 遍历 Dockerfile，提取 FROM 基础镜像并扫描
+          # 范围口径（2026-10-17 现查）：CI 会构建/出货的镜像 = 42 个 Dockerfile
+          #   （含 Dockerfile.multiarch 这类变体；design/** 的 9 个设计稿不计入，理由见下面那段）
+          # 旧注释"覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）"是 2026-09 的分解，
+          #   此后新增过服务与变体文件，别再照抄那个数——镜像数是扫出来的，不是推出来的。
           # 排除：
           #   mock-cluster（测试用 mock）
           #   spark-cluster（第三方 Spark 镜像，由供应商维护）
@@ -530,6 +533,12 @@ jobs:
           #     真实漏洞 —— 门禁因此长期为红且失去信噪比。
           #     参照既有 mock-cluster / spark-cluster 的排除原则处理。
           EXCLUDE_DIRS="mock-cluster spark-cluster node-image"
+          # 扫描范围（2026-10-17 主理人裁定，记在台账 #74）：**只扫 CI 会构建/出货的镜像**。
+          # design/** 下有 9 个设计稿 Dockerfile，CI 从不构建（build.yml 的 glob 只 find platform），
+          # 把它们算进这条门禁只会产出"无法行动"的红——本轮实测这 2 个设计稿基座独占 103/122 条命中。
+          # 排除不是静默：下面把跳过的数量打出来；设计稿若真开工，基座新鲜度由 #74 重新评估。
+          draft_skipped="$(find ./design \( -name Dockerfile -o -name 'Dockerfile.*' \) 2>/dev/null | wc -l | tr -d ' ')"
+          echo "::notice::扫描范围＝CI 构建的镜像；跳过 design/** 的 ${draft_skipped} 个设计稿 Dockerfile（台账 #74）"
           scan_count=0
           fail_count=0
           exec_fail=0
@@ -592,6 +601,7 @@ jobs:
                 --output "reports/trivy/${safe_name}.sarif" \
                 --scanners vuln --severity HIGH,CRITICAL \
                 --ignore-unfixed \
+                --ignorefile "$GITHUB_WORKSPACE/docs/trivy-image-ignore.yaml" \
                 "$base_image" >"$per_log" 2>&1 || trivy_rc=$?
               cat "$per_log" >> reports/trivy/scan.log
               if grep -qE 'FATAL|could not parse reference|unable to initialize|manifest unknown|denied' "$per_log"; then
@@ -604,8 +614,9 @@ jobs:
                 echo "✓ $base_image 无 HIGH/CRITICAL 漏洞"
               fi
             done < <(grep -iE '^FROM[[:space:]]' "$df" 2>/dev/null)
-          done < <(find . -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*" \
-            -not -path "*/.git/*" 2>/dev/null | sort)
+          done < <(find . \( -name Dockerfile -o -name 'Dockerfile.*' \) \
+            -not -path "*/target/*" -not -path "*/node_modules/*" -not -path "*/.git/*" \
+            -not -path "./design/*" 2>/dev/null | sort)
           echo ""
           echo "============================================"
           echo "  Trivy 镜像扫描汇总"
