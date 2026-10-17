@@ -4,11 +4,16 @@
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values）----
+# 台账 #65：原名 docker.m.daocloud.io/sq-infra-provider-xinchuang 三处皆错——宿主 CI 从不推、
+# tag 非产出形态、且镜像名多了个 u：可构建单元是 platform/infra-provider-xinchang（pom.xml:15
+# artifactId 同名），build.yml 的镜像名取 Dockerfile 所在目录名 ⇒ 只能是 sq-infra-provider-xinchang。
+# "信创"这一产品词仍写作 xinchuang（本表 description、Chart.yaml keywords、DQCTL profile 名），
+# 与本行无关——这里是模块标识，不是文案。
 image:
-  repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-infra-provider-xinchang"
+  tag: "latest"
+  pullPolicy: Always
 
 # ---- 副本数 ----
 replicaCount: 1

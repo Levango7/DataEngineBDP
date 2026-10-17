@@ -8,7 +8,8 @@
 ###############################################################################
 # 阶段1: 构建
 ###############################################################################
-FROM docker.m.daocloud.io/golang:1.26-alpine AS builder
+ARG BASE_REGISTRY=docker.m.daocloud.io
+FROM ${BASE_REGISTRY}/library/golang:1.26-alpine AS builder
 ARG TARGETARCH
 
 # 安装构建依赖(纯Go无需gcc，但保留git用于私有模块)
@@ -40,7 +41,7 @@ RUN mkdir -p /out/config && cp -r src/config/config.yaml /out/config/config.yaml
 ###############################################################################
 # 阶段2: 运行
 ###############################################################################
-FROM docker.m.daocloud.io/alpine:3.19 AS runtime
+FROM ${BASE_REGISTRY}/library/alpine:3.19 AS runtime
 
 # 安装最小运行时依赖
 RUN apk add --no-cache ca-certificates tzdata curl && \

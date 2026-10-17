@@ -36,3 +36,14 @@ app:
       issuer: ${JWT_ISSUER:shuqing-bigdata}
     cors:
       allowed-origins: ${CORS_ORIGINS}
+
+# 2026-10-16：关闭 OpenAPI/Swagger 端点。本服务组件扫描白名单包含 encaps-layer 的
+# ...encaps.security 包（等保审计切面所在），故用的是 layer 侧 SecurityConfig ——
+# 其对 /swagger-ui/** 与 /v3/api-docs/** 一律 permitAll，注释声称"生产可通过 profile
+# 关闭"却从未实现 ⇒ 生产匿名可达。此处用 springdoc 原生开关把端点 404 掉，
+# permitAll 规则随之空转。dev/测试 profile 不设此项 ⇒ 默认开启。
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

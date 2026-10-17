@@ -137,6 +137,10 @@ jobs:
             image_list="${image_list}${img},"
             echo "frontend 镜像: $img" | tee -a reports/build/build.log
           fi
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           # 后端镜像构建（简化：仅构建存在 Dockerfile 的组件）
           for comp in encaps-layer sql-gateway catalog rule-engine; do
             if ! echo "$COMPONENTS" | grep -q "$comp"; then
@@ -152,6 +156,7 @@ jobs:
             echo "  Docker build & push: $comp"
             echo "============================================"
             docker buildx build \
+              --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${REGISTRY_NS}/sq-${comp}:latest" \
               -t "$img" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \

@@ -394,6 +394,12 @@ jobs:
         if: steps.zap_check.outputs.skip != 'true'
         working-directory: tests/integration
         run: |
+          # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
+          # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
+          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          export BASE_REGISTRY
           docker compose up -d --build --wait
           docker compose ps
 

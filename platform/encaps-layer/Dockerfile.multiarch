@@ -2,9 +2,9 @@
 # 跳过Stage 1 maven构建，加速多架构镜像构建
 # 基础镜像eclipse-temurin:17-jre官方支持amd64+arm64多架构
 
-ARG BASE_REGISTRY=docker.m.daocloud.io/library
+ARG BASE_REGISTRY=docker.m.daocloud.io
 
-FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
 WORKDIR /app
 
 # 创建非 root 用户运行应用

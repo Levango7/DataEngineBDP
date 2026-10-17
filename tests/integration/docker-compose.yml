@@ -13,6 +13,11 @@
 #   catalog       -> 18082 -> 容器内 8082
 #   rule-engine   -> 18083 -> 容器内 8083
 
+# 台账 #72：base 镜像源可由 CI 的选源脚本（scripts/pick-base-registry.sh）注入；
+# 宿主没给 BASE_REGISTRY 时用今天的默认宿主，行为与改动前一致。
+x-base-args: &base-args
+  - BASE_REGISTRY=${BASE_REGISTRY:-docker.m.daocloud.io}
+
 services:
   # ---------------------------------------------------------------------------
   # 封装层（Java/Spring Boot, port 8080）
@@ -21,6 +26,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/encaps-layer/Dockerfile
+      args: *base-args
     image: shuqing/encaps-layer:0.1.0
     container_name: it-encaps-layer
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -70,6 +76,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/encaps-tenant/Dockerfile
+      args: *base-args
     image: shuqing/encaps-tenant:0.1.0
     container_name: it-encaps-tenant
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -102,6 +109,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/sql-gateway/Dockerfile
+      args: *base-args
     image: shuqing/sql-gateway:0.1.0
     container_name: it-sql-gateway
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -135,6 +143,7 @@ services:
     build:
       context: ../../platform/catalog
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/catalog:0.1.0
     container_name: it-catalog
     ports:
@@ -159,6 +168,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/rule-engine/Dockerfile
+      args: *base-args
     image: shuqing/rule-engine:0.1.0
     container_name: it-rule-engine
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -192,6 +202,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/finops/cost-model/Dockerfile
+      args: *base-args
     image: shuqing/cost-model:0.1.0
     container_name: it-cost-model
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -231,6 +242,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/finops/dashboard/Dockerfile
+      args: *base-args
     image: shuqing/finops-dashboard:0.1.0
     container_name: it-finops-dashboard
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -271,6 +283,7 @@ services:
     build:
       context: ../../platform/llm-gateway
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/llm-gateway:0.2.0
     container_name: it-llm-gateway
     ports:
@@ -301,6 +314,7 @@ services:
     build:
       context: ../../platform/llm-gateway/evaluation
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/evaluation:0.1.0
     container_name: it-evaluation
     ports:
@@ -333,6 +347,7 @@ services:
     build:
       context: ../../design/planned/model-finetuning/loop
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/finetuning-loop:0.1.0
     container_name: it-finetuning-loop
     ports:
@@ -373,6 +388,7 @@ services:
     build:
       context: ../../design/planned/registry
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/model-registry:0.1.0
     container_name: it-model-registry
     ports:
@@ -404,6 +420,7 @@ services:
     build:
       context: ../../platform/asset-exchange
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/asset-exchange:0.1.0
     container_name: it-asset-exchange
     ports:
@@ -434,6 +451,7 @@ services:
     build:
       context: ../../platform/business-portal
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/business-portal:0.1.0
     container_name: it-business-portal
     ports:
@@ -463,6 +481,7 @@ services:
     build:
       context: ../../platform/open-api-catalog
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/open-api-catalog:0.1.0
     container_name: it-open-api-catalog
     ports:
@@ -491,6 +510,7 @@ services:
     build:
       context: ../../platform/industry-templates
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/industry-templates:0.1.0
     container_name: it-industry-templates
     ports:
@@ -531,6 +551,7 @@ services:
     build:
       context: ../../platform/vector-engine
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/vector-engine:0.1.0
     container_name: it-vector-engine
     ports:
@@ -564,6 +585,7 @@ services:
     build:
       context: ../../platform/ai-assistant
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/ai-assistant:0.1.0
     container_name: it-ai-assistant
     ports:
@@ -593,6 +615,7 @@ services:
     build:
       context: ../../platform/observability/query-api
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/query-api:0.1.0
     container_name: it-query-api
     ports:
@@ -626,6 +649,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/infra-orchestrator/Dockerfile
+      args: *base-args
     image: shuqing/infra-orchestrator:0.1.0
     container_name: it-infra-orchestrator
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -664,6 +688,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/governance/lineage-analyzer/Dockerfile
+      args: *base-args
     image: shuqing/lineage-analyzer:0.1.0
     container_name: it-lineage-analyzer
     mem_limit: 640m  # 台账 #57① 方案B：给 JVM 一个 cgroup 边界，避免 MaxRAMPercentage 按宿主机(≈7GB)算堆
@@ -699,6 +724,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/stream-batch-scheduler/Dockerfile
+      args: *base-args
     image: shuqing/stream-batch-scheduler:0.1.0
     container_name: it-stream-batch-scheduler
     ports:
@@ -728,6 +754,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/encaps-data/Dockerfile
+      args: *base-args
     image: shuqing/encaps-data:0.1.0
     container_name: it-encaps-data
     ports:
@@ -759,6 +786,7 @@ services:
     build:
       context: ../..
       dockerfile: platform/encaps-gateway/Dockerfile
+      args: *base-args
     image: shuqing/encaps-gateway:0.1.0
     container_name: it-encaps-gateway
     ports:
@@ -793,6 +821,7 @@ services:
     build:
       context: ../../platform/llmops
       dockerfile: Dockerfile
+      args: *base-args
     image: shuqing/llmops:0.1.0
     container_name: it-llmops
     ports:

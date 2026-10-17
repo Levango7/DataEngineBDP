@@ -55,9 +55,9 @@ helm template infra-provider-xinchang design/deploy/charts/infra-provider-xincha
 
 | 参数 | 说明 | 默认值 |
 | --- | --- | --- |
-| `image.repository` | 镜像仓库地址 | `docker.m.daocloud.io/sq-infra-provider-xinchuang` |
-| `image.tag` | 镜像标签 | `0.1.0` |
-| `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
+| `image.repository` | 镜像仓库地址 | `ghcr.io/levango7/sq-infra-provider-xinchang` |
+| `image.tag` | 镜像标签 | `latest` |
+| `image.pullPolicy` | 镜像拉取策略 | `Always` |
 | `replicaCount` | 副本数 | `1` |
 | `service.type` | Service 类型 | `ClusterIP` |
 | `service.port` | Service 端口 | `8080` |
@@ -86,9 +86,9 @@ helm template infra-provider-xinchang design/deploy/charts/infra-provider-xincha
 ```yaml
 # infra-provider-xinchang 自定义配置示例
 image:
-  repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
-  tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  repository: "ghcr.io/levango7/sq-infra-provider-xinchang"
+  tag: "latest"
+  pullPolicy: Always
 
 replicaCount: 2
 

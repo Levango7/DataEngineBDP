@@ -33,6 +33,11 @@
 #   curl http://localhost:8095/healthz
 # ============================================================================
 
+# 台账 #72：base 镜像源可由 CI 的选源脚本（scripts/pick-base-registry.sh）注入；
+# 宿主没给 BASE_REGISTRY 时用今天的默认宿主，行为与改动前一致。
+x-base-args: &base-args
+  - BASE_REGISTRY=${BASE_REGISTRY:-docker.m.daocloud.io}
+
 services:
   # ---------------------------------------------------------------------------
   # Failover API（OverridePolicy + FailoverEvent + ClusterHealth + ReplicaWeightPlan）
@@ -41,6 +46,7 @@ services:
     build:
       context: ../api
       dockerfile: Dockerfile
+      args: *base-args
     image: sq/failover-api:0.1.0
     container_name: it-failover-api
     ports:
@@ -67,6 +73,7 @@ services:
     build:
       context: ../engine
       dockerfile: Dockerfile
+      args: *base-args
     image: sq/failover-engine:0.1.0
     container_name: it-failover-engine
     ports:

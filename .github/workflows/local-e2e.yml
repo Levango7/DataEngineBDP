@@ -84,9 +84,13 @@ jobs:
         # image.tag=kind-local 与 deploy/local/values-local-images.yaml 对齐。
         run: |
           set -euo pipefail
+          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
+          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
           build_load() {  # <image> <dockerfile> <context>
             echo "== build $1 (ctx=$3) =="
-            docker build -t "$1" -f "$2" "$3"
+            docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "$1" -f "$2" "$3"
             kind load docker-image "$1" --name dataengine-e2e
           }
           build_load sq-encapsulation:kind-local     platform/encaps-layer/Dockerfile     .
