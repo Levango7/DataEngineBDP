@@ -2,9 +2,9 @@
 # Python 3.10+
 
 # Web framework
-fastapi==0.141.1
-uvicorn[standard]==0.29.0
-pydantic==2.13.4
+fastapi==0.143.0
+pydantic==2.14.1
+uvicorn[standard]==0.54.0
 pydantic-settings==2.15.0
 
 # NebulaGraph integration (optional, only enabled when store.type=nebula)
@@ -17,7 +17,6 @@ httpx==0.28.1
 # Testing
 pytest>=9.0.3,<10.0       # 修复 PYSEC-2026-1845（先例见 batch-pipeline/requirements-dev.txt）；下界取 9.0.3 而非 9.0，避免解析到仍含漏洞的 9.0.0
 pytest-asyncio>=1.4.0,<2.0  # 随 pytest 9 同步升级：0.25.2/0.26.0/1.0.0 均要求 pytest<9，仅 1.4.0 起兼容
-httpx==0.28.1
 
 # Logging
 loguru==0.7.3
