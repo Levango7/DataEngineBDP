@@ -12,9 +12,12 @@
 #                             [--poll-interval S] [--self-test]
 # 退出码：0 CI 已过；1 CI 判失败（有 run 且全部结束但无一 success）；
 #         2 **等待超时**（含"根本没看到 run"）⇒ infra/排队问题，不是代码红。
-#         两类都非零：拿不到 CI 结论时构建/发布一律不放行。
+#         3 **判据无法建立**（缺 jq、响应不可解析、runs 取满一页说明集合不完整）
+#           ⇒ 立刻红，不允许"读不出数"被读成"只是排队"或直接空等到超时。
+#         64 未知命令行参数。
+#         非零都不放行：拿不到 CI 结论时构建/发布一律中止，只是文案要说清拦下的原因。
 # 自测注入点：WAIT_ON_CI_STUB_CMD —— 由它代替 `gh api` 打印 workflow-runs 的 JSON，
-#         这样四条分支能在本机真跑。（与 pick-base-registry.sh 的 PROBE_CMD 同一套路。）
+#         这样每条分支能在本机真跑（含"取满一页"这种要造 100 条才触发的分支）。
 set -uo pipefail
 
 SHA="${GITHUB_SHA:-}"
@@ -23,6 +26,7 @@ WORKFLOW="ci.yml"
 SUBJECT="CI"
 TIMEOUT_MIN="${CI_GATE_WAIT_MINUTES:-360}"   # 默认 6 小时：本轮实测排队就在这个量级
 POLL=30
+PAGE_SIZE=100
 SELF_TEST=0
 STUB="${WAIT_ON_CI_STUB_CMD:-}"
 
@@ -46,16 +50,18 @@ fetch_runs() {
   if [ -n "$STUB" ]; then
     $STUB "$WORKFLOW"
   else
-    gh api "repos/$REPO/actions/workflows/$WORKFLOW/runs?head_sha=$SHA&per_page=50" 2>/dev/null || echo '{}'
+    gh api "repos/$REPO/actions/workflows/$WORKFLOW/runs?head_sha=$SHA&per_page=$PAGE_SIZE" 2>/dev/null || echo '{}'
   fi
 }
 
-counts() {   # 打印 "total success pending"
+counts() {   # 打印 "total success pending page"（page = 过滤 head_sha 之前的返回条数）
   echo "$1" | jq -r --arg sha "$SHA" '
-    [ .workflow_runs[]? | select(.head_sha == $sha) ] as $r
+    (.workflow_runs // []) as $raw
+    | ($raw | map(select(.head_sha == $sha))) as $r
     | [ ($r | length),
         ($r | map(select(.conclusion == "success")) | length),
-        ($r | map(select(.status != "completed")) | length) ] | @tsv'
+        ($r | map(select(.status != "completed")) | length),
+        ($raw | length) ] | @tsv'
 }
 
 wait_ci() {
@@ -67,17 +73,23 @@ wait_ci() {
     echo "::error::缺 SHA/REPO（SHA='$SHA' REPO='$REPO'）⇒ 判据无法建立，按未通过处理" >&2
     return 1
   fi
-  local deadline now runs t s p snapshot
+  local deadline now runs t s p n snapshot
   deadline=$(( $(date +%s) + TIMEOUT_MIN * 60 ))
   log "等待 $WORKFLOW 在 commit $SHA 上出结论（上限 $TIMEOUT_MIN 分钟，轮询 ${POLL}s，主体=$SUBJECT）"
   while :; do
     runs="$(fetch_runs)"
-    read -r t s p <<<"$(counts "$runs")"
-    if ! printf '%s %s %s' "$t" "$s" "$p" | grep -qE '^[0-9]+ [0-9]+ [0-9]+$'; then
-      echo "::error::解析 $WORKFLOW 的 runs 响应失败（得到 total='$t' success='$s' pending='$p'）⇒ 判失败而不是继续等" >&2
+    read -r t s p n <<<"$(counts "$runs")"
+    if ! printf '%s %s %s %s' "$t" "$s" "$p" "$n" | grep -qE '^[0-9]+ [0-9]+ [0-9]+ [0-9]+$'; then
+      echo "::error::解析 $WORKFLOW 的 runs 响应失败（得到 total='$t' success='$s' pending='$p' page='$n'）⇒ 判失败而不是继续等" >&2
       return 3
     fi
-    echo "$WORKFLOW runs on ${SHA:0:12}: total=$t success=$s pending=$p"
+    # 单页取满 ⇒ 后面可能还有 run 没读到。此时任何"结论"都建立在残缺集合上，
+    # 尤其不能报"全部结束但无一 success"（那会把分页问题说成代码红）。
+    if [ "$n" -ge "$PAGE_SIZE" ]; then
+      echo "::error::$WORKFLOW 的 runs 响应取满一页（page=$n，per_page=$PAGE_SIZE）⇒ 判据集合可能不完整，按解析失败处理而不是下结论" >&2
+      return 3
+    fi
+    echo "$WORKFLOW runs on ${SHA:0:12}: total=$t success=$s pending=$p page=$n"
     if [ "${s:-0}" -gt 0 ]; then
       echo "::notice::$WORKFLOW 已通过（success=$s），允许 $SUBJECT 继续"
       return 0
@@ -143,14 +155,32 @@ self_test() {
   printf '%s' "{\"workflow_runs\":[{\"head_sha\":\"OTHER\",\"status\":\"completed\",\"conclusion\":\"success\"}]}" > "$tmp/fixture.json"
   TIMEOUT_MIN=1
   check '别的 commit 的 success 不算数 ⇒ 不放行' 2 'total=0'
-  # ⑦ 缺 SHA/REPO 不许静默成功
+  # ⑦ runs 取满一页 ⇒ 判据集合可能不完整，不许据此下"CI 失败"结论（退 3）
+  { printf '{"workflow_runs":['
+    for i in $(seq 1 "$PAGE_SIZE"); do
+      [ "$i" -gt 1 ] && printf ','
+      printf '{"head_sha":"%s","status":"completed","conclusion":"failure"}' "$SHA"
+    done
+    printf ']}'
+  } > "$tmp/fixture.json"
+  check 'runs 取满一页 ⇒ 退 3（不把分页说成 CI 失败）' 3 '取满一页'
+  # ⑧ 配对验证：少一条就没触发 ⇒ 证明 ⑦ 不是"恒退 3"的假通过
+  { printf '{"workflow_runs":['
+    for i in $(seq 1 "$((PAGE_SIZE - 1))"); do
+      [ "$i" -gt 1 ] && printf ','
+      printf '{"head_sha":"%s","status":"completed","conclusion":"failure"}' "$SHA"
+    done
+    printf ']}'
+  } > "$tmp/fixture.json"
+  check '一页差一条 ⇒ 照常下结论退 1，不是退 3' 1 '无一 success'
+  # ⑨ 缺 SHA/REPO 不许静默成功
   out="$(bash "$0" --sha '' --repo '' --timeout-minutes 1 --poll-interval 0 2>&1)"; rc=$?
   if [ "$rc" != 0 ] && printf '%s' "$out" | grep -q '判据无法建立'; then
     echo "  [PASS] 缺 SHA/REPO 判红而不是放行（rc=$rc）"
   else
     echo "  [FAIL] 缺 SHA/REPO 却 rc=$rc"; ok=0
   fi
-  # ⑧ 超时与 CI 失败两条文案必须不同（红起来要能一眼归因）
+  # ⑩ 超时与 CI 失败两条文案必须不同（红起来要能一眼归因）
   printf '%s' "{\"workflow_runs\":[{\"head_sha\":\"$SHA\",\"status\":\"completed\",\"conclusion\":\"failure\"}]}" > "$tmp/fixture.json"
   m1="$(WAIT_ON_CI_STUB_CMD="$STUB" bash "$0" --sha "$SHA" --repo "$REPO" --timeout-minutes 1 --poll-interval 0 2>&1 | grep -c '无一 success')"
   printf '%s' "{\"workflow_runs\":[{\"head_sha\":\"$SHA\",\"status\":\"queued\",\"conclusion\":null}]}" > "$tmp/fixture.json"
