@@ -2,13 +2,13 @@
 # Python 3.10+
 
 # Web framework
-fastapi==0.141.1
-uvicorn[standard]==0.29.0
-pydantic==2.13.4
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
 pydantic-settings==2.15.0
 
 # MLflow integration (optional, only enabled when store.type=mlflow)
-mlflow==3.15.1
+mlflow==3.17.0
 
 # HTTP client (for MLflow SDK / external calls)
 httpx==0.28.1
@@ -21,4 +21,4 @@ pytest-asyncio>=1.4.0,<2.0  # 随 pytest 9 同步升级：0.25.2/0.26.0/1.0.0 �
 loguru==0.7.3
 
 # Utilities
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0

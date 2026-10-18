@@ -70,7 +70,7 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
-            <version>7.8.0</version>
+            <version>8.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-server-mock</artifactId>
-            <version>7.8.0</version>
+            <version>8.0.0</version>
             <scope>test</scope>
         </dependency>
 
