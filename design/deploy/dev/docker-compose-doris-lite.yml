@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     environment:
       # 官方 entrypoint ELECTION 模式: FE_SERVERS=名称:IP:edit_log_port
-      FE_SERVERS: "fe1:172.30.88.2:9010"
+      FE_SERVERS: "fe1:172.31.88.2:9010"
       FE_ID: "1"
       # FE 内存上限（轻量实测用 1g）
       JAVA_OPTS: "-Xmx1024m -XX:+UseG1GC"
@@ -42,7 +42,7 @@ services:
       start_period: 60s
     networks:
       sq-doris-lite-net:
-        ipv4_address: 172.30.88.2
+        ipv4_address: 172.31.88.2
 
   doris-be:
     image: docker.m.daocloud.io/apache/doris:doris-be-2.1.7
@@ -52,8 +52,8 @@ services:
       - doris-fe
     environment:
       # 官方 entrypoint ELECTION 模式: FE_SERVERS + BE_ADDR=BE_IP:heartbeat_port
-      FE_SERVERS: "fe1:172.30.88.2:9010"
-      BE_ADDR: "172.30.88.3:9050"
+      FE_SERVERS: "fe1:172.31.88.2:9010"
+      BE_ADDR: "172.31.88.3:9050"
     ports:
       - "18032:8040"   # BE HTTP(暴露,便于排查)
     volumes:
@@ -66,7 +66,7 @@ services:
       start_period: 60s
     networks:
       sq-doris-lite-net:
-        ipv4_address: 172.30.88.3
+        ipv4_address: 172.31.88.3
 
 volumes:
   sq-doris-fe-data:
@@ -77,4 +77,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.30.88.0/24
+        - subnet: 172.31.88.0/24
