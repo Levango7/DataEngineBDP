@@ -12,9 +12,16 @@ import org.slf4j.LoggerFactory;
  *
  * <p>按当前 {@link CryptoProfile} 路由到具体 {@link StorageCipher} 实现：</p>
  * <ul>
- *   <li>{@link CryptoProfile#XINCHANG} → {@link GmStorageCipher}（SM4-CBC）</li>
+ *   <li>{@link CryptoProfile#XINCHANG} → {@link GmGcmStorageCipher}（SM4-GCM，AEAD）</li>
  *   <li>{@link CryptoProfile#INTERNATIONAL} → {@link IntlStorageCipher}（AES-GCM）</li>
  * </ul>
+ *
+ * <h3>为什么信创辖区用 SM4-GCM 而非 SM4-CBC</h3>
+ * <p>SM4-CBC 无认证：密文可被篡改且解密方无法感知（padding oracle 风险），
+ * 错误密钥也有约 1/256 概率"解出"合法填充而不报错。SM4-GCM 为 AEAD，
+ * 密钥错误或密文被改都会解密失败。历史 SM4-CBC 密文由
+ * {@link com.levango7.dataenginebdp.encaps.util.CredentialEncryptor} 的双读 +
+ * {@code reencrypt()} 迁移原语负责兼容，本工厂只负责新写入。</p>
  *
  * <h3>密钥来源</h3>
  * <p>密钥由调用方显式注入（生产环境通过 KMS 或环境变量），工厂仅负责按 Profile 选择算法实现。
@@ -99,8 +106,8 @@ public class StorageCipherFactory {
                 if (gmKey == null) {
                     throw new CryptoException("GM key must not be null for XINCHANG profile");
                 }
-                log.debug("Creating GmStorageCipher for profile XINCHANG");
-                yield new GmStorageCipher(gmKey);
+                log.debug("Creating GmGcmStorageCipher for profile XINCHANG");
+                yield new GmGcmStorageCipher(gmKey);
             }
             case INTERNATIONAL -> {
                 if (intlKey == null) {
@@ -126,7 +133,7 @@ public class StorageCipherFactory {
         }
         CryptoProfile profile = spiFactory.getCurrentProfile();
         return switch (profile) {
-            case XINCHANG -> new GmStorageCipher(key);
+            case XINCHANG -> new GmGcmStorageCipher(key);
             case INTERNATIONAL -> new IntlStorageCipher(key);
         };
     }
