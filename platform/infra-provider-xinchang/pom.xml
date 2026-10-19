@@ -100,7 +100,7 @@
         <dependency>
             <groupId>com.hierynomus</groupId>
             <artifactId>sshj</artifactId>
-            <version>0.38.0</version>
+            <version>0.41.2</version>
         </dependency>
 
         <!-- Spring Data JPA：持久化集群元数据 -->
