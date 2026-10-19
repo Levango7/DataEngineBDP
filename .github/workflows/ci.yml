@@ -1530,25 +1530,29 @@ jobs:
             echo "============================================"
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
-            # 安装依赖：优先用 requirements.txt，去掉 -q 看报错
+            # 安装依赖：requirements.txt 是该模块依赖的单一事实来源。
+            # 收紧（2026-10-19）：安装失败即失败，不再回落到 pyproject 的 [test] extra、
+            # 也不再"仅 warning 后继续跑测试"。历史事故：#610 的 langchain-core 冲突
+            # （requirements 不可解析）被回落到 [test] extra 掩盖，tests 照跑、门禁全绿，
+            # 只有 pip-audit 一个门禁报出来，问题因此潜伏多日。
             install_ok=false
             if [ -f "$mod_dir/requirements.txt" ]; then
               if pip install -r "$mod_dir/requirements.txt" 2>&1; then
                 install_ok=true
-              elif [ -f "$mod_dir/pyproject.toml" ] && pip install "$mod_dir[test]" 2>&1; then
-                install_ok=true
+              else
+                echo "::error file=$mod_dir/requirements.txt::$mod_name 依赖安装失败（pip install -r requirements.txt）——请修版本约束本身，不要回落到 [test] extra"
               fi
             elif [ -f "$mod_dir/pyproject.toml" ]; then
               if pip install "$mod_dir[test]" 2>&1; then
                 install_ok=true
+              else
+                echo "::error file=$mod_dir/pyproject.toml::$mod_name 依赖安装失败（pip install $mod_dir[test]）"
               fi
             fi
             if [ "$install_ok" = "false" ]; then
-              echo "::warning::$mod_name 依赖安装失败，尝试继续测试"
-            fi
-            # nl2sql 依赖 sqlparse，显式安装防止 pip install 遗漏
-            if [ "$mod_name" = "nl2sql" ]; then
-              pip install sqlparse==0.5.0 2>&1 || true
+              echo "✗ $mod_name 依赖安装失败，跳过该组件的测试（安装未过，跑测试无意义）"
+              fail_count=$((fail_count + 1))
+              continue
             fi
             mkdir -p "$(dirname "python-syntax-reports/${mod_name}-test.log")"
             if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then

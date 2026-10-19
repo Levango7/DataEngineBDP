@@ -274,20 +274,51 @@ jobs:
           while IFS= read -r req; do
             mod_dir=$(dirname "$req")
             mod_name=$(basename "$mod_dir")
+            audit_json="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json"
+            audit_log="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.log"
             echo "============================================"
             echo "  pip-audit: $mod_name"
             echo "============================================"
-            (cd "$mod_dir" && pip-audit --strict -r requirements.txt --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
+            # 先删旧报告：下面用「是否生成了 JSON」区分两类失败（见 2026-10-19 事故）
+            rm -f "$audit_json"
+            if (cd "$mod_dir" && pip-audit --strict -r requirements.txt --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$audit_json" 2>&1) > "$audit_log" 2>&1; then
+              echo "✓ $mod_name 无已知漏洞"
+            else
+              # 失败详情必须落到 artifact：本仓库 job 日志 API 取不到内容，
+              # 只写进日志等于「红而无因」（2026-10-19 nl2sql 即因此排查了两天）。
+              echo "✗ $mod_name pip-audit 失败，完整输出（同存于 python-audit-reports/${mod_name}-audit.log）："
+              if [ -f "$audit_log" ]; then cat "$audit_log"; fi
+              if [ -f "$audit_json" ]; then
+                echo "::error file=platform/${mod_name}/requirements.txt::$mod_name 存在已知漏洞（报告已生成：${mod_name}-audit.json）"
+              else
+                echo "::error file=platform/${mod_name}/requirements.txt::$mod_name 依赖解析失败、未生成报告——通常是 requirements.txt 内版本约束互相冲突（pip ResolutionImpossible），不是漏洞，请修版本约束"
+              fi
+              fail_count=$((fail_count + 1))
+            fi
           done < <(find platform -name requirements.txt 2>/dev/null)
           # 对使用 pyproject.toml 但无 requirements.txt 的组件
           while IFS= read -r f; do
             mod_dir=$(dirname "$f")
             mod_name=$(basename "$mod_dir")
             if [ ! -f "$mod_dir/requirements.txt" ]; then
+              audit_json="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json"
+              audit_log="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.log"
               echo "============================================"
               echo "  pip-audit (pyproject): $mod_name"
               echo "============================================"
-              (cd "$mod_dir" && pip-audit --strict --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
+              rm -f "$audit_json"
+              if (cd "$mod_dir" && pip-audit --strict --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$audit_json" 2>&1) > "$audit_log" 2>&1; then
+                echo "✓ $mod_name 无已知漏洞"
+              else
+                echo "✗ $mod_name pip-audit 失败，完整输出（同存于 python-audit-reports/${mod_name}-audit.log）："
+                if [ -f "$audit_log" ]; then cat "$audit_log"; fi
+                if [ -f "$audit_json" ]; then
+                  echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 存在已知漏洞（报告已生成：${mod_name}-audit.json）"
+                else
+                  echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 依赖解析失败、未生成报告——通常是版本约束互相冲突（pip ResolutionImpossible），不是漏洞，请修版本约束"
+                fi
+                fail_count=$((fail_count + 1))
+              fi
             fi
           done < <(find platform -name pyproject.toml 2>/dev/null)
           if [ "$fail_count" -gt 0 ]; then

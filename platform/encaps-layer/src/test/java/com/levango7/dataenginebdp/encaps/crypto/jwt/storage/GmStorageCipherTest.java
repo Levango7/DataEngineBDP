@@ -177,8 +177,8 @@ class GmStorageCipherTest {
     // ===== 密钥隔离 =====
 
     @Test
-    @DisplayName("不同密钥 — 解密应失败")
-    void decryptWithDifferentKey_shouldFail() {
+    @DisplayName("不同密钥 — 不得还原出原文")
+    void decryptWithDifferentKey_mustNotRecoverPlaintext() {
         byte[] plaintext = "secret".getBytes(StandardCharsets.UTF_8);
         byte[] ciphertext = cipher.encrypt(plaintext);
 
@@ -189,8 +189,24 @@ class GmStorageCipherTest {
             wrongKey[0] ^= 0x01;
         }
         GmStorageCipher wrongCipher = new GmStorageCipher(wrongKey);
-        assertThatThrownBy(() -> wrongCipher.decrypt(ciphertext))
-                .isInstanceOf(CryptoException.class);
+
+        // 不能断言"必抛 CryptoException"：GmStorageCipher 是 SM4-CBC + PKCS7，
+        // 没有 MAC/AEAD 认证，错误密钥解出的明文块是随机的，PKCS7 去填充校验存在
+        // 极小概率"恰好合法"（末字节恰为 0x01 时约 1/256，其余填充长度更小），
+        // 此时不抛异常。若断言必抛异常，测试会概率性变红并阻塞合并。
+        //
+        // 真正的安全属性是：错误密钥绝不能还原出原文。故允许两种结果：
+        //   1) 抛 CryptoException —— 正常路径（填充校验失败）；
+        //   2) 不抛异常，但返回字节不等于原文。
+        // 注意 AssertJ 断言失败抛的是 AssertionError，不会被下面的 catch 吞掉。
+        try {
+            byte[] recovered = wrongCipher.decrypt(ciphertext);
+            assertThat(recovered)
+                    .as("错误密钥解密未抛异常时，也不得还原出原文")
+                    .isNotEqualTo(plaintext);
+        } catch (CryptoException expected) {
+            // 填充校验失败 —— 预期内的正常路径，视为通过
+        }
     }
 
     /**
