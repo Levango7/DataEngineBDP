@@ -32,35 +32,43 @@ dependencies = [
     "pydantic-settings==2.15.0",
     "httpx==0.28.1",
     "loguru==0.7.3",
-    "sqlparse==0.5.0",
-    "python-dateutil==2.9.0.post0",
+    "sqlparse==0.6.0",
+    "python-dateutil==2.9.0",
     "jinja2==3.1.6",
 ]
 
+# 注意：本模块依赖真源是 requirements.txt（pip-audit 与 CI 的 Python Test 都以它为准）。
+# 2026-10-19 事故：#610 升级了 requirements 里的 langchain-openai 却漏改 core，导致
+# requirements 不可解析；同时本文件与 requirements 版本漂移（sqlparse 0.5.0 vs 0.6.0、
+# langchain-core 1.5.5 vs 1.6.12、tiktoken 0.6.0 vs 0.7.0、pytest-asyncio 0.23.6 vs >=1.4.0）。
+# 本次已全部对齐 requirements.txt；后续改动请以 requirements.txt 为准同步本文件。
+
 [project.optional-dependencies]
 # LangChain SQL 生成（生产模式）
+# 仅 langchain-openai 的 ChatOpenAI 有代码引用（sql_generator.py:421 懒加载）；
+# langchain 主包 / langchain-community 全模块无 import，且 langchain-community 0.0.34
+# 要求 langchain-core<0.2.0，与 1.6.x 根本不相容（留着会引入新的 ResolutionImpossible），故移除。
 langchain = [
-    "langchain-core==1.5.5",
-    "langchain==1.4.4",
-    "langchain-community==0.0.34",
+    "langchain-core==1.6.12",
+    "langchain-openai==1.7.0",
     "openai==3.29.0",
-    "tiktoken==0.6.0",
+    "tiktoken==0.7.0",
 ]
 test = [
-    "pytest==9.1.1",
-    "pytest-asyncio==0.23.6",
+    "pytest>=9.0.3,<10.0",
+    "pytest-asyncio>=1.4.0,<2.0",
     "httpx==0.28.1",
-    "sqlparse==0.5.0",
+    "sqlparse==0.6.0",
 ]
 dev = [
-    "pytest==9.1.1",
-    "pytest-asyncio==0.23.6",
+    "pytest>=9.0.3,<10.0",
+    "pytest-asyncio>=1.4.0,<2.0",
     "httpx==0.28.1",
-    "langchain-core==1.5.5",
-    "langchain==1.4.4",
-    "langchain-community==0.0.34",
+    "sqlparse==0.6.0",
+    "langchain-core==1.6.12",
+    "langchain-openai==1.7.0",
     "openai==3.29.0",
-    "tiktoken==0.6.0",
+    "tiktoken==0.7.0",
 ]
 
 [project.urls]
