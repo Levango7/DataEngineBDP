@@ -115,7 +115,7 @@ class CryptoProfileRouterTest {
 
         Map<String, String> caps = router.getCapabilities();
         assertThat(caps.get("jwt")).isEqualTo("SM3withSM2");
-        assertThat(caps.get("storage")).isEqualTo("SM4-CBC");
+        assertThat(caps.get("storage")).isEqualTo("SM4-GCM");
     }
 
     @Test
