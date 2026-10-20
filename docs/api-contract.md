@@ -2,7 +2,7 @@
 
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
-- 前端入口：`frontend/src/api/*.ts`（共 37 个文件）
+- 前端入口：`frontend/src/api/*.ts`（共 38 个文件）
 - 后端前缀：Java 69 / Python 21 / Go 13（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
@@ -223,6 +223,18 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/iotdb/${encodeURIComponent(id)}/write-throughput` （1 变量） | `/iotdb` | encaps-data | ✅ |
 | `/virtual-tables/${encodeURIComponent(tableName)}/query` （1 变量） | `/virtual-tables` | sql-gateway | ✅ |
 | `/virtual-tables/${encodeURIComponent(tableName)}/test-connection` （1 变量） | `/virtual-tables` | sql-gateway | ✅ |
+
+## exchange.ts
+
+| 前端调用 | 首段 | 后端模块 | 状态 |
+|---|---|---|---|
+| `/assets/${encodeURIComponent(assetId)}/settle` （1 变量） | `/assets` | asset-exchange | ✅ |
+| `/assets/${encodeURIComponent(assetId)}/settlements` （1 变量） | `/assets` | asset-exchange | ✅ |
+| `/assets/${encodeURIComponent(assetId)}/allocate` （1 变量） | `/assets` | asset-exchange | ✅ |
+| `/assets/${encodeURIComponent(assetId)}/allocations` （1 变量） | `/assets` | asset-exchange | ✅ |
+| `/audit-logs`  | `/audit-logs` | asset-exchange | ✅ |
+| `/audit-logs/integrity`  | `/audit-logs` | asset-exchange | ✅ |
+| `/audit-logs/${encodeURIComponent(logId)}` （1 变量） | `/audit-logs` | asset-exchange | ✅ |
 
 ## gateway.ts
 
@@ -481,7 +493,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：263
+- 匹配：270
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

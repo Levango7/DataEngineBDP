@@ -7,6 +7,7 @@
  * - 常用词条有值（防空翻译）
  */
 import { describe, it, expect } from 'vitest'
+import { MODULE_NAMES, ROUTE_MODULE_MAP } from '../index'
 import zhCN from '@/i18n/locales/zh-CN.json'
 import enUS from '@/i18n/locales/en-US.json'
 import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
@@ -100,11 +101,11 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 52 项 + 8 分组全部有中英词条', () => {
+  it('导航 54 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
     // 实数：Sidebar groups 共 52 个导航项（8 分组，含 2026-09-07 新增 approvals）
-    expect(navItems.length).toBe(52)
+    expect(navItems.length).toBe(54)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
@@ -249,5 +250,34 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
         }
       }
     }
+  })
+})
+
+describe('i18n 模块注册表一致性（loadModuleI18n 对未注册名是静默 return）', () => {
+  const files = Object.keys(import.meta.glob('../locales/modules/*.json'))
+
+  it('ROUTE_MODULE_MAP 引用的每个模块都在 MODULE_NAMES 里注册', () => {
+    const unregistered = [...new Set(Object.values(ROUTE_MODULE_MAP).flat())].filter(
+      (m) => !MODULE_NAMES.includes(m)
+    )
+    // 这一条曾经真的成立过：/exchange-audit 映射写了 exchange，但注册表漏了，
+    // 加载器静默跳过，页面直接显示 exchange.audit.title 这样的裸 key。
+    expect(unregistered).toEqual([])
+  })
+
+  it('MODULE_NAMES 每一项都有中英两份词条文件', () => {
+    const missing = MODULE_NAMES.filter(
+      (m) =>
+        !files.some((f) => f.endsWith(`/${m}.zh-CN.json`)) ||
+        !files.some((f) => f.endsWith(`/${m}.en-US.json`))
+    )
+    expect(missing).toEqual([])
+  })
+
+  it('词条目录里没有未注册的孤儿模块', () => {
+    const orphans = [
+      ...new Set(files.map((f) => f.replace(/^.*\//, '').replace(/\.(zh-CN|en-US)\.json$/, '')))
+    ].filter((name) => !MODULE_NAMES.includes(name))
+    expect(orphans).toEqual([])
   })
 })

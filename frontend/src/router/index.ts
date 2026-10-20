@@ -50,6 +50,9 @@ const TemplateMarket = () => import('@/views/TemplateMarket.vue')
 const BusinessPortal = () => import('@/views/BusinessPortal.vue')
 // 批次8新增：数据资产流通市场（L5.6 AssetExchange 前端）
 const AssetMarket = () => import('@/views/AssetMarket.vue')
+// 收编批次 C1：资产流通的「结算分账」「审计日志」两块主应用原本没有的能力
+const ExchangeSettlements = () => import('@/views/exchange/Settlements.vue')
+const ExchangeAuditLogs = () => import('@/views/exchange/AuditLogs.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
 // 批次9新增：检索门户（T007 前端集成增强）
@@ -426,6 +429,18 @@ const routes: RouteRecordRaw[] = [
     name: 'AssetMarket',
     component: AssetMarket,
     meta: { titleKey: 'nav.items.ops-flow', icon: 'ShoppingCart', group: 'operations' }
+  },
+  {
+    path: '/exchange-settlements',
+    name: 'ExchangeSettlements',
+    component: ExchangeSettlements,
+    meta: { titleKey: 'nav.items.exchange-settlements', icon: 'Money', group: 'operations' }
+  },
+  {
+    path: '/exchange-audit',
+    name: 'ExchangeAuditLogs',
+    component: ExchangeAuditLogs,
+    meta: { titleKey: 'nav.items.exchange-audit', icon: 'Lock', group: 'operations' }
   },
 
   // 兜底：独立 404 页（替代静默跳转 dashboard，用户可明确感知路径错误）
