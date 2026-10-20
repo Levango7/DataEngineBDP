@@ -28,7 +28,7 @@
       "empty": "暂无资产，点击右上角\"上架资产\"",
       "card": {
         "noDesc": "暂无描述",
-        "owner": "提供方: {owner}",
+        "owner": "提供方: {tenantId}",
         "quality": "质量: {score}分",
         "subCount": "{count} 订阅",
         "priceUnit": "¥{price} / {unit}"

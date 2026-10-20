@@ -69,8 +69,13 @@ export interface Asset {
   id: string
   name: string
   type: AssetType
-  /** 提供方租户 ID */
-  owner: string
+  /**
+   * 提供方租户 ID。字段名以后端**序列化输出**为准：`models/asset.py` 的
+   * `tenantId` 带 `validation_alias=AliasChoices("tenantId", "owner")`，那只作用于
+   * 入参校验，响应体里只有 `tenantId`（`GET /api/v1/assets` 与 `POST /assets/register`
+   * 实测键集均无 `owner`）。此前这里写 `owner`，运行时恒为 undefined。
+   */
+  tenantId: string
   description?: string
   status: AssetStatus
   /** 质量评分（0-100） */
