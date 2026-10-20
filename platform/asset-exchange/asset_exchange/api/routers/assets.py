@@ -542,8 +542,10 @@ async def invoke_asset(
 async def list_asset_subscriptions(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Subscription]:
-    """列出某资产的所有订阅."""
+    """列出某资产的所有订阅（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.subscriptionService.list_by_asset(asset_id)
 
 
@@ -555,8 +557,10 @@ async def list_asset_subscriptions(
 async def get_asset_billing(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BillingSummary:
-    """获取资产的计费记录汇总."""
+    """获取资产的计费记录汇总（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.billingService.list_by_asset(asset_id)
 
 
@@ -568,8 +572,10 @@ async def get_asset_billing(
 async def get_asset_usage(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> AssetUsage:
-    """获取资产使用统计."""
+    """获取资产使用统计（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     try:
         return await registry.assetService.get_usage(asset_id)
     except AssetExchangeError as exc:
@@ -621,8 +627,10 @@ async def settle_asset(
 async def list_settlements(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Settlement]:
-    """列出某资产的结算记录."""
+    """列出某资产的结算记录（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.settlementService.list_by_asset(asset_id)
 
 
