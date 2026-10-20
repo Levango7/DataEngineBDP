@@ -23,6 +23,13 @@ on:
         type: boolean
         default: false
 
+# 同一分支只保留最新一次：pull_request 无 paths 过滤，每次 push 都会排
+# Profile Render + Kind Smoke，没有并发组时旧 run 会和新 run 一起抢 runner
+# （台账 #75 同源的队列饥饿）。最终 head 的那轮才是判据。
+concurrency:
+  group: local-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================
   # 1. Profile 渲染 + Schema 校验（快速，无需集群）

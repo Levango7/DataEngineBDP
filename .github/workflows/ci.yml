@@ -2372,12 +2372,13 @@ jobs:
           fi
 
   # ============================================================
-  # Trivy 容器镜像漏洞扫描：扫描文件系统中的 CRITICAL/HIGH 漏洞
+  # Trivy 文件系统漏洞扫描（不是镜像扫描）：扫仓库里的依赖清单/jar，
+  # 报 CRITICAL/HIGH；镜像基座扫描在 security.yml 的 Trivy Image Scan。
   # 输出 SARIF 格式报告并上传到 GitHub Security 代码扫描
   # 阻断 CI：发现 CRITICAL/HIGH 漏洞时 exit-code=1，CI 失败
   # ============================================================
   trivy-scan:
-    name: Trivy Scan (容器镜像漏洞扫描)
+    name: Trivy FS Scan (依赖漏洞扫描)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

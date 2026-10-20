@@ -43,6 +43,12 @@ jobs:
   # ============================================================
   aggregate-quality-gate:
     name: Aggregate Quality Gate
+    # dependabot 分支不聚合：实测 main 尖上曾堆积 220+ 条 Quality Gate run
+    # （118 cancelled / 74 queued），主因是每个 dependabot 分支各占一个 concurrency
+    # group、各自的 CI/Security/CodeQL/SonarQube 完成事件都要排一次聚合，
+    # 把 runner 队列挤满、真正的 CI 反而拿不到 runner（台账 #75 的同源问题）。
+    # 这些分支的结论由 PR 页自身的 check 展示，不需要聚合报告。
+    if: ${{ !startsWith(github.event.workflow_run.head_branch || '', 'dependabot/') }}
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
