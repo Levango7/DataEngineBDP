@@ -35,12 +35,17 @@ def resolve_tenant(ctx: AuthContext, requestedTenantId: str | None) -> str:
     普通用户提供的 tenantId 与 claim 不一致时拒绝（403）。
 
     Raises:
-        HTTPException: 403 租户越权。
+        HTTPException: 403 租户越权；401 拿不到任何租户上下文。
     """
     if requestedTenantId:
         if ctx.role == "admin" or requestedTenantId == ctx.tenantId:
             return requestedTenantId
         raise HTTPException(status_code=403, detail=f"tenantId {requestedTenantId} 与当前身份不一致")
+    if not ctx.tenantId:
+        # AUTH_MODE=none 下 claim 是空串，而 Asset.tenantId 有 min_length=1：
+        # 以前直接把 '' 交给模型构造，pydantic 抛 ValidationError 被全局兜到 500
+        # 且回显内部校验文本；这里按 settlements.py 既有口径 fail-closed 成 401。
+        raise HTTPException(status_code=401, detail="缺少租户上下文")
     return ctx.tenantId
 
 

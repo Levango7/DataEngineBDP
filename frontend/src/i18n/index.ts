@@ -208,6 +208,7 @@ export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-flow': ['assetMarket'],
   '/exchange-settlements': ['exchange'],
   '/exchange-audit': ['exchange'],
+  '/exchange-register': ['exchange'],
   '/ai-assistant': ['aiAssistant'],
   // 引擎/基础设施/开发层页面共用 engines 命名空间（kpi/table/sql 等公共词条），
   // infra 各页还互相复用 infraK8s/infraSched 命名空间；凡组件用到而映射未含者，

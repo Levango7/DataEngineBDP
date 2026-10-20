@@ -127,7 +127,12 @@ export function useNavGroups() {
           label: t('nav.items.exchange-settlements'),
           icon: 'Money'
         },
-        { path: '/exchange-audit', label: t('nav.items.exchange-audit'), icon: 'Tickets' }
+        { path: '/exchange-audit', label: t('nav.items.exchange-audit'), icon: 'Tickets' },
+        {
+          path: '/exchange-register',
+          label: t('nav.items.exchange-register'),
+          icon: 'EditPen'
+        }
       ]
     }
   ])
