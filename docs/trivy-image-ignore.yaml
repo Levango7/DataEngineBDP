@@ -89,3 +89,19 @@ vulnerabilities:
   - id: CVE-2026-24049
     statement: "同上，setuptools vendored 的 wheel 0.45.1 → 0.46.2"
     expired_at: 2026-12-01
+
+  # ---- nginx:alpine / eclipse-temurin:17-jre-alpine：2026-10-19 扫描新出现的 libexpat / libx11 ----
+  # 与上面几条的区别：这两条的修复版**已经在 Alpine 仓库里**（不是跨线跃迁），
+  # 且本仓已在运行时阶段构建期升级：9 个 temurin-alpine 镜像与 frontend nginx 镜像都加了
+  # `apk upgrade --no-cache libexpat`（nginx 另加 libx11）。本机实测两种基座均升到修复版：
+  #   nginx:alpine (Alpine 3.24.2): libexpat 2.8.5-r0→2.9.0-r0, libx11 1.8.13-r0→1.8.14-r0
+  #   eclipse-temurin:17-jre-alpine: libexpat 2.8.5-r0→2.9.0-r0
+  # 这条豁免只为"门禁扫的是基座引用本身、看不到构建期升级"而记；出货镜像已干净。
+  # 解锁：上游基座重建后（`docker run <base> apk list -I libexpat` 显示 ≥2.9.0-r0）删掉本条。
+  - id: CVE-2026-77214
+    statement: "libexpat 2.8.5-r0 → 2.9.0-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 Dockerfile 运行时阶段 apk upgrade --no-cache libexpat，出货镜像实测取到 2.9.0-r0"
+    expired_at: 2026-12-01
+  - id: CVE-2026-88806
+    statement: "libx11 1.8.13-r0 → 1.8.14-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache libx11，本机实测升到 1.8.14-r0"
+    expired_at: 2026-12-01
+
