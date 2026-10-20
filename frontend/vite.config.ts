@@ -157,6 +157,14 @@ export default defineConfig({
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
+      // 资产流通审计日志（asset-exchange audit router，前缀 /audit-logs）
+      // 缺这一条时 /api/v1/audit-logs* 会落到下方 /api 兜底（encaps-layer :8080）→ 404，
+      // 而页面把 404 渲染成"暂无审计日志"，dev 下看不出请求根本没打到对的进程。
+      // 生产侧 APISIX 已有该路由（configmap-routes.yaml），所以只有本地 dev 会错。
+      '/api/v1/audit-logs': {
+        target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
       // API 订阅（open-api-catalog subscriptions_router，前缀 /subscriptions）
       // Sprint 4.2：此前被 asset-exchange 抢占导致 APIMarket 页订阅审批错路由，
       // 归还给 open-api-catalog（detail design 契约路径 /subscriptions/{id}/approve）
