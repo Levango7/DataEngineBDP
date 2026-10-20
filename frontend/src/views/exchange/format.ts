@@ -37,12 +37,28 @@ export function shortId(id: string | null | undefined): string {
 
 export type TagType = 'success' | 'warning' | 'danger' | 'info'
 
-/** 审计/结算状态 → el-tag 类型；未知值兜到 info，不猜语义 */
+/**
+ * 流通/资产状态 → el-tag 类型。
+ *
+ * 键必须写**后端序列化出来的实际值**：`models/base.py` 的枚举全是小写
+ * （success/failure/pending/settled/allocated/failed/draft/pending_audit/listed/
+ * rejected/offline），而 `StatusTag.vue:26` 是 `statusMap[status] ?? 'info'`——
+ * 精确匹配、不转大小写。此前这张表按大写写（SETTLED/FAILED…），于是所有标签
+ * 恒落 'info'：失败与成功长得一模一样。
+ */
 export const EXCHANGE_STATUS_MAP: Record<string, TagType> = {
-  SETTLED: 'success',
-  SUCCESS: 'success',
-  PENDING: 'warning',
-  PROCESSING: 'warning',
-  FAILED: 'danger',
-  ERROR: 'danger'
+  // AuditResult
+  success: 'success',
+  failure: 'danger',
+  pending: 'warning',
+  // SettlementStatus / AllocationStatus
+  settled: 'success',
+  allocated: 'success',
+  failed: 'danger',
+  // AssetStatus
+  draft: 'info',
+  pending_audit: 'warning',
+  listed: 'success',
+  offline: 'info',
+  rejected: 'danger'
 }
