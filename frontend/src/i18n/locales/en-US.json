@@ -128,7 +128,9 @@
       "ops-tpl": "Industry Templates",
       "ops-portal": "Business Portal",
       "ops-api": "Open API",
-      "ops-flow": "Asset Exchange"
+      "ops-flow": "Asset Exchange",
+      "exchange-settlements": "Settlement & Allocation",
+      "exchange-audit": "Exchange Audit Logs"
     }
   },
   "login": {
