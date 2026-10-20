@@ -130,7 +130,8 @@
       "ops-api": "Open API",
       "ops-flow": "Asset Exchange",
       "exchange-settlements": "Settlement & Allocation",
-      "exchange-audit": "Exchange Audit Logs"
+      "exchange-audit": "Exchange Audit Logs",
+      "exchange-register": "Asset Register & Audit"
     }
   },
   "login": {

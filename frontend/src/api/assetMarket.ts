@@ -24,14 +24,20 @@ const SUB_BASE = '/asset-subscriptions'
 /** 资产类型 */
 export type AssetType = 'table' | 'api' | 'model' | 'dashboard' | 'stream'
 
-/** 资产状态 */
-export type AssetStatus = 'draft' | 'listed' | 'offline' | 'rejected'
+/**
+ * 资产状态。取值以 `models/base.py::AssetStatus` 为准（5 个）；
+ * 此前少写 `pending_audit`，而审核/上架的可点状态判断都要读它。
+ */
+export type AssetStatus = 'draft' | 'pending_audit' | 'listed' | 'offline' | 'rejected'
 
 /** 安全分级 */
 export type SecurityLevel = 'public' | 'internal' | 'sensitive'
 
-/** 计费方式 */
-export type BillingMode = 'by_call' | 'by_data' | 'by_time' | 'one_time'
+/**
+ * 计费方式。取值以 `models/base.py::BillingMode` 为准（5 个）；
+ * 此前少写 `subscription`，而资产定价下拉必须能给出这个合法值。
+ */
+export type BillingMode = 'by_call' | 'by_data' | 'by_time' | 'subscription' | 'one_time'
 
 /** 交付方式 */
 export type DeliveryMethod = 'api' | 'file' | 'database_direct'
@@ -242,4 +248,73 @@ export function deliverAsset(
  */
 export function getBillingRecords(subscriptionId: string): Promise<BillingRecord[]> {
   return get<BillingRecord[]>(`${SUB_BASE}/${subscriptionId}/billing`)
+}
+
+// ---------- 登记与审核（收编自 asset-exchange 子看板，台账 #78 C1b） ----------
+
+/**
+ * 登记资产（`POST /assets/register`，api/routers/assets.py::RegisterAssetRequest）。
+ *
+ * 与 `listAsset`（`POST /assets`，直接上架）是两条不同路径：登记只落 DRAFT，
+ * 需再经 `auditAsset` 或 `publishAsset` 才会上架。
+ * 未建模的两个字段 `schema`/`sample` 与 `sourceRef` 后端皆可省，页面暂不采集。
+ */
+export interface RegisterAssetParams {
+  name: string
+  type: AssetType
+  /**
+   * 提供方租户。缺省时后端回填 JWT claim；非 admin 填了与 claim 不一致的值会被拒
+   * （assets.py 的 `resolve_tenant`）。旧字段名 `owner` 仍能作为**入参**被接受
+   * （`validation_alias=AliasChoices`），但响应里不会出现该键。
+   */
+  tenantId?: string
+  description?: string
+  securityLevel: SecurityLevel
+  qualityScore: number
+  updateFrequency?: string
+  tags?: Record<string, string>
+  pricing?: AssetPricing
+  sourceRef?: string
+}
+
+/** `models/base.py::AssetAuditResult` 的取值（小写，序列化即用此值） */
+export type AssetAuditResult = 'approved' | 'rejected'
+
+/** `models/base.py::AssetStatus` 的取值，页面据此决定哪些动作可点 */
+export const ASSET_STATUS_VALUES = [
+  'draft',
+  'pending_audit',
+  'listed',
+  'offline',
+  'rejected'
+] as const
+
+/**
+ * 审核资产（`POST /assets/{id}/audit`）。
+ *
+ * 请求体里的 `auditorId` 后端已标注废弃（"审核人身份一律取 JWT sub claim，
+ * 请求体自报不再采信"），所以这里**不发**这个字段——子看板还在硬塞 'admin-001'。
+ * 通过与否还要过后端的自动检查（合规：SENSITIVE 需 tags.desensitize=true；
+ * 质量：qualityScore >= 60），不通过时后端抛校验错误，页面原样显示。
+ */
+export function auditAsset(
+  assetId: string,
+  data: { result: AssetAuditResult; reason?: string }
+): Promise<Asset> {
+  return post<Asset>(`${BASE}/${encodeURIComponent(assetId)}/audit`, data)
+}
+
+/**
+ * 上架资产（`POST /assets/{id}/publish`，**仅 admin**，`jwt_auth.py:128` 的 requireAdmin）。
+ * 允许的状态为 draft / pending_audit / offline，其余状态后端会拒绝并给出原因。
+ */
+export function publishAsset(assetId: string): Promise<Asset> {
+  return post<Asset>(`${BASE}/${encodeURIComponent(assetId)}/publish`)
+}
+
+/**
+ * 登记资产（返回 DRAFT 态资产）。
+ */
+export function registerAsset(data: RegisterAssetParams): Promise<Asset> {
+  return post<Asset>(`${BASE}/register`, data)
 }

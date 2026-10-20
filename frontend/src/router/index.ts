@@ -53,6 +53,8 @@ const AssetMarket = () => import('@/views/AssetMarket.vue')
 // 收编批次 C1：资产流通的「结算分账」「审计日志」两块主应用原本没有的能力
 const ExchangeSettlements = () => import('@/views/exchange/Settlements.vue')
 const ExchangeAuditLogs = () => import('@/views/exchange/AuditLogs.vue')
+// 收编批次 C1b：资产登记与审核（子看板 RegisterForm.vue 的等价能力）
+const ExchangeAssetRegister = () => import('@/views/exchange/AssetRegister.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
 // 批次9新增：检索门户（T007 前端集成增强）
@@ -441,6 +443,12 @@ const routes: RouteRecordRaw[] = [
     name: 'ExchangeAuditLogs',
     component: ExchangeAuditLogs,
     meta: { titleKey: 'nav.items.exchange-audit', icon: 'Lock', group: 'operations' }
+  },
+  {
+    path: '/exchange-register',
+    name: 'ExchangeAssetRegister',
+    component: ExchangeAssetRegister,
+    meta: { titleKey: 'nav.items.exchange-register', icon: 'EditPen', group: 'operations' }
   },
 
   // 兜底：独立 404 页（替代静默跳转 dashboard，用户可明确感知路径错误）

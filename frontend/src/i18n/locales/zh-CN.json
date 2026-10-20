@@ -130,7 +130,8 @@
       "ops-api": "开放 API",
       "ops-flow": "数据资产流通",
       "exchange-settlements": "结算与分账",
-      "exchange-audit": "流通审计日志"
+      "exchange-audit": "流通审计日志",
+      "exchange-register": "资产登记与审核"
     }
   },
   "login": {
