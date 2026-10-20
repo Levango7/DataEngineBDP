@@ -436,17 +436,29 @@ jobs:
             exit 1
           fi
 
-      - name: 检查 scripts/ 全部 .sh 语法（防交付脚本损坏回归）
+      - name: 检查全仓受版本控制的 .sh 语法（防交付脚本损坏回归）
         run: |
+          # 原来只扫 scripts/，导致 releases/v2.1.0-RC/upgrade-script.sh 的损坏
+          # （变量被吞成 `\ `，line 53 语法错误）从未被任何门禁发现 —— 台账 #76。
+          # 例外只有 1 个已知坏件：released 的 RC 升级脚本需要发布负责人重新生成，
+          # 不在 CI 里猜它的原意。新增的例外必须同时写进台账，否则门禁重新失明。
+          KNOWN_BROKEN="releases/v2.1.0-RC/upgrade-script.sh"
           failed=0
+          n=0
           while IFS= read -r script; do
+            [ -n "$script" ] || continue
+            if [ "$script" = "$KNOWN_BROKEN" ]; then
+              echo "::warning::跳过已知损坏脚本（台账 #76）：$script"
+              continue
+            fi
+            n=$((n + 1))
             if ! bash -n "$script"; then
               echo "::error::$script 语法错误"
               failed=1
             fi
-          done < <(find scripts -name '*.sh' -type f | sort)
+          done < <(git ls-files '*.sh')
           if [ "$failed" -eq 0 ]; then
-            echo "scripts/ 全部 .sh 语法检查通过"
+            echo "全仓 $n 个 .sh 语法检查通过"
           else
             exit 1
           fi
