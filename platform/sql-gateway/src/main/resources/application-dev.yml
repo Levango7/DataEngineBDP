@@ -1,0 +1,14 @@
+# 仅本机演示/联调使用：给 sql-gateway 一个固定的开发用 JWT 签名密钥，
+# 让 `--spring.profiles.active=dev` 时无需先导出 JWT_SECRET 就能起服务。
+#
+# 为什么不做成 application.yml 的全局默认值：设计部署里
+# `design/deploy/charts/sql-gateway/values.yaml` 的 auth.jwtSecretName 默认为空，
+# 而 chart 的注释明确依赖「缺 JWT_SECRET -> JwtAuthFilter 不装配 -> 应用启动失败」
+# 这条 fail-closed 语义来暴露漏配。若把兜底值写进全局配置，漏配 Secret 的部署
+# 会带着一个公开已知的密钥正常启动（token 可被任意伪造），故障从"起不来"变成
+# "看起来正常但鉴权形同虚设"。故兜底值只放在 dev profile。
+app:
+  security:
+    jwt:
+      # 32 字节以上，仅本机使用；局域网/共享环境也不要复用，请导出 JWT_SECRET。
+      secret: ${JWT_SECRET:dev-secret-key-do-not-use-in-production-32bytes!!}
