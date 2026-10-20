@@ -110,7 +110,7 @@
           <h3>{{ a.name }}</h3>
           <p class="asset-desc">{{ a.description || t('assetMarket.market.card.noDesc') }}</p>
           <div class="asset-meta">
-            <span>{{ t('assetMarket.market.card.owner', { owner: a.owner }) }}</span>
+            <span>{{ t('assetMarket.market.card.owner', { tenantId: a.tenantId }) }}</span>
             <span>{{ t('assetMarket.market.card.quality', { score: a.qualityScore }) }}</span>
           </div>
           <div class="asset-footer">
@@ -262,7 +262,7 @@
         </div>
         <div class="kv">
           <span>{{ t('assetMarket.detail.fields.owner') }}</span>
-          <span>{{ detailAsset.owner }}</span>
+          <span>{{ detailAsset.tenantId }}</span>
         </div>
         <div class="kv">
           <span>{{ t('assetMarket.detail.fields.security') }}</span>
@@ -595,7 +595,11 @@ const filteredAssets = computed(() => {
   })
 })
 
-const myAssets = computed(() => (assets.value ?? []).filter((a) => a.owner === currentTenant.value))
+// 「我的资产」= 提供方租户与当前登录租户一致的资产；它同时喂 totalRevenue /
+// totalPlatformRevenue 两块统计，字段名读错时这两处会静默显示 ¥0.00。
+const myAssets = computed(() =>
+  (assets.value ?? []).filter((a) => a.tenantId === currentTenant.value)
+)
 
 const activeSubCount = computed(
   () => (mySubscriptions.value ?? []).filter((s) => s.status === 'active').length
@@ -673,7 +677,7 @@ function assetName(id: string): string {
 }
 
 function assetOwner(id: string): string {
-  return (assets.value ?? []).find((a) => a.id === id)?.owner || '—'
+  return (assets.value ?? []).find((a) => a.id === id)?.tenantId || '—'
 }
 
 function formatDate(d?: string): string {
