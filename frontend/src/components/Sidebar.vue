@@ -27,6 +27,7 @@
       <template v-for="(group, gi) in groups" :key="group.title">
         <div
           class="grp"
+          :data-group="group.key"
           role="button"
           :aria-expanded="isOpen(gi)"
           :aria-controls="`nav-group-${gi}`"
@@ -43,6 +44,7 @@
         <div
           :id="`nav-group-${gi}`"
           class="grp-items"
+          :data-group="group.key"
           :class="{ collapsed: !isOpen(gi) }"
           role="group"
           :aria-label="`${group.title}`"
@@ -66,13 +68,10 @@
         </div>
       </template>
     </nav>
-    <div class="side-foot" :aria-label="t('app.sidebarVersionInfo')">
-      <div class="side-foot-text">
-        {{ t('app.versionInfo', { version: appVersion }) }}
-        <br />
-        {{ t('app.envInfo', { env: appEnv }) }}
-      </div>
-    </div>
+    <!-- v3：删掉侧栏底部的版本信息块。它写的两行（"DataEngineBDP x.y.z · 用户无感知底座"、
+         "自研 SKE 发行版 · 环境: dev"）里，版本号与环境状态栏右侧已经各有一份
+         （StatusBar.vue:25/27），剩下的"用户无感知底座""自研 SKE 发行版"是内部定位话术，
+         对客户不携带信息，却常年占据侧栏最下方 40px。 -->
   </aside>
 </template>
 
@@ -80,20 +79,12 @@
 import { ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as EPIcons from '@element-plus/icons-vue'
-import { useAppStore } from '@/stores/app'
 import { useUiStore } from '@/stores/ui'
 import { useNavGroups } from '@/composables/useNavGroups'
 
 const { t } = useI18n()
-const store = useAppStore()
 const ui = useUiStore()
 const groups = useNavGroups()
-
-declare const __APP_VERSION__: string
-
-const appVersion = __APP_VERSION__ || 'dev'
-
-const appEnv = __APP_ENV__ || 'dev'
 
 /** EP 图标名 → 组件（@element-plus/icons-vue 全量导出表） */
 // 双重断言安全说明：EPIcons 来自 @element-plus/icons-vue 的全量导出，

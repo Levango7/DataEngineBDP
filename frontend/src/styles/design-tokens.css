@@ -320,7 +320,11 @@
    * ============================================================ */
 
   /* ---------- 12.1 表面（数值越大越"高"） ---------- */
-  --ds-canvas: #f3f5f9; /* 应用画布 / 内容区底色 */
+  /* v3：画布从 #f3f5f9 加深到 #e9edf4。
+   * 原值只比白卡深 3%，"卡片浮在画布上"这件事在视觉上根本不成立，
+   * 用户反馈"整页纯白晃眼"就是这个差值太小。实测（scripts/check-design-contrast.py 同一实现）：
+   * text-primary #0d253d 对 #e9edf4 = 13.26:1、text-tertiary #4a5361 = 6.62:1，都远在 AA 之上。 */
+  --ds-canvas: #e9edf4; /* 应用画布 / 内容区底色 */
   --ds-surface-1: #ffffff; /* 卡片、面板、表格主体 */
   --ds-surface-2: #f5f6f7; /* 表头、次级面板 */
   --ds-surface-3: #eaecee; /* 浮层内嵌块 */
@@ -365,6 +369,39 @@
   --ds-glass-chrome-sat: 180%;
   --ds-glass-chrome-brightness: 1.04;
   --ds-glass-chrome-fallback: #fbfcfe; /* 不支持 backdrop-filter 时的不透明等价色 */
+
+  /* ---------- 12.6.1 导航外壳材质（v3，用户反馈"侧栏深一点、底布灰一点"） ----------
+   * 为什么侧栏改成深色而不是"更深的白玻璃"：v2 把外壳做成 rgba(255,255,255,.72) 的
+   * 浅色玻璃，叠在只比白深 3% 的画布上，实测侧栏 / 顶栏 / 内容区三者的合成色几乎相同，
+   * "层次"完全靠 1px 边框硬撑。深色外壳一次性给出边界，并且让玻璃材质
+   * （blur + saturate）真的看得见——半透明白叠白是看不出玻璃的。
+   * 所有配对由 scripts/check-design-contrast.py 核算，最低 7.49:1（见 PAIRS）。 */
+  --ds-nav-bg: #16202e; /* 侧栏底（深色玻璃的合成基准） */
+  /* 侧栏实际填充色：94% 不透明的深色玻璃。留 6% 透射是为了让 blur/saturate 有东西可算，
+   * 再低就会让"白字压在半透明上"的最差背景变浅——按 #e9edf4 画布合成后实测
+   * ink 仍有 13.8:1（合成色 #1a2531）。所有颜色一律走令牌，
+   * 因为 scripts/check-hardcoded-colors.py 的棘轮只放行令牌文件。 */
+  --ds-nav-glass: rgba(22, 32, 46, 0.94);
+  --ds-nav-edge: rgba(148, 163, 184, 0.22); /* 侧栏右边界（非文本，仅需可辨） */
+  --ds-nav-ink: #eef2f8; /* 侧栏主文字 14.60:1 */
+  --ds-nav-muted: #a9b6c8; /* 分组标题 / 计数 7.98:1 */
+  --ds-nav-hover-bg: #223044; /* hover 面板（非文本，仅需可辨） */
+  --ds-nav-active-bg: #24405f; /* 当前项底 */
+  --ds-statusbar-bg: #dfe4ec; /* 底栏：比画布更深一档，与顶栏拉开色差 */
+  --ds-statusbar-ink: #3c4452; /* 底栏文字 7.68:1 */
+
+  /* 分组主题色：只用在图标、active 左条与计数上，不用于正文——
+   * 8 组各一色是为了"扫一眼知道自己在哪一区"，一旦拿去当文字色就会变成圣诞树，
+   * 且要逐组重算对比度。图标/指示条属非文本内容，门槛是 3:1（WCAG 1.4.11），
+   * 实测最低 7.49:1。 */
+  --ds-group-infra: #7cb1ff;
+  --ds-group-engine: #5fd3c0;
+  --ds-group-governance: #c0a6ff;
+  --ds-group-devtools: #ffc861;
+  --ds-group-tenant: #8fe3a8;
+  --ds-group-intelligent: #ff9fb2;
+  --ds-group-operations: #79dff5;
+  --ds-group-platform: #c8d3e3;
 
   /* glass-overlay：模态浮层（弹窗 / 抽屉） */
   --ds-glass-overlay-bg: rgba(255, 255, 255, 0.84);
@@ -481,6 +518,18 @@
   --ds-surface-sunken: #0b0d10;
   --ds-surface-inset: #1a1e24;
   --ds-surface-code: #0b0d10; /* 代码 / 日志底（永不玻璃化） */
+
+  /* 导航外壳（v3）：暗色下侧栏比画布再深一档，靠明度而不是边框拉开层次。
+   * 分组主题色不覆盖——暗色底更深，浅色值只会对比度更高（门禁按暗色底复算）。 */
+  /* 暗色下侧栏要比画布 #101317 更深才分得开：实测取 #0b0e13 时边界几乎看不出来
+     （只差 3 个明度级），压到 #06090d 后与画布形成可读的层级差。 */
+  --ds-nav-bg: #06090d;
+  --ds-nav-ink: #eef2f8;
+  --ds-nav-muted: #a9b6c8;
+  --ds-nav-hover-bg: #1a2432;
+  --ds-nav-active-bg: #1f3a58;
+  --ds-statusbar-bg: #1a1e25;
+  --ds-statusbar-ink: #bac3d0;
 
   --ds-text-disabled: #5b6472; /* 禁用（WCAG 豁免） */
 
@@ -609,6 +658,18 @@
     --ds-surface-sunken: #0b0d10;
     --ds-surface-inset: #1a1e24;
     --ds-surface-code: #0b0d10;
+
+    /* 导航外壳（v3）——与 :root[data-theme='dark'] 逐条一致，
+     * 由 scripts/check-dark-token-parity.py 在 CI 断言 */
+    /* 暗色下侧栏要比画布 #101317 更深才分得开：实测取 #0b0e13 时边界几乎看不出来
+     （只差 3 个明度级），压到 #06090d 后与画布形成可读的层级差。 */
+  --ds-nav-bg: #06090d;
+    --ds-nav-ink: #eef2f8;
+    --ds-nav-muted: #a9b6c8;
+    --ds-nav-hover-bg: #1a2432;
+    --ds-nav-active-bg: #1f3a58;
+    --ds-statusbar-bg: #1a1e25;
+    --ds-statusbar-ink: #bac3d0;
 
     --ds-text-disabled: #5b6472;
 

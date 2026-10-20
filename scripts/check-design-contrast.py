@@ -37,9 +37,26 @@ PAIRS = [
     ("danger", "danger-soft", 4.5, "危险 Badge"),
     ("border-control", "bg-surface", 3.0, "可交互控件边界（1.4.11）"),
     ("border-strong", "bg-surface", 3.0, "强调边界（1.4.11）"),
+    # v3 外壳：深色导航 + 专属底栏。侧栏实际填充是 --ds-nav-glass（94% 不透明），
+    # 压在画布上比这里的实底基准 --ds-nav-bg 略浅，实测文字最低仍有 13.8:1、
+    # 图标/指示条最低 7.1:1，都远高于此处门槛。
+    ("nav-ink", "nav-bg", 4.5, "侧栏主文字 / 分组标题"),
+    ("nav-muted", "nav-bg", 4.5, "侧栏次文字（菜单项常态）"),
+    ("statusbar-ink", "statusbar-bg", 4.5, "底栏文字"),
+    ("group-infra", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-engine", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-governance", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-devtools", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-tenant", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-intelligent", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-operations", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
+    ("group-platform", "nav-bg", 3.0, "分组图标与 active 指示条（1.4.11）"),
 ]
 
-MIN_PAIRS_PER_THEME = 15  # 少于这个数说明角色令牌被改名/删除，判红而不是空跑
+# 少于这个数说明角色令牌被改名/删除，判红而不是空跑。
+# v3 加了 11 条外壳配对（侧栏 / 底栏 / 8 组色），门槛随之抬到 24——
+# 抬数是为了让"删掉一批配对"不能悄悄通过。
+MIN_PAIRS_PER_THEME = 24
 
 HEX_RE = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 
@@ -137,6 +154,21 @@ FIXTURE_LIGHT = """
   --ds-danger-soft: #fbe3e0;
   --ds-border-control: #475e75;
   --ds-border-strong: #475e75;
+  /* v3 外壳配对也要进夹具：夹具 A 必须能覆盖 PAIRS 的全部角色，
+   * 否则抬高的 MIN_PAIRS_PER_THEME 会让自检反过来红。 */
+  --ds-nav-bg: #16202e;
+  --ds-nav-ink: #eef2f8;
+  --ds-nav-muted: #a9b6c8;
+  --ds-statusbar-bg: #dfe4ec;
+  --ds-statusbar-ink: #3c4452;
+  --ds-group-infra: #7cb1ff;
+  --ds-group-engine: #5fd3c0;
+  --ds-group-governance: #c0a6ff;
+  --ds-group-devtools: #ffc861;
+  --ds-group-tenant: #8fe3a8;
+  --ds-group-intelligent: #ff9fb2;
+  --ds-group-operations: #79dff5;
+  --ds-group-platform: #c8d3e3;
 }
 """
 
