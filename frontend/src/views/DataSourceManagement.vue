@@ -1,5 +1,10 @@
 <template>
-  <div class="ds-page" role="main" :aria-label="t('dataSourceManagement.title')">
+  <div
+    class="ds-page"
+    role="main"
+    data-design-contract="v2"
+    :aria-label="t('dataSourceManagement.title')"
+  >
     <PageHeader
       :title="t('dataSourceManagement.title')"
       :subtitle="t('dataSourceManagement.subtitle')"

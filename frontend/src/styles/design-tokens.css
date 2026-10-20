@@ -418,7 +418,6 @@
   /* 数据排版（Stripe 式）：金额 / KPI / SQL 结果列必须用这一族，避免同宽数字跳位 */
   --ds-font-family-numeric: 'JetBrains Mono', ui-monospace, 'PingFang SC', monospace;
   --ds-font-variant-numeric: tabular-nums;
-
 }
 
 /* ============================================================

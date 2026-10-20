@@ -53,5 +53,7 @@
 /* 焦点可见性：文字档强调色与实底档分两值，焦点环用"外柔内实"双环（§7） */
 [data-design-contract='v2'] .el-button--primary:focus-visible,
 [data-design-contract='v2'] .el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 2px var(--ds-accent-soft), 0 0 0 1px var(--ds-accent);
+  box-shadow:
+    0 0 0 2px var(--ds-accent-soft),
+    0 0 0 1px var(--ds-accent);
 }
