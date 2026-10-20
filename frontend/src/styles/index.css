@@ -6,3 +6,5 @@
 
 @import './theme.css';
 @import './main.css';
+/* 契约 v2 必须在 main.css 之后：它覆盖的是 main.css 的既有表达（同特异性靠源码顺序胜出） */
+@import './contract-v2.css';

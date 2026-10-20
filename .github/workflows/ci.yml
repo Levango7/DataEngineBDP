@@ -260,6 +260,19 @@ jobs:
       - name: TypeScript 类型检查（阻断）
         run: npm run type-check
 
+      - name: 设计契约门禁（对比度 AA + 契约同步 + 硬编码色棘轮）
+        # 先跑夹具再跑真值：三条都必须"发现集非空"，否则角色令牌改名 / YAML 区块写坏
+        # / 扫描路径写错会让门禁悄悄变成常绿摆设（本轮实测过：外部 wcag 工具直读
+        # --ds-* 时解析到 0 组配对仍报 ALL PASS）。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" \
+            --frontend-dir . --baseline "$GITHUB_WORKSPACE/docs/design-hardcoded-color-baseline.json"
+
   # ============================================================
   # Java 代码检查：Checkstyle + SpotBugs + PMD
   # 通过 Maven 插件执行，遍历 platform/ 下所有含 pom.xml 的子目录

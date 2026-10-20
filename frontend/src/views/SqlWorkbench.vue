@@ -1,5 +1,5 @@
 <template>
-  <div class="sql-workbench">
+  <div class="sql-workbench" data-design-contract="v2">
     <h1>{{ t('sqlWorkbench.title') }}</h1>
     <div class="sub">
       {{ t('sqlWorkbench.subtitle') }}

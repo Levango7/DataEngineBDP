@@ -1,5 +1,5 @@
 <template>
-  <div role="main" :aria-label="t('dashboard.title')">
+  <div role="main" data-design-contract="v2" :aria-label="t('dashboard.title')">
     <h1>{{ t('dashboard.title') }}</h1>
     <div
       class="sub"
