@@ -67,7 +67,7 @@ export const i18n = createI18n({
  * Vite 会为每个动态 import() 生成独立 chunk，实现按需加载。
  * 用单一名单 + 动态 import() 替代显式映射表，避免新增模块时遗漏注册。</p>
  */
-const MODULE_NAMES: readonly string[] = [
+export const MODULE_NAMES: readonly string[] = [
   'account',
   'admin',
   'aiAssistant',
@@ -75,6 +75,7 @@ const MODULE_NAMES: readonly string[] = [
   'apiMarket',
   'approvals',
   'assetMarket',
+  'exchange',
   'businessPortal',
   'clusterOverview',
   'dashboard',
@@ -166,7 +167,7 @@ export async function loadModuleI18n(module: string): Promise<void> {
  *
  * <p>部分路由共享同一模块词条（如 /eng-spark、/eng-doris、/eng-kafka 共用 engines）。</p>
  */
-const ROUTE_MODULE_MAP: Record<string, string[]> = {
+export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/dashboard': ['dashboard'],
   '/workspaces': ['workspaces'],
   '/projects': ['projects'],
@@ -205,6 +206,8 @@ const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-portal': ['businessPortal'],
   '/ops-api': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
+  '/exchange-settlements': ['exchange'],
+  '/exchange-audit': ['exchange'],
   '/ai-assistant': ['aiAssistant'],
   // 引擎/基础设施/开发层页面共用 engines 命名空间（kpi/table/sql 等公共词条），
   // infra 各页还互相复用 infraK8s/infraSched 命名空间；凡组件用到而映射未含者，

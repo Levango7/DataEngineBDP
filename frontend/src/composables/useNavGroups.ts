@@ -121,7 +121,13 @@ export function useNavGroups() {
         { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'Collection' },
         { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'View' },
         { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'Goods' },
-        { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' }
+        { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' },
+        {
+          path: '/exchange-settlements',
+          label: t('nav.items.exchange-settlements'),
+          icon: 'Money'
+        },
+        { path: '/exchange-audit', label: t('nav.items.exchange-audit'), icon: 'Tickets' }
       ]
     }
   ])
