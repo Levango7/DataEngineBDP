@@ -542,7 +542,10 @@ jobs:
             git diff docs/api-contract.md
             exit 1
           fi
-          echo "OK: API 契约文档与代码一致（前端 260 调用，后端 64 前缀，未匹配项见文档汇总）"
+          # 数字由被校验的文档自己给出，不在这里写死：上一版把"前端 260 调用，后端 64 前缀"钉在
+          # echo 里，而实跑早已是 270 与 Java 69/Python 21/Go 13 ⇒ 门禁全绿的同时说一句过时的事实。
+          SUMMARY=$(grep -E "^- (匹配|未匹配)：" docs/api-contract.md | sed 's/^- //' | awk 'BEGIN{ORS=""} {printf "%s%s", (NR>1?", ":""), $0}')
+          echo "OK: API 契约文档与代码一致（${SUMMARY}）"
 
       - name: OpenAPI Schema ↔ 前端 TS 类型字段漂移校验（A1，字段级契约）
         run: |

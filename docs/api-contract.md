@@ -228,6 +228,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
 |---|---|---|---|
+| `/assets/${encodeURIComponent(assetId)}/settle` （1 变量） | `/assets` | asset-exchange | ✅ |
 | `/assets/${encodeURIComponent(assetId)}/settlements` （1 变量） | `/assets` | asset-exchange | ✅ |
 | `/assets/${encodeURIComponent(assetId)}/allocate` （1 变量） | `/assets` | asset-exchange | ✅ |
 | `/assets/${encodeURIComponent(assetId)}/allocations` （1 变量） | `/assets` | asset-exchange | ✅ |
@@ -492,7 +493,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：269
+- 匹配：270
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。
