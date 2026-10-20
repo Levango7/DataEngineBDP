@@ -6,11 +6,17 @@
     "fieldLimit": "Limit",
     "actionQuery": "Query",
     "actionAllocate": "Run allocation",
+    "actionSettle": "Run settlement",
     "actionVerifyIntegrity": "Verify hash chain",
+    "actionAll": "All",
+    "actionDetail": "Detail",
     "loadFailed": "Load failed: ",
     "verifyFailed": "Integrity check failed: ",
+    "detailFailed": "Failed to load detail: ",
     "allocateOk": "Allocation triggered",
     "allocateFailed": "Allocation failed: ",
+    "settleOk": "Settlement triggered",
+    "settleFailed": "Settlement failed: ",
     "needAssetId": "Enter an asset ID first",
     "colSettlementId": "Settlement ID",
     "colAllocationId": "Allocation ID",
@@ -28,6 +34,9 @@
     "colActor": "Actor",
     "colAsset": "Related asset",
     "colCreatedAt": "Occurred at",
+    "colResult": "Result",
+    "colHash": "Hash",
+    "colDetail": "Actions",
     "settlements": {
       "title": "Settlement & Allocation",
       "subtitle": "Per-asset settlement summary and allocation results (asset-exchange)",
@@ -41,7 +50,11 @@
       "listTitle": "Audit logs",
       "emptyAudit": "No audit logs match the filters",
       "integritySummary": "{n} logs in total, hash chain intact",
-      "integrityBrokenAt": "First broken log"
+      "integrityBrokenAt": "First broken log",
+      "detailTitle": "Audit log detail",
+      "prevHash": "Previous hash",
+      "selfHash": "This hash",
+      "detailPayload": "Recorded payload"
     },
     "actionRetry": "Retry"
   }

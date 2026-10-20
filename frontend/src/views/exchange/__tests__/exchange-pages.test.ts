@@ -25,22 +25,39 @@ const i18n = createI18n({
   messages: { 'zh-CN': { ...(rootZh as object), ...(zh as object) } as never }
 })
 
-const { listAuditLogsMock, verifyIntegrityMock, listSettlementsMock, listAllocationsMock } =
-  vi.hoisted(() => ({
-    listAuditLogsMock: vi.fn(),
-    verifyIntegrityMock: vi.fn(),
-    listSettlementsMock: vi.fn(),
-    listAllocationsMock: vi.fn()
-  }))
-
-vi.mock('@/api/exchange', () => ({
-  listAuditLogs: listAuditLogsMock,
-  verifyAuditIntegrity: verifyIntegrityMock,
-  getAuditLog: vi.fn(),
-  listAssetSettlements: listSettlementsMock,
-  listAssetAllocations: listAllocationsMock,
-  allocateAsset: vi.fn()
+const {
+  listAuditLogsMock,
+  verifyIntegrityMock,
+  listSettlementsMock,
+  listAllocationsMock,
+  allocateMock,
+  settleMock,
+  getAuditLogMock
+} = vi.hoisted(() => ({
+  listAuditLogsMock: vi.fn(),
+  verifyIntegrityMock: vi.fn(),
+  listSettlementsMock: vi.fn(),
+  listAllocationsMock: vi.fn(),
+  allocateMock: vi.fn(),
+  settleMock: vi.fn(),
+  getAuditLogMock: vi.fn()
 }))
+
+vi.mock('@/api/exchange', async (importOriginal) => {
+  // AUDIT_ACTIONS 取真实导出的常量：它是后端 AuditAction 枚举的镜像，
+  // 若在测试里另抄一份，枚举增删就只会红在浏览器里而不是红在用例里。
+  const actual = await importOriginal<typeof import('@/api/exchange')>()
+  return {
+    ...actual,
+    listAuditLogs: listAuditLogsMock,
+    verifyAuditIntegrity: verifyIntegrityMock,
+    getAuditLog: getAuditLogMock,
+    listAssetSettlements: listSettlementsMock,
+    listAssetAllocations: listAllocationsMock,
+    allocateAsset: allocateMock,
+    settleAsset: settleMock
+  }
+})
 
 /** EP 组件在测试里是 slotStub，class 即组件名 */
 function buttonByText(w: ReturnType<typeof mount>, text: string) {
@@ -171,5 +188,56 @@ describe('exchange/Settlements.vue', () => {
     const alert = w.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
     expect(alert.text()).toContain('net down')
+  })
+
+  it('触发结算 ⇒ 打 POST /assets/{id}/settle 并回填列表（子看板有这一步，收编时不能漏）', async () => {
+    listSettlementsMock.mockResolvedValue([])
+    listAllocationsMock.mockResolvedValue([])
+    settleMock.mockResolvedValue({ id: 'st-1' })
+    const w = mount(Settlements, { global: { plugins: [i18n] } })
+    w.findComponent({ name: 'el-input' }).vm.$emit('update:modelValue', 'ast-7')
+    await flushPromises()
+    // 初始未查询时列表为空，结算按钮只受"有没有资产 ID"约束（分账按钮才要求已有结算单）
+    const settleBtn = buttonByText(w, '触发结算')
+    expect(settleBtn, '找不到「触发结算」按钮').toBeTruthy()
+    expect(settleBtn!.attributes('disabled')).toBeUndefined()
+    await settleBtn!.trigger('click')
+    await flushPromises()
+    expect(settleMock).toHaveBeenCalledWith('ast-7')
+    // 结算完必须重拉，否则用户看不到刚生成的结算单
+    expect(listSettlementsMock).toHaveBeenCalledWith('ast-7')
+  })
+
+  it('结算失败（非 admin 得到 403 等）⇒ 原样进错误态，不静默', async () => {
+    listSettlementsMock.mockResolvedValue([])
+    listAllocationsMock.mockResolvedValue([])
+    settleMock.mockRejectedValue(new Error('403 Forbidden'))
+    const w = mount(Settlements, { global: { plugins: [i18n] } })
+    w.findComponent({ name: 'el-input' }).vm.$emit('update:modelValue', 'ast-6')
+    await flushPromises()
+    await buttonByText(w, '触发结算')!.trigger('click')
+    await flushPromises()
+    const alert = w.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toContain('403 Forbidden')
+  })
+})
+
+describe('exchange 的枚举镜像（前端选项必须是后端闭包的子集）', () => {
+  it('AUDIT_ACTIONS 与 models/base.py::AuditAction 的 11 个取值逐一对齐', async () => {
+    const { AUDIT_ACTIONS } = await import('@/api/exchange')
+    expect([...AUDIT_ACTIONS]).toEqual([
+      'register',
+      'audit',
+      'publish',
+      'subscribe',
+      'download',
+      'invoke',
+      'deliver',
+      'settle',
+      'allocate',
+      'offline',
+      'relist'
+    ])
   })
 })

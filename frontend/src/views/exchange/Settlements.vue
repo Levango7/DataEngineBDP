@@ -24,6 +24,11 @@
       <el-button type="primary" :loading="loading" :disabled="!assetId.trim()" @click="load">
         {{ t('exchange.actionQuery') }}
       </el-button>
+      <!-- 结算是分账的前置：没有结算单就没有可分配的对象。后端该端点仅 admin 可执行
+           （assets.py 的 requireAdmin），非 admin 点下去会拿 403，此处原样呈现错误。 -->
+      <el-button type="success" :loading="settling" :disabled="!assetId.trim()" @click="settle">
+        {{ t('exchange.actionSettle') }}
+      </el-button>
       <el-button
         :loading="allocating"
         :disabled="!assetId.trim() || !settlements.length"
@@ -106,6 +111,7 @@ import {
   allocateAsset,
   listAssetAllocations,
   listAssetSettlements,
+  settleAsset,
   type Allocation,
   type Settlement
 } from '@/api/exchange'
@@ -123,6 +129,7 @@ const assetId = ref('')
 const settlements = ref<Settlement[]>([])
 const allocations = ref<Allocation[]>([])
 const loading = ref(false)
+const settling = ref(false)
 const allocating = ref(false)
 const error = ref('')
 
@@ -150,6 +157,24 @@ async function load(): Promise<void> {
     allocations.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function settle(): Promise<void> {
+  const id = assetId.value.trim()
+  if (!id) return
+  settling.value = true
+  error.value = ''
+  try {
+    // 不传 period / 分成比例：账期取服务端当前年月，比例取配置默认值
+    // （SettleRequest 两字段皆 Optional，缺省即走 Settings.providerShare）。
+    await settleAsset(id)
+    ElMessage.success(t('exchange.settleOk'))
+    await load()
+  } catch (e) {
+    error.value = `${t('exchange.settleFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    settling.value = false
   }
 }
 

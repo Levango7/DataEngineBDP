@@ -6,11 +6,17 @@
     "fieldLimit": "条数上限",
     "actionQuery": "查询",
     "actionAllocate": "触发分账",
+    "actionSettle": "触发结算",
     "actionVerifyIntegrity": "校验哈希链完整性",
+    "actionAll": "全部",
+    "actionDetail": "详情",
     "loadFailed": "加载失败：",
     "verifyFailed": "完整性校验失败：",
+    "detailFailed": "读取详情失败：",
     "allocateOk": "分账已触发",
     "allocateFailed": "分账失败：",
+    "settleOk": "结算已触发",
+    "settleFailed": "结算失败：",
     "needAssetId": "请先输入资产 ID",
     "colSettlementId": "结算 ID",
     "colAllocationId": "分账 ID",
@@ -28,6 +34,9 @@
     "colActor": "操作者",
     "colAsset": "关联资产",
     "colCreatedAt": "发生时间",
+    "colResult": "结果",
+    "colHash": "哈希",
+    "colDetail": "操作",
     "settlements": {
       "title": "结算与分账",
       "subtitle": "按资产查看结算汇总与分账结果（数据来自 asset-exchange）",
@@ -41,7 +50,11 @@
       "listTitle": "审计日志",
       "emptyAudit": "暂无符合条件的审计日志",
       "integritySummary": "共 {n} 条日志，哈希链完整",
-      "integrityBrokenAt": "首个断裂点"
+      "integrityBrokenAt": "首个断裂点",
+      "detailTitle": "审计日志详情",
+      "prevHash": "前一条哈希",
+      "selfHash": "本条哈希",
+      "detailPayload": "留痕内容"
     },
     "actionRetry": "重试"
   }
