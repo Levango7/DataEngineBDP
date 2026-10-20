@@ -32,9 +32,12 @@ permissions:
   pull-requests: write
   checks: write
 
-# 同一分支的并发工作流只保留最新一次，避免重复执行浪费资源
+# 同一分支、同一事件类型只保留最新一次，避免重复执行浪费资源。
+# 必须带事件类型：2026-10-20 main 7112292e 的 push run 39380781708 就是被
+# 延迟数小时才落地的 02:00 schedule run 39382266996（同 SHA）取消的，push 验证
+# 因此消失，而 Build 的 CI Gate 会把“等不到 success”判成 CI 失败（台账 #77/#75）。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
