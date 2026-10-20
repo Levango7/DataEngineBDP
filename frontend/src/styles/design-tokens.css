@@ -9,17 +9,17 @@
   /* ============================================================
    * 1. 颜色系统 - 品牌色 (primary, blue 系)
    * ============================================================ */
-  --ds-color-primary-50: #eff6ff;
-  --ds-color-primary-100: #dbeafe;
-  --ds-color-primary-200: #bfdbfe;
-  --ds-color-primary-300: #93c5fd;
-  --ds-color-primary-400: #60a5fa;
-  --ds-color-primary-500: #3b82f6;
-  --ds-color-primary-600: #2563eb;
-  --ds-color-primary-700: #1d4ed8;
-  --ds-color-primary-800: #1e40af;
-  --ds-color-primary-900: #1e3a8a;
-  --ds-color-primary-950: #172554;
+  --ds-color-primary-50: #ebf3fd;
+  --ds-color-primary-100: #d2e5fa;
+  --ds-color-primary-200: #a9cbf5;
+  --ds-color-primary-300: #7ab0ff;
+  --ds-color-primary-400: #4b8fe0;
+  --ds-color-primary-500: #1a6fd6;
+  --ds-color-primary-600: #0057d2;
+  --ds-color-primary-700: #0040b0;
+  --ds-color-primary-800: #00348f;
+  --ds-color-primary-900: #002a73;
+  --ds-color-primary-950: #00183f;
 
   /* ============================================================
    * 2. 颜色系统 - 语义色 (success / warning / error / info)
@@ -74,9 +74,9 @@
   --ds-color-info-950: #1e1b4b; /* indigo-950 深紫装饰色 (2026-09-14 修复 P3-2)，供 Login/Register 暗色背景渐变引用 */
 
   /* accent - violet (紫色强调色，用于渐变末端) */
-  --ds-color-accent-400: #a78bfa;
-  --ds-color-accent-500: #8b5cf6;
-  --ds-color-accent-600: #7c3aed;
+  --ds-color-accent-400: #4b8fe0;
+  --ds-color-accent-500: #1a6fd6;
+  --ds-color-accent-600: #0057d2;
 
   /* orange - 橙色 (用于 danger 渐变末端) */
   --ds-color-orange-400: #fb923c;
@@ -105,23 +105,23 @@
  * 因此不必逐条规则改。旧值写在行尾注释里，便于回退比对。
  * v2 原始命名（--ds-canvas / --ds-surface-* 等）见本节末尾 "12. v2 设计语言"。
  * ============================================================ */
-  --ds-bg-base: #f3f5f9; /* v2 canvas #F3F5F9（原 #f8fafc） */
+  --ds-bg-base: #f5f6f7; /* v2 canvas #F3F5F9（原 #f8fafc） */
   --ds-bg-surface: #ffffff; /* v2 surface-1 #FFFFFF（不变） */
-  --ds-bg-subtle: #f5f7fb; /* v2 surface-sunken #F5F7FB（原 #f1f5f9） */
-  --ds-bg-muted: #edf0f6; /* v2 surface-inset #EDF0F6（原 #e2e8f0） */
+  --ds-bg-subtle: #fafbfc; /* v2 surface-sunken #F5F7FB（原 #f1f5f9） */
+  --ds-bg-muted: #eaecee; /* v2 surface-inset #EDF0F6（原 #e2e8f0） */
   --ds-bg-code: #141a21; /* v2 surface-code #141A21（原 #1a2027） */
 
-  --ds-text-primary: #16181d; /* v2 text-primary #16181D（原 #0f172a） */
-  --ds-text-secondary: #454d5a; /* v2 text-secondary #454D5A（原 #475569） */
-  --ds-text-tertiary: #5f6875; /* v2 text-tertiary #5F6875（原 #64748b） */
+  --ds-text-primary: #0d253d; /* v2 text-primary #16181D（原 #0f172a） */
+  --ds-text-secondary: #273951; /* v2 text-secondary #454D5A（原 #475569） */
+  --ds-text-tertiary: #55647a; /* v2 text-tertiary #5F6875（原 #64748b） */
   --ds-text-inverse: #ffffff; /* 反白文字 */
   --ds-text-code: #c9d4e0; /* v2 text-code #C9D4E0（原 #cbd5e1） */
 
-  --ds-border-default: #d9dee6; /* v2 border-default #D9DEE6（原 #cbd5e1，卡片/容器描边，WCAG 1.4.11 豁免） */
+  --ds-border-default: #dbe1e6; /* v2 border-default #D9DEE6（原 #cbd5e1，卡片/容器描边，WCAG 1.4.11 豁免） */
   --ds-border-subtle: #e9ecf1; /* v2 border-subtle #E9ECF1（原 #e2e8f0，分隔线） */
-  --ds-border-strong: #b6bec9; /* v2 border-strong #B6BEC9（原 #94a3b8，强调描边） */
-  --ds-border-control: #7c8695; /* v2 border-control #7C8695 —— **控件边界专用**，实测 3.68:1 满足 WCAG 1.4.11 ≥3:1（新增 token） */
-  --ds-border-focus: #2563eb; /* v2 border-focus #2563EB（原 #3b82f6，实测 5.17:1） */
+  --ds-border-strong: #475e75; /* v2 border-strong #B6BEC9（原 #94a3b8，强调描边） */
+  --ds-border-control: #475e75; /* v2 border-control #7C8695 —— **控件边界专用**，实测 3.68:1 满足 WCAG 1.4.11 ≥3:1（新增 token） */
+  --ds-border-focus: #0057d2; /* v2 border-focus #2563EB（原 #3b82f6，实测 5.17:1） */
 
   /* border width */
   --ds-border-width: 1px;
@@ -241,13 +241,13 @@
   /* ============================================================
    * 8. 阴影系统
    * ============================================================ */
-  --ds-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ds-shadow-sm: 0 1px 2px rgba(13, 37, 61, 0.06);
   --ds-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
   --ds-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
   --ds-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
 
   /* 发光阴影 (蓝色 glow，基于 primary-500 #3b82f6，用于 focus/hover 装饰) */
-  --ds-shadow-glow: 0 0 10px rgba(59, 130, 246, 0.12);
+  --ds-shadow-glow: 0 0 10px rgba(0, 87, 210, 0.14);
   --ds-shadow-glow-strong: 0 0 14px rgba(59, 130, 246, 0.18);
 
   /* ============================================================
@@ -322,8 +322,8 @@
   /* ---------- 12.1 表面（数值越大越"高"） ---------- */
   --ds-canvas: #f3f5f9; /* 应用画布 / 内容区底色 */
   --ds-surface-1: #ffffff; /* 卡片、面板、表格主体 */
-  --ds-surface-2: #fafbfd; /* 表头、次级面板 */
-  --ds-surface-3: #f1f4f9; /* 浮层内嵌块 */
+  --ds-surface-2: #f5f6f7; /* 表头、次级面板 */
+  --ds-surface-3: #eaecee; /* 浮层内嵌块 */
   --ds-surface-sunken: #f5f7fb; /* 表格行 hover、内嵌区 */
   --ds-surface-inset: #edf0f6; /* 侧栏 hover、kbd */
   --ds-surface-code: #141a21; /* 代码 / 日志底（亮暗一致，永不玻璃化） */
@@ -338,10 +338,10 @@
   --ds-glass-text-tertiary: #4a5361;
 
   /* ---------- 12.4 强调色 ---------- */
-  --ds-accent: #2563eb;
-  --ds-accent-hover: #1d4ed8;
-  --ds-accent-active: #1e40af;
-  --ds-accent-soft: #eef4ff;
+  --ds-accent: #0057d2;
+  --ds-accent-hover: #0040b0;
+  --ds-accent-active: #00348f;
+  --ds-accent-soft: #ebf3fd;
   --ds-accent-on: #ffffff; /* 主按钮上的文字 */
 
   /* ---------- 12.5 语义状态色 + 徽章底 ---------- */
@@ -415,6 +415,10 @@
   --ds-space-5: 20px;
   --ds-space-6: 24px;
   --ds-space-8: 32px;
+  /* 数据排版（Stripe 式）：金额 / KPI / SQL 结果列必须用这一族，避免同宽数字跳位 */
+  --ds-font-family-numeric: 'JetBrains Mono', ui-monospace, 'PingFang SC', monospace;
+  --ds-font-variant-numeric: tabular-nums;
+
 }
 
 /* ============================================================
@@ -448,7 +452,7 @@
 
   --ds-border-default: #2f353e; /* v2 border-default #2F353E（原 #334155） */
   --ds-border-subtle: #23272e; /* v2 border-subtle #23272E（原 #293549） */
-  --ds-border-strong: #434b56; /* v2 border-strong #434B56（原 #475569） */
+  --ds-border-strong: #7d8797; /* v2 border-strong #434B56（原 #475569） */
   --ds-border-control: #616b7a; /* v2 border-control #616B7A —— 控件边界，实测 3.23:1（新增） */
   --ds-border-focus: #7fb0ff; /* v2 border-focus #7FB0FF（原 #60a5fa，实测 7.93:1） */
 
@@ -578,7 +582,7 @@
 
     --ds-border-default: #2f353e; /* v2 border-default #2F353E（原 #334155） */
     --ds-border-subtle: #23272e; /* v2 border-subtle #23272E（原 #293549） */
-    --ds-border-strong: #434b56; /* v2 border-strong #434B56（原 #475569） */
+    --ds-border-strong: #7d8797; /* v2 border-strong #434B56（原 #475569） */
     --ds-border-control: #616b7a; /* v2 border-control #616B7A（新增） */
     --ds-border-focus: #7fb0ff; /* v2 border-focus #7FB0FF（原 #60a5fa） */
 

@@ -1,0 +1,57 @@
+/* ============================================================
+ * 设计契约 v2 的作用域实现（见 frontend/DESIGN.md）
+ *
+ * 基调裁定：SAP 式企业应用骨架（扁平色带表达层级、发丝线分隔、
+ * 单一品牌蓝）叠加 Stripe 式数据排版（等宽数字、藏青墨正文）。
+ *
+ * 铺开方式是**逐页打标**：页面根节点带 data-design-contract="v2" 才生效。
+ * 本文件因此必须在 index.css 里排在 main.css 之后——它要覆盖的是
+ * main.css 中既有的"卡片浮起"式表达，同特异性下靠源码顺序胜出。
+ * ============================================================ */
+
+/* 卡片：层级交给色带与描边，不再靠阴影堆叠（§5 flat 档） */
+[data-design-contract='v2'] .el-card,
+[data-design-contract='v2'] .page-card,
+[data-design-contract='v2'] .stat-card {
+  box-shadow: none;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+}
+
+/* 表格：走 Element Plus 自己的变量钩子，不与组件库抢特异性
+ * （实测直接写 `th.el-table__cell` 会被组件库规则盖掉：font-weight 仍是 400、
+ *  行底线仍是组件默认的 --el-table-border-color）。 */
+[data-design-contract='v2'] .el-table {
+  --el-table-header-bg-color: var(--ds-surface-2);
+  --el-table-header-text-color: var(--ds-text-secondary);
+  --el-table-border-color: var(--ds-border-subtle);
+  /* EP 的单元格边框实际取自 --el-border-color-lighter；只改上面那条会留下
+   * rgb(219,225,230) 的旧灰线（实测），两者都要压住才是契约里的发丝线 */
+  --el-border-color-lighter: var(--ds-border-subtle);
+  --el-table-row-hover-bg-color: var(--ds-surface-2);
+  --el-table-bg-color: var(--ds-bg-surface);
+  --el-table-text-color: var(--ds-text-primary);
+}
+
+/* 表头字重：EP 把样式挂在内层 .cell 上，只在这一层加粗才不会与表头单元格规则打架 */
+[data-design-contract='v2'] .el-table th.el-table__cell .cell {
+  font-weight: var(--ds-font-weight-semibold);
+}
+
+/* 数字排版：金额 / 行数 / 延迟这类列必须纵向对齐，字宽不等会跳位（§3） */
+[data-design-contract='v2'] .el-table .cell,
+[data-design-contract='v2'] .stat-card__value,
+[data-design-contract='v2'] .stat-card__trend-value {
+  font-variant-numeric: var(--ds-font-variant-numeric);
+}
+
+[data-design-contract='v2'] .stat-card__value {
+  font-family: var(--ds-font-family-numeric);
+  letter-spacing: 0;
+}
+
+/* 焦点可见性：文字档强调色与实底档分两值，焦点环用"外柔内实"双环（§7） */
+[data-design-contract='v2'] .el-button--primary:focus-visible,
+[data-design-contract='v2'] .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--ds-accent-soft), 0 0 0 1px var(--ds-accent);
+}
