@@ -94,12 +94,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 选 base 镜像源（前端腿，台账 #72）
+        id: pick_base_frontend
+        if: contains(steps.resolve-components.outputs.components, 'frontend')
+        run: |
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
+          echo "base_registry=$BASE_REGISTRY" >> "$GITHUB_OUTPUT"
+
       - name: 构建并推送前端镜像
         if: contains(steps.resolve-components.outputs.components, 'frontend')
         uses: docker/build-push-action@v7
         with:
           context: frontend/
           file: frontend/Dockerfile
+          # 不传这一行，前端腿就吃 frontend/Dockerfile 的 ARG 默认值（加速器），
+          # 等于把这条腿单点钉死在选源器之外——实测 2026-10-21 CI：DNS no such host。
+          build-args: |
+            BASE_REGISTRY=${{ steps.pick_base_frontend.outputs.base_registry }}
           push: ${{ github.event.inputs.push_image != 'false' }}
           tags: |
             ghcr.io/${{ steps.setup-ns.outputs.registry-ns }}/sq-frontend:latest
@@ -137,10 +151,10 @@ jobs:
             image_list="${image_list}${img},"
             echo "frontend 镜像: $img" | tee -a reports/build/build.log
           fi
-          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
-          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           # 后端镜像构建（简化：仅构建存在 Dockerfile 的组件）
           for comp in encaps-layer sql-gateway catalog rule-engine; do
             if ! echo "$COMPONENTS" | grep -q "$comp"; then

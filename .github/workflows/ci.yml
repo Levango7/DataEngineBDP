@@ -1992,10 +1992,10 @@ jobs:
         if: env.docker_skip != 'true'
         run: |
           fail_count=0
-          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
-          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -2126,9 +2126,9 @@ jobs:
         run: |
           # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
           # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
-          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          # 探测脚本自身出问题时退回上游 docker.io（加速器不可达时它才是真源），不把空值传下去。
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
           echo "启动 docker-compose 服务（第 1 次尝试）..."
           if docker compose up -d --wait; then
