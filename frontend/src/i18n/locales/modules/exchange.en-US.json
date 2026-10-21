@@ -103,6 +103,25 @@
       "published": "Asset published",
       "publishFailed": "Publish failed: "
     },
-    "actionRetry": "Retry"
+    "actionRetry": "Retry",
+    "overview": {
+      "title": "Exchange Overview",
+      "subtitle": "Settlement trend, top assets and revenue split for the current tenant (from GET /settlements)",
+      "actionReload": "Reload",
+      "scopeHint": "Scope: settlements of tenant {tenant}; other tenants' data is never shown",
+      "empty": "No settlements for this tenant yet",
+      "kpiSettlements": "Settlements",
+      "kpiPeriods": "Periods",
+      "kpiAssets": "Assets",
+      "kpiProvider": "Provider revenue",
+      "kpiPlatform": "Platform share",
+      "kpiTotal": "Total settled",
+      "chartTrend": "Trend by period (provider revenue / platform share)",
+      "chartTopAssets": "Top 5 assets (by provider revenue)",
+      "tableTitle": "Top asset details",
+      "colSettlementCount": "Settlements",
+      "colProviderRevenue": "Provider revenue",
+      "loadFailed": "Load failed: "
+    }
   }
 }

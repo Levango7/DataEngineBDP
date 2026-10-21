@@ -208,6 +208,7 @@ export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-api': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
   '/exchange-settlements': ['exchange'],
+  '/exchange-overview': ['exchange'],
   '/exchange-audit': ['exchange'],
   '/exchange-register': ['exchange'],
   // 收编批次 C2：多集群联邦 5 页（原 frontend/multi-cluster-dashboard 独立看板）

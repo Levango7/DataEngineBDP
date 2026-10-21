@@ -53,6 +53,7 @@ const AssetMarket = () => import('@/views/AssetMarket.vue')
 // 收编批次 C1：资产流通的「结算分账」「审计日志」两块主应用原本没有的能力
 const ExchangeSettlements = () => import('@/views/exchange/Settlements.vue')
 const ExchangeAuditLogs = () => import('@/views/exchange/AuditLogs.vue')
+const ExchangeOverview = () => import('@/views/exchange/ExchangeOverview.vue')
 // 收编批次 C1b：资产登记与审核（子看板 RegisterForm.vue 的等价能力）
 const ExchangeAssetRegister = () => import('@/views/exchange/AssetRegister.vue')
 // 收编批次 C2：多集群联邦 5 页（原 frontend/multi-cluster-dashboard 独立看板的等价能力）
@@ -443,6 +444,12 @@ const routes: RouteRecordRaw[] = [
     name: 'ExchangeSettlements',
     component: ExchangeSettlements,
     meta: { titleKey: 'nav.items.exchange-settlements', icon: 'Money', group: 'operations' }
+  },
+  {
+    path: '/exchange-overview',
+    name: 'ExchangeOverview',
+    component: ExchangeOverview,
+    meta: { titleKey: 'nav.items.exchange-overview', icon: 'TrendCharts', group: 'operations' }
   },
   {
     path: '/exchange-audit',

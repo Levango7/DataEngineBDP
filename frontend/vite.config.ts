@@ -205,6 +205,13 @@ export default defineConfig({
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
+      // 租户级结算列表（GET /settlements）——流通看板 /exchange-overview 的唯一数据源。
+      // 缺这条会落到 /api 兜底（encaps-layer :8080）拿 404，而页面能把它渲染成"暂无结算记录"，
+      // dev 下就分不清"没数据"与"没打到 asset-exchange"（scripts/verify-vite-proxy.py 会点名）。
+      '/api/v1/settlements': {
+        target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
       // 机器学习模型管理（dev-ml.ts 的 /models/models，Python ml-platform/llmops 域）
       // 注意：默认端口 8080 与 encaps-layer/tag-engine 同——本地同机双跑需 VITE_MODELS_TARGET 错开；
       // nightly 栈无此服务，playwright 兜底指向 encaps-layer 18080
