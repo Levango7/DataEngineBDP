@@ -50,6 +50,7 @@ from asset_exchange.models.base import (
     AssetType,
     AuditAction,
     AuditResult,
+    DeliveryMethod,
     SecurityLevel,
 )
 from asset_exchange.models.billing import BillingSummary
@@ -91,6 +92,7 @@ class ListAssetRequest(BaseModel):
     tags: dict[str, str] = {}
     pricing: AssetPricing | None = None
     sourceRef: str | None = None
+    deliveryMethod: DeliveryMethod = Field(default=DeliveryMethod.API, description="交付方式（提供方声明）")
 
 
 class RegisterAssetRequest(BaseModel):
@@ -112,6 +114,7 @@ class RegisterAssetRequest(BaseModel):
     tags: dict[str, str] = {}
     pricing: AssetPricing | None = None
     sourceRef: str | None = None
+    deliveryMethod: DeliveryMethod = Field(default=DeliveryMethod.API, description="交付方式（提供方声明）")
 
 
 class AuditAssetRequest(BaseModel):
@@ -134,6 +137,9 @@ class UpdateAssetRequest(BaseModel):
     updateFrequency: str | None = None
     tags: dict[str, str] | None = None
     pricing: AssetPricing | None = None
+    deliveryMethod: DeliveryMethod | None = Field(
+        default=None, description="交付方式；不传表示不改（None 会被下面的 diff 过滤掉）"
+    )
 
 
 class DownloadRequest(BaseModel):
@@ -180,6 +186,7 @@ async def register_asset(
         tags=req.tags,
         pricing=req.pricing or AssetPricing(),
         sourceRef=req.sourceRef,
+        deliveryMethod=req.deliveryMethod,
     )
     try:
         result = await registry.assetService.register(asset)
@@ -291,6 +298,7 @@ async def list_asset(
         tags=req.tags,
         pricing=req.pricing or AssetPricing(),
         sourceRef=req.sourceRef,
+        deliveryMethod=req.deliveryMethod,
     )
     try:
         result = await registry.assetService.list_asset(asset)

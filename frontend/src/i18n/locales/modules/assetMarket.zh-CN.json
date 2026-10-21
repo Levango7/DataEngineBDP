@@ -76,6 +76,7 @@
         "security": "安全分级",
         "quality": "质量评分",
         "updateFreq": "更新频率",
+        "delivery": "交付方式",
         "price": "价格",
         "priceFmt": "¥{price} / {unit}（{mode}）",
         "subscriber": "订阅者"
