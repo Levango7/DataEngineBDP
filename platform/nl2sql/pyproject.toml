@@ -51,7 +51,7 @@ dependencies = [
 langchain = [
     "langchain-core==1.6.12",
     "langchain-openai==1.7.0",
-    "openai==3.29.0",
+    "openai==3.35.1",
     "tiktoken==0.7.0",
 ]
 test = [
@@ -67,7 +67,7 @@ dev = [
     "sqlparse==0.6.0",
     "langchain-core==1.6.12",
     "langchain-openai==1.7.0",
-    "openai==3.29.0",
+    "openai==3.35.1",
     "tiktoken==0.7.0",
 ]
 
