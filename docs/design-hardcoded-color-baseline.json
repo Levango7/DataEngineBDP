@@ -1,5 +1,5 @@
 {
-  "total": 104,
+  "total": 76,
   "by_file": {
     "finetuning-monitor/src/App.vue": 2,
     "finetuning-monitor/src/views/LoopTaskDetail.vue": 1,
@@ -20,15 +20,13 @@
     "open-api-dashboard/src/views/DashboardView.vue": 12,
     "open-api-dashboard/src/views/GenerateView.vue": 3,
     "open-api-dashboard/src/views/SubscriptionsView.vue": 2,
-    "src/components/StatusBar.vue": 2,
     "src/views/ClusterOverview.vue": 1,
     "src/views/DataLineage.vue": 2,
     "src/views/Gateway.vue": 1,
-    "src/views/Login.vue": 3,
+    "src/views/Login.vue": 2,
     "src/views/Register.vue": 6,
     "src/views/search/SearchExport.vue": 1,
     "src/views/search/SearchFilter.vue": 1,
-    "src/views/SearchPortal.vue": 1,
-    "src/styles/main.css": 25
+    "src/views/SearchPortal.vue": 1
   }
 }

@@ -20,6 +20,9 @@ export interface NavItem {
   badge?: number
 }
 export interface NavGroup {
+  /** 稳定标识：侧栏分组主题色（main.css 的 [data-group=...]）与测试都靠它，
+   * 不能用 title——title 是随语言变化的译文。 */
+  key: string
   title: string
   items: NavItem[]
 }
@@ -30,6 +33,7 @@ export function useNavGroups() {
 
   const groups = computed<NavGroup[]>(() => [
     {
+      key: 'infra',
       title: t('nav.groups.infra'),
       items: [
         { path: '/infra-machine', label: t('nav.items.infra-machine'), icon: 'Platform' },
@@ -42,6 +46,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'engine',
       title: t('nav.groups.engine'),
       items: [
         { path: '/eng-storage', label: t('nav.items.eng-storage'), icon: 'Folder' },
@@ -55,6 +60,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'governance',
       title: t('nav.groups.governance'),
       items: [
         { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'Notebook' },
@@ -66,6 +72,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'devtools',
       title: t('nav.groups.devtools'),
       items: [
         { path: '/integrate', label: t('nav.items.integrate'), icon: 'Link' },
@@ -80,6 +87,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'tenant',
       title: t('nav.groups.tenant'),
       items: [
         { path: '/workspaces', label: t('nav.items.workspaces'), icon: 'HomeFilled' },
@@ -94,6 +102,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'intelligent',
       title: t('nav.groups.intelligent'),
       items: [
         { path: '/ai-assistant', label: t('nav.items.ai-assistant'), icon: 'ChatLineRound' },
@@ -105,6 +114,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'operations-mgmt',
       title: t('nav.groups.operations-mgmt'),
       items: [
         { path: '/dashboard', label: t('nav.items.dashboard'), icon: 'PieChart' },
@@ -115,6 +125,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'platform-mgmt',
       title: t('nav.groups.platform-mgmt'),
       items: [
         { path: '/admin', label: t('nav.items.admin'), icon: 'Grid' },

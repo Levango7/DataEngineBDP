@@ -197,8 +197,12 @@ test.describe('导航布局', () => {
     expect(text).toMatch(/●/)
   })
 
-  test('侧边栏底部信息显示', async ({ page }) => {
-    await expect(page.locator('.side-foot')).toBeVisible()
-    await expect(page.locator('.side-foot')).toContainText('DataEngineBDP')
+  test('外壳信息只留一份：版本号在底栏、环境徽标在顶栏，侧栏左下角不再重复', async ({ page }) => {
+    // 2026-10-21 外壳层次刀把 `.side-foot` 整块摘除：那块同时写着产品名 + 版本 + 发行版 + 环境，
+    // 而版本在 StatusBar（`v{{ appVersion }}`）、环境在 TopBar（`.env-tag`）已各有一份 ⇒ 侧栏那份是重复。
+    // 这里反向钉"不许再加回第三份"，同时确认摘的是重复而非信息本身。
+    await expect(page.locator('.side-foot')).toHaveCount(0)
+    await expect(page.locator('footer.statusbar')).toContainText(/v\d+\.\d+\.\d+/)
+    await expect(page.locator('.env-tag')).toBeVisible()
   })
 })

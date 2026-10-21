@@ -116,10 +116,12 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: var(--ds-spacing-3);
   padding: 0 18px;
-  /* v2：状态栏是**状态信息**不是装饰 —— 保持不透明，但去掉横向灰渐变、
-   * 1.5px 主色上边框与蓝色阴影。分界交给一条发丝线。 */
-  background: var(--ds-surface-2);
-  color: var(--ds-text-secondary);
+  /* v3：底栏改用专属令牌（#dfe4ec），比画布 #e9edf4 再深一档。
+   * v2 用的是 --ds-surface-2（#f5f6f7），与当时的画布只差 1%，
+   * 用户反馈"顶栏和尾栏看不出区别"——现在顶栏是浅色玻璃、尾栏是实底深一档灰，
+   * 深色侧栏夹在左侧，三区一眼可分。文字仍走 --ds-statusbar-ink（实测 7.68:1）。 */
+  background: var(--ds-statusbar-bg);
+  color: var(--ds-statusbar-ink);
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-medium);
   border-top: 1px solid var(--ds-border-default);

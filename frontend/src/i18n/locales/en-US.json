@@ -167,8 +167,6 @@
     "cardAria": "Sign-in card"
   },
   "app": {
-    "versionInfo": "DataEngineBDP {version} · Customer-transparent Infrastructure",
-    "envInfo": "Self-developed SKE Distribution · Env: {env}",
     "themeToggleToLight": "Switch to light theme",
     "themeToggleToDark": "Switch to dark theme",
     "localeLabel": "Language",
@@ -185,6 +183,8 @@
     "breadcrumbNav": "Breadcrumb navigation",
     "envBadge": "Current environment",
     "notificationPanel": "Notifications and activity panel",
+    "aiFab": "Open AI data assistant",
+    "aiFabShort": "AI",
     "demoDataBanner": "Sample data: no real notification source yet (no backend notifications endpoint). The entries below only demonstrate the panel layout — do not use them to judge system state.",
     "panelTabs": "Panel tabs",
     "closePanel": "Close panel",
@@ -197,7 +197,6 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "mainNav": "Main navigation menu",
-    "sidebarVersionInfo": "Sidebar version info",
     "statusbar": "Platform status bar",
     "services": "Services",
     "currentWorkspace": "Current workspace",

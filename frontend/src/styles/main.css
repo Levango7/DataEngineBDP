@@ -44,15 +44,18 @@
   --shadow-glow: var(--ds-shadow-glow); /* 发光阴影 (减弱) */
   --shadow-glow-strong: var(--ds-shadow-glow-strong);
 
-  /* v2：外壳改用 glass-chrome 材质（亮色玻璃），深色渐变不再被引用。
+  /* v3：侧栏改用深色导航材质。v2 的浅色玻璃（rgba(255,255,255,.72)）叠在只比白深 3%
+   * 的画布上，侧栏 / 顶栏 / 内容区三者的合成色几乎相同，"层次"全靠 1px 边框硬撑，
+   * 用户反馈是"整页纯白晃眼、侧栏没有边界"。深色外壳一次给出边界，
+   * 也让 blur/saturate 真的看得见（白叠白是看不出玻璃的）。
    * 变量名全部保留 —— 折叠钮 / 底部工具区 / 导航项等仍在引用它们，
-   * 重新指向 v2 取值即可让这些规则一并跟上，不必逐条改。 */
-  --sidebar-bg: var(--ds-glass-chrome-bg);
-  --sidebar-ink: var(--ds-glass-text-primary);
-  --sidebar-muted: var(--ds-glass-text-tertiary);
-  --sidebar-active-bg: var(--ds-accent-soft);
-  --sidebar-hover-bg: rgba(22, 24, 29, 0.05);
-  --sidebar-line: var(--ds-glass-chrome-border);
+   * 重新指向即可让这些规则一并跟上，不必逐条改。 */
+  --sidebar-bg: var(--ds-nav-glass);
+  --sidebar-ink: var(--ds-nav-ink);
+  --sidebar-muted: var(--ds-nav-muted);
+  --sidebar-active-bg: var(--ds-nav-active-bg);
+  --sidebar-hover-bg: var(--ds-nav-hover-bg);
+  --sidebar-line: var(--ds-nav-edge);
 
   /* === 毛玻璃（v2：三层定义见 design-tokens.css §12.6）===
    * 旧的两个单值变量保留为 glass-popover 的别名，兼容仍在引用它们的规则。 */
@@ -121,22 +124,20 @@ body {
   grid-template-columns: 64px 1fr auto;
 }
 
-/* ============ sidebar（v2：glass-chrome 外壳材质） ============
+/* ============ sidebar（v3：深色导航外壳 + 玻璃材质） ============
  * 架构前提（提案 §2.4）：内容面板是自身滚动的实心层，滚动内容不会跑到侧栏背后，
  * 因此侧栏的 backdrop 恒等于画布 token，合成背景有界、文字对比度可一次算清。
- * 若将来把内容区改成半透明或做"吸顶玻璃"，须把 alpha 提到 0.82（暗色是瓶颈）。 */
+ * v3 把外壳从"白玻璃叠白画布"换成深色玻璃：层次不再依赖边框，blur/saturate 也才有效果。 */
 .side {
-  background: var(--ds-glass-chrome-bg);
-  -webkit-backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
-    brightness(var(--ds-glass-chrome-brightness));
-  backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat))
-    brightness(var(--ds-glass-chrome-brightness));
-  color: var(--ds-glass-text-primary);
+  background: var(--sidebar-bg);
+  -webkit-backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat));
+  backdrop-filter: blur(var(--ds-glass-chrome-blur)) saturate(var(--ds-glass-chrome-sat));
+  color: var(--sidebar-ink);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  border-right: 1px solid var(--ds-glass-chrome-border);
+  border-right: 1px solid var(--sidebar-line);
   /* 1px 内描边高光 —— 玻璃的"厚度" */
   box-shadow: var(--ds-glass-edge);
 }
@@ -160,7 +161,7 @@ body {
   align-items: center;
   gap: 9px;
   flex: none;
-  border-bottom: 1px solid rgba(30, 58, 138, 0.22);
+  border-bottom: 1px solid var(--sidebar-line);
   background: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.45) 0%,
@@ -171,7 +172,7 @@ body {
 }
 /* .brand 也用于 Login/ Register；仅修正深色侧边栏，不改变登录页。 */
 .side .brand {
-  color: var(--ds-glass-text-primary);
+  color: var(--sidebar-ink);
   border-bottom-color: var(--ds-glass-chrome-border);
   /* v2：去掉装饰性白色高光渐变（原为"深色侧栏"设计，浅色玻璃上已无意义） */
   background: transparent;
@@ -197,7 +198,7 @@ body {
    * 不能用只作分隔线的 border-subtle / glass-chrome-border。 */
   border: 1px solid var(--ds-border-control);
   background: var(--sidebar-hover-bg);
-  color: var(--ds-glass-text-secondary);
+  color: var(--sidebar-muted);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -209,8 +210,8 @@ body {
     transform var(--ds-transition-normal);
 }
 .side-collapse:hover {
-  background: rgba(22, 24, 29, 0.08);
-  color: var(--ds-glass-text-primary);
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-ink);
   border-color: var(--ds-accent);
   transform: rotate(0deg) scale(1.08);
   box-shadow: var(--ds-e1);
@@ -222,35 +223,75 @@ body {
   padding: 6px 0 12px;
   flex: 1;
 }
+/* ---------- v3 分组主题色指派 ----------
+ * key 来自 useNavGroups 的 group.key（与 i18n 的 nav.groups.* 一一对应）。
+ * 新增分组时若忘了在这里登记，图标会回落到 --sidebar-muted（灰），
+ * 不会静默"看起来正常"；Sidebar 的分组色覆盖由 locales.test.ts 的
+ * 「每个分组都有 key」断言 + 本表共同兜住。 */
+:where(.side) .grp[data-group='infra'],
+:where(.side) .grp-items[data-group='infra'] {
+  --grp: var(--ds-group-infra);
+}
+:where(.side) .grp[data-group='engine'],
+:where(.side) .grp-items[data-group='engine'] {
+  --grp: var(--ds-group-engine);
+}
+:where(.side) .grp[data-group='governance'],
+:where(.side) .grp-items[data-group='governance'] {
+  --grp: var(--ds-group-governance);
+}
+:where(.side) .grp[data-group='devtools'],
+:where(.side) .grp-items[data-group='devtools'] {
+  --grp: var(--ds-group-devtools);
+}
+:where(.side) .grp[data-group='tenant'],
+:where(.side) .grp-items[data-group='tenant'] {
+  --grp: var(--ds-group-tenant);
+}
+:where(.side) .grp[data-group='intelligent'],
+:where(.side) .grp-items[data-group='intelligent'] {
+  --grp: var(--ds-group-intelligent);
+}
+:where(.side) .grp[data-group='operations-mgmt'],
+:where(.side) .grp-items[data-group='operations-mgmt'] {
+  --grp: var(--ds-group-operations);
+}
+:where(.side) .grp[data-group='platform-mgmt'],
+:where(.side) .grp-items[data-group='platform-mgmt'] {
+  --grp: var(--ds-group-platform);
+}
+
 /* :where 限定侧栏而不抬高特异性，保留 Sidebar.vue scoped 的布局规则。 */
 :where(.side) .nav .grp {
-  font-size: var(--ds-font-size-xs);
-  /* v2：原 primary-300 是为"深色侧栏"配的浅蓝；浅色玻璃上对比度不足 2:1 */
-  color: var(--ds-glass-text-tertiary);
+  /* v3 层级修正：一级分组 14px/700 且用主文字色，二级项 13px/400 用次文字色。
+   * v2 是倒挂的——分组 12px、菜单项 14px/600，实测（getComputedStyle）
+   * grp=12px/600、nav a=14px/600，所以眼睛先抓到的是二级项，"一级比二级大"这条
+   * 最基本的从属关系丢了。 */
+  font-size: var(--ds-font-size-base);
+  color: var(--sidebar-ink);
   padding: 18px 20px 8px;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
   text-transform: none;
-  font-weight: var(--ds-font-weight-extrabold);
+  font-weight: var(--ds-font-weight-bold);
   position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-/* 分组标记：v2 去掉蓝色渐变与光晕，改为中性 2px 竖线（只做层次，不带颜色语义） */
+/* 分组标记：v3 用本组主题色（--grp，由 [data-group] 指派），
+ * 一眼能分辨"我在哪一区"；v2 的中性灰竖线在深色外壳上没有辨识度。 */
 :where(.side) .nav .grp::before {
   content: '';
-  width: 2px;
+  width: 3px;
   height: 14px;
-  background: var(--ds-border-strong);
+  background: var(--grp, var(--sidebar-muted));
   border-radius: var(--ds-radius-sm);
   flex: none;
 }
-/* scoped 的计数/箭头 hover 色需定点覆盖；不改全局 primary token。
- * v2：hover 从 glass-text-tertiary 提到 glass-text-primary —— 两档都过 4.5:1，
- * 因此 hover 反馈不再依赖"蓝色"，也就不会在浅色玻璃上失效。 */
+/* scoped 的计数/箭头 hover 色需定点覆盖；不改全局 primary token。 */
 aside.side .nav .grp:hover .grp-arrow,
 aside.side .nav .grp:hover .grp-count {
-  color: var(--ds-glass-text-primary);
+  color: var(--sidebar-ink);
 }
 :where(.side) .nav .grp::after {
   content: '';
@@ -259,21 +300,23 @@ aside.side .nav .grp:hover .grp-count {
   right: 20px;
   bottom: 0;
   height: 1px;
-  background: var(--ds-border-subtle);
+  /* 深色外壳上的分隔线必须比底更亮一点点；用 --ds-border-subtle(#e9ecf1)
+   * 会画出一条近乎白的横线。 */
+  background: var(--sidebar-line);
 }
 :where(.side) .nav a {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 2px 10px;
+  /* v3：二级项整体右移，让图标落在分组标记右侧，形成"组 → 项"的缩进关系 */
+  margin: 2px 10px 2px 18px;
   padding: var(--ds-spacing-2) var(--ds-spacing-3);
-  /* v2 层次：常态 = 次文字，hover / active = 主文字（两档都过 4.5:1） */
-  color: var(--ds-glass-text-secondary);
+  color: var(--sidebar-muted);
   cursor: pointer;
   border-radius: var(--ds-radius-md);
   border: 1px solid transparent;
-  font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-normal);
   text-decoration: none;
   transition:
     background var(--ds-transition-quick),
@@ -288,14 +331,16 @@ aside.side .nav .grp:hover .grp-count {
  * 会让文字在鼠标划过时轻微重排（字宽变化），长列表里形成"抖动"。 */
 :where(.side) .nav a:hover {
   background: var(--sidebar-hover-bg);
-  color: var(--ds-glass-text-primary);
-  border-color: var(--ds-glass-chrome-border);
+  color: var(--sidebar-ink);
+  border-color: var(--sidebar-line);
 }
 :where(.side) .nav a.active {
   background: var(--sidebar-active-bg);
-  color: var(--ds-glass-text-primary);
-  border-color: var(--ds-accent);
-  font-weight: var(--ds-font-weight-semibold);
+  color: var(--sidebar-ink);
+  /* v3：active 不再靠 1px 蓝色边框表意——#0057d2 压在深色外壳上几乎看不出来。
+   * 识别由"更亮的底 + 左侧本组主题色条 + 文字提到主文字色"三件事共同承担。 */
+  border-color: transparent;
+  font-weight: var(--ds-font-weight-medium);
   box-shadow: var(--ds-e1);
 }
 :where(.side) .nav a.active::before {
@@ -306,13 +351,16 @@ aside.side .nav .grp:hover .grp-count {
   bottom: 18%;
   width: 3px;
   border-radius: var(--ds-radius-sm);
-  /* v2：去掉蓝→靛渐变与光晕，改单一强调色（去掉装饰性发光） */
-  background: var(--ds-accent);
+  /* 本组主题色（[data-group] 指派 --grp），去掉装饰性发光 */
+  background: var(--grp, var(--ds-accent));
 }
 :where(.side) .nav a .ic,
 :where(.side) .nav a .nav-ic {
   flex: none;
-  color: var(--ds-glass-text-secondary);
+  /* 图标吃本组主题色：这是"每组一色"唯一被允许出现的地方之一
+   * （另一处是分组标记与 active 左条）。文字不吃色，避免 8 种颜色互相抢注意力，
+   * 也免去逐组重算文字对比度。非文本内容门槛 3:1，实测最低 7.49:1。 */
+  color: var(--grp, var(--sidebar-muted));
   stroke-width: 1.5; /* EP 图标默认描边 */
   fill: none;
   stroke: currentColor;
@@ -324,7 +372,7 @@ aside.side .nav .grp:hover .grp-count {
 :where(.side) .nav a:hover .nav-ic,
 :where(.side) .nav a.active .ic,
 :where(.side) .nav a.active .nav-ic {
-  color: var(--ds-glass-text-primary);
+  color: var(--sidebar-ink);
   stroke-width: 1.8; /* 激活态稍粗，保持层次 */
 }
 .fic {
@@ -352,73 +400,6 @@ aside.side .nav .grp:hover .grp-count {
   border-radius: var(--ds-radius-md-plus);
   padding: 1px 6px;
 }
-/* 侧边栏底部工具区：v2 去掉独立的深色磨砂底与自身的 backdrop-filter。
- * 原来它硬编码 rgba(11,18,32,0.55)，在亮色主题下也是一块深色 —— 与外壳材质冲突；
- * 而且在外层已有 backdrop-filter 的元素内部再叠一层 backdrop-filter 代价高、收益低。
- * 现在它只是 glass-chrome 的一部分，分隔线用 glass-chrome-border。 */
-.side-foot {
-  padding: var(--ds-spacing-3) var(--ds-spacing-4);
-  border-top: 1px solid var(--ds-glass-chrome-border);
-  font-size: var(--ds-font-size-xs);
-  color: var(--ds-glass-text-tertiary);
-  line-height: var(--ds-line-height-relaxed);
-  background: transparent;
-  font-weight: var(--ds-font-weight-medium);
-  display: flex;
-  align-items: center;
-  gap: var(--ds-spacing-2);
-  flex: none;
-}
-.side-foot .side-foot-text {
-  flex: 1;
-  /* v2：去掉 0.9 的不透明度 —— 它会把已经算好的对比度再打九折 */
-  opacity: 1;
-}
-/* 主题切换按钮（2026-09-02 手动亮暗开关） */
-.side-foot .theme-toggle {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--ds-radius-md);
-  border: 1px solid var(--sidebar-line);
-  background: transparent;
-  color: var(--sidebar-ink);
-  font-size: var(--ds-font-size-base);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background var(--ds-transition-quick),
-    transform var(--ds-transition-quick);
-}
-/* v2：原为 rgba(255,255,255,0.12) —— 那是从"深色侧栏"时代留下的白色半透明，
- * 换到浅色玻璃外壳后 hover 反馈**完全消失**（白叠白）。改用 --sidebar-hover-bg，
- * 该变量在亮色下是 rgba(22,24,29,0.05)、暗色下是 rgba(255,255,255,0.06)。 */
-.side-foot .theme-toggle:hover {
-  background: var(--sidebar-hover-bg);
-  transform: scale(1.06);
-}
-.side-foot .theme-toggle:active {
-  transform: scale(0.94);
-}
-/* 语言切换器（2026-09-02 i18n 框架级双语） */
-.side-foot .locale-switcher {
-  flex-shrink: 0;
-  height: 28px;
-  border-radius: var(--ds-radius-md);
-  border: 1px solid var(--sidebar-line);
-  background: transparent;
-  color: var(--sidebar-ink);
-  font-size: var(--ds-font-size-xs);
-  padding: 0 6px;
-  cursor: pointer;
-}
-/* v2：同上 —— 白色半透明在浅色玻璃上没有 hover 反馈 */
-.side-foot .locale-switcher:hover {
-  background: var(--sidebar-hover-bg);
-}
-
 /* ============================================================
  * 侧边栏折叠态（图标模式，2026-09-07 布局重构）
  * 宽度由 .app grid 列控制；此处处理内部元素形态。
@@ -467,16 +448,6 @@ aside.side .nav .grp:hover .grp-count {
   font-size: var(--ds-font-size-xs);
   z-index: 2;
 }
-.side.collapsed .side-foot {
-  flex-direction: column;
-  align-items: center;
-  gap: var(--ds-spacing-2);
-  padding: 10px 0;
-}
-.side.collapsed .side-foot .side-foot-text {
-  display: none;
-}
-
 /* ============ main ============ */
 .main {
   display: flex;
@@ -2315,12 +2286,6 @@ label {
 :root[data-theme='dark'] .nav .grp {
   color: var(--ds-glass-text-tertiary) !important;
 }
-:root[data-theme='dark'] .side-foot {
-  background: transparent !important;
-  color: var(--ds-glass-text-tertiary) !important;
-  border-top-color: var(--ds-glass-chrome-border) !important;
-}
-
 /* 状态栏（尾栏）**不再有暗色覆写**。
  * 旧写法用 !important 把尾栏盖成蓝黑渐变（--ds-color-dark-bg-1/2 + --ds-color-gray-900）
  * 并加 rgba(99,102,241,0.5) 靛蓝分割线，导致亮暗两套尾栏**不同源**：亮色走 StatusBar.vue
