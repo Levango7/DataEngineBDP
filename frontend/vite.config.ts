@@ -80,6 +80,34 @@ export default defineConfig({
         target: process.env.VITE_FLINK_CDC_TARGET || 'http://127.0.0.1:8098',
         changeOrigin: true
       },
+      // 多集群联邦（failover-api Go :8094——design/deploy/charts/failover-api/values.yaml service.port）
+      // 收编批次 C2：原 frontend/multi-cluster-dashboard 独立看板的 5 页改用主应用后，
+      // 这五个前缀才第一次经主应用发出。缺任一条都会落到 /api 兜底（encaps-layer :8080）→ 404，
+      // 而页面把 404 当成"暂无数据"，本地看不出请求根本没打到 failover-api。
+      //
+      // 顺序要求：Vite 按对象键的插入顺序做前缀匹配、先命中先走，所以
+      // '/api/v1/clusters/health' 必须排在下面 infra-orchestrator 的 '/api/v1/clusters' 之前，
+      // 否则健康总览会被转去 8085（orchestrator 没有这个端点）。
+      '/api/v1/clusters/health': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/override-policies': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/failover-events': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/replica-plans': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/failover-policies': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
       // 基础设施编排（infra-orchestrator :8085——注意与 finops-dashboard 同默认端口）
       '/api/v1/clusters': {
         target: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:8085',

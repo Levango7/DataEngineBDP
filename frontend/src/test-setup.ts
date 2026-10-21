@@ -35,12 +35,15 @@ vi.mock('element-plus', async (importOriginal) => {
 // 注意：组件中存在两种导入方式——`import * as echarts`（命名空间）与
 // `import echarts from 'echarts'`（默认导出），两者都必须提供 init
 vi.mock('echarts', () => {
-  const makeChart = () => ({
+  // getDom 必须真实返回 init 时传入的容器：页面用 `charts.find(c => c.getDom() === el)`
+  // 复用实例，缺了它第二次重绘（主题切换 / 过滤重画）会在 find 回调里抛 TypeError。
+  const makeChart = (el?: unknown) => ({
     setOption: vi.fn(),
     resize: vi.fn(),
-    dispose: vi.fn()
+    dispose: vi.fn(),
+    getDom: vi.fn(() => el)
   })
-  const init = vi.fn(() => makeChart())
+  const init = vi.fn((el?: unknown) => makeChart(el))
   return {
     default: { init, graphic: { LinearGradient: vi.fn() } },
     init,
