@@ -80,6 +80,7 @@ const SERVER_ASSET_ROWS = [
     updateFrequency: 'daily',
     tags: {},
     pricing: { mode: 'by_call', price: 2, unit: 'call' },
+    deliveryMethod: 'file',
     subscriberCount: 5,
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-01T00:00:00Z'

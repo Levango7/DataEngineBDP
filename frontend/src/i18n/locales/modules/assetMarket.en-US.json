@@ -76,6 +76,7 @@
         "security": "Security Level",
         "quality": "Quality Score",
         "updateFreq": "Update Frequency",
+        "delivery": "Delivery Method",
         "price": "Price",
         "priceFmt": "¥{price} / {unit} ({mode})",
         "subscriber": "Subscribers"
