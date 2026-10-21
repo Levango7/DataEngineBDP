@@ -26,19 +26,35 @@ TIMEOUT="${BASE_REGISTRY_TIMEOUT:-8}"
 
 log() { echo "[pick-base-registry] $*" >&2; }
 
+# 探活用的 URL。docker.io 这个宿主名**不能直接按 https://docker.io/v2/ 探**：
+# 那是官网域名，回的是 302（跳 hub.docker.com），永远进不了"200/401 算可用"的判据。
+# 实测 2026-10-21 CI job `119158037486`：`候选 docker.io 不可用（HTTP 302）` +
+# `警告：所有候选都不可用` —— 也就是说这轮 CI 里上游候选从来没被真正探活过，
+# 全靠 main() 末尾的 fail-soft 恰好也返回 docker.io 才没出事。
+# Docker Hub 的 registry API 在 registry-1.docker.io，它回 401 才是"活着且在要 token"的正常形态；
+# 返回给构建用的宿主名仍保持 docker.io（FROM 认它，且与 Dockerfile 里的 library/ 路径相配）。
+probe_url() {
+  case "$1" in
+    docker.io | registry-1.docker.io | index.docker.io)
+      printf 'https://registry-1.docker.io/v2/\n' ;;
+    *) printf 'https://%s/v2/\n' "$1" ;;
+  esac
+}
+
 # 探一次 /v2/。返回 200 或 401 视为"可用"——401 恰恰说明 registry 活着、在要 token；
 # 超时(000)、5xx、连接拒绝一律视为不可用。
 probe() {
-  local host="$1" code
+  local host="$1" url code
+  url="$(probe_url "$host")"
   if [ -n "${BASE_REGISTRY_PROBE_CMD:-}" ]; then
     # 自测注入点：外部命令负责给一个 HTTP 状态码（或空串模拟彻底取不到）
     code="$($BASE_REGISTRY_PROBE_CMD "$host" 2>/dev/null || true)"
   else
-    code="$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' "https://${host}/v2/" 2>/dev/null || true)"
+    code="$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' "$url" 2>/dev/null || true)"
   fi
   case "$code" in
     200|401) return 0 ;;
-    *) log "候选 $host 不可用（HTTP ${code:-空}）"; return 1 ;;
+    *) log "候选 $host 不可用（$url 回 HTTP ${code:-空}）"; return 1 ;;
   esac
 }
 
@@ -93,6 +109,11 @@ STUB
   # 显式覆盖优先，且必须原样返回（含带 /library 的老形态也不自作聪明改写）
   check "显式 BASE_REGISTRY 原样返回" "docker.m.daocloud.io/library" \
     "$(BASE_REGISTRY='docker.m.daocloud.io/library' bash "$0" 2>/dev/null | tail -1)"
+  # 探活 URL 的映射：docker.io 必须探 registry API 宿主，否则探到的永远是官网 302
+  check "docker.io 探活打到 registry-1.docker.io" "https://registry-1.docker.io/v2/" "$(probe_url docker.io)"
+  check "加速器宿主按原名探" "https://docker.m.daocloud.io/v2/" "$(probe_url docker.m.daocloud.io)"
+  # 302 不是"可用"：官网跳转恰恰说明这个 URL 不是 registry API
+  check "302 视为不可用（落到次候选）" "host-b" "$(CODE_HOST_A=302 CODE_HOST_B=401 run_picker)"
   return "$rc"
 }
 

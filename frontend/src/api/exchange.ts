@@ -8,13 +8,16 @@
  * 只做增量：资产列表/详情/登记(POST /assets)/订阅/交付/出账记录在
  * `src/api/assetMarket.ts` 已有实现，这里不重复一份，避免同一资源两套客户端漂移。
  *
- * 已知缺口（如实记，不当已完成）：tenant 级 `GET/POST /api/v1/settlements`
- * （按 finops 账单触发结算 settleByBilling）后端存在，但主应用与旧子看板都没有入口。
+ * 已知缺口（如实记，不当已完成）：tenant 级 `POST /api/v1/settlements`
+ * （按 finops 账单触发结算 settleByBilling）后端存在，但主应用仍无入口；
+ * 而 tenant 级 `GET /api/v1/settlements` 已由 `listTenantSettlements` 接进
+ * `/exchange-overview` 看板（旧子看板的图表通路是逐资产扇出，#673 收权后不可用）。
  */
 import { get, post } from './client'
 
 const ASSETS_BASE = '/assets'
 const AUDIT_BASE = '/audit-logs'
+const SETTLEMENTS_BASE = '/settlements'
 
 /** 与后端 models/settlement.py::Settlement 对齐（含分成比例与失败原因） */
 export interface Settlement {
@@ -146,4 +149,41 @@ export function verifyAuditIntegrity(): Promise<AuditIntegrityReport> {
 
 export function getAuditLog(logId: string): Promise<AuditLog> {
   return get<AuditLog>(`${AUDIT_BASE}/${encodeURIComponent(logId)}`)
+}
+
+/**
+ * `GET /settlements` 的行形状是路由里手工拼的投影（settlements.py:157-178），
+ * 只有 8 个键——比序列化整个 Settlement 模型少 `tenantId`/`providerShare`/
+ * `platformShare`/`billingRecordIds`。按实测形状声明，别拿上面的 `Settlement`
+ * 去套这个半截投影（那是 #80 那类字段级漂移：类型说有别的东西、DOM 上是空值）。
+ */
+export interface TenantSettlementRow {
+  id: string
+  assetId: string
+  period: string
+  status: string
+  totalAmount: number
+  providerRevenue: number
+  platformRevenue: number
+  settledAt?: string | null
+}
+
+/** `listSettlements` 的信封：`{tenant, count, settlements}`（租户按 JWT claim 强制过滤） */
+export interface TenantSettlementList {
+  tenant: string
+  count: number
+  settlements: TenantSettlementRow[]
+}
+
+export interface TenantSettlementQuery {
+  assetId?: string
+  period?: string
+  limit?: number
+  offset?: number
+}
+
+export function listTenantSettlements(
+  params?: TenantSettlementQuery
+): Promise<TenantSettlementList> {
+  return get<TenantSettlementList>(SETTLEMENTS_BASE, params as Record<string, unknown>)
 }
