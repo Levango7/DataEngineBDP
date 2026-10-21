@@ -640,8 +640,9 @@ jobs:
         # 必须提前声明纯宿主级 ARG（声明晚于 FROM 会被 Docker 展开成空串）；③ 官方镜像必须写全 library/；
         # ④ 例外表（gcr.io、kindest、本地构建产物、LEG_EXEMPT）必须真被用到，没人用的条目判红；
         # ⑤ compose 的每个 build 服务必须传 BASE_REGISTRY；⑥ 禁直连 Docker Hub 短名 base；
-        # ⑦⑧ 是 #88 那两刀：工作流每条镜像构建腿都得传 BASE_REGISTRY（2026-10-21 实测两条
-        # docker/build-push-action 前端腿没传，job 119158037385 每次触发都 DNS 红），
+        # ⑦⑧ 是 #88 那两刀：每条镜像构建腿都得传 BASE_REGISTRY——工作流的 11 条 ＋ 仓库里的
+        # 手工 shell 脚本（实测 tests/deploy 两条既不传参还把仓库路径写死成某台机器的绝对位置），
+        # 前端那两条 docker/build-push-action 没传时，job 119158037385 每次触发都 DNS 红；
         # 且 `${…:-…}` 兜底不许选加速器——选源器 fail-soft 的落点是上游 docker.io。
         run: |
           # 先跑合成夹具，证明八条规则各自抓得住、好形态不误报、扫描集为空不静默放行

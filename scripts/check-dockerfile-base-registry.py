@@ -41,6 +41,10 @@ OFFICIAL = {'maven', 'eclipse-temurin', 'golang', 'alpine', 'python', 'node', 'n
 # 只列**真被用到**的：R4 会把无人使用的条目判红，所以这条例外表不会随时间堆成垃圾场。
 EXTERNAL_HOST_PREFIXES = ('gcr.io/', 'kindest/')
 LOCAL_ARTIFACT_RE = re.compile(r'^spark-cluster-[a-z0-9-]+:')
+# 扫描时统一跳过的目录（构建产物与依赖树，里面没有本仓的构建调用点）
+SKIP_DIRS = {'.git', 'node_modules', 'target', 'dist', 'build', 'venv',
+             '.venv', '__pycache__', 'htmlcov', 'site-packages'}
+
 # Docker 内置基座：根本不联网解析，不能也不需要挂任何宿主
 NO_PULL_BASES = {'scratch'}
 
@@ -52,6 +56,12 @@ FALLBACK_RE = re.compile(r'\$\{\s*((?:\w*_)?BASE_REGISTRY|TRIVY_BASE_HOST)\s*:-\
 # 明确豁免的构建腿（(工作流相对路径, job/step 名)）——留空即"所有腿都要参选源"。
 # 加条目必须写清理由，且 R4 那条例外表的规矩同样适用：无人使用的豁免也算过期。
 LEG_EXEMPT = set()
+
+# 工作流之外的 shell 脚本构建腿豁免（相对路径 → 理由）。同样受"没人用就判红"约束。
+SCRIPT_EXEMPT = {
+    'ske/node-image/build.sh': '其 Dockerfile 的 FROM 是 kindest/node:v1.30.0（外部宿主，'
+                               '见 R4 例外表），根本不从 Docker Hub 拉 base ⇒ 无源可选',
+}
 
 
 def _build_args_text(step):
@@ -284,6 +294,47 @@ def check_workflows(root):
     return bad, n_legs, len(files), used_exempt
 
 
+def check_build_scripts(root):
+    """R7 的另一半：仓库里的 shell 脚本手工构建镜像时也必须参选源。
+
+    工作流不是唯一的构建入口。2026-10-21 现查：`tests/deploy/build-amd64.sh` 与
+    `build-multiarch.sh` 各跑一条 `docker buildx build -f Dockerfile.multiarch`，
+    而那份 Dockerfile 的 FROM 走 `${BASE_REGISTRY}` ⇒ 这两条手工腿一直吃的是 ARG 默认宿主
+    （加速器），并且脚本里还把仓库路径写死成某台机器的绝对位置。R7 只看工作流的话，
+    这一类就永远在门禁盲区里。
+
+    判据按脚本整份文本：出现 `docker build`/`docker buildx build` 却没在任何地方提
+    `BASE_REGISTRY` ⇒ 违规；不联网拉 Docker Hub 基座的脚本走 `SCRIPT_EXEMPT` 显式豁免
+    （同样"无人使用即判过期"）。
+    """
+    bad = []
+    n_scripts = 0
+    used = set()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for fn in sorted(filenames):
+            if not fn.endswith('.sh'):
+                continue
+            p = os.path.join(dirpath, fn)
+            rel = os.path.relpath(p, root).replace(os.sep, '/')
+            txt = io.open(p, encoding='utf-8', errors='replace').read()
+            n_build = len(BUILD_LEG_RE.findall(txt))
+            if not n_build:
+                continue
+            n_scripts += 1
+            if rel in SCRIPT_EXEMPT:
+                used.add(rel)
+                continue
+            if 'BASE_REGISTRY' not in txt:
+                bad.append((rel, 'R7', '脚本里有 %d 条 docker build 却全程不提 BASE_REGISTRY ⇒ '
+                                  '这条手工腿吃 Dockerfile 的 ARG 默认宿主；不联网拉 Hub 基座的话'
+                                  '请进 SCRIPT_EXEMPT 并写清理由' % n_build))
+    stale = sorted(set(SCRIPT_EXEMPT) - used)
+    for rel in stale:
+        bad.append((rel, 'R4', '脚本豁免条目无人使用（该脚本已参选源或已不存在），请从 SCRIPT_EXEMPT 移除'))
+    return bad, n_scripts, used
+
+
 def run():
     root = _repo()
     files = dockerfiles(root)
@@ -307,6 +358,11 @@ def run():
     if n_wf == 0 or n_legs == 0:
         print('::error::扫描失效：工作流 %d 个 / 构建腿 %d 条（R7 失明，不放行）' % (n_wf, n_legs))
         return 2
+    s_bad, n_sh, _sused = check_build_scripts(root)
+    viol.extend(s_bad)
+    if n_sh == 0:
+        print('::error::扫描失效：没扫到任何含 docker build 的 shell 脚本（R7 脚本半边失明，不放行）')
+        return 2
     n_sw = sum(1 for rel in files
                for m in re.finditer(r'^FROM\s+\$\{?BASE_REGISTRY\}?/\S+',
                                     io.open(os.path.join(root, rel), encoding='utf-8',
@@ -318,6 +374,8 @@ def run():
     print('  compose %d 个文件 / %d 个 build 服务已纳入 R5 检查' % (c_files, c_blocks))
     print('  工作流 %d 个 / 镜像构建腿 %d 条已纳入 R7 检查（豁免 %d 条）'
           % (n_wf, n_legs, len(LEG_EXEMPT)))
+    print('  含 docker build 的 shell 脚本 %d 个已纳入 R7 脚本半边检查（豁免 %d 个）'
+          % (n_sh, len(SCRIPT_EXEMPT)))
     if viol:
         for rel, rule, msg in viol:
             print('  [违规][%s] %s: %s' % (rule, rel, msg))
@@ -465,6 +523,32 @@ def self_test():
         print('  [%s] 豁免生效且被计为"已使用"' % ('PASS' if bpa_quiet and consumed else 'FAIL'))
         ok = ok and bpa_quiet and consumed
         LEG_EXEMPT = set()
+        # R7 的脚本半边：仓库里工作流之外的手工构建腿
+        put('sh-ok/build.sh', '#!/bin/bash\nBASE_REGISTRY="$(bash scripts/pick-base-registry.sh)"\n'
+                              'docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t x .\n')
+        put('sh-bad/build.sh', '#!/bin/bash\ndocker build -t y .\n')
+        s_findings, n_sh, _su = check_build_scripts(tmp)
+        sset = {rel.split('/')[0] for rel, rule, _m in s_findings}
+        hit_bad = 'sh-bad' in sset
+        print('  [%s] R7 脚本半边：手工 docker build 不传 BASE_REGISTRY 要被抓'
+              % ('PASS' if hit_bad else 'FAIL'))
+        ok_ok = 'sh-ok' not in sset
+        print('  [%s] R7 脚本半边正例不误报' % ('PASS' if ok_ok else 'FAIL'))
+        sh_cnt_ok = (n_sh == 2)
+        print('  [%s] 手工构建脚本计数正确（%d 个，期望 2）' % ('PASS' if sh_cnt_ok else 'FAIL', n_sh))
+        ok = ok and hit_bad and ok_ok and sh_cnt_ok
+        global SCRIPT_EXEMPT
+        SCRIPT_EXEMPT = {'sh-nope/build.sh': '合成：指向不存在的脚本'}
+        st_findings, _n2, _u2 = check_build_scripts(tmp)
+        stale2 = any(rule == 'R4' for _rel, rule, _m in st_findings)
+        print('  [%s] 脚本豁免未被使用同样判过期（R4）' % ('PASS' if stale2 else 'FAIL'))
+        SCRIPT_EXEMPT = {'sh-bad/build.sh': '合成：kindest 基座，不联网拉 Hub'}
+        ex2_findings, _n3, used3 = check_build_scripts(tmp)
+        quiet = not any('sh-bad' in rel for rel, _r, _m in ex2_findings)
+        used_ok = 'sh-bad/build.sh' in used3
+        print('  [%s] 脚本豁免生效且被计为"已使用"' % ('PASS' if quiet and used_ok else 'FAIL'))
+        SCRIPT_EXEMPT = {}
+        ok = ok and stale2 and quiet and used_ok
         # 扫描集为空必须判红
         empty = os.path.join(tmp, 'empty-dir')
         os.makedirs(empty, exist_ok=True)
