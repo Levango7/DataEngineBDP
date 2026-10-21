@@ -29,7 +29,7 @@ sqlparse==0.6.0          # 修复 PYSEC-2026-3696/3697/3698/3699/3923 + GHSA-27j
 #   `Python Dependency Audit (pip-audit)` 在 nl2sql 上 exit 1（解析失败发生在写 JSON 之前，
 #   因此 artifact 里唯独缺 nl2sql-audit.json）。core 取 1.6.12（1.6.x 最新，仍 <2.0）。
 langchain-core==1.6.12
-langchain-openai==1.7.0
+langchain-openai==1.7.2
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
 openai==3.29.0
