@@ -33,7 +33,7 @@ langchain-openai==1.7.0
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
 openai==3.29.0
-tiktoken==0.7.0
+tiktoken==0.14.0
 
 # ---- Utilities ----
 python-dateutil==2.9.0

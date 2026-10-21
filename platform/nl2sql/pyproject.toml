@@ -52,7 +52,7 @@ langchain = [
     "langchain-core==1.6.12",
     "langchain-openai==1.7.0",
     "openai==3.29.0",
-    "tiktoken==0.7.0",
+    "tiktoken==0.14.0",
 ]
 test = [
     "pytest>=9.0.3,<10.0",
@@ -68,7 +68,7 @@ dev = [
     "langchain-core==1.6.12",
     "langchain-openai==1.7.0",
     "openai==3.29.0",
-    "tiktoken==0.7.0",
+    "tiktoken==0.14.0",
 ]
 
 [project.urls]
