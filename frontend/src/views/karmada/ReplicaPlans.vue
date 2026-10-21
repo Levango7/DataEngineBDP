@@ -16,7 +16,12 @@
           <el-input v-model="form.workload" :placeholder="t('karmada.plans.workloadPlaceholder')" />
         </el-form-item>
         <el-form-item :label="t('karmada.plans.fieldTotalReplicas')">
-          <el-input v-model.number="form.totalReplicas" type="number" :min="1" style="width: 160px" />
+          <el-input
+            v-model.number="form.totalReplicas"
+            type="number"
+            :min="1"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.plans.fieldWeights')">
           <div v-for="(w, i) in form.weights" :key="i" class="km-row">
@@ -45,9 +50,17 @@
 
     <PageCard :title="t('karmada.plans.listTitle')">
       <el-table v-if="rows.length" v-loading="loading" :data="rows" stripe>
-        <el-table-column :label="t('karmada.plans.colPolicyName')" min-width="160" prop="policyName" />
+        <el-table-column
+          :label="t('karmada.plans.colPolicyName')"
+          min-width="160"
+          prop="policyName"
+        />
         <el-table-column :label="t('karmada.plans.colWorkload')" min-width="140" prop="workload" />
-        <el-table-column :label="t('karmada.plans.colTotalReplicas')" width="110" prop="totalReplicas" />
+        <el-table-column
+          :label="t('karmada.plans.colTotalReplicas')"
+          width="110"
+          prop="totalReplicas"
+        />
         <el-table-column :label="t('karmada.plans.colWeights')" min-width="180">
           <template #default="{ row }">{{ formatJsonPairs(row.weights) }}</template>
         </el-table-column>
@@ -79,7 +92,12 @@
           <span class="km-mono">{{ adjusting.policyName }}</span>
         </el-form-item>
         <el-form-item :label="t('karmada.plans.fieldTotalReplicas')">
-          <el-input v-model.number="adjust.totalReplicas" type="number" :min="1" style="width: 160px" />
+          <el-input
+            v-model.number="adjust.totalReplicas"
+            type="number"
+            :min="1"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.plans.fieldWeights')">
           <div v-for="(w, i) in adjust.weights" :key="i" class="km-row">

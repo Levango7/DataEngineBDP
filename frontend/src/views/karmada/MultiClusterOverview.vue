@@ -1,5 +1,10 @@
 <template>
-  <div class="km-page" role="main" data-design-contract="v2" :aria-label="t('karmada.overview.title')">
+  <div
+    class="km-page"
+    role="main"
+    data-design-contract="v2"
+    :aria-label="t('karmada.overview.title')"
+  >
     <PageHeader :title="t('karmada.overview.title')" :subtitle="t('karmada.overview.subtitle')">
       <template #actions>
         <el-button :loading="loading" @click="load">{{ t('karmada.actionRefresh') }}</el-button>
@@ -19,10 +24,18 @@
 
     <PageCard :title="t('karmada.overview.tableTitle')">
       <el-table v-if="clusters.length" v-loading="loading" :data="clusters" stripe>
-        <el-table-column :label="t('karmada.overview.colCluster')" min-width="150" prop="clusterName" />
+        <el-table-column
+          :label="t('karmada.overview.colCluster')"
+          min-width="150"
+          prop="clusterName"
+        />
         <el-table-column :label="t('karmada.colStatus')" width="110">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="row.status" :status-map="KARMADA_CLUSTER_STATUS_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="row.status"
+              :status-map="KARMADA_CLUSTER_STATUS_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('karmada.overview.colReady')" width="90">
@@ -44,7 +57,11 @@
             {{ t('karmada.overview.loadMem') }} {{ loadPercent(row.memoryLoad) }}
           </template>
         </el-table-column>
-        <el-table-column :label="t('karmada.overview.colCheckSource')" width="130" prop="checkSource" />
+        <el-table-column
+          :label="t('karmada.overview.colCheckSource')"
+          width="130"
+          prop="checkSource"
+        />
         <el-table-column :label="t('karmada.overview.colCheckedAt')" width="190">
           <template #default="{ row }">
             <span class="km-mono">{{ formatTime(row.checkedAt) }}</span>
@@ -90,11 +107,9 @@ const statusRef = ref<HTMLElement>()
 const charts: echarts.ECharts[] = []
 const { palette, onThemeChange } = useChartPalette()
 
-const healthyCount = computed(
-  () => clusters.value.filter((c) => c.status === 'healthy').length
-)
-const abnormalCount = computed(() =>
-  clusters.value.filter((c) => c.status === 'degraded' || c.status === 'down').length
+const healthyCount = computed(() => clusters.value.filter((c) => c.status === 'healthy').length)
+const abnormalCount = computed(
+  () => clusters.value.filter((c) => c.status === 'degraded' || c.status === 'down').length
 )
 const yesText = computed(() => t('karmada.yes'))
 const noText = computed(() => t('karmada.no'))
@@ -148,7 +163,9 @@ function renderCharts(): void {
         type: 'bar',
         stack: 'replicas',
         itemStyle: { color: p['--ds-warning'] },
-        data: clusters.value.map((c) => Math.max((c.maxReplicas ?? 0) - (c.availableReplicas ?? 0), 0))
+        data: clusters.value.map((c) =>
+          Math.max((c.maxReplicas ?? 0) - (c.availableReplicas ?? 0), 0)
+        )
       },
       {
         name: t('karmada.overview.chartSeriesAvailable'),

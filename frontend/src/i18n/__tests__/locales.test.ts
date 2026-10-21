@@ -239,7 +239,11 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
       infraMachineZh as Record<string, unknown>,
       infraMachineEn as Record<string, unknown>
     ],
-    ['infraSched', infraSchedZh as Record<string, unknown>, infraSchedEn as Record<string, unknown>],
+    [
+      'infraSched',
+      infraSchedZh as Record<string, unknown>,
+      infraSchedEn as Record<string, unknown>
+    ],
     ['karmada', karmadaZh as Record<string, unknown>, karmadaEn as Record<string, unknown>]
   ]
 

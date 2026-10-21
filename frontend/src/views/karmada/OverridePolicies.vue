@@ -1,5 +1,10 @@
 <template>
-  <div class="km-page" role="main" data-design-contract="v2" :aria-label="t('karmada.override.title')">
+  <div
+    class="km-page"
+    role="main"
+    data-design-contract="v2"
+    :aria-label="t('karmada.override.title')"
+  >
     <PageHeader :title="t('karmada.override.title')" :subtitle="t('karmada.override.subtitle')" />
 
     <p v-if="error" class="km-error" role="alert">
@@ -16,11 +21,17 @@
           <el-input v-model="form.namespace" :placeholder="t('karmada.namespacePlaceholder')" />
         </el-form-item>
         <el-form-item :label="t('karmada.override.fieldTargetClusters')">
-          <el-input v-model="form.targetClusters" :placeholder="t('karmada.override.targetPlaceholder')" />
+          <el-input
+            v-model="form.targetClusters"
+            :placeholder="t('karmada.override.targetPlaceholder')"
+          />
           <p class="km-hint">{{ t('karmada.override.targetHint') }}</p>
         </el-form-item>
         <el-form-item :label="t('karmada.override.fieldRegistry')">
-          <el-input v-model="form.registry" :placeholder="t('karmada.override.registryPlaceholder')" />
+          <el-input
+            v-model="form.registry"
+            :placeholder="t('karmada.override.registryPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.override.fieldTag')">
           <el-input v-model="form.tag" :placeholder="t('karmada.override.tagPlaceholder')" />
@@ -28,7 +39,10 @@
         <el-form-item :label="t('karmada.override.fieldEnvs')">
           <div v-for="(env, i) in form.envs" :key="i" class="km-row">
             <el-input v-model="env.name" :placeholder="t('karmada.override.envNamePlaceholder')" />
-            <el-input v-model="env.value" :placeholder="t('karmada.override.envValuePlaceholder')" />
+            <el-input
+              v-model="env.value"
+              :placeholder="t('karmada.override.envValuePlaceholder')"
+            />
             <el-button link type="danger" @click="removeEnv(i)">
               {{ t('karmada.override.actionRemoveEnv') }}
             </el-button>
@@ -220,7 +234,9 @@ async function create(): Promise<void> {
   if (form.tag.trim()) {
     imageOverrider.push({ component: 'Tag', operator: 'replace', value: form.tag.trim() })
   }
-  const envs = form.envs.filter((e) => e.name.trim()).map((e) => ({ name: e.name.trim(), value: e.value }))
+  const envs = form.envs
+    .filter((e) => e.name.trim())
+    .map((e) => ({ name: e.name.trim(), value: e.value }))
 
   const overrideRules: OverridePolicySpec['overrideRules'] = []
   if (imageOverrider.length) {

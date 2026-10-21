@@ -162,10 +162,7 @@ export function listOverridePolicies(
 }
 
 export function getOverridePolicy(name: string, namespace = 'default'): Promise<OverridePolicy> {
-  return get<OverridePolicy>(
-    `${OVERRIDE_POLICIES}/${encodeURIComponent(name)}`,
-    { namespace }
-  )
+  return get<OverridePolicy>(`${OVERRIDE_POLICIES}/${encodeURIComponent(name)}`, { namespace })
 }
 
 export function updateOverridePolicy(
@@ -378,10 +375,7 @@ export function listFailoverPolicies(
 }
 
 export function getFailoverPolicy(name: string, namespace = 'default'): Promise<FailoverPolicy> {
-  return get<FailoverPolicy>(
-    `${FAILOVER_POLICIES}/${encodeURIComponent(name)}`,
-    { namespace }
-  )
+  return get<FailoverPolicy>(`${FAILOVER_POLICIES}/${encodeURIComponent(name)}`, { namespace })
 }
 
 /**
@@ -415,11 +409,9 @@ export function updateFailoverPolicy(
   }>,
   namespace = 'default'
 ): Promise<FailoverPolicy> {
-  return put<FailoverPolicy>(
-    `${FAILOVER_POLICIES}/${encodeURIComponent(name)}`,
-    data,
-    { params: { namespace } }
-  )
+  return put<FailoverPolicy>(`${FAILOVER_POLICIES}/${encodeURIComponent(name)}`, data, {
+    params: { namespace }
+  })
 }
 
 /** handler 成功返回 204 无响应体（failover.go:738） */

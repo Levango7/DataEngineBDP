@@ -1,5 +1,10 @@
 <template>
-  <div class="km-page" role="main" data-design-contract="v2" :aria-label="t('karmada.policies.title')">
+  <div
+    class="km-page"
+    role="main"
+    data-design-contract="v2"
+    :aria-label="t('karmada.policies.title')"
+  >
     <PageHeader :title="t('karmada.policies.title')" :subtitle="t('karmada.policies.subtitle')" />
 
     <p v-if="error" class="km-error" role="alert">
@@ -16,20 +21,41 @@
           <el-input v-model="form.namespace" :placeholder="t('karmada.namespacePlaceholder')" />
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldPrimary')">
-          <el-input v-model="form.primaryCluster" :placeholder="t('karmada.policies.primaryPlaceholder')" />
+          <el-input
+            v-model="form.primaryCluster"
+            :placeholder="t('karmada.policies.primaryPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldBackups')">
-          <el-input v-model="form.backupClusters" :placeholder="t('karmada.policies.backupsPlaceholder')" />
+          <el-input
+            v-model="form.backupClusters"
+            :placeholder="t('karmada.policies.backupsPlaceholder')"
+          />
           <p class="km-hint">{{ t('karmada.policies.backupsHint') }}</p>
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldDetectionWindow')">
-          <el-input v-model.number="form.detectionWindowSeconds" type="number" :min="1" style="width: 160px" />
+          <el-input
+            v-model.number="form.detectionWindowSeconds"
+            type="number"
+            :min="1"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldMigrationTimeout')">
-          <el-input v-model.number="form.migrationTimeoutSeconds" type="number" :min="1" style="width: 160px" />
+          <el-input
+            v-model.number="form.migrationTimeoutSeconds"
+            type="number"
+            :min="1"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldCheckInterval')">
-          <el-input v-model.number="form.healthCheckIntervalSeconds" type="number" :min="1" style="width: 160px" />
+          <el-input
+            v-model.number="form.healthCheckIntervalSeconds"
+            type="number"
+            :min="1"
+            style="width: 160px"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.policies.fieldEnabled')">
           <!-- el-switch 不在测试 stub 表里；这里用 el-select 承载三态选择，
@@ -54,7 +80,11 @@
       <el-table v-if="rows.length" v-loading="loading" :data="rows" stripe>
         <el-table-column :label="t('karmada.policies.colName')" min-width="160" prop="name" />
         <el-table-column :label="t('karmada.colNamespace')" width="120" prop="namespace" />
-        <el-table-column :label="t('karmada.policies.colPrimary')" width="160" prop="primaryCluster" />
+        <el-table-column
+          :label="t('karmada.policies.colPrimary')"
+          width="160"
+          prop="primaryCluster"
+        />
         <el-table-column :label="t('karmada.policies.colBackups')" min-width="180">
           <template #default="{ row }">{{ backupsLabel(row.backupClusters) }}</template>
         </el-table-column>

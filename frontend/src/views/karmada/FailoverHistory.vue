@@ -1,5 +1,10 @@
 <template>
-  <div class="km-page" role="main" data-design-contract="v2" :aria-label="t('karmada.history.title')">
+  <div
+    class="km-page"
+    role="main"
+    data-design-contract="v2"
+    :aria-label="t('karmada.history.title')"
+  >
     <PageHeader :title="t('karmada.history.title')" :subtitle="t('karmada.history.subtitle')" />
 
     <p v-if="error" class="km-error" role="alert">
@@ -14,7 +19,12 @@
       </label>
       <label class="km-field">
         <span class="km-field__label">{{ t('karmada.colStatus') }}</span>
-        <el-select v-model="statusFilter" clearable :placeholder="t('karmada.history.statusAll')" style="width: 180px">
+        <el-select
+          v-model="statusFilter"
+          clearable
+          :placeholder="t('karmada.history.statusAll')"
+          style="width: 180px"
+        >
           <el-option v-for="s in FAILOVER_EVENT_STATUSES" :key="s" :label="s" :value="s" />
         </el-select>
       </label>
@@ -31,13 +41,22 @@
     <PageCard :title="t('karmada.history.triggerTitle')">
       <el-form class="km-form" label-width="140px" label-position="left">
         <el-form-item :label="t('karmada.history.fieldSourceCluster')">
-          <el-input v-model="trigger.sourceCluster" :placeholder="t('karmada.history.sourcePlaceholder')" />
+          <el-input
+            v-model="trigger.sourceCluster"
+            :placeholder="t('karmada.history.sourcePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.history.fieldTargetCluster')">
-          <el-input v-model="trigger.targetCluster" :placeholder="t('karmada.history.targetPlaceholder')" />
+          <el-input
+            v-model="trigger.targetCluster"
+            :placeholder="t('karmada.history.targetPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.history.fieldPolicyName')">
-          <el-input v-model="trigger.policyName" :placeholder="t('karmada.history.policyPlaceholder')" />
+          <el-input
+            v-model="trigger.policyName"
+            :placeholder="t('karmada.history.policyPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('karmada.history.fieldReason')">
           <el-select v-model="trigger.reason" style="width: 220px">
@@ -57,15 +76,29 @@
     <PageCard :title="t('karmada.history.listTitle')">
       <el-table v-if="visible.length" v-loading="loading" :data="visible" stripe>
         <el-table-column :label="t('karmada.history.colEventId')" min-width="180">
-          <template #default="{ row }"><span class="km-mono">{{ row.eventId }}</span></template>
+          <template #default="{ row }">
+            <span class="km-mono">{{ row.eventId }}</span>
+          </template>
         </el-table-column>
         <el-table-column :label="t('karmada.history.colSource')" width="150" prop="sourceCluster" />
         <el-table-column :label="t('karmada.history.colTarget')" width="150" prop="targetCluster" />
-        <el-table-column :label="t('karmada.history.colTriggerReason')" width="150" prop="triggerReason" />
-        <el-table-column :label="t('karmada.history.colPolicyName')" min-width="150" prop="policyName" />
+        <el-table-column
+          :label="t('karmada.history.colTriggerReason')"
+          width="150"
+          prop="triggerReason"
+        />
+        <el-table-column
+          :label="t('karmada.history.colPolicyName')"
+          min-width="150"
+          prop="policyName"
+        />
         <el-table-column :label="t('karmada.colStatus')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.status" :label="row.status" :status-map="KARMADA_EVENT_STATUS_MAP" />
+            <StatusTag
+              :status="row.status"
+              :label="row.status"
+              :status-map="KARMADA_EVENT_STATUS_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('karmada.history.colDuration')" width="110">
