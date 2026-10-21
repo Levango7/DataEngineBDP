@@ -238,6 +238,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/audit-logs`  | `/audit-logs` | asset-exchange | ✅ |
 | `/audit-logs/integrity`  | `/audit-logs` | asset-exchange | ✅ |
 | `/audit-logs/${encodeURIComponent(logId)}` （1 变量） | `/audit-logs` | asset-exchange | ✅ |
+| `/settlements`  | `/settlements` | asset-exchange | ✅ |
 
 ## gateway.ts
 
@@ -496,7 +497,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：273
+- 匹配：274
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

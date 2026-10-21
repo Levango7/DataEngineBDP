@@ -66,7 +66,16 @@ vulnerabilities:
     statement: "node 22-alpine 自带 npm 的 sigstore 3.1.0；随 npm 内容更新清"
     expired_at: 2026-12-01
 
-  # ---- eclipse-temurin:17-jre（11 个 Dockerfile 的运行阶段）----
+  # ---- eclipse-temurin:17-jre（CI 实际构建的 10 个运行层；另有 platform/encaps-layer/Dockerfile.multiarch
+  #      用同一基座，但 CI 不构建它，故不在 #684 的删除清单里）----
+  # 这四条的成因是同一个：基镜自带的 Bitnami 服务管理器 /usr/bin/pebble 用 Go stdlib v1.27.1 编，
+  # 修复线 1.26.10 / 1.27.3 尚未随基镜发布（`--ignore-unfixed` 不吞它们，因为上游**有**修复版本）。
+  # PR #684 已在 10 个运行层加 `RUN rm -f /usr/bin/pebble`：本机 trivy 0.71.1 实扫同一基座
+  # 由 4 条变 0 条，`java -version` 仍是 openjdk 17.0.20.1。写在本表的原因是这条门禁扫的是
+  # **基座引用本身**，看不见我们自己构建层里的删除（与下面 libexpat 那组同理）。
+  # 如实记下局限：删除只作用于镜像装配后的根文件系统；基座那一层的 layer blob 在 registry 里仍含该二进制，
+  # 逐层解包的人还是拿得到它。真要连这个都消掉只有跨线换基座（#74 已列 `17-jre-alpine` 实测 0 命中）。
+  # 解锁：Bitnami 用 Go ≥1.27.3 重出 pebble 并随基镜发布后，整块删掉这 4 条与那 10 行 RUN。
   - id: CVE-2026-78667
     statement: "temurin 17-jre(jdk-17.0.20.1+1, 2026-10-17 构建) 内 /usr/bin/pebble 的 Go stdlib v1.27.1 → 修复线 1.26.9/1.27.2；本次扫描里 17-jre-alpine 是 0 命中 ⇒ 清法是变体跃迁，需单独验证"
     expired_at: 2026-12-01
@@ -75,6 +84,9 @@ vulnerabilities:
     expired_at: 2026-12-01
   - id: CVE-2026-97031
     statement: "同上（pebble / Go stdlib v1.27.1）"
+    expired_at: 2026-12-01
+  - id: CVE-2026-111943
+    statement: "同上（pebble / Go stdlib v1.27.1 → 1.26.10、1.27.3）。这条 2026-10-21 才显形：CI 工件 trivy-image-reports 里 eclipse-temurin_17-jre.sarif 在同批**只剩这 1 条 results**（另三条早已在本表），job `119158037486` 因此对每条 PR 判红——是漏登一条 id，不是基镜新出的洞"
     expired_at: 2026-12-01
 
   # ---- maven:3.9-eclipse-temurin-17（18 个 Dockerfile 的构建阶段）----

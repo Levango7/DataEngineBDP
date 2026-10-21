@@ -207,6 +207,7 @@ export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-api': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
   '/exchange-settlements': ['exchange'],
+  '/exchange-overview': ['exchange'],
   '/exchange-audit': ['exchange'],
   '/exchange-register': ['exchange'],
   '/ai-assistant': ['aiAssistant'],
