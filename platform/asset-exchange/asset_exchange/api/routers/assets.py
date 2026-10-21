@@ -687,8 +687,10 @@ async def allocate_asset(
 async def list_allocations(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Allocation]:
-    """列出某资产的分账记录."""
+    """列出某资产的分账记录（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.allocationService.list_by_asset(asset_id)
 
 
@@ -700,6 +702,8 @@ async def list_allocations(
 async def list_asset_audit_logs(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[AuditLog]:
-    """列出某资产的所有审计日志（按时间升序）."""
+    """列出某资产的所有审计日志（按时间升序，仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.auditService.list_by_asset(asset_id)

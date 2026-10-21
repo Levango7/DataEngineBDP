@@ -2,7 +2,8 @@
 
 现象：`GET /assets/{id}/{settlements,billing,subscriptions,usage}` 四个 handler 原本
 **不接收 AuthContext、也不查资产归属**（router 级只有 `Depends(getAuthContext)` 认证门槛），
-任何持合法 JWT 的租户都能读到别家资产的钱与订阅名册。
+任何持合法 JWT 的租户都能读到别家资产的钱与订阅名册。同一批复查又发现
+`allocations`（分账金额）与资产级 `audit-logs`（操作者、payload）是同样的裸读，一并收口。
 
 对照证据（本机起 AUTH_MODE=jwt 的真服务，两个自签 HS256 token）：
     tenant-B(role=user) GET /assets/<tenant-A 的资产>/settlements
@@ -36,6 +37,8 @@ READ_PATHS = (
     "billing",
     "subscriptions",
     "usage",
+    "allocations",
+    "audit-logs",
 )
 
 
@@ -130,18 +133,25 @@ def seed_asset_with_money(c: TestClient, name: str) -> str:
         headers=admin_headers(),
     )
     assert resp.status_code == 200, resp.text
+
+    # 分账端点要单独打：settle 只出结算单，不落 allocations（allocate 才落）
+    resp = c.post(
+        f"/api/v1/assets/{aid}/allocate",
+        headers=admin_headers(),
+    )
+    assert resp.status_code == 200, resp.text
     return aid
 
 
 class TestAssetReadEndpointsTenantGate:
-    def test_all_four_cross_tenant_403(self, app, monkeypatch) -> None:
+    def test_all_cross_tenant_403(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
         aid = seed_asset_with_money(c, "read-gate-403")
         for suffix in READ_PATHS:
             resp = c.get(f"/api/v1/assets/{aid}/{suffix}", headers=user_headers(OUTSIDER))
             assert resp.status_code == 403, f"{suffix}: {resp.status_code} {resp.text}"
 
-    def test_all_four_without_token_401(self, app, monkeypatch) -> None:
+    def test_all_without_token_401(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
         aid = seed_asset_with_money(c, "read-gate-401")
         for suffix in READ_PATHS:
@@ -172,6 +182,18 @@ class TestAssetReadEndpointsTenantGate:
         resp = c.get(f"/api/v1/assets/{aid}/usage", headers=user_headers(PROVIDER))
         assert resp.status_code == 200, resp.text
         assert resp.json()["subscriberCount"] >= 1, resp.json()
+
+        resp = c.get(f"/api/v1/assets/{aid}/allocations", headers=user_headers(PROVIDER))
+        assert resp.status_code == 200, resp.text
+        rows = resp.json()
+        assert len(rows) >= 1, rows
+        assert rows[0]["assetId"] == aid
+        assert rows[0]["providerAmount"] > 0, rows
+
+        resp = c.get(f"/api/v1/assets/{aid}/audit-logs", headers=user_headers(PROVIDER))
+        assert resp.status_code == 200, resp.text
+        actions = [row["action"] for row in resp.json()]
+        assert "settle" in actions and "allocate" in actions, actions
 
     def test_admin_still_reads_any_tenant(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
