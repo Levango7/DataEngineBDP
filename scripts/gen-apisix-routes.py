@@ -146,6 +146,31 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     "observability/query-api": "observability-query-api",
 }
 
+# 前缀 → (截断后的 module 名, chart 名) 的直连裁决。
+#
+# 为什么需要它：gen-api-contract.py 的既有口径把多级目录组件截到第一级
+# （platform/finops/dashboard 与 platform/finops/cost-model 都只报 module "finops"），
+# 于是上面 "finops/dashboard"/"finops/cost-model" 两条 override 永不命中，
+# finops 全家族按"同名 chart 回退"落到 charts/finops —— 那个镜像
+# harbor.shuqing.io/shuqing/finops 本仓产不出（platform/ 下无 finops/Dockerfile）、
+# 且在 umbrella 里 enabled: false 的重复骨架上（台账 #65 已裁"留着不改语义"）。
+# 结果是 /api/v1/dashboard|allocation|suggestions|bill/export|cost|pricing|finops/*
+# 这些**确有实现**的前缀在生产网关上指向一个不被部署、也不提供这些接口的 Service。
+# 逐条给出实现坐标（改这些前缀的归属前先核这几行）：
+PREFIX_CHART_FIXUPS: dict[str, tuple[str, str]] = {
+    # platform/finops/dashboard（chart dashboard，service.port 8085）
+    "/api/v1/dashboard": ("finops", "dashboard"),  # .../dashboard/controller/DashboardController.java:39
+    "/api/v1/dashboard/billing": ("finops", "dashboard"),  # .../dashboard/controller/BillingController.java:31
+    "/api/v1/allocation": ("finops", "dashboard"),  # .../dashboard/controller/AllocationController.java:54
+    "/api/v1/suggestions": ("finops", "dashboard"),  # .../dashboard/controller/SuggestionController.java:35
+    "/api/v1/bill/export": ("finops", "dashboard"),  # .../dashboard/controller/BillExportController.java:47
+    # platform/finops/cost-model（chart cost-model，service.port 8084）
+    "/api/v1/cost": ("finops", "cost-model"),  # .../finops/controller/CostController.java:39
+    "/api/v1/pricing": ("finops", "cost-model"),  # .../finops/controller/PricingController.java:39
+    "/api/v1/finops/billing": ("finops", "cost-model"),  # .../finops/controller/BillingController.java:32
+    "/api/v1/finops/metering": ("finops", "cost-model"),  # .../finops/controller/MeteringController.java:40
+}
+
 # 禁止作为路由上游的 chart：这些 chart 部署的是第三方/基础设施组件，
 # 其 Service 并不提供平台 REST 前缀（把平台前缀指过去必然 404/错误响应）。
 CHART_FALLBACK_DENY: set[str] = {
@@ -238,6 +263,30 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
         if prefix.rstrip("/") in ACCEPTED_SHARED_PREFIXES:
             accepted.append(
                 f"{prefix} —— {ACCEPTED_SHARED_PREFIXES[prefix.rstrip('/')]}")
+            continue
+
+        # 前缀直连裁决（成因见 PREFIX_CHART_FIXUPS 上方说明）：module 名被截断时
+        # "同名 chart 回退"会把这些前缀指到不部署的骨架 chart，故在此显式改指实现方。
+        # 两个失效条件都判红而非静默放行：声明方变了（归属需重核）、或目标 chart 没了端口。
+        fixup = PREFIX_CHART_FIXUPS.get(prefix)
+        if fixup is not None:
+            root, chart = fixup
+            if set(modules) != {root}:
+                conflicts.append(
+                    f"{prefix} 的直连裁决已失效：声明方为 {sorted(set(modules))}，"
+                    f"不再是单一 [{root}] —— 需重新核对 PREFIX_CHART_FIXUPS，不能沿用旧归属")
+                continue
+            if chart not in chart_ports:
+                conflicts.append(
+                    f"{prefix} 直连 chart {chart}，但该 chart 没有 Service 端口 —— 先补 chart 或改归属")
+                continue
+            routes.append({
+                "uri": f"{prefix}/**",
+                "upstream": {
+                    "type": "roundrobin",
+                    "nodes": {f"{chart}:{chart_ports[chart]}": 1},
+                },
+            })
             continue
 
         # 粗前缀（如 /api/v1）：多个服务把子路径直接挂在版本号下，
