@@ -212,6 +212,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/clusters/health/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/clusters/private/**",
           "upstream": {
             "type": "roundrobin",
@@ -320,11 +329,65 @@ data:
           }
         },
         {
+          "uri": "/api/v1/failover-events/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/failover-policies/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/feature-groups/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/governance/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/scheduling/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/transactions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
             }
           }
         },
@@ -509,6 +572,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/override-policies/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/pricing/**",
           "upstream": {
             "type": "roundrobin",
@@ -532,6 +604,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/propagation-policies/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "karmada-api:8090": 1
             }
           }
         },
@@ -568,6 +649,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/replica-plans/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
             }
           }
         },

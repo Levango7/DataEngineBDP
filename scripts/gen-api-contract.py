@@ -201,6 +201,19 @@ GO_SERVICE_PREFIXES: dict[str, str] = {
     "/api/v1/cluster": "observability/query-api main.go clusterGroup（k3s 可用：/overview /nodes /pods /components）",
     "/api/v1/vector": "vector-engine internal/api/handler.go RegisterRoutes（/vector /vector/search /collections...）",
     "/api/v1/ai-assistant": "ai-assistant internal/api/handler.go RegisterRoutes（/chat /nl2sql /sessions...）",
+    # karmada failover-api：main.go:107 把 handler 挂到 `v1.Group("")`（即 /api/v1 根），
+    # 组路径写在 internal/handler/failover.go 里，静态不可绑定 ⇒ 按本表既有做法显式登记。
+    # 注意：同文件 :55-58 还有一条 `clusters.GET("/:name/health")` 带路径参数，
+    # 前缀路由表达不了，故意不登记（台账 #89 记为待决）。
+    "/api/v1/failover-events": "karmada failover-api internal/handler/failover.go:47 "
+                               "rg.Group(\"/failover-events\")（GET 列表 / POST 触发 / GET :eventId）",
+    "/api/v1/replica-plans": "karmada failover-api internal/handler/failover.go:62 "
+                             "rg.Group(\"/replica-plans\")（GET / POST / PUT :policyName）",
+    "/api/v1/failover-policies": "karmada failover-api internal/handler/failover.go:71 "
+                                 "rg.Group(\"/failover-policies\")（GET / POST / GET :name / PUT / DELETE）",
+    "/api/v1/clusters/health": "karmada failover-api internal/handler/failover.go:55-57 "
+                               "rg.Group(\"/clusters\") 下 clusters.GET(\"/health\")；"
+                               "粗前缀 /api/v1/clusters 仍归 infra-orchestrator，本条靠最长字面前缀分流",
 }
 
 
