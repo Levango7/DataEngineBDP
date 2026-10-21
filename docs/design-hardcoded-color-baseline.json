@@ -1,7 +1,6 @@
 {
-  "total": 78,
+  "total": 76,
   "by_file": {
-    "asset-exchange-dashboard/src/views/Dashboard.vue": 2,
     "finetuning-monitor/src/App.vue": 2,
     "finetuning-monitor/src/views/LoopTaskDetail.vue": 1,
     "finetuning-monitor/src/views/VersionManagement.vue": 1,

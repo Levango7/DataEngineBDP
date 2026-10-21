@@ -12,7 +12,12 @@
 - **资产上架**：上架审核（合规/质量/分级检查），上架后可在资产市场检索
 - **资产流通**：订阅 / 下载 / API 调用，支持三种定价（按次/按量/订阅），流通记录留痕
 - **资产变现**：自动结算（订阅费/按次费/按量费），分账到数据提供方与平台
-- **流通看板**：资产 Top N / 流通趋势 / 收益明细 / 分账明细（前端 Vue3 + ECharts）
+- **流通看板**：⚠️ 前端已摘除（原 `frontend/asset-exchange-dashboard/`，从未随镜像交付，见台账 #78）。
+  登记/审核/上架、结算分账、审计日志三类页面已收编进主应用（`frontend/src/views/exchange/`，
+  路由 `/exchange-register`、`/exchange-settlements`、`/exchange-audit`）；
+  图表看板待按**租户级** `GET /api/v1/settlements` 重建——旧看板的数据通路是逐资产
+  `/{id}/settlements`+`/{id}/billing` 串行扇出，而 PR #673 已把这四个资产级读取端点收成
+  owner-or-admin，非提供方拿不到别家数据，旧通路不再可用（这是应当的，不是回归）
 - **审计留痕**：登记/上架/流通/变现/分账全过程审计日志，不可篡改（哈希链）
 
 ## 目录结构
@@ -48,14 +53,12 @@ platform/asset-exchange/
 ├── pyproject.toml
 └── requirements.txt
 
-frontend/asset-exchange-dashboard/   # 流通看板前端（Vue3 + ECharts）
-├── src/
-│   ├── views/               # 页面：Dashboard/AssetList/RegisterForm/SettlementList
-│   ├── components/          # ECharts 图表组件
-│   ├── api/                 # API 客户端
-│   └── router/              # 路由
-├── package.json
-└── vite.config.ts
+（前端已收编进主应用，不在本服务目录下）
+frontend/src/views/exchange/         # 主应用内的流通页面
+├── AssetRegister.vue         # 登记 → 审核（通过/驳回）→ 上架
+├── Settlements.vue           # 结算单 + 分账 + 触发结算
+├── AuditLogs.vue             # 审计列表 + 单条详情（哈希链）
+└── format.ts                 # 状态标签映射（键为后端序列化的小写值）
 
 tests/integration/docker/test_asset_exchange.py   # 集成测试（≥20 用例）
 ```
