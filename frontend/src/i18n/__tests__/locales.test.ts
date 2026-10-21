@@ -101,11 +101,12 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 55 项 + 8 分组全部有中英词条', () => {
+  it('导航 56 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
-    // 实数：Sidebar groups 共 52 个导航项（8 分组，含 2026-09-07 新增 approvals）
-    expect(navItems.length).toBe(55)
+    // 计数口径 = nav.items 的键数（Sidebar 用它渲染）。
+    // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）。
+    expect(navItems.length).toBe(56)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
