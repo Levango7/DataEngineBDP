@@ -41,7 +41,7 @@ class RuleEngineRuleMapperTest {
         assertThat(r.getFieldName()).isEqualTo("amount");
         assertThat(r.getSeverity()).isEqualTo("ERROR");
         assertThat(r.isEnabled()).isTrue();
-        assertThat(r.getParams()).containsEntry("min", "0").containsEntry("max", "100000");
+        assertThat(r.getParams()).containsEntry("min", 0.0).containsEntry("max", 100000.0);
     }
 
     @Test

@@ -215,12 +215,12 @@ class QualityRuleEvaluatorTest {
         }
 
         @Test
-        @DisplayName("缺少 pattern 参数应 PASS（降级）")
-        void missingPatternPasses() {
+        @DisplayName("缺少 pattern 参数应报 ERROR（不得静默放行）")
+        void missingPatternIsError() {
             QualityRule rule = buildRule("r-fmt-3", QualityRule.RuleType.FORMAT, "email", null);
 
             QualityRuleResult result = evaluator.evaluate(rule, "rec-1", "anything");
-            assertThat(result.getResult()).isEqualTo("PASS");
+            assertThat(result.getResult()).isEqualTo("ERROR");
         }
     }
 
