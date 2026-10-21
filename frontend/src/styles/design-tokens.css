@@ -663,7 +663,7 @@
      * 由 scripts/check-dark-token-parity.py 在 CI 断言 */
     /* 暗色下侧栏要比画布 #101317 更深才分得开：实测取 #0b0e13 时边界几乎看不出来
      （只差 3 个明度级），压到 #06090d 后与画布形成可读的层级差。 */
-  --ds-nav-bg: #06090d;
+    --ds-nav-bg: #06090d;
     --ds-nav-ink: #eef2f8;
     --ds-nav-muted: #a9b6c8;
     --ds-nav-hover-bg: #1a2432;
