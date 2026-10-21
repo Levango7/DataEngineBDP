@@ -103,6 +103,25 @@
       "published": "资产已上架",
       "publishFailed": "上架失败："
     },
-    "actionRetry": "重试"
+    "actionRetry": "重试",
+    "overview": {
+      "title": "流通看板",
+      "subtitle": "按当前租户汇总结算趋势、Top 资产与分成结构（数据来自资产级 GET /settlements）",
+      "actionReload": "刷新",
+      "scopeHint": "当前口径：租户 {tenant} 的结算单；平台不会显示其他租户的数据",
+      "empty": "该租户暂无结算记录",
+      "kpiSettlements": "结算单",
+      "kpiPeriods": "账期数",
+      "kpiAssets": "涉及资产",
+      "kpiProvider": "提供方收益",
+      "kpiPlatform": "平台分成",
+      "kpiTotal": "结算总额",
+      "chartTrend": "账期趋势（提供方收益 / 平台分成）",
+      "chartTopAssets": "Top 5 资产（按提供方收益）",
+      "tableTitle": "Top 资产明细",
+      "colSettlementCount": "结算单数",
+      "colProviderRevenue": "提供方收益",
+      "loadFailed": "加载失败："
+    }
   }
 }
