@@ -2472,7 +2472,7 @@ jobs:
             --format sarif --output trivy-results.sarif .
 
       - name: 上传Trivy扫描结果
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         # 上传 SARIF 到 GitHub Security tab 为辅助功能，失败不阻断构建；
         # 门禁判定在"门禁判定"那一步（读同一份 SARIF）。
         continue-on-error: true
