@@ -630,17 +630,22 @@ jobs:
           python3 scripts/check-it-auth-mode.py --self-test
           python3 scripts/check-it-auth-mode.py
 
-      - name: Dockerfile base 镜像源形态校验（台账 #72 防回退）
+      - name: Dockerfile base 镜像源形态校验（台账 #72 与 #88 防回退）
         # 这条守的是"能不能切源"：2026-10-17 一轮 docker.m.daocloud.io 抖动同时染红 6 条非必需腿
         # （K3s 116965905786 / Playwright 116965906239 / Integration Test 116984402422 /
         #  Kind 116991476936 / Docker Build Verify 117050952371 / main 的 Kind 117049880536），
         # 签名全是 net/http: TLS handshake timeout，而当时**没有任何工作流传 --build-arg BASE_REGISTRY**
         # ⇒ 宿主写死在 Dockerfile 的 ARG 默认值里，红的时候连旋钮都没有。
-        # 规则：① 禁 FROM 硬写加速器宿主；② 用 ${BASE_REGISTRY} 的文件必须提前声明纯宿主级 ARG
-        # （声明晚于 FROM 会被 Docker 展开成空串）；③ 官方镜像必须写全 library/；
-        # ④ 例外表（gcr.io、kindest、本地构建产物）必须真被用到，没人用的条目判红。
+        # 规则 R1-R8（口径见脚本 docstring）：① 禁 FROM 硬写加速器宿主；② 用 ${BASE_REGISTRY} 的文件
+        # 必须提前声明纯宿主级 ARG（声明晚于 FROM 会被 Docker 展开成空串）；③ 官方镜像必须写全 library/；
+        # ④ 例外表（gcr.io、kindest、本地构建产物、LEG_EXEMPT）必须真被用到，没人用的条目判红；
+        # ⑤ compose 的每个 build 服务必须传 BASE_REGISTRY；⑥ 禁直连 Docker Hub 短名 base；
+        # ⑦⑧ 是 #88 那两刀：每条镜像构建腿都得传 BASE_REGISTRY——工作流的 11 条 ＋ 仓库里的
+        # 手工 shell 脚本（实测 tests/deploy 两条既不传参还把仓库路径写死成某台机器的绝对位置），
+        # 前端那两条 docker/build-push-action 没传时，job 119158037385 每次触发都 DNS 红；
+        # 且 `${…:-…}` 兜底不许选加速器——选源器 fail-soft 的落点是上游 docker.io。
         run: |
-          # 先跑合成夹具，证明四条规则各自抓得住、好形态不误报、扫描集为空不静默放行
+          # 先跑合成夹具，证明八条规则各自抓得住、好形态不误报、扫描集为空不静默放行
           python3 scripts/check-dockerfile-base-registry.py --self-test
           python3 scripts/check-dockerfile-base-registry.py
           # 选源脚本自身的离线自测（桩探测，不碰网络）
@@ -1992,10 +1997,10 @@ jobs:
         if: env.docker_skip != 'true'
         run: |
           fail_count=0
-          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
-          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -2126,9 +2131,9 @@ jobs:
         run: |
           # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
           # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
-          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          # 探测脚本自身出问题时退回上游 docker.io（加速器不可达时它才是真源），不把空值传下去。
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
           echo "启动 docker-compose 服务（第 1 次尝试）..."
           if docker compose up -d --wait; then
