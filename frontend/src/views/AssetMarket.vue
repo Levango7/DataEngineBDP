@@ -277,6 +277,10 @@
           <span>{{ detailAsset.updateFrequency }}</span>
         </div>
         <div class="kv">
+          <span>{{ t('assetMarket.detail.fields.delivery') }}</span>
+          <span>{{ t(`assetMarket.deliveryMethod.${detailAsset.deliveryMethod}`) }}</span>
+        </div>
+        <div class="kv">
           <span>{{ t('assetMarket.detail.fields.price') }}</span>
           <span>
             {{

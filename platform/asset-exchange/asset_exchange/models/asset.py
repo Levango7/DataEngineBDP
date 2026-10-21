@@ -15,6 +15,7 @@ from asset_exchange.models.base import (
     AssetStatus,
     AssetType,
     BillingMode,
+    DeliveryMethod,
     SecurityLevel,
     TimestampMixin,
 )
@@ -99,6 +100,13 @@ class Asset(TimestampMixin):
 
     # 来源引用（关联 L3.5 资产目录 / L5.5 API 目录 / L4.5.2 ML / L4.5.5 LLMOps）
     sourceRef: Optional[str] = Field(default=None, description="源资产引用（如 catalog:table:uuid）")
+
+    # 提供方声明的交付方式（登记/上架时就固定，是"这个资产能怎么交付"的对外声明）。
+    # 与 models/delivery.py 里的 DeliveryRequest.method 区分：后者是某一次交付实际走的路径，
+    # 由消费方在订阅时选，可以不同。
+    deliveryMethod: DeliveryMethod = Field(
+        default=DeliveryMethod.API, description="交付方式: api / file / database_direct"
+    )
 
     # 运行时统计
     subscriberCount: int = Field(default=0, ge=0, description="当前订阅者数")

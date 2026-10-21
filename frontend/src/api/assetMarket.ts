@@ -95,6 +95,15 @@ export interface Asset {
   /** 标签 */
   tags: Record<string, string>
   pricing: AssetPricing
+  /**
+   * 提供方声明的交付方式。台账 #81 记过它的假形态：前端一直在发这个键，
+   * 而后端 `Asset` 模型没有该字段、请求 DTO 又 `extra='ignore'` ⇒ 值被静默丢弃，
+   * 下拉只是个装饰件。现在模型、表列（含幂等 ALTER）与请求 DTO 三侧都真了，
+   * 响应里一定带这个键。注意与订阅侧 `deliverAsset` 的 `method` 区分：
+   * 那是某一次交付实际走的路径（后端 `models/delivery.py` 消费并分支），
+   * 这里是资产对外声明"能怎么交付"。
+   */
+  deliveryMethod: DeliveryMethod
   /** 订阅者数量 */
   subscriberCount: number
   createdAt?: string
