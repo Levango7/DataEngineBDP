@@ -2431,9 +2431,22 @@ jobs:
             mvn -f "$lib_pom" install -B -q -DskipTests -U \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done
+          warm_fail=0
+          warm_failed=()
           while IFS= read -r pom; do
-            mvn -f "$pom" dependency:resolve -B -q -DskipTests || true
-          done < <(find platform -name pom.xml -not -path "*/target/*")
+            if ! mvn -f "$pom" dependency:resolve -B -q -DskipTests; then
+              warm_fail=$((warm_fail + 1))
+              warm_failed+=("$pom")
+            fi
+          done < <(find platform design/planned -name pom.xml -not -path "*/target/*" 2>/dev/null)
+          # 这里原本不计数：预热没热成也一声不响，后面 Trivy 自己去 Central 取依赖就撞 429，
+          # 而日志里看不出"哪个 pom 没热上"。现在把它说出来（仍不判红——门禁由 SARIF 内容决定）。
+          if [ "$warm_fail" -gt 0 ]; then
+            echo "::warning::$warm_fail 个 pom 未能预热本地缓存：${warm_failed[*]}"
+            echo "提示：这些清单在离线状态下解析不了，Trivy 扫描可能需要联网；若随后看到 rc=3「扫描器没结论」，先看这一行。"
+          else
+            echo "预热完成：platform 与 design/planned 下全部 pom 均可离线解析"
+          fi
 
       - name: 安装Trivy (与 security.yml 保持一致，直装+重试3次)
         run: |
@@ -2442,26 +2455,41 @@ jobs:
           sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
           trivy version
 
-      - name: Trivy扫描 - 文件系统模式
-        run: trivy fs --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
+      - name: Trivy扫描 - 文件系统模式（只跑不判，判定交给"门禁判定"那一步）
+        # 语义变更（台账 #86）：原先一行 `trivy fs --exit-code 1 ...` 让同一个退出码同时表示
+        # 两件事——"扫出 CRITICAL/HIGH" 与 "扫描器自己没结论"。2026-10-21 实测到后者：
+        # run 39555351752 里 Trivy 为 design/planned 下一个原型 pom 去 Maven Central 取
+        # spring-cloud-dependencies BOM，撞上 `429 Too Many Requests（Retry-After 449）` 直接
+        # FATAL，CI 只留下一行 exit 1，看不出"有没有漏洞"。
+        # 现在本步允许失败，由下一步按 SARIF 的实际内容判：有结论且 0 条 ⇒ 绿；
+        # 有结论且 >0 条 ⇒ 红；没结论（文件缺失/解析失败/runs 为空）⇒ 红且点名是环境问题。
+        # 不用 --ignore-paths 缩面：本机实跑 v0.71.1 的 `trivy fs --help` 证明该 flag 不存在
+        # （只有 --ignorefile 管 CVE 编号），写进去会让整步在 CI 里以"未知参数"失败。
+        # 缩面也会真减覆盖，故改为把 design/planned 的清单也纳入预热（见上一步）。
+        continue-on-error: true
+        run: |
+          trivy fs --severity CRITICAL,HIGH --ignore-unfixed \
+            --format sarif --output trivy-results.sarif .
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
         # 上传 SARIF 到 GitHub Security tab 为辅助功能，失败不阻断构建；
-        # Trivy 扫描本身（上一步）已通过 sarif 输出报告完成门禁。
+        # 门禁判定在"门禁判定"那一步（读同一份 SARIF）。
         continue-on-error: true
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: 渲染 Trivy 明细（SARIF 不进日志，失败时只剩一行 exit 1）
+      - name: 门禁判定 + 渲染 Trivy 明细（区分"扫出漏洞"与"扫描器没结论"）
         # 2026-09-25 实测：本 job 失败后日志里没有任何漏洞条目，只能去 Security tab 猜，
         # 而 tab 的 active 告警分散在 8 个历史 commit 上（大量已被 pom 抬版覆盖但不会自动关闭），
         # 完全不代表当前 HEAD。故从**已产出的 SARIF** 派生可读清单：
         # 不重跑扫描（扫描要预热 Maven 缓存、耗时数十秒），也不碰 SARIF 上传路径。
-        # 本步骤不改变门禁语义（是否阻断仍由上一步的 --exit-code 1 决定）。
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        run: python3 scripts/trivy-sarif-report.py trivy-results.sarif --markdown trivy-detail.md
+        # 2026-10-21 起这一步**就是门禁**（--gate --fail-on 0），且必须无条件跑：
+        # 若仍带 hashFiles 条件，扫描器崩在无 SARIF 时反而会跳过判定 ⇒ 整条腿假绿。
+        # 退出码口径：0=扫过且干净，1=扫出 CRITICAL/HIGH，3=扫描器没结论（环境问题，红但原因写明）。
+        if: always()
+        run: python3 scripts/trivy-sarif-report.py trivy-results.sarif --gate --fail-on 0 --markdown trivy-detail.md
 
       - name: 上传 Trivy 可读报告
         if: always() && hashFiles('trivy-detail.md') != ''
