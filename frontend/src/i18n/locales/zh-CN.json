@@ -133,6 +133,8 @@
       "ops-tpl": "行业应用模板",
       "ops-portal": "业务线门户",
       "ops-api": "开放 API",
+      "ops-api-generate": "一键生成 API",
+      "ops-api-subscriptions": "API 订阅管理",
       "ops-flow": "数据资产流通",
       "exchange-settlements": "结算与分账",
       "exchange-audit": "流通审计日志",
