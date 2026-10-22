@@ -20,6 +20,9 @@ export interface NavItem {
   badge?: number
 }
 export interface NavGroup {
+  /** 稳定标识：侧栏分组主题色（main.css 的 [data-group=...]）与测试都靠它，
+   * 不能用 title——title 是随语言变化的译文。 */
+  key: string
   title: string
   items: NavItem[]
 }
@@ -30,6 +33,7 @@ export function useNavGroups() {
 
   const groups = computed<NavGroup[]>(() => [
     {
+      key: 'infra',
       title: t('nav.groups.infra'),
       items: [
         { path: '/infra-machine', label: t('nav.items.infra-machine'), icon: 'Platform' },
@@ -38,10 +42,33 @@ export function useNavGroups() {
         { path: '/datasources', label: t('nav.items.datasources'), icon: 'Box' },
         { path: '/infra-net', label: t('nav.items.infra-net'), icon: 'Connection' },
         { path: '/infra-store', label: t('nav.items.infra-store'), icon: 'Files' },
-        { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'Odometer' }
+        { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'Odometer' },
+        // 收编批次 C2：原 frontend/multi-cluster-dashboard 独立看板的 5 页
+        { path: '/multicluster', label: t('nav.items.multicluster'), icon: 'Compass' },
+        {
+          path: '/multicluster/override-policies',
+          label: t('nav.items.multicluster-override'),
+          icon: 'SetUp'
+        },
+        {
+          path: '/multicluster/failover-history',
+          label: t('nav.items.multicluster-failover'),
+          icon: 'RefreshLeft'
+        },
+        {
+          path: '/multicluster/replica-plans',
+          label: t('nav.items.multicluster-plans'),
+          icon: 'ScaleToOriginal'
+        },
+        {
+          path: '/multicluster/failover-policies',
+          label: t('nav.items.multicluster-policies'),
+          icon: 'Position'
+        }
       ]
     },
     {
+      key: 'engine',
       title: t('nav.groups.engine'),
       items: [
         { path: '/eng-storage', label: t('nav.items.eng-storage'), icon: 'Folder' },
@@ -55,6 +82,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'governance',
       title: t('nav.groups.governance'),
       items: [
         { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'Notebook' },
@@ -66,6 +94,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'devtools',
       title: t('nav.groups.devtools'),
       items: [
         { path: '/integrate', label: t('nav.items.integrate'), icon: 'Link' },
@@ -80,6 +109,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'tenant',
       title: t('nav.groups.tenant'),
       items: [
         { path: '/workspaces', label: t('nav.items.workspaces'), icon: 'HomeFilled' },
@@ -94,6 +124,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'intelligent',
       title: t('nav.groups.intelligent'),
       items: [
         { path: '/ai-assistant', label: t('nav.items.ai-assistant'), icon: 'ChatLineRound' },
@@ -105,6 +136,7 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'operations-mgmt',
       title: t('nav.groups.operations-mgmt'),
       items: [
         { path: '/dashboard', label: t('nav.items.dashboard'), icon: 'PieChart' },
@@ -115,13 +147,30 @@ export function useNavGroups() {
       ]
     },
     {
+      key: 'platform-mgmt',
       title: t('nav.groups.platform-mgmt'),
       items: [
         { path: '/admin', label: t('nav.items.admin'), icon: 'Grid' },
         { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'Collection' },
         { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'View' },
         { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'Goods' },
-        { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' }
+        { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' },
+        {
+          path: '/exchange-settlements',
+          label: t('nav.items.exchange-settlements'),
+          icon: 'Money'
+        },
+        {
+          path: '/exchange-overview',
+          label: t('nav.items.exchange-overview'),
+          icon: 'TrendCharts'
+        },
+        { path: '/exchange-audit', label: t('nav.items.exchange-audit'), icon: 'Tickets' },
+        {
+          path: '/exchange-register',
+          label: t('nav.items.exchange-register'),
+          icon: 'EditPen'
+        }
       ]
     }
   ])

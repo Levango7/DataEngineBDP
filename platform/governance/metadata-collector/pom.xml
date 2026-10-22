@@ -23,7 +23,7 @@
         <hadoop.version>3.4.1</hadoop.version>
         <!-- 2026-09-26 安全修复：kafka-clients 3.8.1 多条 HIGH，取修复版 3.9.2
              （理由同 flink-cdc：不跨到 BOM 的 4.2.1，避免未验证的大版本跳）。 -->
-        <kafka.version>3.9.2</kafka.version>
+        <kafka.version>4.4.0</kafka.version>
         <hive-jdbc.version>4.0.0</hive-jdbc.version>
         <mysql-jdbc.version>26.7.0</mysql-jdbc.version>
     </properties>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>io.swagger.core.v3</groupId>
             <artifactId>swagger-annotations-jakarta</artifactId>
-            <version>2.2.22</version>
+            <version>2.2.55</version>
         </dependency>
         <!-- Spring Boot Web：REST API + 内嵌 Tomcat -->
         <dependency>
@@ -306,7 +306,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.6.0</version>
                 <configuration>
                     <configLocation>../../../build/lint/checkstyle.xml</configLocation>
                     <failOnViolation>true</failOnViolation>

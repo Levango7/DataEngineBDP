@@ -43,9 +43,12 @@ def _norm_sev(raw: str) -> str:
     return "RULE" if s in _SARIF_LEVELS else (s or "UNKNOWN")
 
 
-def load_results(path: str):
+def _load_doc(path: str):
     with open(path, encoding="utf-8") as fh:
-        doc = json.load(fh)
+        return json.load(fh)
+
+
+def _iter(doc):
     for run in doc.get("runs", []):
         tool = run.get("tool", {}).get("driver", {}).get("name", "?")
         rules = {r.get("id"): r for r in run.get("tool", {}).get("driver", {}).get("rules", [])}
@@ -53,26 +56,143 @@ def load_results(path: str):
             yield tool, rules, res
 
 
+def load_results(path: str):
+    return list(_iter(_load_doc(path)))
+
+
+def self_test() -> int:
+    """自测：四类"扫描器没结论"与两类真结论各判什么，防门禁自己失明。
+
+    这些用例都是合成 SARIF，不碰产品码；判据是退出码，不是日志里的一句话。
+    """
+    import os
+    import subprocess
+    import tempfile
+
+    here = os.path.abspath(__file__)
+    rc_all = 0
+    with tempfile.TemporaryDirectory() as tmp:
+        def write(name: str, text: str) -> str:
+            p = os.path.join(tmp, name)
+            with open(p, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(text)
+            return p
+
+        def write_doc(name: str, doc) -> str:
+            """夹具一律由 dict 经 json.dumps 生成，并回证它确实能被解析一次。
+
+            手拼 JSON 字符串写过一次坏夹具（少一个 ]），结果"1 个 HIGH 判红"这条用例
+            其实是撞在解析失败上过的 —— 合成夹具必须先自证合法，否则测的是夹具不是判据。
+            """
+            text = json.dumps(doc, ensure_ascii=False)
+            json.loads(text)
+            return write(name, text)
+
+        def _sarif(results):
+            return {
+                "version": "2.1.0",
+                "runs": [
+                    {
+                        "tool": {
+                            "driver": {
+                                "name": "Trivy",
+                                "rules": [{"id": "CVE-1", "defaultConfiguration": {"severity": "error"}}],
+                            }
+                        },
+                        "results": results,
+                    }
+                ],
+            }
+
+        empty_runs = write_doc("empty-runs.sarif", {"version": "2.1.0", "runs": []})
+        clean = write_doc("clean.sarif", _sarif([]))
+        high = write_doc(
+            "high.sarif",
+            _sarif(
+                [
+                    {
+                        "ruleId": "CVE-1",
+                        "level": "error",
+                        "message": {
+                            "text": "Package: x / Installed Version: 1.0 / Vulnerability CVE-1 / Severity: HIGH / Fixed Version: 1.1"
+                        },
+                        "locations": [{"physicalLocation": {"artifactLocation": {"uri": "pom.xml"}}}],
+                    }
+                ]
+            ),
+        )
+        broken = write("broken.sarif", "{not json")
+
+        cases = [
+            ("gate：零发现 ⇒ 放行", ["--gate", "--fail-on", "0", clean], 0),
+            ("gate：1 个 HIGH ⇒ 判红", ["--gate", "--fail-on", "0", high], 1),
+            ("gate：SARIF 不存在 ⇒ 判环境失败(3)", ["--gate", "--fail-on", "0", os.path.join(tmp, "nope.sarif")], 3),
+            ("gate：runs 为空 ⇒ 判环境失败(3)", ["--gate", "--fail-on", "0", empty_runs], 3),
+            ("gate：SARIF 解析不了 ⇒ 判环境失败(3)", ["--gate", "--fail-on", "0", broken], 3),
+            ("gate：没给 --fail-on ⇒ 用法错(2)", ["--gate", clean], 2),
+            ("报告模式（非 gate）：文件缺失仍不判红", [os.path.join(tmp, "nope.sarif")], 0),
+        ]
+        for label, argv, want in cases:
+            p = subprocess.run([sys.executable, here, *argv], capture_output=True, text=True)
+            ok = p.returncode == want
+            rc_all |= 0 if ok else 1
+            print(f"{'PASS' if ok else 'FAIL'}: {label} 期望 rc={want} 实得 rc={p.returncode}")
+            if not ok:
+                print("  stdout:", p.stdout.strip().splitlines()[-2:])
+                print("  stderr:", p.stderr.strip().splitlines()[-2:])
+    print("自测：", "全部 PASS" if rc_all == 0 else "有 FAIL")
+    return rc_all
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("sarif", nargs="?", default="trivy-results.sarif")
     ap.add_argument("--markdown", help="同时写出 markdown 报告路径")
+    ap.add_argument("--self-test", action="store_true", help="跑合成用例，验证本脚本自身的判据")
     ap.add_argument(
         "--fail-on",
         default=None,
         metavar="N",
         help="发现条数 > N 时退出 1（默认不改门禁语义，仅报告）",
     )
+    ap.add_argument(
+        "--gate",
+        action="store_true",
+        help="门禁模式：把「扫描器没结论」与「没扫出漏洞」分开判——文件缺失/解析失败/runs 为空一律 rc=3，"
+        "而不是让 `trivy --exit-code 1` 的退出码同时承担两种含义",
+    )
     args = ap.parse_args()
 
+    if args.self_test:
+        return self_test()
+
+    if args.gate and args.fail_on is None:
+        print("ERROR: --gate 必须带 --fail-on（阈值要显式写清，否则 0 条通过、N 条判红无从判定）", file=sys.stderr)
+        return 2
+
     try:
-        results = list(load_results(args.sarif))
+        doc = _load_doc(args.sarif)
     except FileNotFoundError:
+        if args.gate:
+            print(
+                f"::error::扫描器没有结论：{args.sarif} 不存在 —— 这是扫描命令/环境失败，不能读成「没有漏洞」",
+                file=sys.stderr,
+            )
+            return 3
         print(f"SKIP: 未找到 {args.sarif}（扫描步骤可能未产出结果）")
         return 0
     except json.JSONDecodeError as exc:
         print(f"ERROR: SARIF 解析失败 {args.sarif}: {exc}", file=sys.stderr)
-        return 2
+        return 3 if args.gate else 2
+
+    if args.gate and not doc.get("runs"):
+        print(
+            f"::error::扫描器没有结论：{args.sarif} 里 runs 为空（工具没真正跑起来），不能读成「没有漏洞」",
+            file=sys.stderr,
+        )
+        return 3
+
+    results = list(_iter(doc))
 
     # key = (工具, 包, 已装版本) → 严重级 / 修复版本 / 漏洞编号 / **命中清单文件**
     agg: dict[tuple, dict] = defaultdict(lambda: {"sev": set(), "fix": set(), "ids": set(), "paths": set()})

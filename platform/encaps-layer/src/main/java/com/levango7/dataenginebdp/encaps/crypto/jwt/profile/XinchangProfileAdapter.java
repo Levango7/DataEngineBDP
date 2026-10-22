@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.encaps.crypto.CryptoConfig;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoProfile;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoSpiFactory;
-import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmStorageCipher;
+import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmGcmStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.IntlStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.StorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.StorageCipherFactory;
@@ -29,7 +29,7 @@ import java.util.Map;
  *   <caption>表：信创与国际辖区能力对照表</caption>
  *   <tr><th>能力</th><th>信创（xinchang）</th><th>国际（international）</th></tr>
  *   <tr><td>JWT 签名</td><td>SM3withSM2</td><td>RS256（由 Spring Security 提供）</td></tr>
- *   <tr><td>存储加密</td><td>SM4-CBC</td><td>AES-GCM</td></tr>
+ *   <tr><td>存储加密</td><td>SM4-GCM（AEAD）</td><td>AES-GCM</td></tr>
  *   <tr><td>传输加密</td><td>SM2+SM4 数字信封</td><td>TLS（应用层不重复加密）</td></tr>
  * </table>
  *
@@ -145,7 +145,7 @@ public class XinchangProfileAdapter {
         switch (profile) {
             case XINCHANG -> {
                 caps.put("jwt", "SM3withSM2");
-                caps.put("storage", GmStorageCipher.ALGORITHM);
+                caps.put("storage", GmGcmStorageCipher.ALGORITHM);
                 caps.put("transport", GmTransportCipher.ALGORITHM);
                 caps.put("digest", "SM3");
                 caps.put("asymmetric", "SM2");

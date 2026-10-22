@@ -84,6 +84,11 @@
       "infra-net": "集群网络",
       "infra-store": "集群存储",
       "infra-sched": "弹性调度",
+      "multicluster": "多集群健康",
+      "multicluster-override": "集群覆盖策略",
+      "multicluster-failover": "故障迁移历史",
+      "multicluster-plans": "副本权重分配",
+      "multicluster-policies": "故障迁移策略",
       "eng-storage": "统一存储",
       "eng-spark": "批计算（Spark）",
       "eng-flink": "流计算（Flink）",
@@ -128,7 +133,11 @@
       "ops-tpl": "行业应用模板",
       "ops-portal": "业务线门户",
       "ops-api": "开放 API",
-      "ops-flow": "数据资产流通"
+      "ops-flow": "数据资产流通",
+      "exchange-settlements": "结算与分账",
+      "exchange-audit": "流通审计日志",
+      "exchange-register": "资产登记与审核",
+      "exchange-overview": "流通看板"
     }
   },
   "login": {
@@ -164,8 +173,6 @@
     "cardAria": "登录卡片"
   },
   "app": {
-    "versionInfo": "DataEngineBDP {version} · 用户无感知底座",
-    "envInfo": "自研 SKE 发行版 · 环境: {env}",
     "themeToggleToLight": "切换到亮色主题",
     "themeToggleToDark": "切换到暗色主题",
     "localeLabel": "语言",
@@ -182,6 +189,8 @@
     "breadcrumbNav": "面包屑导航",
     "envBadge": "当前环境标识",
     "notificationPanel": "通知与动态面板",
+    "aiFab": "打开 AI 数据助手",
+    "aiFabShort": "AI 助手",
     "demoDataBanner": "示例数据：通知中心的真实数据源尚未提供（后端无 notifications 接口），以下条目仅用于展示面板样式，请勿据此判断系统状态。",
     "panelTabs": "面板标签页",
     "closePanel": "关闭面板",
@@ -194,7 +203,6 @@
     "openMenu": "打开菜单",
     "closeMenu": "关闭菜单",
     "mainNav": "主导航菜单",
-    "sidebarVersionInfo": "侧边栏版本信息",
     "statusbar": "平台状态栏",
     "services": "服务",
     "currentWorkspace": "当前工作空间",

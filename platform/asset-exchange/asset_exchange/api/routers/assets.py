@@ -50,6 +50,7 @@ from asset_exchange.models.base import (
     AssetType,
     AuditAction,
     AuditResult,
+    DeliveryMethod,
     SecurityLevel,
 )
 from asset_exchange.models.billing import BillingSummary
@@ -91,6 +92,7 @@ class ListAssetRequest(BaseModel):
     tags: dict[str, str] = {}
     pricing: AssetPricing | None = None
     sourceRef: str | None = None
+    deliveryMethod: DeliveryMethod = Field(default=DeliveryMethod.API, description="交付方式（提供方声明）")
 
 
 class RegisterAssetRequest(BaseModel):
@@ -112,6 +114,7 @@ class RegisterAssetRequest(BaseModel):
     tags: dict[str, str] = {}
     pricing: AssetPricing | None = None
     sourceRef: str | None = None
+    deliveryMethod: DeliveryMethod = Field(default=DeliveryMethod.API, description="交付方式（提供方声明）")
 
 
 class AuditAssetRequest(BaseModel):
@@ -134,6 +137,9 @@ class UpdateAssetRequest(BaseModel):
     updateFrequency: str | None = None
     tags: dict[str, str] | None = None
     pricing: AssetPricing | None = None
+    deliveryMethod: DeliveryMethod | None = Field(
+        default=None, description="交付方式；不传表示不改（None 会被下面的 diff 过滤掉）"
+    )
 
 
 class DownloadRequest(BaseModel):
@@ -180,6 +186,7 @@ async def register_asset(
         tags=req.tags,
         pricing=req.pricing or AssetPricing(),
         sourceRef=req.sourceRef,
+        deliveryMethod=req.deliveryMethod,
     )
     try:
         result = await registry.assetService.register(asset)
@@ -291,6 +298,7 @@ async def list_asset(
         tags=req.tags,
         pricing=req.pricing or AssetPricing(),
         sourceRef=req.sourceRef,
+        deliveryMethod=req.deliveryMethod,
     )
     try:
         result = await registry.assetService.list_asset(asset)
@@ -542,8 +550,10 @@ async def invoke_asset(
 async def list_asset_subscriptions(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Subscription]:
-    """列出某资产的所有订阅."""
+    """列出某资产的所有订阅（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.subscriptionService.list_by_asset(asset_id)
 
 
@@ -555,8 +565,10 @@ async def list_asset_subscriptions(
 async def get_asset_billing(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BillingSummary:
-    """获取资产的计费记录汇总."""
+    """获取资产的计费记录汇总（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.billingService.list_by_asset(asset_id)
 
 
@@ -568,8 +580,10 @@ async def get_asset_billing(
 async def get_asset_usage(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> AssetUsage:
-    """获取资产使用统计."""
+    """获取资产使用统计（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     try:
         return await registry.assetService.get_usage(asset_id)
     except AssetExchangeError as exc:
@@ -621,8 +635,10 @@ async def settle_asset(
 async def list_settlements(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Settlement]:
-    """列出某资产的结算记录."""
+    """列出某资产的结算记录（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.settlementService.list_by_asset(asset_id)
 
 
@@ -679,8 +695,10 @@ async def allocate_asset(
 async def list_allocations(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Allocation]:
-    """列出某资产的分账记录."""
+    """列出某资产的分账记录（仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.allocationService.list_by_asset(asset_id)
 
 
@@ -692,6 +710,8 @@ async def list_allocations(
 async def list_asset_audit_logs(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[AuditLog]:
-    """列出某资产的所有审计日志（按时间升序）."""
+    """列出某资产的所有审计日志（按时间升序，仅资产提供方或 admin）."""
+    await require_asset_owner(registry, asset_id, ctx)
     return await registry.auditService.list_by_asset(asset_id)

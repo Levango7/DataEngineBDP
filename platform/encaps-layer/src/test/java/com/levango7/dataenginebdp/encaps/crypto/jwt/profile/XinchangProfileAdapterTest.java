@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.encaps.crypto.CryptoConfig;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoException;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoProfile;
 import com.levango7.dataenginebdp.encaps.crypto.gm.SM2Provider;
-import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmStorageCipher;
+import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmGcmStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.IntlStorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.storage.StorageCipher;
 import com.levango7.dataenginebdp.encaps.crypto.jwt.transport.GmTransportCipher;
@@ -69,7 +69,7 @@ class XinchangProfileAdapterTest {
 
         Map<String, String> caps = adapter.getCapabilities();
         assertThat(caps.get("jwt")).isEqualTo("SM3withSM2");
-        assertThat(caps.get("storage")).isEqualTo("SM4-CBC");
+        assertThat(caps.get("storage")).isEqualTo("SM4-GCM");
         assertThat(caps.get("transport")).isEqualTo("SM2+SM4-CBC");
         assertThat(caps.get("digest")).isEqualTo("SM3");
     }
@@ -114,14 +114,14 @@ class XinchangProfileAdapterTest {
     // ===== 加密器创建 =====
 
     @Test
-    @DisplayName("信创 Profile — 创建 GmStorageCipher")
-    void xinchangProfile_createGmStorageCipher() {
+    @DisplayName("信创 Profile — 创建 GmGcmStorageCipher（SM4-GCM AEAD）")
+    void xinchangProfile_createGmGcmStorageCipher() {
         CryptoConfig config = new CryptoConfig();
         config.setActiveProfile("xinchang");
         XinchangProfileAdapter adapter = new XinchangProfileAdapter(config);
 
         StorageCipher cipher = adapter.createStorageCipher(newKey(16), newKey(32));
-        assertThat(cipher).isInstanceOf(GmStorageCipher.class);
+        assertThat(cipher).isInstanceOf(GmGcmStorageCipher.class);
     }
 
     @Test
@@ -224,6 +224,6 @@ class XinchangProfileAdapterTest {
         XinchangProfileAdapter adapter = new XinchangProfileAdapter(config);
 
         StorageCipher cipher = adapter.createStorageCipher(newKey(16));
-        assertThat(cipher).isInstanceOf(GmStorageCipher.class);
+        assertThat(cipher).isInstanceOf(GmGcmStorageCipher.class);
     }
 }

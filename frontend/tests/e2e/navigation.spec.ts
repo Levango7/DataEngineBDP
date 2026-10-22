@@ -41,14 +41,16 @@ test.describe('导航布局', () => {
     ])
   })
 
-  test('侧边栏菜单项数量正确（48 项）', async ({ page }) => {
+  test('侧边栏菜单项数量在合理区间（实测 57 项）', async ({ page }) => {
     // 等待菜单渲染
     await page.waitForSelector('.nav-item', { timeout: 10_000 })
     const items = page.locator('.nav-item')
     const count = await items.count()
-    // 48 项（允许较大浮动以适应未来调整）
+    // 这个用例防的是"菜单被整体吞掉/重复渲染"，不是钉死某一版导航：
+    // 2026-10-21 收编多集群 5 页后实测 57 项（nav.items 共 61 键，部分项按权限/分组不渲染），
+    // 上限随 nav.items 键数（61）走，下限保持 25。
     expect(count).toBeGreaterThanOrEqual(25)
-    expect(count).toBeLessThanOrEqual(55)
+    expect(count).toBeLessThanOrEqual(61)
   })
 
   test('顶栏显示用户信息', async ({ page }) => {
@@ -197,8 +199,12 @@ test.describe('导航布局', () => {
     expect(text).toMatch(/●/)
   })
 
-  test('侧边栏底部信息显示', async ({ page }) => {
-    await expect(page.locator('.side-foot')).toBeVisible()
-    await expect(page.locator('.side-foot')).toContainText('DataEngineBDP')
+  test('外壳信息只留一份：版本号在底栏、环境徽标在顶栏，侧栏左下角不再重复', async ({ page }) => {
+    // 2026-10-21 外壳层次刀把 `.side-foot` 整块摘除：那块同时写着产品名 + 版本 + 发行版 + 环境，
+    // 而版本在 StatusBar（`v{{ appVersion }}`）、环境在 TopBar（`.env-tag`）已各有一份 ⇒ 侧栏那份是重复。
+    // 这里反向钉"不许再加回第三份"，同时确认摘的是重复而非信息本身。
+    await expect(page.locator('.side-foot')).toHaveCount(0)
+    await expect(page.locator('footer.statusbar')).toContainText(/v\d+\.\d+\.\d+/)
+    await expect(page.locator('.env-tag')).toBeVisible()
   })
 })

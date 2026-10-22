@@ -33,6 +33,12 @@ RUN mvn -B -q clean package -DskipTests
 
 # ---------- Stage 2: Runtime ----------
 FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
+# 运行层不需要基镜自带的 Bitnami 服务管理器 pebble：本镜像下面自己覆写了 ENTRYPOINT 跑 java -jar。
+# 而 /usr/bin/pebble 带 4 条**尚无修复版**的 HIGH（CVE-2026-111943 / -78667 / -78669 / -97031，
+# 全是 Go stdlib v1.27.1 构建，上游修在 1.26.10 / 1.27.3）。删它是真减攻击面，不是绕扫描：
+# 本机 docker build 出同一基镜、用 CI 同参数 `trivy image --severity HIGH,CRITICAL --ignore-unfixed`
+# 实扫 删除前 4 条 → 删除后 0 条，且 `java -version` 仍为 openjdk 17.0.20.1（17.0.20.1 未受影响）。
+RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 RUN groupadd --system --gid 1001 appgroup \

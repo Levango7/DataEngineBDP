@@ -25,8 +25,8 @@ class StorageCipherFactoryTest {
     }
 
     @Test
-    @DisplayName("信创 Profile — 创建 GmStorageCipher")
-    void create_xinchangProfile_returnsGmCipher() {
+    @DisplayName("信创 Profile — 创建 GmGcmStorageCipher（SM4-GCM AEAD）")
+    void create_xinchangProfile_returnsGmGcmCipher() {
         CryptoConfig config = new CryptoConfig();
         config.setActiveProfile("xinchang");
         StorageCipherFactory factory = new StorageCipherFactory(config);
@@ -35,9 +35,9 @@ class StorageCipherFactoryTest {
         byte[] intlKey = newKey(32);
         StorageCipher cipher = factory.create(gmKey, intlKey);
 
-        assertThat(cipher).isInstanceOf(GmStorageCipher.class);
+        assertThat(cipher).isInstanceOf(GmGcmStorageCipher.class);
         assertThat(cipher.isGm()).isTrue();
-        assertThat(cipher.getAlgorithm()).isEqualTo("SM4-CBC");
+        assertThat(cipher.getAlgorithm()).isEqualTo("SM4-GCM");
     }
 
     @Test
@@ -85,7 +85,7 @@ class StorageCipherFactoryTest {
         StorageCipherFactory factory = new StorageCipherFactory(config);
 
         StorageCipher gmCipher = factory.create(CryptoProfile.XINCHANG, newKey(16), null);
-        assertThat(gmCipher).isInstanceOf(GmStorageCipher.class);
+        assertThat(gmCipher).isInstanceOf(GmGcmStorageCipher.class);
 
         StorageCipher intlCipher = factory.create(CryptoProfile.INTERNATIONAL, null, newKey(32));
         assertThat(intlCipher).isInstanceOf(IntlStorageCipher.class);
@@ -99,7 +99,7 @@ class StorageCipherFactoryTest {
         StorageCipherFactory factory = new StorageCipherFactory(config);
 
         StorageCipher cipher = factory.create(newKey(16));
-        assertThat(cipher).isInstanceOf(GmStorageCipher.class);
+        assertThat(cipher).isInstanceOf(GmGcmStorageCipher.class);
     }
 
     @Test

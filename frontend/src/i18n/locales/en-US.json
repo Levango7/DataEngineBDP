@@ -84,6 +84,11 @@
       "infra-net": "Cluster Network",
       "infra-store": "Cluster Storage",
       "infra-sched": "Elastic Scheduling",
+      "multicluster": "Multi-cluster Health",
+      "multicluster-override": "Override Policies",
+      "multicluster-failover": "Failover History",
+      "multicluster-plans": "Replica Weight Plans",
+      "multicluster-policies": "Failover Policies",
       "eng-storage": "Unified Storage",
       "eng-spark": "Batch (Spark)",
       "eng-flink": "Streaming (Flink)",
@@ -128,7 +133,11 @@
       "ops-tpl": "Industry Templates",
       "ops-portal": "Business Portal",
       "ops-api": "Open API",
-      "ops-flow": "Asset Exchange"
+      "ops-flow": "Asset Exchange",
+      "exchange-settlements": "Settlement & Allocation",
+      "exchange-audit": "Exchange Audit Logs",
+      "exchange-register": "Asset Register & Audit",
+      "exchange-overview": "Exchange Overview"
     }
   },
   "login": {
@@ -164,8 +173,6 @@
     "cardAria": "Sign-in card"
   },
   "app": {
-    "versionInfo": "DataEngineBDP {version} · Customer-transparent Infrastructure",
-    "envInfo": "Self-developed SKE Distribution · Env: {env}",
     "themeToggleToLight": "Switch to light theme",
     "themeToggleToDark": "Switch to dark theme",
     "localeLabel": "Language",
@@ -182,6 +189,8 @@
     "breadcrumbNav": "Breadcrumb navigation",
     "envBadge": "Current environment",
     "notificationPanel": "Notifications and activity panel",
+    "aiFab": "Open AI data assistant",
+    "aiFabShort": "AI",
     "demoDataBanner": "Sample data: no real notification source yet (no backend notifications endpoint). The entries below only demonstrate the panel layout — do not use them to judge system state.",
     "panelTabs": "Panel tabs",
     "closePanel": "Close panel",
@@ -194,7 +203,6 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "mainNav": "Main navigation menu",
-    "sidebarVersionInfo": "Sidebar version info",
     "statusbar": "Platform status bar",
     "services": "Services",
     "currentWorkspace": "Current workspace",

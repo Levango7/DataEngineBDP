@@ -168,7 +168,11 @@ for (const theme of ['light', 'dark'] as const) {
     await capture('group-hover-count', group.locator('.grp-count'))
     await capture('group-hover-arrow', group.locator('.grp-arrow'), 3)
     await page.mouse.move(1000, 0)
-    await capture('footer', side.locator('.side-foot-text'))
+    // 原 `footer` 采样对象 `.side-foot-text`（产品名/版本/发行版/环境四行重复信息）已随
+    // 2026-10-21 外壳层次刀摘除（版本在 StatusBar、环境徽标在 TopBar 各有一份）。
+    // 覆盖面不缩水：改钉同一刀新加到外壳上的实底元素——AI 快捷入口的文字压在自己的 accent 底上，
+    // 这是外壳里唯一"品牌实底 + 反白文字"的常驻元素，脚本侧配对见 check-design-contrast.py 的 accent-on/accent。
+    await capture('ai-fab', page.locator('a.ai-fab .ai-fab-label'))
     await side.evaluate(el => el.scrollTop = 0)
     await side.screenshot({ path: join(dir, `${prefix}-sidebar.png`), animations: 'disabled' })
 

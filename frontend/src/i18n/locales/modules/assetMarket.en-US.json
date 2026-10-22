@@ -28,7 +28,7 @@
       "empty": "No assets, click \"+ List Asset\" in the top right",
       "card": {
         "noDesc": "No description",
-        "owner": "Provider: {owner}",
+        "owner": "Provider: {tenantId}",
         "quality": "Quality: {score}",
         "subCount": "{count} subs",
         "priceUnit": "¥{price} / {unit}"
@@ -76,6 +76,7 @@
         "security": "Security Level",
         "quality": "Quality Score",
         "updateFreq": "Update Frequency",
+        "delivery": "Delivery Method",
         "price": "Price",
         "priceFmt": "¥{price} / {unit} ({mode})",
         "subscriber": "Subscribers"

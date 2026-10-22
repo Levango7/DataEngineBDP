@@ -8,7 +8,7 @@ import uuid
 
 from asset_exchange.interfaces.asset_repository import AssetRepository
 from asset_exchange.models.asset import Asset, AssetFilter, AssetPricing, AssetSchema
-from asset_exchange.models.base import AssetStatus, AssetType, SecurityLevel, utc_now
+from asset_exchange.models.base import AssetStatus, AssetType, DeliveryMethod, SecurityLevel, utc_now
 from asset_exchange.repositories import (
     AssetAlreadyExistsError,
     AssetNotFoundError,
@@ -22,6 +22,19 @@ class SQLiteAssetRepository(AssetRepository):
     def __init__(self, conn: SQLiteConnection) -> None:
         self._conn = conn
         self._create_table()
+        self._add_missing_columns()
+
+    def _add_missing_columns(self) -> None:
+        """给已存在的表补新列（幂等 ALTER）。
+
+        本模块此前只有 `CREATE TABLE IF NOT EXISTS`——新建库拿得到全部列，
+        但**已经落盘的库永远不会长出新列**，加了字段就是"新库能跑、老库一 INSERT 就崩"。
+        台账 #81 把 deliveryMethod 做成真字段时顺带补上这一步：先 PRAGMA 查现有列，
+        缺哪列补哪列，带 DEFAULT 保证既有行读得出合法值。
+        """
+        have = {r["name"] for r in self._conn.conn.execute("PRAGMA table_info(assets);")}
+        if "delivery_method" not in have:
+            self._conn.conn.execute("ALTER TABLE assets ADD COLUMN delivery_method TEXT NOT NULL DEFAULT 'api';")
 
     def _create_table(self) -> None:
         self._conn.conn.execute("""
@@ -40,6 +53,7 @@ class SQLiteAssetRepository(AssetRepository):
                 tags_json       TEXT NOT NULL DEFAULT '{}',
                 pricing_json    TEXT NOT NULL DEFAULT '{}',
                 source_ref      TEXT,
+                delivery_method TEXT NOT NULL DEFAULT 'api',
                 subscriber_count INTEGER NOT NULL DEFAULT 0,
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
@@ -69,8 +83,8 @@ class SQLiteAssetRepository(AssetRepository):
                 id, name, type, owner, description, status,
                 quality_score, security_level, schema_json, sample_json,
                 update_frequency, tags_json, pricing_json, source_ref,
-                subscriber_count, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                delivery_method, subscriber_count, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 type = excluded.type,
@@ -85,6 +99,7 @@ class SQLiteAssetRepository(AssetRepository):
                 tags_json = excluded.tags_json,
                 pricing_json = excluded.pricing_json,
                 source_ref = excluded.source_ref,
+                delivery_method = excluded.delivery_method,
                 subscriber_count = excluded.subscriber_count,
                 updated_at = excluded.updated_at;
             """,
@@ -103,6 +118,7 @@ class SQLiteAssetRepository(AssetRepository):
                 json.dumps(asset.tags),
                 asset.pricing.model_dump_json(),
                 asset.sourceRef,
+                asset.deliveryMethod.value,
                 asset.subscriberCount,
                 asset.createdAt.isoformat(),
                 asset.updatedAt.isoformat(),
@@ -182,6 +198,7 @@ class SQLiteAssetRepository(AssetRepository):
             tags=json.loads(row["tags_json"]),
             pricing=AssetPricing.model_validate_json(row["pricing_json"]),
             sourceRef=row["source_ref"],
+            deliveryMethod=DeliveryMethod(row["delivery_method"]),
             subscriberCount=row["subscriber_count"],
             createdAt=row["created_at"],
             updatedAt=row["updated_at"],

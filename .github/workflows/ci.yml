@@ -32,9 +32,12 @@ permissions:
   pull-requests: write
   checks: write
 
-# 同一分支的并发工作流只保留最新一次，避免重复执行浪费资源
+# 同一分支、同一事件类型只保留最新一次，避免重复执行浪费资源。
+# 必须带事件类型：2026-10-20 main 7112292e 的 push run 39380781708 就是被
+# 延迟数小时才落地的 02:00 schedule run 39382266996（同 SHA）取消的，push 验证
+# 因此消失，而 Build 的 CI Gate 会把“等不到 success”判成 CI 失败（台账 #77/#75）。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -257,6 +260,19 @@ jobs:
       - name: TypeScript 类型检查（阻断）
         run: npm run type-check
 
+      - name: 设计契约门禁（对比度 AA + 契约同步 + 硬编码色棘轮）
+        # 先跑夹具再跑真值：三条都必须"发现集非空"，否则角色令牌改名 / YAML 区块写坏
+        # / 扫描路径写错会让门禁悄悄变成常绿摆设（本轮实测过：外部 wcag 工具直读
+        # --ds-* 时解析到 0 组配对仍报 ALL PASS）。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" --self-test
+          python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" \
+            --frontend-dir . --baseline "$GITHUB_WORKSPACE/docs/design-hardcoded-color-baseline.json"
+
   # ============================================================
   # Java 代码检查：Checkstyle + SpotBugs + PMD
   # 通过 Maven 插件执行，遍历 platform/ 下所有含 pom.xml 的子目录
@@ -436,17 +452,29 @@ jobs:
             exit 1
           fi
 
-      - name: 检查 scripts/ 全部 .sh 语法（防交付脚本损坏回归）
+      - name: 检查全仓受版本控制的 .sh 语法（防交付脚本损坏回归）
         run: |
+          # 原来只扫 scripts/，导致 releases/v2.1.0-RC/upgrade-script.sh 的损坏
+          # （变量被吞成 `\ `，line 53 语法错误）从未被任何门禁发现 —— 台账 #76。
+          # 例外只有 1 个已知坏件：released 的 RC 升级脚本需要发布负责人重新生成，
+          # 不在 CI 里猜它的原意。新增的例外必须同时写进台账，否则门禁重新失明。
+          KNOWN_BROKEN="releases/v2.1.0-RC/upgrade-script.sh"
           failed=0
+          n=0
           while IFS= read -r script; do
+            [ -n "$script" ] || continue
+            if [ "$script" = "$KNOWN_BROKEN" ]; then
+              echo "::warning::跳过已知损坏脚本（台账 #76）：$script"
+              continue
+            fi
+            n=$((n + 1))
             if ! bash -n "$script"; then
               echo "::error::$script 语法错误"
               failed=1
             fi
-          done < <(find scripts -name '*.sh' -type f | sort)
+          done < <(git ls-files '*.sh')
           if [ "$failed" -eq 0 ]; then
-            echo "scripts/ 全部 .sh 语法检查通过"
+            echo "全仓 $n 个 .sh 语法检查通过"
           else
             exit 1
           fi
@@ -514,7 +542,10 @@ jobs:
             git diff docs/api-contract.md
             exit 1
           fi
-          echo "OK: API 契约文档与代码一致（前端 260 调用，后端 64 前缀，未匹配项见文档汇总）"
+          # 数字由被校验的文档自己给出，不在这里写死：上一版把"前端 260 调用，后端 64 前缀"钉在
+          # echo 里，而实跑早已是 270 与 Java 69/Python 21/Go 13 ⇒ 门禁全绿的同时说一句过时的事实。
+          SUMMARY=$(grep -E "^- (匹配|未匹配)：" docs/api-contract.md | sed 's/^- //' | awk 'BEGIN{ORS=""} {printf "%s%s", (NR>1?", ":""), $0}')
+          echo "OK: API 契约文档与代码一致（${SUMMARY}）"
 
       - name: OpenAPI Schema ↔ 前端 TS 类型字段漂移校验（A1，字段级契约）
         run: |
@@ -599,17 +630,22 @@ jobs:
           python3 scripts/check-it-auth-mode.py --self-test
           python3 scripts/check-it-auth-mode.py
 
-      - name: Dockerfile base 镜像源形态校验（台账 #72 防回退）
+      - name: Dockerfile base 镜像源形态校验（台账 #72 与 #88 防回退）
         # 这条守的是"能不能切源"：2026-10-17 一轮 docker.m.daocloud.io 抖动同时染红 6 条非必需腿
         # （K3s 116965905786 / Playwright 116965906239 / Integration Test 116984402422 /
         #  Kind 116991476936 / Docker Build Verify 117050952371 / main 的 Kind 117049880536），
         # 签名全是 net/http: TLS handshake timeout，而当时**没有任何工作流传 --build-arg BASE_REGISTRY**
         # ⇒ 宿主写死在 Dockerfile 的 ARG 默认值里，红的时候连旋钮都没有。
-        # 规则：① 禁 FROM 硬写加速器宿主；② 用 ${BASE_REGISTRY} 的文件必须提前声明纯宿主级 ARG
-        # （声明晚于 FROM 会被 Docker 展开成空串）；③ 官方镜像必须写全 library/；
-        # ④ 例外表（gcr.io、kindest、本地构建产物）必须真被用到，没人用的条目判红。
+        # 规则 R1-R8（口径见脚本 docstring）：① 禁 FROM 硬写加速器宿主；② 用 ${BASE_REGISTRY} 的文件
+        # 必须提前声明纯宿主级 ARG（声明晚于 FROM 会被 Docker 展开成空串）；③ 官方镜像必须写全 library/；
+        # ④ 例外表（gcr.io、kindest、本地构建产物、LEG_EXEMPT）必须真被用到，没人用的条目判红；
+        # ⑤ compose 的每个 build 服务必须传 BASE_REGISTRY；⑥ 禁直连 Docker Hub 短名 base；
+        # ⑦⑧ 是 #88 那两刀：每条镜像构建腿都得传 BASE_REGISTRY——工作流的 11 条 ＋ 仓库里的
+        # 手工 shell 脚本（实测 tests/deploy 两条既不传参还把仓库路径写死成某台机器的绝对位置），
+        # 前端那两条 docker/build-push-action 没传时，job 119158037385 每次触发都 DNS 红；
+        # 且 `${…:-…}` 兜底不许选加速器——选源器 fail-soft 的落点是上游 docker.io。
         run: |
-          # 先跑合成夹具，证明四条规则各自抓得住、好形态不误报、扫描集为空不静默放行
+          # 先跑合成夹具，证明八条规则各自抓得住、好形态不误报、扫描集为空不静默放行
           python3 scripts/check-dockerfile-base-registry.py --self-test
           python3 scripts/check-dockerfile-base-registry.py
           # 选源脚本自身的离线自测（桩探测，不碰网络）
@@ -1530,25 +1566,29 @@ jobs:
             echo "============================================"
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
-            # 安装依赖：优先用 requirements.txt，去掉 -q 看报错
+            # 安装依赖：requirements.txt 是该模块依赖的单一事实来源。
+            # 收紧（2026-10-19）：安装失败即失败，不再回落到 pyproject 的 [test] extra、
+            # 也不再"仅 warning 后继续跑测试"。历史事故：#610 的 langchain-core 冲突
+            # （requirements 不可解析）被回落到 [test] extra 掩盖，tests 照跑、门禁全绿，
+            # 只有 pip-audit 一个门禁报出来，问题因此潜伏多日。
             install_ok=false
             if [ -f "$mod_dir/requirements.txt" ]; then
               if pip install -r "$mod_dir/requirements.txt" 2>&1; then
                 install_ok=true
-              elif [ -f "$mod_dir/pyproject.toml" ] && pip install "$mod_dir[test]" 2>&1; then
-                install_ok=true
+              else
+                echo "::error file=$mod_dir/requirements.txt::$mod_name 依赖安装失败（pip install -r requirements.txt）——请修版本约束本身，不要回落到 [test] extra"
               fi
             elif [ -f "$mod_dir/pyproject.toml" ]; then
               if pip install "$mod_dir[test]" 2>&1; then
                 install_ok=true
+              else
+                echo "::error file=$mod_dir/pyproject.toml::$mod_name 依赖安装失败（pip install $mod_dir[test]）"
               fi
             fi
             if [ "$install_ok" = "false" ]; then
-              echo "::warning::$mod_name 依赖安装失败，尝试继续测试"
-            fi
-            # nl2sql 依赖 sqlparse，显式安装防止 pip install 遗漏
-            if [ "$mod_name" = "nl2sql" ]; then
-              pip install sqlparse==0.5.0 2>&1 || true
+              echo "✗ $mod_name 依赖安装失败，跳过该组件的测试（安装未过，跑测试无意义）"
+              fail_count=$((fail_count + 1))
+              continue
             fi
             mkdir -p "$(dirname "python-syntax-reports/${mod_name}-test.log")"
             if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
@@ -1957,10 +1997,10 @@ jobs:
         if: env.docker_skip != 'true'
         run: |
           fail_count=0
-          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
-          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
             mod_name=$(basename "$mod_dir")
@@ -2091,9 +2131,9 @@ jobs:
         run: |
           # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
           # 本步骤 working-directory=tests/integration ⇒ 走 $GITHUB_WORKSPACE 绝对路径；
-          # 探测脚本自身出问题时退回今天的默认宿主，不把空值传下去。
+          # 探测脚本自身出问题时退回上游 docker.io（加速器不可达时它才是真源），不把空值传下去。
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
           echo "启动 docker-compose 服务（第 1 次尝试）..."
           if docker compose up -d --wait; then
@@ -2356,12 +2396,13 @@ jobs:
           fi
 
   # ============================================================
-  # Trivy 容器镜像漏洞扫描：扫描文件系统中的 CRITICAL/HIGH 漏洞
+  # Trivy 文件系统漏洞扫描（不是镜像扫描）：扫仓库里的依赖清单/jar，
+  # 报 CRITICAL/HIGH；镜像基座扫描在 security.yml 的 Trivy Image Scan。
   # 输出 SARIF 格式报告并上传到 GitHub Security 代码扫描
   # 阻断 CI：发现 CRITICAL/HIGH 漏洞时 exit-code=1，CI 失败
   # ============================================================
   trivy-scan:
-    name: Trivy Scan (容器镜像漏洞扫描)
+    name: Trivy FS Scan (依赖漏洞扫描)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -2395,9 +2436,22 @@ jobs:
             mvn -f "$lib_pom" install -B -q -DskipTests -U \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done
+          warm_fail=0
+          warm_failed=()
           while IFS= read -r pom; do
-            mvn -f "$pom" dependency:resolve -B -q -DskipTests || true
-          done < <(find platform -name pom.xml -not -path "*/target/*")
+            if ! mvn -f "$pom" dependency:resolve -B -q -DskipTests; then
+              warm_fail=$((warm_fail + 1))
+              warm_failed+=("$pom")
+            fi
+          done < <(find platform design/planned -name pom.xml -not -path "*/target/*" 2>/dev/null)
+          # 这里原本不计数：预热没热成也一声不响，后面 Trivy 自己去 Central 取依赖就撞 429，
+          # 而日志里看不出"哪个 pom 没热上"。现在把它说出来（仍不判红——门禁由 SARIF 内容决定）。
+          if [ "$warm_fail" -gt 0 ]; then
+            echo "::warning::$warm_fail 个 pom 未能预热本地缓存：${warm_failed[*]}"
+            echo "提示：这些清单在离线状态下解析不了，Trivy 扫描可能需要联网；若随后看到 rc=3「扫描器没结论」，先看这一行。"
+          else
+            echo "预热完成：platform 与 design/planned 下全部 pom 均可离线解析"
+          fi
 
       - name: 安装Trivy (与 security.yml 保持一致，直装+重试3次)
         run: |
@@ -2406,26 +2460,41 @@ jobs:
           sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
           trivy version
 
-      - name: Trivy扫描 - 文件系统模式
-        run: trivy fs --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
+      - name: Trivy扫描 - 文件系统模式（只跑不判，判定交给"门禁判定"那一步）
+        # 语义变更（台账 #86）：原先一行 `trivy fs --exit-code 1 ...` 让同一个退出码同时表示
+        # 两件事——"扫出 CRITICAL/HIGH" 与 "扫描器自己没结论"。2026-10-21 实测到后者：
+        # run 39555351752 里 Trivy 为 design/planned 下一个原型 pom 去 Maven Central 取
+        # spring-cloud-dependencies BOM，撞上 `429 Too Many Requests（Retry-After 449）` 直接
+        # FATAL，CI 只留下一行 exit 1，看不出"有没有漏洞"。
+        # 现在本步允许失败，由下一步按 SARIF 的实际内容判：有结论且 0 条 ⇒ 绿；
+        # 有结论且 >0 条 ⇒ 红；没结论（文件缺失/解析失败/runs 为空）⇒ 红且点名是环境问题。
+        # 不用 --ignore-paths 缩面：本机实跑 v0.71.1 的 `trivy fs --help` 证明该 flag 不存在
+        # （只有 --ignorefile 管 CVE 编号），写进去会让整步在 CI 里以"未知参数"失败。
+        # 缩面也会真减覆盖，故改为把 design/planned 的清单也纳入预热（见上一步）。
+        continue-on-error: true
+        run: |
+          trivy fs --severity CRITICAL,HIGH --ignore-unfixed \
+            --format sarif --output trivy-results.sarif .
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
         # 上传 SARIF 到 GitHub Security tab 为辅助功能，失败不阻断构建；
-        # Trivy 扫描本身（上一步）已通过 sarif 输出报告完成门禁。
+        # 门禁判定在"门禁判定"那一步（读同一份 SARIF）。
         continue-on-error: true
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: 渲染 Trivy 明细（SARIF 不进日志，失败时只剩一行 exit 1）
+      - name: 门禁判定 + 渲染 Trivy 明细（区分"扫出漏洞"与"扫描器没结论"）
         # 2026-09-25 实测：本 job 失败后日志里没有任何漏洞条目，只能去 Security tab 猜，
         # 而 tab 的 active 告警分散在 8 个历史 commit 上（大量已被 pom 抬版覆盖但不会自动关闭），
         # 完全不代表当前 HEAD。故从**已产出的 SARIF** 派生可读清单：
         # 不重跑扫描（扫描要预热 Maven 缓存、耗时数十秒），也不碰 SARIF 上传路径。
-        # 本步骤不改变门禁语义（是否阻断仍由上一步的 --exit-code 1 决定）。
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        run: python3 scripts/trivy-sarif-report.py trivy-results.sarif --markdown trivy-detail.md
+        # 2026-10-21 起这一步**就是门禁**（--gate --fail-on 0），且必须无条件跑：
+        # 若仍带 hashFiles 条件，扫描器崩在无 SARIF 时反而会跳过判定 ⇒ 整条腿假绿。
+        # 退出码口径：0=扫过且干净，1=扫出 CRITICAL/HIGH，3=扫描器没结论（环境问题，红但原因写明）。
+        if: always()
+        run: python3 scripts/trivy-sarif-report.py trivy-results.sarif --gate --fail-on 0 --markdown trivy-detail.md
 
       - name: 上传 Trivy 可读报告
         if: always() && hashFiles('trivy-detail.md') != ''

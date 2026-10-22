@@ -80,6 +80,34 @@ export default defineConfig({
         target: process.env.VITE_FLINK_CDC_TARGET || 'http://127.0.0.1:8098',
         changeOrigin: true
       },
+      // 多集群联邦（failover-api Go :8094——design/deploy/charts/failover-api/values.yaml service.port）
+      // 收编批次 C2：原 frontend/multi-cluster-dashboard 独立看板的 5 页改用主应用后，
+      // 这五个前缀才第一次经主应用发出。缺任一条都会落到 /api 兜底（encaps-layer :8080）→ 404，
+      // 而页面把 404 当成"暂无数据"，本地看不出请求根本没打到 failover-api。
+      //
+      // 顺序要求：Vite 按对象键的插入顺序做前缀匹配、先命中先走，所以
+      // '/api/v1/clusters/health' 必须排在下面 infra-orchestrator 的 '/api/v1/clusters' 之前，
+      // 否则健康总览会被转去 8085（orchestrator 没有这个端点）。
+      '/api/v1/clusters/health': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/override-policies': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/failover-events': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/replica-plans': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/failover-policies': {
+        target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
       // 基础设施编排（infra-orchestrator :8085——注意与 finops-dashboard 同默认端口）
       '/api/v1/clusters': {
         target: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:8085',
@@ -157,6 +185,14 @@ export default defineConfig({
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
+      // 资产流通审计日志（asset-exchange audit router，前缀 /audit-logs）
+      // 缺这一条时 /api/v1/audit-logs* 会落到下方 /api 兜底（encaps-layer :8080）→ 404，
+      // 而页面把 404 渲染成"暂无审计日志"，dev 下看不出请求根本没打到对的进程。
+      // 生产侧 APISIX 已有该路由（configmap-routes.yaml），所以只有本地 dev 会错。
+      '/api/v1/audit-logs': {
+        target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
       // API 订阅（open-api-catalog subscriptions_router，前缀 /subscriptions）
       // Sprint 4.2：此前被 asset-exchange 抢占导致 APIMarket 页订阅审批错路由，
       // 归还给 open-api-catalog（detail design 契约路径 /subscriptions/{id}/approve）
@@ -166,6 +202,13 @@ export default defineConfig({
       },
       // 资产订阅（asset-exchange subscriptions router，Sprint 4.2 独立前缀）
       '/api/v1/asset-subscriptions': {
+        target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
+      // 租户级结算列表（GET /settlements）——流通看板 /exchange-overview 的唯一数据源。
+      // 缺这条会落到 /api 兜底（encaps-layer :8080）拿 404，而页面能把它渲染成"暂无结算记录"，
+      // dev 下就分不清"没数据"与"没打到 asset-exchange"（scripts/verify-vite-proxy.py 会点名）。
+      '/api/v1/settlements': {
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },

@@ -3,10 +3,11 @@
  *
  * 保障：
  * - zh-CN / en-US 词条文件结构镜像（同 key 集合，防漏译）
- * - Sidebar 导航 35 项 + 7 组 key 全部存在
+ * - Sidebar 导航 60 项 + 8 组 key 全部存在
  * - 常用词条有值（防空翻译）
  */
 import { describe, it, expect } from 'vitest'
+import { MODULE_NAMES, ROUTE_MODULE_MAP } from '../index'
 import zhCN from '@/i18n/locales/zh-CN.json'
 import enUS from '@/i18n/locales/en-US.json'
 import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
@@ -83,6 +84,8 @@ import infraMachineZh from '@/i18n/locales/modules/infraMachine.zh-CN.json'
 import infraMachineEn from '@/i18n/locales/modules/infraMachine.en-US.json'
 import infraSchedZh from '@/i18n/locales/modules/infraSched.zh-CN.json'
 import infraSchedEn from '@/i18n/locales/modules/infraSched.en-US.json'
+import karmadaZh from '@/i18n/locales/modules/karmada.zh-CN.json'
+import karmadaEn from '@/i18n/locales/modules/karmada.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -100,11 +103,13 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 52 项 + 8 分组全部有中英词条', () => {
+  it('导航 61 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
-    // 实数：Sidebar groups 共 52 个导航项（8 分组，含 2026-09-07 新增 approvals）
-    expect(navItems.length).toBe(52)
+    // 计数口径 = nav.items 的键数（Sidebar 用它渲染）。
+    // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）；
+    // 56 → 61：收编多集群联邦 5 页（8 分组数未变，新页并入 infra）。
+    expect(navItems.length).toBe(61)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
@@ -127,6 +132,18 @@ describe('i18n locales structure', () => {
   it('zh-CN 导航项含中文，en-US 导航项为英文', () => {
     expect((zhCN as any).nav.items.quality).toBe('数据质量')
     expect((enUS as any).nav.items.quality).toBe('Data Quality')
+    // 收编批次 C2 新增的 5 个多集群导航项：中英都必须有独立译文，
+    // 不能靠 fallbackLocale 兜底（英文界面冒出中文即是漏译）
+    expect((zhCN as any).nav.items.multicluster).toBe('多集群健康')
+    expect((enUS as any).nav.items.multicluster).toBe('Multi-cluster Health')
+    expect((zhCN as any).nav.items['multicluster-override']).toBe('集群覆盖策略')
+    expect((enUS as any).nav.items['multicluster-override']).toBe('Override Policies')
+    expect((zhCN as any).nav.items['multicluster-failover']).toBe('故障迁移历史')
+    expect((enUS as any).nav.items['multicluster-failover']).toBe('Failover History')
+    expect((zhCN as any).nav.items['multicluster-plans']).toBe('副本权重分配')
+    expect((enUS as any).nav.items['multicluster-plans']).toBe('Replica Weight Plans')
+    expect((zhCN as any).nav.items['multicluster-policies']).toBe('故障迁移策略')
+    expect((enUS as any).nav.items['multicluster-policies']).toBe('Failover Policies')
     expect((zhCN as any).nav.brand).toContain('数擎')
     expect((enUS as any).nav.brand).toContain('Shuqing')
   })
@@ -222,7 +239,12 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
       infraMachineZh as Record<string, unknown>,
       infraMachineEn as Record<string, unknown>
     ],
-    ['infraSched', infraSchedZh as Record<string, unknown>, infraSchedEn as Record<string, unknown>]
+    [
+      'infraSched',
+      infraSchedZh as Record<string, unknown>,
+      infraSchedEn as Record<string, unknown>
+    ],
+    ['karmada', karmadaZh as Record<string, unknown>, karmadaEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {
@@ -249,5 +271,34 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
         }
       }
     }
+  })
+})
+
+describe('i18n 模块注册表一致性（loadModuleI18n 对未注册名是静默 return）', () => {
+  const files = Object.keys(import.meta.glob('../locales/modules/*.json'))
+
+  it('ROUTE_MODULE_MAP 引用的每个模块都在 MODULE_NAMES 里注册', () => {
+    const unregistered = [...new Set(Object.values(ROUTE_MODULE_MAP).flat())].filter(
+      (m) => !MODULE_NAMES.includes(m)
+    )
+    // 这一条曾经真的成立过：/exchange-audit 映射写了 exchange，但注册表漏了，
+    // 加载器静默跳过，页面直接显示 exchange.audit.title 这样的裸 key。
+    expect(unregistered).toEqual([])
+  })
+
+  it('MODULE_NAMES 每一项都有中英两份词条文件', () => {
+    const missing = MODULE_NAMES.filter(
+      (m) =>
+        !files.some((f) => f.endsWith(`/${m}.zh-CN.json`)) ||
+        !files.some((f) => f.endsWith(`/${m}.en-US.json`))
+    )
+    expect(missing).toEqual([])
+  })
+
+  it('词条目录里没有未注册的孤儿模块', () => {
+    const orphans = [
+      ...new Set(files.map((f) => f.replace(/^.*\//, '').replace(/\.(zh-CN|en-US)\.json$/, '')))
+    ].filter((name) => !MODULE_NAMES.includes(name))
+    expect(orphans).toEqual([])
   })
 })

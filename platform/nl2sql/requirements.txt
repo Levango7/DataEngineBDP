@@ -3,8 +3,8 @@
 # 数据引擎大数据平台 · L4.5.4 NL2SQL 核心引擎
 
 # ---- Web framework ----
-fastapi==0.141.1
-uvicorn[standard]==0.29.0
+fastapi==0.143.0
+uvicorn[standard]==0.54.0
 pydantic==2.13.4
 pydantic-settings==2.15.0
 
@@ -21,12 +21,18 @@ sqlparse==0.6.0          # 修复 PYSEC-2026-3696/3697/3698/3699/3923 + GHSA-27j
 # 仅使用 langchain-openai 的 ChatOpenAI（sql_generator.py），未用 langchain 主包；
 # langchain 0.1.x 主包与 langchain-core>=0.2 互斥，此前钉 0.1.16 导致
 # pip ResolutionImpossible（CI Build-Python 镜像构建失败根因之一）。
-# 三件套版本需联动：langchain-openai 1.6.0 → core>=1.6.0 + openai>=2.45,<4
-langchain-core==1.6.0
-langchain-openai==1.6.0
+#
+# ⚠ 三件套版本必须联动，改任意一个都要同步校验其余两个：
+#   langchain-openai 1.7.0 → requires langchain-core>=1.6.8,<2.0 + openai>=2.45,<4 + tiktoken>=0.7,<1
+#   历史坑：2026-10-19 #610 把 langchain-openai 1.6.0→1.7.0，却漏改 core（仍是 1.6.0），
+#   而 1.7.0 要求 core>=1.6.8 ⇒ pip ResolutionImpossible ⇒
+#   `Python Dependency Audit (pip-audit)` 在 nl2sql 上 exit 1（解析失败发生在写 JSON 之前，
+#   因此 artifact 里唯独缺 nl2sql-audit.json）。core 取 1.6.12（1.6.x 最新，仍 <2.0）。
+langchain-core==1.6.12
+langchain-openai==1.7.0
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
-openai==3.1.0
+openai==3.29.0
 tiktoken==0.7.0
 
 # ---- Utilities ----

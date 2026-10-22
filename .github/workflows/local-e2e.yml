@@ -23,6 +23,13 @@ on:
         type: boolean
         default: false
 
+# 同一分支只保留最新一次：pull_request 无 paths 过滤，每次 push 都会排
+# Profile Render + Kind Smoke，没有并发组时旧 run 会和新 run 一起抢 runner
+# （台账 #75 同源的队列饥饿）。最终 head 的那轮才是判据。
+concurrency:
+  group: local-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================
   # 1. Profile 渲染 + Schema 校验（快速，无需集群）
@@ -84,10 +91,10 @@ jobs:
         # image.tag=kind-local 与 deploy/local/values-local-images.yaml 对齐。
         run: |
           set -euo pipefail
-          # 台账 #72：base 镜像源按可达性选一次；探测失败就退回今天的默认宿主，
-          # 而不是把空值喂给 --build-arg（那会让 FROM 展开成 /library/... 直接炸构建）。
+          # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
+          # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
-          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           build_load() {  # <image> <dockerfile> <context>
             echo "== build $1 (ctx=$3) =="
             docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "$1" -f "$2" "$3"

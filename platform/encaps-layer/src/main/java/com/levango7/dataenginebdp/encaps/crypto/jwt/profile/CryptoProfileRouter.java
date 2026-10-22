@@ -22,7 +22,9 @@ import org.springframework.core.env.Environment;
  *   <caption>表：Profile 路由策略对照表</caption>
  *   <tr><th>能力</th><th>信创</th><th>国际</th></tr>
  *   <tr><td>JWT 处理器</td><td>{@link GmJwtProcessor}</td><td>Spring Security OAuth2</td></tr>
- *   <tr><td>存储加密</td><td>{@link com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmStorageCipher}</td><td>{@link com.levango7.dataenginebdp.encaps.crypto.jwt.storage.IntlStorageCipher}</td></tr>
+ *   <tr><td>存储加密</td>
+ *       <td>{@link com.levango7.dataenginebdp.encaps.crypto.jwt.storage.GmGcmStorageCipher}（SM4-GCM，AEAD）</td>
+ *       <td>{@link com.levango7.dataenginebdp.encaps.crypto.jwt.storage.IntlStorageCipher}</td></tr>
  *   <tr><td>传输加密</td><td>{@link com.levango7.dataenginebdp.encaps.crypto.jwt.transport.GmTransportCipher}</td><td>不适用（TLS）</td></tr>
  * </table>
  *
