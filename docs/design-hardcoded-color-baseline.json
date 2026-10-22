@@ -1,5 +1,5 @@
 {
-  "total": 76,
+  "total": 64,
   "by_file": {
     "finetuning-monitor/src/App.vue": 2,
     "finetuning-monitor/src/views/LoopTaskDetail.vue": 1,
@@ -10,10 +10,6 @@
     "finops-dashboard/src/views/OptimizationSuggestions.vue": 2,
     "finops-dashboard/src/views/QueryBilling.vue": 2,
     "finops-dashboard/src/views/Top10Resources.vue": 1,
-    "multi-cluster-dashboard/src/views/Dashboard.vue": 5,
-    "multi-cluster-dashboard/src/views/FailoverHistory.vue": 4,
-    "multi-cluster-dashboard/src/views/OverridePolicy.vue": 1,
-    "multi-cluster-dashboard/src/views/ReplicaPlans.vue": 2,
     "open-api-dashboard/src/App.vue": 8,
     "open-api-dashboard/src/views/ApiDetailView.vue": 1,
     "open-api-dashboard/src/views/CatalogView.vue": 3,

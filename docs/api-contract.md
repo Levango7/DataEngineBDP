@@ -2,7 +2,7 @@
 
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
-- 前端入口：`frontend/src/api/*.ts`（共 38 个文件）
+- 前端入口：`frontend/src/api/*.ts`（共 39 个文件）
 - 后端前缀：Java 69 / Python 21 / Go 17（含显式注册表 8 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
@@ -325,6 +325,19 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/jobs/${id}/logs` （1 变量） | `/jobs` | stream-batch-scheduler | ✅ |
 | `/jobs/${id}/status` （1 变量） | `/jobs` | stream-batch-scheduler | ✅ |
 
+## karmada.ts
+
+| 前端调用 | 首段 | 后端模块 | 状态 |
+|---|---|---|---|
+| `/override-policies`  | `/override-policies` | karmada | ✅ |
+| `/override-policies/${encodeURIComponent(name)}` （1 变量） | `/override-policies` | karmada | ✅ |
+| `/failover-events/${encodeURIComponent(eventId)}` （1 变量） | `/failover-events` | karmada | ✅ |
+| `/failover-events`  | `/failover-events` | karmada | ✅ |
+| `/replica-plans/${encodeURIComponent(policyName)}` （1 变量） | `/replica-plans` | karmada | ✅ |
+| `/replica-plans`  | `/replica-plans` | karmada | ✅ |
+| `/failover-policies/${encodeURIComponent(name)}` （1 变量） | `/failover-policies` | karmada | ✅ |
+| `/failover-policies`  | `/failover-policies` | karmada | ✅ |
+
 ## knowledge.ts
 
 | 前端调用 | 首段 | 后端模块 | 状态 |
@@ -497,7 +510,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：274
+- 匹配：282
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

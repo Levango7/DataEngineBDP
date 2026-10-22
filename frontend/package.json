@@ -6,7 +6,6 @@
   "workspaces": [
     "finops-dashboard",
     "finetuning-monitor",
-    "multi-cluster-dashboard",
     "open-api-dashboard"
   ],
   "scripts": {
@@ -25,12 +24,11 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
-    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace finetuning-monitor && npm run build --workspace multi-cluster-dashboard && npm run build --workspace open-api-dashboard",
+    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace finetuning-monitor && npm run build --workspace open-api-dashboard",
     "dev:finops": "npm run dev --workspace finops-dashboard",
     "dev:finetuning": "npm run dev --workspace finetuning-monitor",
-    "dev:multicluster": "npm run dev --workspace multi-cluster-dashboard",
     "dev:openapi": "npm run dev --workspace open-api-dashboard",
-    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace finetuning-monitor && npm run type-check --workspace multi-cluster-dashboard && npm run type-check --workspace open-api-dashboard",
+    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace finetuning-monitor && npm run type-check --workspace open-api-dashboard",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
