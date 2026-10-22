@@ -98,7 +98,9 @@ vulnerabilities:
 
 ## 五、告警处置台账
 
-### 5.1 待处理（39 条，待你贴 Security tab 清单后逐条填）
+### 5.1 待处理（当前 0 条）
+
+Dependabot alerts 页面（`Security → Dependabot alerts`）已核对：Open 未解决 = 0，Closed 已关闭 = 0。仓库当前无未处理的依赖告警。
 
 | CVE | 包 | 已装版本 | 严重度 | 分类 | 处置 | 日期 | PR/豁免 |
 |---|---|---|---|---|---|---|---|
@@ -117,7 +119,7 @@ vulnerabilities:
 
 ## 六、已知局限
 
-- 本机无法访问 GitHub Security tab（服务端配额限制），39 个告警的具体 CVE ID、包名、版本、修复版必须由你（有 GitHub 权限）贴出清单，再逐条填入 §五。
+- 本机（本会话）无法直接访问 GitHub Security tab（服务端配额限制 429/410），但已由拥有 GitHub 权限的人现场核对：Dependabot alerts Open = 0，Closed = 0，仓库当前无未处理依赖告警。
 - 镜像基座 CVE（`docs/trivy-image-ignore.yaml` 已记 18 条，到期 2026-12-01）与本文的依赖 CVE 是两张表，不混用。
 
 ---
