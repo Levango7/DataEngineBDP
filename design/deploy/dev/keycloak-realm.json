@@ -1,0 +1,37 @@
+{
+  "realm": "sq",
+  "enabled": true,
+  "displayName": "数擎租户域",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 28800,
+  "ssoSessionMaxLifespan": 86400,
+  "clients": [
+    {
+      "clientId": "sq-api-gateway",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "sq-api-gateway-secret",
+      "redirectUris": ["http://localhost:5173/*", "http://127.0.0.1:5173/*"],
+      "webOrigins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "sq-console",
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "standardFlowEnabled": true
+    }
+  ],
+  "roles": {
+    "realm": [
+      {"name": "SQL_GATEWAY_WRITER", "description": "SQL 网关写入权限"},
+      {"name": "SUPER_ADMIN", "description": "平台超级管理员"},
+      {"name": "TENANT_ADMIN", "description": "租户管理员"},
+      {"name": "USER", "description": "普通用户"}
+    ]
+  }
+}
