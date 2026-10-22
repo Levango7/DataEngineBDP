@@ -2686,26 +2686,26 @@ jobs:
           python-version: '3.11'
 
       - name: 下载 Java 覆盖率摘要
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: java-coverage-summary
         continue-on-error: true
 
       - name: 下载 Go 覆盖率摘要
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: go-coverage-summary
         continue-on-error: true
 
       - name: 下载 Python 覆盖率摘要
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: python-coverage-summary
         continue-on-error: true
 
       - name: 下载 batch-pipeline 覆盖率摘要
         # P3-2: batch-pipeline 独立 job 生成的覆盖率摘要，合并到 Python 摘要后供检查 3 使用
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: batch-pipeline-coverage-summary
         continue-on-error: true
