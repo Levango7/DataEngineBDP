@@ -1972,7 +1972,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 设置 Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: 发现并遍历所有含 Dockerfile 的组件
         run: |
