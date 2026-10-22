@@ -48,8 +48,8 @@ test.describe('导航布局', () => {
     const count = await items.count()
     // 这个用例防的是"菜单被整体吞掉/重复渲染"，不是钉死某一版导航：
     // 2026-10-21 收编多集群 5 页后实测 57 项（nav.items 共 61 键，部分项按权限/分组不渲染）；
-    // 2026-10-22 收编开放 API 2 页后预期 59 项（nav.items 共 63 键），本轮未在浏览器复测，
-    // 由这条 CI 腿给出真数；上限随 nav.items 键数（63）走，下限保持 25。
+    // 2026-10-22 收编开放 API 2 页后本机真浏览器实测 **59** 项（nav.items 共 63 键）。
+    // 上限随 nav.items 键数（63）走，下限保持 25。
     expect(count).toBeGreaterThanOrEqual(25)
     expect(count).toBeLessThanOrEqual(63)
   })

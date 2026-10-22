@@ -303,7 +303,9 @@
       "billingSaved": "Billing config saved",
       "apisixFailed": "APISIX action failed: ",
       "deployed": "APISIX route deployed",
-      "undeployed": "APISIX route removed"
+      "undeployed": "APISIX route removed",
+      "deployFailed": "Route deploy failed",
+      "undeployFailed": "Route removal failed"
     }
   }
 }

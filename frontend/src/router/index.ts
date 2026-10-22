@@ -438,17 +438,17 @@ const routes: RouteRecordRaw[] = [
   },
   {
     // 收编 C3：generate.py 的四条端点此前只有子看板能用，而子看板不进镜像（台账 #78）
-    path: '/api-generate',
-    name: 'ApiGenerate',
+    path: '/ops-api-generate',
+    name: 'OpsApiGenerate',
     component: ApiGenerate,
-    meta: { titleKey: 'nav.items.api-generate', icon: 'MagicStick', group: 'operations' }
+    meta: { titleKey: 'nav.items.ops-api-generate', icon: 'MagicStick', group: 'operations' }
   },
   {
     // 收编 C3：订阅审批 / AK·SK 颁发 / 订阅级限流（subscriptions.py + billing.py）
-    path: '/api-subscriptions',
-    name: 'ApiSubscriptions',
+    path: '/ops-api-subscriptions',
+    name: 'OpsApiSubscriptions',
     component: ApiSubscriptions,
-    meta: { titleKey: 'nav.items.api-subscriptions', icon: 'Key', group: 'operations' }
+    meta: { titleKey: 'nav.items.ops-api-subscriptions', icon: 'Key', group: 'operations' }
   },
   {
     path: '/ops-flow',

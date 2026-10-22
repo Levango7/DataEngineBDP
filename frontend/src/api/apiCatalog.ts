@@ -347,6 +347,23 @@ export function getApiDocs(id: string, format?: 'openapi' | 'markdown'): Promise
 }
 
 /**
+ * APISIX 部署结果。
+ *
+ * 后端（`services/apisix_config.py:252-281`）在 APISIX Admin 不可达时**仍回 HTTP 200**，
+ * 只把成败写进 `status`/`deployed`/`message`——注释原话是"网络错误显式回报，不伪装成功"。
+ * 所以调用方必须以 `status` 为准；只看 HTTP 码会把"没下发成功"报成"已部署"。
+ */
+export interface ApisixDeployResult {
+  action: 'deploy' | 'undeploy'
+  routeId: string
+  apisixAdminUrl?: string
+  status: 'success' | 'failed'
+  deployed: boolean
+  message: string
+  error?: string | null
+}
+
+/**
  * 获取 APISIX 路由配置
  */
 export function getApisixConfig(id: string): Promise<Record<string, unknown>> {
@@ -356,15 +373,15 @@ export function getApisixConfig(id: string): Promise<Record<string, unknown>> {
 /**
  * 部署 APISIX 路由
  */
-export function deployApisixRoute(id: string): Promise<Record<string, unknown>> {
-  return post<Record<string, unknown>>(`${BASE}/${id}/apisix-deploy`)
+export function deployApisixRoute(id: string): Promise<ApisixDeployResult> {
+  return post<ApisixDeployResult>(`${BASE}/${id}/apisix-deploy`)
 }
 
 /**
  * 卸载 APISIX 路由（`metrics_docs.py:102`，原客户端只有部署没有卸载）
  */
-export function undeployApisixRoute(id: string): Promise<Record<string, unknown>> {
-  return del<Record<string, unknown>>(`${BASE}/${id}/apisix-deploy`)
+export function undeployApisixRoute(id: string): Promise<ApisixDeployResult> {
+  return del<ApisixDeployResult>(`${BASE}/${id}/apisix-deploy`)
 }
 
 // ---------- 一键生成 API（`generate.py`，前缀 `/apis/generate`） ----------

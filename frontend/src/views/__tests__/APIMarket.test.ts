@@ -20,8 +20,11 @@ const i18n = createI18n({
   }
 })
 
-const { listApisMock } = vi.hoisted(() => ({
-  listApisMock: vi.fn()
+const { listApisMock, deployMock, undeployMock, apisixConfigMock } = vi.hoisted(() => ({
+  listApisMock: vi.fn(),
+  deployMock: vi.fn(),
+  undeployMock: vi.fn(),
+  apisixConfigMock: vi.fn(() => Promise.resolve({}))
 }))
 
 vi.mock('@/api/apiCatalog', () => ({
@@ -34,7 +37,32 @@ vi.mock('@/api/apiCatalog', () => ({
   subscribeApi: vi.fn(),
   listSubscribers: vi.fn(() => Promise.resolve([])),
   callApi: vi.fn(),
-  getMetrics: vi.fn()
+  getMetrics: vi.fn(),
+  // C3 运维标签页新增的五条：缺任何一条，模块 mock 里就是 undefined，
+  // 用到它的用例会以"不是函数"崩掉而不是假通过
+  getBillingConfig: vi.fn(() =>
+    Promise.resolve({
+      apiId: 'api-1',
+      costStrategy: 'by_call',
+      costUnitPrice: 0.01,
+      monthlyQuota: null,
+      description: '',
+      updatedAt: '2026-10-22T00:00:00Z'
+    })
+  ),
+  setBillingConfig: vi.fn(() =>
+    Promise.resolve({
+      apiId: 'api-1',
+      costStrategy: 'by_bytes',
+      costUnitPrice: 0.02,
+      monthlyQuota: null,
+      description: '',
+      updatedAt: '2026-10-22T00:05:00Z'
+    })
+  ),
+  getApisixConfig: apisixConfigMock,
+  deployApisixRoute: deployMock,
+  undeployApisixRoute: undeployMock
 }))
 
 import APIMarket from '../APIMarket.vue'
@@ -158,6 +186,94 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     const kpiAfterError = wrapper.findAll('.kpi')
     // 第一个 KPI 是"已发布 API"，错误态应为 0
     expect(kpiAfterError[0].text()).toBe('0')
+    wrapper.unmount()
+  })
+})
+
+/**
+ * C3 运维标签页的成败判据。
+ *
+ * 这条是真浏览器里抓出来的：APISIX Admin 不可达时后端**仍回 HTTP 200**，
+ * 成败写在 `status`/`deployed`/`message` 里（`services/apisix_config.py:252-281`，
+ * 注释原话"网络错误显式回报，不伪装成功"）。若客户端只看 HTTP 码，
+ * 用户就会在页面上看到"APISIX 路由已部署"，而网关里根本没有这条路由。
+ */
+describe('views/APIMarket.vue 运维标签页：部署成败以 status 为准，不看 HTTP 码', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mountWithApi(): { wrapper: VueWrapper; vm: Record<string, any> } {
+    listApisMock.mockResolvedValue([realApi])
+    const wrapper = mount(APIMarket, { global: { plugins: [i18n] } })
+    return { wrapper, vm: wrapper.vm as unknown as Record<string, any> }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setActivePinia(createPinia())
+  })
+
+  it('status=failed 时把后端 message 与 error 呈现为错误态，绝不报"已部署"', async () => {
+    deployMock.mockResolvedValue({
+      action: 'deploy',
+      routeId: 'api-1',
+      status: 'failed',
+      deployed: false,
+      message: '路由下发失败: real-api（APISIX 未部署或网络不可达）',
+      error: 'APISIX Admin API 不可达: getaddrinfo failed'
+    })
+    const { wrapper, vm } = mountWithApi()
+    await flushPromises()
+    vm.selectedApi = realApi
+    await vm.deployRoute()
+    await flushPromises()
+
+    expect(deployMock).toHaveBeenCalledWith('api-1')
+    expect(vm.opsError).toContain('路由下发失败')
+    expect(vm.opsError).toContain('getaddrinfo failed')
+    expect(wrapper.text()).not.toContain('APISIX 路由已部署')
+    wrapper.unmount()
+  })
+
+  it('status=success 时才清空错误态并提示成功', async () => {
+    deployMock.mockResolvedValue({
+      action: 'deploy',
+      routeId: 'api-1',
+      status: 'success',
+      deployed: true,
+      message: '路由已下发: real-api',
+      error: null
+    })
+    const { wrapper, vm } = mountWithApi()
+    await flushPromises()
+    vm.selectedApi = realApi
+    await vm.deployRoute()
+    await flushPromises()
+
+    expect(vm.opsError).toBe('')
+    // Toast 由 App.vue 的 <Toast/> 渲染，单挂 APIMarket 时没有那层壳，
+    // 所以这里断言"没进错误态"而不是断言弹层文案
+    expect(wrapper.text()).not.toContain('APISIX 操作失败')
+    wrapper.unmount()
+  })
+
+  it('卸载同样按 status 判定；失败时保留已查看的路由配置', async () => {
+    undeployMock.mockResolvedValue({
+      action: 'undeploy',
+      routeId: 'api-1',
+      status: 'failed',
+      deployed: false,
+      message: '路由删除失败: real-api（APISIX 未部署或网络不可达）',
+      error: 'getaddrinfo failed'
+    })
+    const { wrapper, vm } = mountWithApi()
+    await flushPromises()
+    vm.selectedApi = realApi
+    vm.apisixConfig = { name: 'real-api-1.0.0' }
+    await vm.undeployRoute()
+    await flushPromises()
+
+    expect(vm.opsError).toContain('路由删除失败')
+    // 失败不能把配置视图清掉：清掉会让人误以为"已经删干净了"
+    expect(vm.apisixConfig).not.toBeNull()
     wrapper.unmount()
   })
 })

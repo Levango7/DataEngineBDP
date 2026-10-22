@@ -303,7 +303,9 @@
       "billingSaved": "计费配置已保存",
       "apisixFailed": "APISIX 操作失败：",
       "deployed": "APISIX 路由已部署",
-      "undeployed": "APISIX 路由已卸载"
+      "undeployed": "APISIX 路由已卸载",
+      "deployFailed": "路由下发失败",
+      "undeployFailed": "路由删除失败"
     }
   }
 }

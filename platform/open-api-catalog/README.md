@@ -137,9 +137,9 @@ python -m pytest tests/ -v
   详情抽屉含契约文档、试调（`POST /apis/{id}/call`）、订阅申请、计量；**运维**标签页给按 API 的
   计费配置（`GET/PUT /apis/{id}/billing`）与 APISIX 路由的查看 / 部署 / 卸载
   （`/apis/{id}/apisix-config`、`/apisix-deploy`）
-- **一键生成 API**（`/api-generate`，`openapi/ApiGenerate.vue`）：SQL / 模型 / 函数三种生成，
+- **一键生成 API**（`/ops-api-generate`，`openapi/ApiGenerate.vue`）：SQL / 模型 / 函数三种生成，
   候选值取 `GET /apis/generate/options`，页面不自抄枚举
-- **API 订阅管理**（`/api-subscriptions`，`openapi/ApiSubscriptions.vue`）：审批（通过/驳回）、
+- **API 订阅管理**（`/ops-api-subscriptions`，`openapi/ApiSubscriptions.vue`）：审批（通过/驳回）、
   AK·SK 颁发与查询（SK 只在颁发响应里出现一次，页面就地展示）、订阅级限流读写、暂停 / 恢复 / 吊销
 
 用量看板（旧 DashboardView）**未收编**：它的 KPI 是对每个 API 串行发一次 `GET /apis/{id}/metrics`

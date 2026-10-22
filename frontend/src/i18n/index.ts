@@ -207,8 +207,8 @@ export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-portal': ['businessPortal'],
   '/ops-api': ['apiMarket'],
   // 收编批次 C3：两页复用 apiMarket 模块（新段落 generate / subs）
-  '/api-generate': ['apiMarket'],
-  '/api-subscriptions': ['apiMarket'],
+  '/ops-api-generate': ['apiMarket'],
+  '/ops-api-subscriptions': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
   '/exchange-settlements': ['exchange'],
   '/exchange-overview': ['exchange'],

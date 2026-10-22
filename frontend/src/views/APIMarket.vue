@@ -738,8 +738,13 @@ async function deployRoute(): Promise<void> {
   opsError.value = ''
   opsSaving.value = true
   try {
-    await deployApisixRoute(selectedApi.value.id)
-    store.showToast(t('apiMarket.ops.deployed'))
+    const resp = await deployApisixRoute(selectedApi.value.id)
+    // 200 不等于成功：后端把成败写在 status 里（见 apiCatalog 的 ApisixDeployResult 注释）
+    if (resp?.status !== 'success') {
+      opsError.value = `${resp?.message || t('apiMarket.ops.deployFailed')}${resp?.error ? `（${resp.error}）` : ''}`
+    } else {
+      store.showToast(resp.message || t('apiMarket.ops.deployed'))
+    }
     apisixConfig.value = await getApisixConfig(selectedApi.value.id)
   } catch (e) {
     opsError.value = `${t('apiMarket.ops.apisixFailed')}${(e as Error)?.message ?? ''}`
@@ -753,9 +758,13 @@ async function undeployRoute(): Promise<void> {
   opsError.value = ''
   opsSaving.value = true
   try {
-    await undeployApisixRoute(selectedApi.value.id)
-    store.showToast(t('apiMarket.ops.undeployed'))
-    apisixConfig.value = null
+    const resp = await undeployApisixRoute(selectedApi.value.id)
+    if (resp?.status !== 'success') {
+      opsError.value = `${resp?.message || t('apiMarket.ops.undeployFailed')}${resp?.error ? `（${resp.error}）` : ''}`
+    } else {
+      store.showToast(resp.message || t('apiMarket.ops.undeployed'))
+      apisixConfig.value = null
+    }
   } catch (e) {
     opsError.value = `${t('apiMarket.ops.apisixFailed')}${(e as Error)?.message ?? ''}`
   } finally {
