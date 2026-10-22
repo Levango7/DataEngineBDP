@@ -17,7 +17,7 @@ import java.util.List;
  */
 public interface QualityRuleSource {
 
-    /** 该来源是否启用；未启用时引擎保持现有注册表（默认关，保持 additivity）。 */
+    /** 该来源是否启用；启用时引擎按来源拉取并重建注册表（默认开）。 */
     boolean isEnabled();
 
     /**
