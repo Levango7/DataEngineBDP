@@ -92,6 +92,14 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/apis/${id}/call` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/metrics` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/docs` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/apis/generate/options`  | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/apis/generate/sql`  | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/apis/generate/model`  | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/apis/generate/function`  | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/apis/${id}/billing` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
+| `/subscriptions/${id}` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/keys` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/rate-limit` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
 
 ## assetMarket.ts
 
@@ -510,7 +518,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：282
+- 匹配：290
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

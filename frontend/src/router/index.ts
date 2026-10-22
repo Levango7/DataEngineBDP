@@ -64,6 +64,9 @@ const KarmadaReplicaPlans = () => import('@/views/karmada/ReplicaPlans.vue')
 const KarmadaFailoverPolicies = () => import('@/views/karmada/FailoverPolicies.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
+// 收编批次 C3：原 frontend/open-api-dashboard 独立看板的生成与订阅两页
+const ApiGenerate = () => import('@/views/openapi/ApiGenerate.vue')
+const ApiSubscriptions = () => import('@/views/openapi/ApiSubscriptions.vue')
 // 批次9新增：检索门户（T007 前端集成增强）
 const SearchPortal = () => import('@/views/SearchPortal.vue')
 // 批次10新增：编排 DAG 可视化（T007 viz）
@@ -432,6 +435,20 @@ const routes: RouteRecordRaw[] = [
     name: 'APIMarket',
     component: APIMarket,
     meta: { titleKey: 'nav.items.ops-api', icon: 'Connection', group: 'operations' }
+  },
+  {
+    // 收编 C3：generate.py 的四条端点此前只有子看板能用，而子看板不进镜像（台账 #78）
+    path: '/api-generate',
+    name: 'ApiGenerate',
+    component: ApiGenerate,
+    meta: { titleKey: 'nav.items.api-generate', icon: 'MagicStick', group: 'operations' }
+  },
+  {
+    // 收编 C3：订阅审批 / AK·SK 颁发 / 订阅级限流（subscriptions.py + billing.py）
+    path: '/api-subscriptions',
+    name: 'ApiSubscriptions',
+    component: ApiSubscriptions,
+    meta: { titleKey: 'nav.items.api-subscriptions', icon: 'Key', group: 'operations' }
   },
   {
     path: '/ops-flow',

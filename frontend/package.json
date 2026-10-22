@@ -5,8 +5,7 @@
   "type": "module",
   "workspaces": [
     "finops-dashboard",
-    "finetuning-monitor",
-    "open-api-dashboard"
+    "finetuning-monitor"
   ],
   "scripts": {
     "dev": "vite",
@@ -24,11 +23,10 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
-    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace finetuning-monitor && npm run build --workspace open-api-dashboard",
+    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace finetuning-monitor",
     "dev:finops": "npm run dev --workspace finops-dashboard",
     "dev:finetuning": "npm run dev --workspace finetuning-monitor",
-    "dev:openapi": "npm run dev --workspace open-api-dashboard",
-    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace finetuning-monitor && npm run type-check --workspace open-api-dashboard",
+    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace finetuning-monitor",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

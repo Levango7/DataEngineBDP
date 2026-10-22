@@ -130,15 +130,21 @@ python -m pytest tests/ -v
 
 ## 前端
 
-`frontend/open-api-dashboard/` 提供 Vue3 服务目录管理界面：
+原 `frontend/open-api-dashboard/` 独立看板已摘除，界面收编进主应用（源码在 `frontend/src/views/`，
+导航分组「平台管理」，鉴权、i18n 与设计令牌随主应用）：
 
-- **服务目录**（CatalogView）：分类筛选、标签搜索、SLA 等级、计费策略展示
-- **一键生成**（GenerateView）：SQL / 模型 / 函数三种 Tab，表单驱动生成 API
-- **订阅管理**（SubscriptionsView）：申请订阅、审批、AK/SK 颁发、限流配置
-- **用量看板**（DashboardView）：ECharts 调用量趋势、计费汇总、Top API 排行
-- **API 详情**（ApiDetailView）：契约预览、文档、APISIX 配置、调用示例
+- **开放 API 服务目录**（`/ops-api`，`APIMarket.vue`）：分类筛选、搜索、注册、提交审核、发布，
+  详情抽屉含契约文档、试调（`POST /apis/{id}/call`）、订阅申请、计量；**运维**标签页给按 API 的
+  计费配置（`GET/PUT /apis/{id}/billing`）与 APISIX 路由的查看 / 部署 / 卸载
+  （`/apis/{id}/apisix-config`、`/apisix-deploy`）
+- **一键生成 API**（`/api-generate`，`openapi/ApiGenerate.vue`）：SQL / 模型 / 函数三种生成，
+  候选值取 `GET /apis/generate/options`，页面不自抄枚举
+- **API 订阅管理**（`/api-subscriptions`，`openapi/ApiSubscriptions.vue`）：审批（通过/驳回）、
+  AK·SK 颁发与查询（SK 只在颁发响应里出现一次，页面就地展示）、订阅级限流读写、暂停 / 恢复 / 吊销
 
-技术栈：Vue 3 + Vite + Pinia + Vue Router + Element Plus + ECharts + Axios。
+用量看板（旧 DashboardView）**未收编**：它的 KPI 是对每个 API 串行发一次 `GET /apis/{id}/metrics`
+的 N+1 扇出（原实现 `listApis({limit:1000})` 后逐条请求），且概览能力与主应用运营管理重叠；
+要恢复这块需要后端先给聚合端点，而不是把扇出搬进主应用。
 
 ## 集成测试
 

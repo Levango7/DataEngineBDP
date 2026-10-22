@@ -72,8 +72,7 @@ export default defineConfig({
     setupFiles: ['src/test-setup.ts'],
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
-      'finops-dashboard/src/**/*.{test,spec}.{ts,tsx}',
-      'open-api-dashboard/src/**/*.{test,spec}.{ts,tsx}'
+      'finops-dashboard/src/**/*.{test,spec}.{ts,tsx}'
     ],
     coverage: {
       provider: 'istanbul',

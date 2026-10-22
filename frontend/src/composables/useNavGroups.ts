@@ -154,6 +154,9 @@ export function useNavGroups() {
         { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'Collection' },
         { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'View' },
         { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'Goods' },
+        // 收编批次 C3：原 open-api-dashboard 的生成页与订阅页
+        { path: '/api-generate', label: t('nav.items.api-generate'), icon: 'MagicStick' },
+        { path: '/api-subscriptions', label: t('nav.items.api-subscriptions'), icon: 'Key' },
         { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' },
         {
           path: '/exchange-settlements',
