@@ -128,7 +128,9 @@ export async function getQueryBilling(
   usages?: Record<string, number>
   note?: string
 }> {
-  const res = await http.get('/billing/tenant', { params })
+  // 后端实现在 dashboard 的 /api/v1/dashboard/billing/tenant（BillingController.java:32/45），
+  // baseURL 已是 /api/v1，漏掉 /dashboard 一段会打到 404（台账 #91）。
+  const res = await http.get('/dashboard/billing/tenant', { params })
   return res.data
 }
 
@@ -150,6 +152,6 @@ export async function getQueryBillingTrend(
     cost: number
   }>
 }> {
-  const res = await http.get('/billing/tenant/trend', { params })
+  const res = await http.get('/dashboard/billing/tenant/trend', { params })
   return res.data
 }
