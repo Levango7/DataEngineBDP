@@ -1,8 +1,6 @@
 package com.levango7.dataenginebdp.federated.transaction;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,8 +16,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 模拟集群失败。
  */
 @Slf4j
-@Component
-@ConditionalOnMissingBean(ClusterTransactionClient.class)
 public class InMemoryClusterTransactionClient implements ClusterTransactionClient {
 
     /** 模拟失败的集群集合（prepare/commit/rollback 都返回 false）。 */
