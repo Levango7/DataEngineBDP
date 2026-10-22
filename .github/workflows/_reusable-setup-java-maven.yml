@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 安装 JDK ${{ inputs.java-version }} (${{ inputs.distribution }})
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: ${{ inputs.distribution }}
           java-version: ${{ inputs.java-version }}
