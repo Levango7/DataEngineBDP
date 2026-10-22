@@ -901,6 +901,12 @@ jobs:
             exit 1
           fi
 
+      - name: Chart env 与 application.yml 默认值一致性校验（阻断）
+        run: |
+          # 防止 chart env 静默覆盖 Spring Boot 应用默认值（如
+          # GOVERNANCE_QUALITY_SOURCE_ENABLED 被 chart 覆盖为 "false" 而应用默认 true）。
+          python3 scripts/check-chart-env-default-parity.py
+
       - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
         # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对
         run: |
