@@ -103,15 +103,55 @@ vulnerabilities:
 
 ### 5.1 待处理（当前 0 条）
 
-Dependabot alerts 页面（`Security → Dependabot alerts`）已核对：Open 未解决 = 0，Closed 已关闭 = 0。仓库当前无未处理的依赖告警。
+> **2026-10-23 订正——下面这段原话是错的，原文保留以示留痕，不作数。**
+>
+> 原文：「Dependabot alerts 页面（`Security → Dependabot alerts`）已核对：Open 未解决 = 0，Closed 已关闭 = 0。仓库当前无未处理的依赖告警。」
+>
+> **实测（同一 API，2026-10-23）**：`GET /repos/{owner}/{repo}/dependabot/alerts?state=open` 返回 **30 条**未关闭告警——严重度分布 **HIGH 4 / MEDIUM 24 / LOW 2**，按「advisory × package」去重后 **23 条**。所以「Open = 0」不成立。
+>
+> **为什么会错**：这句话写下的时点（2026-10-10 那批）确实清过一轮，但 Dependabot 的安全告警是**按 analysis key 累积**的——仓库后来新引入的依赖（以及上游新发布的 advisory 覆盖到既有版本）会继续产生 open 告警，而本文件不会自己更新。**教训：这条数字必须现查，不能引用历史结论。**
+>
+> 复核命令（需有 Security 读权限）：
+>
+> ```
+> gh api "repos/<owner>/<repo>/dependabot/alerts?state=open&per_page=100" --jq 'length'
+> gh api "repos/<owner>/<repo>/dependabot/alerts?state=open&per_page=100" \
+>   --jq '[.[].security_advisory.severity] | group_by(.) | map("\(.[0])=\(length)") | join(" ")'
+> ```
+>
+
+**2026-10-23 分诊结果（30 条告警 / 23 个去重条目）**
+
+| 分类 | 条目 | 处置 |
+|---|---|---|
+| ① 已修（本批） | `echarts`（GHSA-fgmj-fm8m-jvvx，→ 6.1.0）、`@vitest/mocker`（GHSA-qxg6-89mg-rqv8 / GHSA-xp26-3454-mjgp，→ 4.1.12）、`pytest`（GHSA-6w46-j5rx-g56g，→ 9.0.3，4 份清单）、`python-multipart`（GHSA-v9pg-7xvm-68hf，→ 0.0.31）、`github.com/quic-go/quic-go`（GHSA-vvgj-x9jq-8cj9，→ 0.59.1）、`poi-ooxml`（GHSA-gmg8-593g-7mv3，→ 5.5.1） | 见 §5.2 |
+| ② 僵尸 / 已在 HEAD 修掉 | `scikit-learn`（GHSA-jw8x-6495-233v，HEAD 已是 `>=1.5.0`）、`pytest` 在 `platform/business-portal` 与 `platform/llmops` 两处（HEAD 已是 `>=9.0.3`） | 见 §5.3 |
+| ③ 上游无修复版 | `org.lz4:lz4-java`（7 条，含 2 HIGH）、`mysql:mysql-connector-java`（1 条 HIGH） | `docs/dependency-vuln-exemptions.yaml` |
+| ④ 不可达 / 升它会打穿别的组件 | `black`（受影响面是本仓未使用的 GitHub Action）、`io.debezium:debezium-core`（跨三个大版本，连接器绑定 1.9.x）、`brace-expansion`（5.x 一支）、`postcss-selector-parser`、`uuid` | `docs/dependency-vuln-exemptions.yaml`（每条都写了实测反证） |
+
+> **③④ 都不是「不修」，是「本仓现在修不动」**：每一条都带 `expired_at`，到期未清会重新判红；续期必须同时说明上游进展，不许只挪日期。
 
 | CVE | 包 | 已装版本 | 严重度 | 分类 | 处置 | 日期 | PR/豁免 |
 |---|---|---|---|---|---|---|---|
+| GHSA-fgmj-fm8m-jvvx 等 | 见上表 | — | — | ① | 已升 | 2026-10-23 | 本批 PR |
+| GHSA-mcr4-qmvw-px4g 等 7 条 | org.lz4:lz4-java | 1.8.1 | HIGH×2 / MEDIUM×4 / LOW×1 | ③ | 限期豁免 | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-m6vm-37g8-gqvh | mysql:mysql-connector-java | 8.0.33 | HIGH | ③ | 限期豁免 | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-cg8m-r9f2-5wm2 | black | 26.5.1 | HIGH | ④ | 豁免（路径不可达） | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-hvw5-3mgw-7rcf | io.debezium:debezium-core | 1.9.7.Final | MEDIUM | ④ | 豁免（跨大版本，带解锁条件） | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-q2hr-2g5m-vwhr | brace-expansion (5.x 一支) | 5.0.9 | MEDIUM | ④ | 豁免（强推打穿 minimatch，已实测） | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-rj75-hqrm-r3gf | postcss-selector-parser | 6.1.5 | MEDIUM | ④ | 豁免（强推打穿 eslint-plugin-vue，已实测） | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-w5hq-g745-h8pq | uuid | 9.0.1 | MEDIUM | ④ | 豁免（仅 storybook 开发期使用） | 2026-10-23 | dependency-vuln-exemptions.yaml |
 
 ### 5.2 已修复
 
 | CVE | 包 | 旧版 → 新版 | 处理日期 | PR 链接 |
 |---|---|---|---|---|
+| GHSA-fgmj-fm8m-jvvx（ECharts XSS） | echarts | 5.6.0 → 6.1.0 | 2026-10-23 | 本批 PR（`frontend/package.json` + 两个 workspace，同一份 lockfile） |
+| GHSA-qxg6-89mg-rqv8 / GHSA-xp26-3454-mjgp（Vitest mock 注入与 Windows 路径穿越） | @vitest/mocker（随 vitest 家族） | 4.1.11 → 4.1.12 | 2026-10-23 | 本批 PR |
+| GHSA-6w46-j5rx-g56g（pytest） | pytest | 8.3.4 / 8.1.1 → 9.0.3 | 2026-10-23 | 本批 PR（4 份清单；pytest-asyncio 同批抬到 1.4.0，否则不可解析） |
+| GHSA-v9pg-7xvm-68hf（python-multipart） | python-multipart | 0.0.30 → 0.0.31 | 2026-10-23 | 本批 PR |
+| GHSA-vvgj-x9jq-8cj9（quic-go QPACK） | github.com/quic-go/quic-go | 0.59.0 → 0.59.1 | 2026-10-23 | 本批 PR（`go mod tidy` 后 `go build ./...` 通过） |
+| GHSA-gmg8-593g-7mv3（POI OOXML） | org.apache.poi:poi-ooxml | 5.2.5 → 5.5.1 | 2026-10-23 | 本批 PR（等价 dependabot #636） |
 
 ### 5.3 已关闭（僵尸/不影响）
 
@@ -123,7 +163,10 @@ Dependabot alerts 页面（`Security → Dependabot alerts`）已核对：Open �
 ## 六、已知局限
 
 - 本机（本会话）无法直接访问 GitHub Security tab（服务端配额限制 429/410），但已由拥有 GitHub 权限的人现场核对：Dependabot alerts Open = 0，Closed = 0，仓库当前无未处理依赖告警。
+  > **2026-10-23 订正**：这条同样不成立——原文保留留痕。实测同一 API 为 **30 条 open**（HIGH 4 / MEDIUM 24 / LOW 2），复核命令与分诊结果见 §5.1。另：本轮是通过 **REST API**（`gh api .../dependabot/alerts`）取的数，不是网页 Security tab，因此「本机无法访问 Security tab」这一限制**不影响取数**——该局限的表述本身也过时了。
 - 镜像基座 CVE（`docs/trivy-image-ignore.yaml` 已记 18 条，到期 2026-12-01）与本文的依赖 CVE 是两张表，不混用。
+- **2026-10-23 新增**：*依赖包*的限期豁免统一记在 `docs/dependency-vuln-exemptions.yaml`（新文件），本文只做分诊与结论；两处不要各记一份，免得对不上。
+- **2026-10-23 新增**：`(owner)/(repo)` 的 Dependabot 安全更新开关（`automated_security_fixes`）本轮现查**不在 `security_and_analysis` 返回里**（即未启用），这解释了为什么 `black` / `pytest` / `echarts` 这些有修复版的告警长期没有 Dependabot 自己开安全 PR。是否重新打开属仓库设置变更，本批未动，留作独立决定。
 
 ---
 
