@@ -347,6 +347,23 @@ export function getApiDocs(id: string, format?: 'openapi' | 'markdown'): Promise
 }
 
 /**
+ * APISIX 部署结果。
+ *
+ * 后端（`services/apisix_config.py:252-281`）在 APISIX Admin 不可达时**仍回 HTTP 200**，
+ * 只把成败写进 `status`/`deployed`/`message`——注释原话是"网络错误显式回报，不伪装成功"。
+ * 所以调用方必须以 `status` 为准；只看 HTTP 码会把"没下发成功"报成"已部署"。
+ */
+export interface ApisixDeployResult {
+  action: 'deploy' | 'undeploy'
+  routeId: string
+  apisixAdminUrl?: string
+  status: 'success' | 'failed'
+  deployed: boolean
+  message: string
+  error?: string | null
+}
+
+/**
  * 获取 APISIX 路由配置
  */
 export function getApisixConfig(id: string): Promise<Record<string, unknown>> {
@@ -356,6 +373,155 @@ export function getApisixConfig(id: string): Promise<Record<string, unknown>> {
 /**
  * 部署 APISIX 路由
  */
-export function deployApisixRoute(id: string): Promise<Record<string, unknown>> {
-  return post<Record<string, unknown>>(`${BASE}/${id}/apisix-deploy`)
+export function deployApisixRoute(id: string): Promise<ApisixDeployResult> {
+  return post<ApisixDeployResult>(`${BASE}/${id}/apisix-deploy`)
+}
+
+/**
+ * 卸载 APISIX 路由（`metrics_docs.py:102`，原客户端只有部署没有卸载）
+ */
+export function undeployApisixRoute(id: string): Promise<ApisixDeployResult> {
+  return del<ApisixDeployResult>(`${BASE}/${id}/apisix-deploy`)
+}
+
+// ---------- 一键生成 API（`generate.py`，前缀 `/apis/generate`） ----------
+
+/** `GET /apis/generate/options` 的三组候选值 */
+export interface GenerateOptions {
+  datasources: string[]
+  modelTypes: string[]
+  runtimes: string[]
+}
+
+/** 三种生成方式共有的字段（后端三个 Body 模型在这几项上逐字同形） */
+export interface GenerateCommon {
+  name: string
+  providerTenantId: string
+  description?: string
+  category?: string
+  tags?: string[]
+  costStrategy?: CostStrategy
+  costUnitPrice?: number
+  sla?: SLALevel
+}
+
+export interface SqlGenerateRequest extends GenerateCommon {
+  sql: string
+  datasource: string
+}
+
+export interface ModelGenerateRequest extends GenerateCommon {
+  modelId: string
+  modelType: string
+  inputSchema?: Record<string, unknown> | null
+}
+
+export interface FunctionGenerateRequest extends GenerateCommon {
+  functionName: string
+  runtime: string
+  /** 后端 `ge=1000, le=900000`（毫秒） */
+  timeout?: number
+  /** 后端 `ge=128, le=32768`（MB） */
+  memoryMB?: number
+}
+
+export function getGenerateOptions(): Promise<GenerateOptions> {
+  return get<GenerateOptions>(`${BASE}/generate/options`)
+}
+
+/** 三条生成端点都直接返回新建的 API 定义（201） */
+export function generateFromSql(data: SqlGenerateRequest): Promise<APIDefinition> {
+  return post<APIDefinition>(`${BASE}/generate/sql`, data)
+}
+
+export function generateFromModel(data: ModelGenerateRequest): Promise<APIDefinition> {
+  return post<APIDefinition>(`${BASE}/generate/model`, data)
+}
+
+export function generateFromFunction(data: FunctionGenerateRequest): Promise<APIDefinition> {
+  return post<APIDefinition>(`${BASE}/generate/function`, data)
+}
+
+// ---------- 按 API 的计费配置（`billing.py:304/367`，前缀 `/apis`） ----------
+
+export interface BillingConfigRequest {
+  costStrategy: CostStrategy
+  costUnitPrice: number
+  /** 仅 monthly_package 有意义；后端 `ge=0` */
+  monthlyQuota?: number | null
+}
+
+export interface BillingConfigResponse extends BillingConfigRequest {
+  apiId: string
+  description: string
+  updatedAt: string
+}
+
+export function getBillingConfig(id: string): Promise<BillingConfigResponse> {
+  return get<BillingConfigResponse>(`${BASE}/${id}/billing`)
+}
+
+export function setBillingConfig(
+  id: string,
+  data: BillingConfigRequest
+): Promise<BillingConfigResponse> {
+  return put<BillingConfigResponse>(`${BASE}/${id}/billing`, data)
+}
+
+// ---------- 订阅详情 / AK·SK / 限流（`billing.py` 的 `/subscriptions` 半边） ----------
+
+export interface IssueKeyRequest {
+  reason?: string
+  /** 后端必填（`Field(...)`），页面取当前登录用户 */
+  operator: string
+}
+
+/** 只有颁发响应里带明文 SK，之后 `GET /keys` 只回 `hasSecretKey` */
+export interface IssueKeyResponse {
+  subscriptionId: string
+  accessKey: string
+  secretKey: string
+  issuedAt: string
+  reason: string
+}
+
+export interface KeyInfoResponse {
+  subscriptionId: string
+  accessKey: string | null
+  hasSecretKey: boolean
+  status: string
+}
+
+export interface RateLimitConfig {
+  /** 后端 `ge=1, le=100000` */
+  qps: number
+  /** 0 = 不限并发 */
+  concurrent: number
+  /** 0 = 与 qps 同值 */
+  burst: number
+}
+
+export interface RateLimitConfigResponse extends RateLimitConfig {
+  subscriptionId: string
+  updatedAt: string
+}
+
+export function getSubscription(id: string): Promise<APISubscription> {
+  return get<APISubscription>(`${SUB_BASE}/${id}`)
+}
+
+export function issueSubscriptionKey(id: string, data: IssueKeyRequest): Promise<IssueKeyResponse> {
+  return post<IssueKeyResponse>(`${SUB_BASE}/${id}/keys`, data)
+}
+
+export function getSubscriptionKeys(id: string): Promise<KeyInfoResponse> {
+  return get<KeyInfoResponse>(`${SUB_BASE}/${id}/keys`)
+}
+
+export function setRateLimit(id: string, data: RateLimitConfig): Promise<RateLimitConfigResponse> {
+  return put<RateLimitConfigResponse>(`${SUB_BASE}/${id}/rate-limit`, data)
+}
+
+export function getRateLimit(id: string): Promise<RateLimitConfigResponse> {
+  return get<RateLimitConfigResponse>(`${SUB_BASE}/${id}/rate-limit`)
 }

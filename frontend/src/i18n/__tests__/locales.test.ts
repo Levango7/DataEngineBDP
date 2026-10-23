@@ -103,13 +103,14 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 61 项 + 8 分组全部有中英词条', () => {
+  it('导航 63 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
     // 计数口径 = nav.items 的键数（Sidebar 用它渲染）。
     // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）；
-    // 56 → 61：收编多集群联邦 5 页（8 分组数未变，新页并入 infra）。
-    expect(navItems.length).toBe(61)
+    // 56 → 61：收编多集群联邦 5 页（8 分组数未变，新页并入 infra）；
+    // 61 → 63：收编开放 API 域 2 页（一键生成、订阅管理，并入 platform-mgmt）。
+    expect(navItems.length).toBe(63)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()

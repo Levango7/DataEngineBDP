@@ -35,7 +35,7 @@ import (
 
 	karmadaclient "github.com/Levango7/DataEngineBDP/karmada-api/internal/karmadaclient"
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/Levango7/DataEngineBDP/karmada-api/internal/handler"

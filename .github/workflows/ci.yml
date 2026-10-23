@@ -2143,8 +2143,10 @@ jobs:
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
-          echo "启动 docker-compose 服务（第 1 次尝试）..."
-          if docker compose up -d --wait; then
+          echo "启动 docker-compose 服务（第 1 次尝试，含 karmada-extra profile）..."
+          # --profile karmada-extra（台账 #90）：karmada 域四服务默认不启，
+          # 只在本泳道追加拉起，ZAP/Playwright/nightly 的 up 行为不变。
+          if docker compose --profile karmada-extra up -d --wait; then
             echo "✓ 所有服务已启动（第 1 次尝试成功）"
             exit 0
           fi
@@ -2155,7 +2157,7 @@ jobs:
           docker compose down --remove-orphans || true
           sleep 60
           echo "启动 docker-compose 服务（重试）..."
-          if ! docker compose up -d --wait; then
+          if ! docker compose --profile karmada-extra up -d --wait; then
             echo "::error::docker-compose 启动失败或健康检查超时（已重试 1 次），集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
             echo "=== 容器日志（排障用）==="
@@ -2176,6 +2178,10 @@ jobs:
         #   见 docs/KNOWN-FAILURES.md 台账（专用压测泳道待建）。
         if: env.it_skip != 'true'
         working-directory: tests/integration
+        env:
+          # 上一步已用 --profile karmada-extra 拉起四个服务：不可达即真故障，
+          # 让 test_karmada_services.py 判红而不是静默 skip（台账 #90）。
+          SQ_IT_KARMADA_PROFILE: "1"
         run: |
           echo "运行集成测试（排除需真实 K8s 的 k3s/ 与压测套件 perf/）..."
           python -m pytest -v --tb=short --ignore=k3s --ignore=perf --html=test-report.html --self-contained-html

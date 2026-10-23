@@ -311,6 +311,58 @@
         </div>
 
         <!-- 计量 Tab -->
+        <!-- 运维 Tab：按 API 计费配置 + APISIX 路由（收编 C3，后端早有能力、页面无入口） -->
+        <div v-if="activeTab === 'ops'" class="tab-content">
+          <h3>{{ t('apiMarket.ops.billingTitle') }}</h3>
+          <p v-if="opsError" class="error-text" role="alert">{{ opsError }}</p>
+          <div v-if="billingLoading" class="muted-text">{{ t('common.loading') }}</div>
+          <template v-else>
+            <div class="ops-row">
+              <label>{{ t('apiMarket.detail.doc.cost') }}</label>
+              <el-select v-model="billingForm.costStrategy" style="width: 180px">
+                <el-option
+                  v-for="s in COST_STRATEGIES"
+                  :key="s"
+                  :label="t(`apiMarket.status.cost.${s}`)"
+                  :value="s"
+                />
+              </el-select>
+              <el-input-number
+                v-model="billingForm.costUnitPrice"
+                :min="0"
+                :step="0.01"
+                :precision="4"
+              />
+            </div>
+            <div v-if="billingForm.costStrategy === 'monthly_package'" class="ops-row">
+              <label>{{ t('apiMarket.ops.monthlyQuota') }}</label>
+              <el-input-number v-model="billingForm.monthlyQuota" :min="0" :step="1000" />
+            </div>
+            <div class="ops-row">
+              <el-button type="primary" size="small" :loading="opsSaving" @click="saveBilling">
+                {{ t('common.save') }}
+              </el-button>
+              <span v-if="billingUpdatedAt" class="muted-text">
+                {{ t('apiMarket.ops.updatedAt') }} {{ billingUpdatedAt }}
+              </span>
+            </div>
+          </template>
+
+          <h3>{{ t('apiMarket.ops.apisixTitle') }}</h3>
+          <div class="ops-row">
+            <el-button size="small" :loading="opsLoadingConfig" @click="loadApisixConfig">
+              {{ t('apiMarket.ops.viewConfig') }}
+            </el-button>
+            <el-button size="small" type="primary" :loading="opsSaving" @click="deployRoute">
+              {{ t('apiMarket.ops.deploy') }}
+            </el-button>
+            <el-button size="small" type="danger" :loading="opsSaving" @click="undeployRoute">
+              {{ t('apiMarket.ops.undeploy') }}
+            </el-button>
+          </div>
+          <pre v-if="apisixConfig" class="code-block">{{ prettyApisix }}</pre>
+        </div>
+
         <div v-if="activeTab === 'metrics'" class="tab-content">
           <div v-if="metricsLoading" class="meta muted-text">
             {{ t('apiMarket.detail.metrics.loading') }}
@@ -484,6 +536,13 @@ import {
   listSubscribers,
   callApi,
   getMetrics,
+  getBillingConfig,
+  setBillingConfig,
+  getApisixConfig,
+  deployApisixRoute,
+  undeployApisixRoute,
+  type BillingConfigResponse,
+  type CostStrategy,
   type APIDefinition,
   type APISubscription,
   type APIMetrics,
@@ -575,7 +634,8 @@ const detailTabs: { key: string; labelKey: string }[] = [
   { key: 'doc', labelKey: 'apiMarket.detail.tabs.doc' },
   { key: 'try', labelKey: 'apiMarket.detail.tabs.try' },
   { key: 'subscribe', labelKey: 'apiMarket.detail.tabs.subscribe' },
-  { key: 'metrics', labelKey: 'apiMarket.detail.tabs.metrics' }
+  { key: 'metrics', labelKey: 'apiMarket.detail.tabs.metrics' },
+  { key: 'ops', labelKey: 'apiMarket.detail.tabs.ops' }
 ]
 
 // 试调
@@ -597,11 +657,127 @@ const subForm = reactive({
 const metrics = ref<APIMetrics | null>(null)
 const metricsLoading = ref(false)
 
+// ---------- 运维：按 API 计费 + APISIX 路由（收编 C3） ----------
+// 词表取后端枚举：`models/api.py` 的 CostStrategy 三个值，页面不自己发明档位。
+const COST_STRATEGIES: CostStrategy[] = ['by_call', 'by_bytes', 'monthly_package']
+const billingForm = reactive<{
+  costStrategy: CostStrategy
+  costUnitPrice: number
+  monthlyQuota: number
+}>({ costStrategy: 'by_call', costUnitPrice: 0, monthlyQuota: 0 })
+const billingLoading = ref(false)
+const billingUpdatedAt = ref('')
+const opsSaving = ref(false)
+const opsLoadingConfig = ref(false)
+const opsError = ref('')
+const apisixConfig = ref<Record<string, unknown> | null>(null)
+
+const prettyApisix = computed(() =>
+  apisixConfig.value ? JSON.stringify(apisixConfig.value, null, 2) : ''
+)
+
+function resetOps(): void {
+  billingUpdatedAt.value = ''
+  apisixConfig.value = null
+  opsError.value = ''
+}
+
+async function loadBilling(): Promise<void> {
+  if (!selectedApi.value) return
+  billingLoading.value = true
+  opsError.value = ''
+  try {
+    const resp: BillingConfigResponse = await getBillingConfig(selectedApi.value.id)
+    billingForm.costStrategy = resp.costStrategy
+    billingForm.costUnitPrice = resp.costUnitPrice
+    billingForm.monthlyQuota = resp.monthlyQuota ?? 0
+    billingUpdatedAt.value = resp.updatedAt ?? ''
+  } catch (e) {
+    opsError.value = `${t('apiMarket.ops.loadFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    billingLoading.value = false
+  }
+}
+
+async function saveBilling(): Promise<void> {
+  if (!selectedApi.value) return
+  opsError.value = ''
+  // 后端 `monthlyQuota: int | None = Field(ge=0)`，非月包不传，避免把 0 当配额写回
+  const monthly = billingForm.costStrategy === 'monthly_package' ? billingForm.monthlyQuota : null
+  opsSaving.value = true
+  try {
+    const resp = await setBillingConfig(selectedApi.value.id, {
+      costStrategy: billingForm.costStrategy,
+      costUnitPrice: Number(billingForm.costUnitPrice) || 0,
+      monthlyQuota: monthly
+    })
+    billingUpdatedAt.value = resp.updatedAt ?? ''
+    store.showToast(t('apiMarket.ops.billingSaved'))
+  } catch (e) {
+    opsError.value = `${t('apiMarket.ops.saveFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    opsSaving.value = false
+  }
+}
+
+async function loadApisixConfig(): Promise<void> {
+  if (!selectedApi.value) return
+  opsError.value = ''
+  opsLoadingConfig.value = true
+  try {
+    apisixConfig.value = await getApisixConfig(selectedApi.value.id)
+  } catch (e) {
+    opsError.value = `${t('apiMarket.ops.apisixFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    opsLoadingConfig.value = false
+  }
+}
+
+async function deployRoute(): Promise<void> {
+  if (!selectedApi.value) return
+  opsError.value = ''
+  opsSaving.value = true
+  try {
+    const resp = await deployApisixRoute(selectedApi.value.id)
+    // 200 不等于成功：后端把成败写在 status 里（见 apiCatalog 的 ApisixDeployResult 注释）
+    if (resp?.status !== 'success') {
+      opsError.value = `${resp?.message || t('apiMarket.ops.deployFailed')}${resp?.error ? `（${resp.error}）` : ''}`
+    } else {
+      store.showToast(resp.message || t('apiMarket.ops.deployed'))
+    }
+    apisixConfig.value = await getApisixConfig(selectedApi.value.id)
+  } catch (e) {
+    opsError.value = `${t('apiMarket.ops.apisixFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    opsSaving.value = false
+  }
+}
+
+async function undeployRoute(): Promise<void> {
+  if (!selectedApi.value) return
+  opsError.value = ''
+  opsSaving.value = true
+  try {
+    const resp = await undeployApisixRoute(selectedApi.value.id)
+    if (resp?.status !== 'success') {
+      opsError.value = `${resp?.message || t('apiMarket.ops.undeployFailed')}${resp?.error ? `（${resp.error}）` : ''}`
+    } else {
+      store.showToast(resp.message || t('apiMarket.ops.undeployed'))
+      apisixConfig.value = null
+    }
+  } catch (e) {
+    opsError.value = `${t('apiMarket.ops.apisixFailed')}${(e as Error)?.message ?? ''}`
+  } finally {
+    opsSaving.value = false
+  }
+}
+
 async function openDetail(api: APIDefinition) {
   selectedApi.value = api
   activeTab.value = 'doc'
   callResult.value = null
   metrics.value = null
+  resetOps()
   // 加载订阅者
   try {
     subscribers.value = await listSubscribers(api.id)
@@ -675,6 +851,10 @@ async function publishFlow(api: APIDefinition) {
 watch(activeTab, (tab) => {
   if (tab === 'metrics' && selectedApi.value && !metrics.value) {
     loadMetrics()
+  }
+  // 计费配置只在进入运维页时读一次：列表页已经打过一轮 /apis，不该再为每行预取
+  if (tab === 'ops' && selectedApi.value && !billingUpdatedAt.value && !billingLoading.value) {
+    void loadBilling()
   }
 })
 
@@ -806,6 +986,19 @@ onUnmounted(() => {
 }
 .error-text {
   color: var(--ds-color-error-600);
+}
+
+/* 运维 Tab 的表单行：标签 + 控件同行排布，全部走令牌 */
+.ops-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-2);
+}
+
+.ops-row label {
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-text-secondary);
 }
 
 .api-grid {

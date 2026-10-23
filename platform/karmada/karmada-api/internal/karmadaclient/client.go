@@ -21,12 +21,20 @@ package karmadaclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
 )
+
+// ErrNotConfigured 表示未配置 Karmada 控制面（main.go 传的是 nil client）。
+//
+// main.go 在 KARMADA_API_SERVER 为空时刻意保留 nil client，handler 据此返回
+// stub 响应。若让方法直接解引用 nil 接收者，recover 会把 stub 变成空 body 的
+// 500（本机实测 /api/v1/clusters 即此症状），"未接控制面"这条分支就永远走不到。
+var ErrNotConfigured = errors.New("karmada control plane is not configured")
 
 // Config Karmada API 客户端配置。
 type Config struct {
@@ -94,6 +102,9 @@ type ClusterInfo struct {
 // TODO: 添加集群健康检查（注册前验证目标集群可达）
 // TODO: 添加集群标签自动填充（arch/os/guomi）
 func (c *Client) RegisterCluster(ctx context.Context, cluster ClusterInfo) error {
+	if c == nil {
+		return ErrNotConfigured
+	}
 	url := fmt.Sprintf("%s/apis/cluster.karmada.io/v1alpha1/clusters", c.config.APIServer)
 	body, err := json.Marshal(cluster)
 	if err != nil {
@@ -125,6 +136,9 @@ func (c *Client) RegisterCluster(ctx context.Context, cluster ClusterInfo) error
 // TODO: 注销前检查是否有工作负载在该集群运行
 // TODO: 添加优雅注销（先驱逐工作负载再移除集群）
 func (c *Client) UnregisterCluster(ctx context.Context, clusterName string) error {
+	if c == nil {
+		return ErrNotConfigured
+	}
 	url := fmt.Sprintf("%s/apis/cluster.karmada.io/v1alpha1/clusters/%s", c.config.APIServer, clusterName)
 	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
 	if err != nil {
@@ -148,6 +162,9 @@ func (c *Client) UnregisterCluster(ctx context.Context, clusterName string) erro
 //
 // TODO: 待异地机房真实验证
 func (c *Client) ListClusters(ctx context.Context) ([]ClusterInfo, error) {
+	if c == nil {
+		return nil, ErrNotConfigured
+	}
 	url := fmt.Sprintf("%s/apis/cluster.karmada.io/v1alpha1/clusters", c.config.APIServer)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -176,6 +193,9 @@ func (c *Client) ListClusters(ctx context.Context) ([]ClusterInfo, error) {
 
 // GetCluster 获取单个联邦集群信息。
 func (c *Client) GetCluster(ctx context.Context, name string) (*ClusterInfo, error) {
+	if c == nil {
+		return nil, ErrNotConfigured
+	}
 	url := fmt.Sprintf("%s/apis/cluster.karmada.io/v1alpha1/clusters/%s", c.config.APIServer, name)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

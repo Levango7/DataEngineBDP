@@ -77,6 +77,9 @@ podDisruptionBudget:
 auth:
   # JWT_SECRET：须与签发端（encaps-layer / Keycloak）一致
   jwtSecretName: ""
+  # jwtSecretValue：仅当 jwtSecretName 为空时生效——chart 会据此生成
+  # <fullname>-jwt Secret。生产请改用 jwtSecretName 指向外部 Secret，勿把真密钥写进 values。
+  jwtSecretValue: ""
   jwtSecretKey: jwt-secret
 
 env:
