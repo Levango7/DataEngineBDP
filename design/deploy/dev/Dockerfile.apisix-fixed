@@ -1,4 +1,5 @@
-FROM apache/apisix:3.9.1-debian
+ARG BASE_REGISTRY=docker.io
+FROM ${BASE_REGISTRY}/apache/apisix:3.9.1-debian
 
 # No Lua patches: apisix/core/config_etcd.lua is used verbatim from upstream.
 # The "key prefix mismatch" diagnosis was wrong (self.key already carries the
