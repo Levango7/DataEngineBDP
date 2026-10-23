@@ -57,7 +57,7 @@ services:
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
       # encaps-layer 无 /api/v1/health 控制器，使用 Spring Boot Actuator 端点
       # （application.yml 已暴露 health，SecurityConfig 已放行 /actuator/health）
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -94,7 +94,7 @@ services:
       # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
       # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/actuator/health"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -128,7 +128,7 @@ services:
       # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
       # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
-      test: ["CMD", "curl", "-f", "http://localhost:8081/api/v1/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/api/v1/health"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -187,7 +187,7 @@ services:
       # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
       # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/actuator/health"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -222,7 +222,7 @@ services:
       # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
       # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
-      test: ["CMD", "curl", "-f", "http://localhost:8084/api/v1/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/api/v1/health"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -263,7 +263,7 @@ services:
       # 而 JVM 冷启动在 CI 2 核 runner 上可远超原窗口（start_period 15s + retries10×5s ≈ 65s）
       # ⇒ 应用其实正常却让整栈启动失败（run 38015350893 / 38021431664 均此因）。
       # 放宽到 90s + 30×5s ≈ 240s；本地实测该容差下 encaps-layer 稳定 healthy（RSS ~378MiB/640m）。
-      test: ["CMD", "curl", "-f", "http://localhost:8085/api/v1/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/api/v1/health"]
       interval: 5s
       timeout: 3s
       retries: 30
