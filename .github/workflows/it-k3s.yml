@@ -108,7 +108,7 @@ jobs:
               echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
               build_args=("$dir")
             fi
-            if docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+            if bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               built+=("sq/$comp:0.1.0")
             else
               echo "::warning::$comp 构建失败，跳过"
