@@ -507,13 +507,15 @@ jobs:
         # 反向自检已做：临时加一个无主题块 + 一个自造类名，两项均被拦下。
         run: python3 scripts/check-mermaid-style.py
 
-      - name: 治理闭环契约（阶段 0；现为**预期红**契约，阶段 1/2 完成后转阻断）
+      - name: 治理闭环契约（阶段 1/3 已落地，阻断）
         # 依据 docs/治理闭环修复草案.md：三条断链的静态可失败契约——
         #   ① pipeline 自持血缘写入实现（写入者不唯一）
         #   ② /api/v1/lineage/events 零调用方（端点白造）
         #   ③ 采集器只写 catalog、不 emit（非 Iceberg 源无自动血缘）
         # 2026-10-04 转阻断：阶段 1（统一写入者）与阶段 2（采集器 emit）已落地，
-        # 契约 T1/T2/T3 实测全绿，故移除 continue-on-error。
+        # 契约 T1/T2/T3 实测全绿（5 passed），故移除 continue-on-error。
+        # 阶段 3（单一来源，rule-engine 为权威）已落地（commit 6d4a774e），T5（单一来源接线）
+        # 也已随之实测通过。
         # 本文件在 tests/contract/ 而非 tests/integration/，不参与 IT 腿收集。
         run: |
           python3 -m pip install -q pytest 2>/dev/null || true
@@ -898,6 +900,12 @@ jobs:
             echo "::error::共有 $fail_count 个 Helm Chart lint 失败，helm-lint 阻断 CI"
             exit 1
           fi
+
+      - name: Chart env 与 application.yml 默认值一致性校验（阻断）
+        run: |
+          # 防止 chart env 静默覆盖 Spring Boot 应用默认值（如
+          # GOVERNANCE_QUALITY_SOURCE_ENABLED 被 chart 覆盖为 "false" 而应用默认 true）。
+          python3 scripts/check-chart-env-default-parity.py
 
       - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
         # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对
@@ -2135,8 +2143,10 @@ jobs:
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
-          echo "启动 docker-compose 服务（第 1 次尝试）..."
-          if docker compose up -d --wait; then
+          echo "启动 docker-compose 服务（第 1 次尝试，含 karmada-extra profile）..."
+          # --profile karmada-extra（台账 #90）：karmada 域四服务默认不启，
+          # 只在本泳道追加拉起，ZAP/Playwright/nightly 的 up 行为不变。
+          if docker compose --profile karmada-extra up -d --wait; then
             echo "✓ 所有服务已启动（第 1 次尝试成功）"
             exit 0
           fi
@@ -2147,7 +2157,7 @@ jobs:
           docker compose down --remove-orphans || true
           sleep 60
           echo "启动 docker-compose 服务（重试）..."
-          if ! docker compose up -d --wait; then
+          if ! docker compose --profile karmada-extra up -d --wait; then
             echo "::error::docker-compose 启动失败或健康检查超时（已重试 1 次），集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
             echo "=== 容器日志（排障用）==="
@@ -2168,6 +2178,10 @@ jobs:
         #   见 docs/KNOWN-FAILURES.md 台账（专用压测泳道待建）。
         if: env.it_skip != 'true'
         working-directory: tests/integration
+        env:
+          # 上一步已用 --profile karmada-extra 拉起四个服务：不可达即真故障，
+          # 让 test_karmada_services.py 判红而不是静默 skip（台账 #90）。
+          SQ_IT_KARMADA_PROFILE: "1"
         run: |
           echo "运行集成测试（排除需真实 K8s 的 k3s/ 与压测套件 perf/）..."
           python -m pytest -v --tb=short --ignore=k3s --ignore=perf --html=test-report.html --self-contained-html

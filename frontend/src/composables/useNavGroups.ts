@@ -42,7 +42,29 @@ export function useNavGroups() {
         { path: '/datasources', label: t('nav.items.datasources'), icon: 'Box' },
         { path: '/infra-net', label: t('nav.items.infra-net'), icon: 'Connection' },
         { path: '/infra-store', label: t('nav.items.infra-store'), icon: 'Files' },
-        { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'Odometer' }
+        { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'Odometer' },
+        // 收编批次 C2：原 frontend/multi-cluster-dashboard 独立看板的 5 页
+        { path: '/multicluster', label: t('nav.items.multicluster'), icon: 'Compass' },
+        {
+          path: '/multicluster/override-policies',
+          label: t('nav.items.multicluster-override'),
+          icon: 'SetUp'
+        },
+        {
+          path: '/multicluster/failover-history',
+          label: t('nav.items.multicluster-failover'),
+          icon: 'RefreshLeft'
+        },
+        {
+          path: '/multicluster/replica-plans',
+          label: t('nav.items.multicluster-plans'),
+          icon: 'ScaleToOriginal'
+        },
+        {
+          path: '/multicluster/failover-policies',
+          label: t('nav.items.multicluster-policies'),
+          icon: 'Position'
+        }
       ]
     },
     {
@@ -132,6 +154,13 @@ export function useNavGroups() {
         { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'Collection' },
         { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'View' },
         { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'Goods' },
+        // 收编批次 C3：原 open-api-dashboard 的生成页与订阅页
+        { path: '/ops-api-generate', label: t('nav.items.ops-api-generate'), icon: 'MagicStick' },
+        {
+          path: '/ops-api-subscriptions',
+          label: t('nav.items.ops-api-subscriptions'),
+          icon: 'Key'
+        },
         { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'Finished' },
         {
           path: '/exchange-settlements',

@@ -56,8 +56,17 @@ const ExchangeAuditLogs = () => import('@/views/exchange/AuditLogs.vue')
 const ExchangeOverview = () => import('@/views/exchange/ExchangeOverview.vue')
 // 收编批次 C1b：资产登记与审核（子看板 RegisterForm.vue 的等价能力）
 const ExchangeAssetRegister = () => import('@/views/exchange/AssetRegister.vue')
+// 收编批次 C2：多集群联邦 5 页（原 frontend/multi-cluster-dashboard 独立看板的等价能力）
+const MultiClusterOverview = () => import('@/views/karmada/MultiClusterOverview.vue')
+const KarmadaOverridePolicies = () => import('@/views/karmada/OverridePolicies.vue')
+const KarmadaFailoverHistory = () => import('@/views/karmada/FailoverHistory.vue')
+const KarmadaReplicaPlans = () => import('@/views/karmada/ReplicaPlans.vue')
+const KarmadaFailoverPolicies = () => import('@/views/karmada/FailoverPolicies.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
+// 收编批次 C3：原 frontend/open-api-dashboard 独立看板的生成与订阅两页
+const ApiGenerate = () => import('@/views/openapi/ApiGenerate.vue')
+const ApiSubscriptions = () => import('@/views/openapi/ApiSubscriptions.vue')
 // 批次9新增：检索门户（T007 前端集成增强）
 const SearchPortal = () => import('@/views/SearchPortal.vue')
 // 批次10新增：编排 DAG 可视化（T007 viz）
@@ -428,6 +437,20 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'nav.items.ops-api', icon: 'Connection', group: 'operations' }
   },
   {
+    // 收编 C3：generate.py 的四条端点此前只有子看板能用，而子看板不进镜像（台账 #78）
+    path: '/ops-api-generate',
+    name: 'OpsApiGenerate',
+    component: ApiGenerate,
+    meta: { titleKey: 'nav.items.ops-api-generate', icon: 'MagicStick', group: 'operations' }
+  },
+  {
+    // 收编 C3：订阅审批 / AK·SK 颁发 / 订阅级限流（subscriptions.py + billing.py）
+    path: '/ops-api-subscriptions',
+    name: 'OpsApiSubscriptions',
+    component: ApiSubscriptions,
+    meta: { titleKey: 'nav.items.ops-api-subscriptions', icon: 'Key', group: 'operations' }
+  },
+  {
     path: '/ops-flow',
     name: 'AssetMarket',
     component: AssetMarket,
@@ -456,6 +479,38 @@ const routes: RouteRecordRaw[] = [
     name: 'ExchangeAssetRegister',
     component: ExchangeAssetRegister,
     meta: { titleKey: 'nav.items.exchange-register', icon: 'EditPen', group: 'operations' }
+  },
+
+  // 收编批次 C2：多集群联邦（Karmada）5 页，入口在 infra 分组
+  {
+    path: '/multicluster',
+    name: 'MultiClusterOverview',
+    component: MultiClusterOverview,
+    meta: { titleKey: 'nav.items.multicluster', icon: 'Compass', group: 'infra' }
+  },
+  {
+    path: '/multicluster/override-policies',
+    name: 'KarmadaOverridePolicies',
+    component: KarmadaOverridePolicies,
+    meta: { titleKey: 'nav.items.multicluster-override', icon: 'SetUp', group: 'infra' }
+  },
+  {
+    path: '/multicluster/failover-history',
+    name: 'KarmadaFailoverHistory',
+    component: KarmadaFailoverHistory,
+    meta: { titleKey: 'nav.items.multicluster-failover', icon: 'RefreshLeft', group: 'infra' }
+  },
+  {
+    path: '/multicluster/replica-plans',
+    name: 'KarmadaReplicaPlans',
+    component: KarmadaReplicaPlans,
+    meta: { titleKey: 'nav.items.multicluster-plans', icon: 'ScaleToOriginal', group: 'infra' }
+  },
+  {
+    path: '/multicluster/failover-policies',
+    name: 'KarmadaFailoverPolicies',
+    component: KarmadaFailoverPolicies,
+    meta: { titleKey: 'nav.items.multicluster-policies', icon: 'Position', group: 'infra' }
   },
 
   // 兜底：独立 404 页（替代静默跳转 dashboard，用户可明确感知路径错误）

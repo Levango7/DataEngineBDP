@@ -99,6 +99,7 @@ export const MODULE_NAMES: readonly string[] = [
   'infraStore',
   'integrate',
   'jobmgmt',
+  'karmada',
   'kb',
   'lineage',
   'llmops',
@@ -205,11 +206,20 @@ export const ROUTE_MODULE_MAP: Record<string, string[]> = {
   '/ops-tpl': ['templateMarket'],
   '/ops-portal': ['businessPortal'],
   '/ops-api': ['apiMarket'],
+  // 收编批次 C3：两页复用 apiMarket 模块（新段落 generate / subs）
+  '/ops-api-generate': ['apiMarket'],
+  '/ops-api-subscriptions': ['apiMarket'],
   '/ops-flow': ['assetMarket'],
   '/exchange-settlements': ['exchange'],
   '/exchange-overview': ['exchange'],
   '/exchange-audit': ['exchange'],
   '/exchange-register': ['exchange'],
+  // 收编批次 C2：多集群联邦 5 页（原 frontend/multi-cluster-dashboard 独立看板）
+  '/multicluster': ['karmada'],
+  '/multicluster/override-policies': ['karmada'],
+  '/multicluster/failover-history': ['karmada'],
+  '/multicluster/replica-plans': ['karmada'],
+  '/multicluster/failover-policies': ['karmada'],
   '/ai-assistant': ['aiAssistant'],
   // 引擎/基础设施/开发层页面共用 engines 命名空间（kpi/table/sql 等公共词条），
   // infra 各页还互相复用 infraK8s/infraSched 命名空间；凡组件用到而映射未含者，

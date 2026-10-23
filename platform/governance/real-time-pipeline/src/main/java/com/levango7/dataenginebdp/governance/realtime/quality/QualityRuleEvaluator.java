@@ -165,7 +165,8 @@ public class QualityRuleEvaluator {
         }
         String patternStr = (String) rule.getParam("pattern");
         if (patternStr == null) {
-            return "PASS";
+            // 配置缺失不能当 PASS：那会让规则看起来在跑、实际什么都没校验。
+            throw new IllegalStateException("FORMAT 规则缺少 pattern 参数：ruleId=" + rule.getRuleId());
         }
         Pattern pattern = patternCache.computeIfAbsent(patternStr, Pattern::compile);
         return pattern.matcher(value.toString()).matches() ? "PASS" : "FAIL";

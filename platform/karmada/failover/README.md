@@ -296,12 +296,18 @@ PUT /api/v1/replica-plans/weighted-spread
 
 ### 前端可视化
 
-运营后台前端位于 `frontend/multi-cluster-dashboard/`，使用 Vue3 + ECharts：
+原 `frontend/multi-cluster-dashboard/` 独立看板已摘除，5 个页面收编为主应用路由（源码在
+`frontend/src/views/karmada/`，导航分组「基础设施」，鉴权与 i18n 随主应用）：
 
-- **集群健康看板**：ECharts 仪表盘展示 CPU/内存负载，状态色块（healthy=绿/degraded=黄/down=红）
-- **OverridePolicy 管理**：CRUD 界面，支持编辑 Overriders
-- **迁移历史时间线**：ECharts 时间线展示迁移事件
-- **副本权重可视化**：ECharts 饼图/柱状图展示各集群副本分配
+- **多集群健康**（`/multicluster`）：集群状态、就绪/可同步、节点/Pod/副本数与 CPU/内存负载
+- **集群覆盖策略**（`/multicluster/override-policies`）：OverridePolicy 列表、创建与 spec 详情
+- **故障迁移历史**（`/multicluster/failover-history`）：ECharts 时间线展示迁移事件
+- **副本权重分配**（`/multicluster/replica-plans`）：ECharts 柱状/折线展示分配与权重，可新建与调整
+- **故障迁移策略**（`/multicluster/failover-policies`）：迁移策略列表与详情
+
+这些页面经 APISIX 直连 failover-api 的 `/override-policies`、`/failover-events`、
+`/replica-plans`、`/failover-policies` 与 `/clusters/health` 五个路径族（网关路由见
+`scripts/gen-apisix-routes.py` 生成的路由表）。
 
 ## Docker 模拟环境
 

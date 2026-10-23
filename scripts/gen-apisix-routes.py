@@ -169,6 +169,21 @@ PREFIX_CHART_FIXUPS: dict[str, tuple[str, str]] = {
     "/api/v1/pricing": ("finops", "cost-model"),  # .../finops/controller/PricingController.java:39
     "/api/v1/finops/billing": ("finops", "cost-model"),  # .../finops/controller/BillingController.java:32
     "/api/v1/finops/metering": ("finops", "cost-model"),  # .../finops/controller/MeteringController.java:40
+    # karmada 系（2026-10-21 现查）：四个子模块的 module 名一律被截断成 `karmada`，
+    # "同名 chart 回退"撞上 charts/karmada —— 那 chart 的镜像是上游 Karmada 控制面
+    # （registry.k8s.io/karmada/karmada-apiserver），不提供任何平台 REST 前缀，
+    # 已在 CHART_FALLBACK_DENY 里禁掉；此前这十条因此全部落在 unmapped 清单里，
+    # 生产网关对它们没有归属（台账 #85 后半、#89）。逐条实现坐标：
+    "/api/v1/override-policies": ("karmada", "failover-api"),  # .../failover-api/main.go:102 + internal/handler/override_policy.go:35
+    "/api/v1/failover-events": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:47
+    "/api/v1/replica-plans": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:62
+    "/api/v1/failover-policies": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:71
+    "/api/v1/clusters/health": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:55-57
+    "/api/v1/propagation-policies": ("karmada", "karmada-api"),  # .../karmada-api/main.go:129 + internal/handler/propagation_policy.go:35
+    "/api/v1/federated": ("karmada", "federated-query"),  # .../federated/controller/FederatedQueryController.java:37
+    "/api/v1/federated/transactions": ("karmada", "federated-query"),  # .../federated/transaction/TransactionController.java:51
+    "/api/v1/federated/governance": ("karmada", "federated-query"),  # .../federated/governance/GovernanceController.java:58
+    "/api/v1/federated/scheduling": ("karmada", "federated-query"),  # .../federated/scheduling/SchedulingController.java:48
 }
 
 # 禁止作为路由上游的 chart：这些 chart 部署的是第三方/基础设施组件，

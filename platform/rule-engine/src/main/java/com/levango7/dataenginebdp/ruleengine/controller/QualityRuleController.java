@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.ruleengine.controller;
 
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.ruleengine.engine.BuiltinRuleTemplates;
+import com.levango7.dataenginebdp.ruleengine.model.QualityRuleDescription;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
 import com.levango7.dataenginebdp.ruleengine.service.QualityCheckExecutionService;
 import com.levango7.dataenginebdp.ruleengine.service.RuleService;
@@ -269,8 +270,7 @@ public class QualityRuleController {
         }
         rule.setSeverity(req.actionOnFail() != null ? req.actionOnFail() : "WARN");
         rule.setEnabled(true);
-        rule.setDescription("quality rule on " + req.targetTable()
-                + (req.targetField() != null ? "." + req.targetField() : ""));
+        rule.setDescription(QualityRuleDescription.encode(req.targetTable(), req.targetField()));
         return rule;
     }
 
@@ -279,14 +279,9 @@ public class QualityRuleController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", String.valueOf(r.getId()));
         m.put("name", r.getName());
-        // 解析 targetTable/targetField（description 格式 "quality rule on TABLE[.FIELD]"，
-        // TABLE 可含库名如 ods.orders，FIELD 为最后一段）
-        String desc = r.getDescription() == null ? "" : r.getDescription();
-        String prefix = "quality rule on ";
-        String table = desc.startsWith(prefix) ? desc.substring(prefix.length()) : "";
-        int lastDot = table.lastIndexOf('.');
-        m.put("targetTable", lastDot >= 0 ? table.substring(0, lastDot) : table);
-        m.put("targetField", lastDot >= 0 ? table.substring(lastDot + 1) : "");
+        QualityRuleDescription.Target target = QualityRuleDescription.parse(r.getDescription());
+        m.put("targetTable", target.table());
+        m.put("targetField", target.field());
         m.put("checkType", r.getType() != null ? r.getType().replace("QUALITY_", "").toLowerCase() : "");
         m.put("threshold", r.getExpression() != null
                 ? r.getExpression().replace("threshold=", "") : "");

@@ -34,11 +34,15 @@ func NewClusterHandler(client *karmadaclient.Client) *ClusterHandler {
 }
 
 // RegisterRoutes 注册路由。
+//
+// rg 已由调用方挂到 /api/v1/clusters（见 main.go），这里不能再写 "/clusters"，
+// 否则实际路径变成 /api/v1/clusters/clusters，按 /api/v1/clusters 调的客户端必 404。
+// 写法与同目录 propagation_policy.go 一致：组路径由调用方给，handler 只写相对段。
 func (h *ClusterHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("/clusters", h.RegisterCluster)
-	rg.GET("/clusters", h.ListClusters)
-	rg.GET("/clusters/:name", h.GetCluster)
-	rg.DELETE("/clusters/:name", h.UnregisterCluster)
+	rg.POST("", h.RegisterCluster)
+	rg.GET("", h.ListClusters)
+	rg.GET("/:name", h.GetCluster)
+	rg.DELETE("/:name", h.UnregisterCluster)
 }
 
 // RegisterCluster 注册联邦集群。

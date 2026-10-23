@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.ruleengine.batchpipeline;
 
 import com.levango7.dataenginebdp.ruleengine.engine.BuiltinRuleTemplates;
+import com.levango7.dataenginebdp.ruleengine.model.QualityRuleDescription;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
 import org.springframework.stereotype.Component;
 
@@ -208,13 +209,8 @@ public class BatchPipelineRuleAdapter {
         String type = rule.getType() == null ? "" : rule.getType();
         String templateId = type.startsWith("QUALITY_")
                 ? type.substring("QUALITY_".length()).toLowerCase() : "";
-        String desc = rule.getDescription() == null ? "" : rule.getDescription();
-        String prefix = "quality rule on ";
-        String target = desc.startsWith(prefix) ? desc.substring(prefix.length()) : "";
-        int lastDot = target.lastIndexOf('.');
-        String table = lastDot >= 0 ? target.substring(0, lastDot) : target;
-        String column = lastDot >= 0 ? target.substring(lastDot + 1) : "";
-        return new RuleSpec(templateId, table, column, Map.of());
+        QualityRuleDescription.Target target = QualityRuleDescription.parse(rule.getDescription());
+        return new RuleSpec(templateId, target.table(), target.field(), Map.of());
     }
 
     /** 片段并入数据集规则字典：List 类键追加、Map 类键合并（后写覆盖同键）。 */

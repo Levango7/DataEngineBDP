@@ -3,8 +3,11 @@ package com.levango7.dataenginebdp.finops.dashboard.collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -33,6 +36,31 @@ public class QueryBillingClient {
     }
 
     /**
+     * 转发调用方当前的 Bearer token。
+     *
+     * <p>cost-model 的账单端点用 common-security 的 TenantContext 判租户，而 TenantContext
+     * 由 JWT 过滤器写入 —— 只带 X-Tenant-Id 会被 401 拒掉（本机实测：dashboard 的
+     * /api/v1/dashboard/billing/tenant 恒返 502 "账单服务暂不可用: 401"）。
+     * 这里把用户 token 原样透传，既不新签服务间凭据，也不放松 cost-model 的鉴权。
+     */
+    private String currentBearerToken() {
+        ServletRequestAttributes attrs =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null) {
+            return null;
+        }
+        return attrs.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
+    }
+
+    private RestClient.RequestHeadersSpec<?> withAuth(RestClient.RequestHeadersSpec<?> spec) {
+        String authorization = currentBearerToken();
+        if (authorization != null && !authorization.isBlank()) {
+            spec = spec.header(HttpHeaders.AUTHORIZATION, authorization);
+        }
+        return spec;
+    }
+
+    /**
      * 拉取某租户指定窗口的账单（透传 cost-model）。
      *
      * @param tenantId  租户（通常来自 TenantContext）
@@ -43,7 +71,7 @@ public class QueryBillingClient {
     public Map<String, Object> fetchTenantBilling(String tenantId,
                                                   LocalDate startDate, LocalDate endDate) {
         log.debug("拉取账单: tenant={}, range=[{} ~ {}]", tenantId, startDate, endDate);
-        return restClient.get()
+        RestClient.RequestHeadersSpec<?> spec = restClient.get()
                 .uri(uriBuilder -> {
                     var builder = uriBuilder.path("/api/v1/finops/billing/tenant");
                     if (startDate != null) {
@@ -55,9 +83,8 @@ public class QueryBillingClient {
                     // 租户 ID 以 cost-model 侧 TenantContext 为准（同集群 / 由 JWT 注入）
                     return builder.build();
                 })
-                .header("X-Tenant-Id", tenantId)
-                .retrieve()
-                .body(Map.class);
+                .header("X-Tenant-Id", tenantId);
+        return withAuth(spec).retrieve().body(Map.class);
     }
 
     /**
@@ -70,7 +97,7 @@ public class QueryBillingClient {
      */
     public Map<String, Object> fetchTenantBillingTrend(String tenantId,
                                                        LocalDate startDate, LocalDate endDate) {
-        return restClient.get()
+        RestClient.RequestHeadersSpec<?> spec = restClient.get()
                 .uri(uriBuilder -> {
                     var builder = uriBuilder.path("/api/v1/finops/billing/tenant/trend");
                     if (startDate != null) {
@@ -81,9 +108,8 @@ public class QueryBillingClient {
                     }
                     return builder.build();
                 })
-                .header("X-Tenant-Id", tenantId)
-                .retrieve()
-                .body(Map.class);
+                .header("X-Tenant-Id", tenantId);
+        return withAuth(spec).retrieve().body(Map.class);
     }
 
     /**

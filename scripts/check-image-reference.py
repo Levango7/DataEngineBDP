@@ -44,6 +44,9 @@ CONFIG_DIRS = (
 SHA_RE = re.compile(r'^[0-9a-f]{40}$')
 REPO_RE = re.compile(r'^(\s*)repository:\s*"?([^"\n]+?)"?\s*$')
 TAG_RE = re.compile(r'^\s*tag:\s*"?([^"\n]+?)"?\s*$')
+# 裸 image: 形态，如 `image: "sq-encapsulation:0.1.0"` 或 `image: sq-encapsulation:0.1.0`
+# name 与 tag 同行，不用向下查找 tag 行。
+IMAGE_RE = re.compile(r'^(\s*)image:\s*"?([^"\n:]+?):([^"\n]+?)"?\s*$')
 
 
 def buildable_modules(root=ROOT):
@@ -122,17 +125,31 @@ def scan(root=ROOT):
                 lines = io.open(p, encoding='utf-8-sig', errors='replace').read().split('\n')
                 for i, line in enumerate(lines):
                     m = REPO_RE.match(line)
-                    if not m:
+                    if m:
+                        repo = m.group(2).strip()
+                        if not repo or '$' in repo or '{{' in repo:
+                            continue
+                        tag = '-'
+                        for j in range(i + 1, min(i + 4, len(lines))):
+                            t = TAG_RE.match(lines[j])
+                            if t:
+                                tag = t.group(1).strip()
+                                break
+                        if not is_ours(repo, modules):
+                            continue
+                        probs = _problems(repo, tag, modules)
+                        if probs:
+                            findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
+                                             'tag': tag, 'reasons': probs})
                         continue
-                    repo = m.group(2).strip()
+                    # 裸 image: 形态，name 与 tag 同行（如 `image: "sq-encapsulation:0.1.0"`）
+                    m2 = IMAGE_RE.match(line)
+                    if not m2:
+                        continue
+                    repo = m2.group(2).strip()
+                    tag = m2.group(3).strip()
                     if not repo or '$' in repo or '{{' in repo:
                         continue
-                    tag = '-'
-                    for j in range(i + 1, min(i + 4, len(lines))):
-                        t = TAG_RE.match(lines[j])
-                        if t:
-                            tag = t.group(1).strip()
-                            break
                     if not is_ours(repo, modules):
                         continue
                     probs = _problems(repo, tag, modules)

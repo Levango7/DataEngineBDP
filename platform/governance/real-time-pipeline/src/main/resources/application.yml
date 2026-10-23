@@ -55,8 +55,9 @@ governance:
   rule-engine:
     url: ${RULE_ENGINE_URL:http://rule-engine:8083}
   quality:
-    # 是否启用"从 rule-engine 拉取规则"（默认关，保持改动 additive；开启后启动+定时刷新）
-    source-enabled: ${GOVERNANCE_QUALITY_SOURCE_ENABLED:false}
+    # 是否启用"从 rule-engine 拉取规则"（默认开：rule-engine 为质量规则唯一来源，
+    # 启动时 + 每 refresh-ms 拉取；拉取失败则沿用上次缓存并置 sourceHealthy=false）
+    source-enabled: ${GOVERNANCE_QUALITY_SOURCE_ENABLED:true}
     # 刷新间隔 / 首次延迟（毫秒）
     refresh-ms: ${GOVERNANCE_QUALITY_REFRESH_MS:60000}
     refresh-initial-delay-ms: ${GOVERNANCE_QUALITY_REFRESH_INITIAL_DELAY_MS:5000}

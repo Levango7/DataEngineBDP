@@ -3,7 +3,7 @@
  *
  * 保障：
  * - zh-CN / en-US 词条文件结构镜像（同 key 集合，防漏译）
- * - Sidebar 导航 35 项 + 7 组 key 全部存在
+ * - Sidebar 导航 60 项 + 8 组 key 全部存在
  * - 常用词条有值（防空翻译）
  */
 import { describe, it, expect } from 'vitest'
@@ -84,6 +84,8 @@ import infraMachineZh from '@/i18n/locales/modules/infraMachine.zh-CN.json'
 import infraMachineEn from '@/i18n/locales/modules/infraMachine.en-US.json'
 import infraSchedZh from '@/i18n/locales/modules/infraSched.zh-CN.json'
 import infraSchedEn from '@/i18n/locales/modules/infraSched.en-US.json'
+import karmadaZh from '@/i18n/locales/modules/karmada.zh-CN.json'
+import karmadaEn from '@/i18n/locales/modules/karmada.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -101,12 +103,14 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 56 项 + 8 分组全部有中英词条', () => {
+  it('导航 63 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
     // 计数口径 = nav.items 的键数（Sidebar 用它渲染）。
-    // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）。
-    expect(navItems.length).toBe(56)
+    // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）；
+    // 56 → 61：收编多集群联邦 5 页（8 分组数未变，新页并入 infra）；
+    // 61 → 63：收编开放 API 域 2 页（一键生成、订阅管理，并入 platform-mgmt）。
+    expect(navItems.length).toBe(63)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
@@ -129,6 +133,18 @@ describe('i18n locales structure', () => {
   it('zh-CN 导航项含中文，en-US 导航项为英文', () => {
     expect((zhCN as any).nav.items.quality).toBe('数据质量')
     expect((enUS as any).nav.items.quality).toBe('Data Quality')
+    // 收编批次 C2 新增的 5 个多集群导航项：中英都必须有独立译文，
+    // 不能靠 fallbackLocale 兜底（英文界面冒出中文即是漏译）
+    expect((zhCN as any).nav.items.multicluster).toBe('多集群健康')
+    expect((enUS as any).nav.items.multicluster).toBe('Multi-cluster Health')
+    expect((zhCN as any).nav.items['multicluster-override']).toBe('集群覆盖策略')
+    expect((enUS as any).nav.items['multicluster-override']).toBe('Override Policies')
+    expect((zhCN as any).nav.items['multicluster-failover']).toBe('故障迁移历史')
+    expect((enUS as any).nav.items['multicluster-failover']).toBe('Failover History')
+    expect((zhCN as any).nav.items['multicluster-plans']).toBe('副本权重分配')
+    expect((enUS as any).nav.items['multicluster-plans']).toBe('Replica Weight Plans')
+    expect((zhCN as any).nav.items['multicluster-policies']).toBe('故障迁移策略')
+    expect((enUS as any).nav.items['multicluster-policies']).toBe('Failover Policies')
     expect((zhCN as any).nav.brand).toContain('数擎')
     expect((enUS as any).nav.brand).toContain('Shuqing')
   })
@@ -224,7 +240,12 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
       infraMachineZh as Record<string, unknown>,
       infraMachineEn as Record<string, unknown>
     ],
-    ['infraSched', infraSchedZh as Record<string, unknown>, infraSchedEn as Record<string, unknown>]
+    [
+      'infraSched',
+      infraSchedZh as Record<string, unknown>,
+      infraSchedEn as Record<string, unknown>
+    ],
+    ['karmada', karmadaZh as Record<string, unknown>, karmadaEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

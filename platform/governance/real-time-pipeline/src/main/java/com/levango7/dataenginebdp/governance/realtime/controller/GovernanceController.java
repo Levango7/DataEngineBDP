@@ -8,6 +8,7 @@ import com.levango7.dataenginebdp.governance.realtime.model.QualityAlert;
 import com.levango7.dataenginebdp.governance.realtime.model.TableMetadata;
 import com.levango7.dataenginebdp.governance.realtime.pipeline.GovernancePipelineOrchestrator;
 import com.levango7.dataenginebdp.governance.realtime.quality.QualityRule;
+import com.levango7.dataenginebdp.governance.realtime.quality.QualityRuleSource;
 import com.levango7.dataenginebdp.governance.realtime.quality.StreamingQualityRuleEngine;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
@@ -58,16 +59,19 @@ public class GovernanceController {
     private final RealTimeLineageAnalyzer lineageAnalyzer;
     private final StreamingQualityRuleEngine qualityEngine;
     private final GovernancePipelineOrchestrator orchestrator;
+    private final QualityRuleSource qualityRuleSource;
 
     @Autowired
     public GovernanceController(MetadataCollector metadataCollector,
                                 RealTimeLineageAnalyzer lineageAnalyzer,
                                 StreamingQualityRuleEngine qualityEngine,
-                                GovernancePipelineOrchestrator orchestrator) {
+                                GovernancePipelineOrchestrator orchestrator,
+                                QualityRuleSource qualityRuleSource) {
         this.metadataCollector = metadataCollector;
         this.lineageAnalyzer = lineageAnalyzer;
         this.qualityEngine = qualityEngine;
         this.orchestrator = orchestrator;
+        this.qualityRuleSource = qualityRuleSource;
     }
 
     // -----------------------------------------------------------------------
@@ -135,11 +139,20 @@ public class GovernanceController {
 
     /**
      * 注册质量规则。
+     *
+     * <p>单一来源启用时（{@code governance.quality.source-enabled=true}，默认）拒绝本端点：
+     * 注册表由 {@code QualityRuleRefreshScheduler} 每 60s 从 rule-engine 全量重建，
+     * 进程内注册的规则会在下次刷新被 {@code replaceRules} 静默清掉。规则必须写入
+     * rule-engine（{@code POST /api/v1/quality/rules}）才持久有效。
      */
-    @Operation(summary = "注册质量规则")
+    @Operation(summary = "注册质量规则（单一来源启用时拒绝，规则请写入 rule-engine）")
     @PostMapping("/quality/rules")
     @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> registerRule(@RequestBody QualityRule rule) {
+        ResponseEntity<String> rejected = rejectWhenSourceEnabled();
+        if (rejected != null) {
+            return rejected;
+        }
         String tenantId = requireTenant();
         // 写入租户 ID（多租户隔离，R10 安全修复）
         rule.setTenantId(tenantId);
@@ -149,11 +162,18 @@ public class GovernanceController {
 
     /**
      * 注销质量规则。
+     *
+     * <p>与 {@link #registerRule} 同理：单一来源启用时本端点无效（下次刷新会被重建覆盖），
+     * 故显式拒绝，避免调用方误以为注销生效。
      */
-    @Operation(summary = "注销质量规则")
+    @Operation(summary = "注销质量规则（单一来源启用时拒绝，规则请从 rule-engine 删除）")
     @DeleteMapping("/quality/rules/{ruleId}")
     @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> unregisterRule(@PathVariable String ruleId) {
+        ResponseEntity<String> rejected = rejectWhenSourceEnabled();
+        if (rejected != null) {
+            return rejected;
+        }
         // R11 安全修复：(ruleId, tenantId) 联合校验，拒绝跨租户注销
         String tenantId = requireTenant();
         QualityRule rule = qualityEngine.getRuleRegistry().get(ruleId);
@@ -163,6 +183,22 @@ public class GovernanceController {
         }
         qualityEngine.unregisterRule(ruleId);
         return ResponseEntity.ok("Rule unregistered: " + ruleId);
+    }
+
+    /**
+     * 单一来源启用时返回拒绝响应，否则返回 {@code null} 表示放行。
+     *
+     * <p>用 409 而非 403：这不是权限问题，而是资源状态的冲突——请求的内容会被
+     * 定时刷新覆盖，执行下去等于静默失效。
+     */
+    private ResponseEntity<String> rejectWhenSourceEnabled() {
+        if (qualityRuleSource != null && qualityRuleSource.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    "质量规则由 rule-engine 统一管理（governance.quality.source-enabled=true），"
+                            + "本端点的写入会在下次刷新被覆盖。请改用 rule-engine 的 "
+                            + "POST/DELETE /api/v1/quality/rules。");
+        }
+        return null;
     }
 
     /**
