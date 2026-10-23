@@ -97,7 +97,7 @@ jobs:
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           build_load() {  # <image> <dockerfile> <context>
             echo "== build $1 (ctx=$3) =="
-            docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "$1" -f "$2" "$3"
+            bash scripts/build-retry.sh docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "$1" -f "$2" "$3"
             kind load docker-image "$1" --name dataengine-e2e
           }
           build_load sq-encapsulation:kind-local     platform/encaps-layer/Dockerfile     .
