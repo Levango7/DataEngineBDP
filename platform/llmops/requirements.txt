@@ -8,7 +8,7 @@ pydantic==2.14.1
 pydantic-settings==2.15.0
 
 # MLflow integration (optional, only enabled when store.type=mlflow)
-mlflow==3.17.0
+mlflow==3.17.2      # 2026-10-24 安全修复 GHSA-wqmh-qccw-pqwf（HIGH，受影响 <=3.17.1，fix 3.17.2）；同 minor 补丁跃迁，不动其它版本
 
 # HTTP client (for MLflow SDK / external calls)
 httpx==0.28.1

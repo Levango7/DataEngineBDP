@@ -141,6 +141,11 @@ vulnerabilities:
 | GHSA-q2hr-2g5m-vwhr | brace-expansion (5.x 一支) | 5.0.9 | MEDIUM | ④ | 豁免（强推打穿 minimatch，已实测） | 2026-10-23 | dependency-vuln-exemptions.yaml |
 | GHSA-rj75-hqrm-r3gf | postcss-selector-parser | 6.1.5 | MEDIUM | ④ | 豁免（强推打穿 eslint-plugin-vue，已实测） | 2026-10-23 | dependency-vuln-exemptions.yaml |
 | GHSA-w5hq-g745-h8pq | uuid | 9.0.1 | MEDIUM | ④ | 豁免（仅 storybook 开发期使用） | 2026-10-23 | dependency-vuln-exemptions.yaml |
+| GHSA-834v-8h66-3h79（happy-dom） | happy-dom | 20.14.6 | HIGH | ②（dev-only，修复只在大版本） | 待处理：随本批评估 20→21 兼容性，验不过则改为限期豁免 | 2026-10-24 | — |
+
+**2026-10-24 复核（#726 合入 main `b63bb529` 之后，同一 API 现查）**：`state=open` 由 30 降到 **20**。构成可对账：豁免账 13 个 id（lz4-java 7 条 + mysql + black + debezium + brace-expansion + postcss-selector-parser + uuid）+ 僵尸 3 条（`platform/business-portal` 与 `platform/llmops` 的 pytest、`platform/ml-platform` 的 scikit-learn，HEAD 早已是修复版，等 Dependabot 重扫）+ 新增 4 条 = 20。新增的是两条新公告：`GHSA-wqmh-qccw-pqwf`（mlflow，HIGH，`<=3.17.1` → fix 3.17.2，命中 3 份 requirements）与 `GHSA-834v-8h66-3h79`（happy-dom，HIGH，`>=17.0.0, <=21.0.3` → fix 只有 21.0.4）。mlflow 属同 minor 补丁，已随本刀升；happy-dom 是 `frontend/package.json` 直接声明的 devDependency（`^20.14.6`，vitest 的 peer 是 `*`），只有大版本修复，故先入 ② 类并按兼容性实测决定「升 or 豁免」。
+
+**一条口径提醒（本轮现查所得）**：fs 门禁（Security 的 `Trivy Vulnerability Scan` 与 `ci.yml` 的 `Trivy FS Scan`）没有挂任何 ignorefile（`.trivyignore` 在本仓不存在，`security.yml` 的 fs job 只传 `severity` 与 `ignore-unfixed`），所以「进依赖豁免账」**不等于**「门禁不红」——门禁只认版本。此刻 main 上这两条尚未判红（trivy 侧 advisory DB 收录滞后于 Dependabot），属**潜伏红**，先记账，不等它红起来才处理。
 
 ### 5.2 已修复
 
@@ -152,6 +157,7 @@ vulnerabilities:
 | GHSA-v9pg-7xvm-68hf（python-multipart） | python-multipart | 0.0.30 → 0.0.31 | 2026-10-23 | 本批 PR |
 | GHSA-vvgj-x9jq-8cj9（quic-go QPACK） | github.com/quic-go/quic-go | 0.59.0 → 0.59.1 | 2026-10-23 | 本批 PR（`go mod tidy` 后 `go build ./...` 通过） |
 | GHSA-gmg8-593g-7mv3（POI OOXML） | org.apache.poi:poi-ooxml | 5.2.5 → 5.5.1 | 2026-10-23 | 本批 PR（等价 dependabot #636） |
+| GHSA-wqmh-qccw-pqwf（mlflow） | mlflow | 3.17.0 → 3.17.2 | 2026-10-24 | 本批 PR（`platform/business-portal`、`platform/llmops`、`platform/ml-platform` 三份 requirements 同步；同 minor 补丁，CI 的 Python Test 覆盖这三组件） |
 
 ### 5.3 已关闭（僵尸/不影响）
 
