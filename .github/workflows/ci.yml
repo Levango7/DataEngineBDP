@@ -2031,7 +2031,7 @@ jobs:
               ctx_kind="模块目录"
             fi
             # 使用本地镜像 tag，仅验证构建不 push
-            if docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq-${mod_name}:ci-verify" -f "$df" "$build_ctx"; then
+            if bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq-${mod_name}:ci-verify" -f "$df" "$build_ctx"; then
               echo "✓ $mod_name Docker 构建成功（上下文：$ctx_kind）"
             else
               echo "✗ $mod_name Docker 构建失败（上下文：$ctx_kind）"
