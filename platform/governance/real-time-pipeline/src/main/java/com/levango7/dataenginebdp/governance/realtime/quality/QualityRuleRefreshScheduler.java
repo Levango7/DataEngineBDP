@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
  * 质量规则来源的启动与定时刷新（台账 #6 阶段 3）。
  *
  * <p>{@code @EnableScheduling} 已在 {@code RealTimeGovernanceApplication} 打开。
- * 来源未启用时（默认）本组件对引擎是 no-op，行为与整改前一致。
+ * 来源未启用时本组件为 no-op（行为与整改前一致）。默认开，由
+ * {@code governance.quality.source-enabled} 控制。
  */
 @Component
 public class QualityRuleRefreshScheduler {

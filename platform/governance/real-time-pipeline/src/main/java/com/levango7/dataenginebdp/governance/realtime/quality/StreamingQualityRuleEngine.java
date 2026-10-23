@@ -107,7 +107,7 @@ public class StreamingQualityRuleEngine {
      * <p>失败**降级**：保留上次缓存（不抛、不清空），并把来源标为不健康；
      * 返回空集时仅告警（本进程将跳过质量评估），绝不静默。
      *
-     * @param source 规则来源；null 或未启用时为 no-op（保持 additivity）
+     * @param source 规则来源；null 或未启用时为 no-op（不触发重建，保持注册表不变）
      */
     public synchronized void refreshFromSource(QualityRuleSource source) {
         if (source == null || !source.isEnabled()) {

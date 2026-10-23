@@ -18,6 +18,9 @@ import java.util.Map;
  */
 final class RuleEngineRuleMapper {
 
+    /** rule-engine 模板路径渲染 SQL 的表达式前缀（见 {@code BuiltinRuleTemplates.renderSql}）。 */
+    private static final String SQL_PREFIX = "sql:";
+
     private RuleEngineRuleMapper() {
     }
 
@@ -91,8 +94,15 @@ final class RuleEngineRuleMapper {
     /**
      * threshold 字符串 → params。
      *
-     * <p>形如 {@code "min=1,max=10"} 解析为键值对；否则退化为 {@code {"threshold": 原文}}，
-     * 保证信息不丢（不臆造语义）。
+     * <p>三类形态分别处理，保证 {@link QualityRuleEvaluator} 拿到它期望的类型：
+     * <ol>
+     *   <li><b>SQL 表达式</b>（{@code sql:} 前缀，模板路径渲染产物）：放 {@code sql} 键，
+     *       <b>不</b>当作数值阈值——它没有数值语义。</li>
+     *   <li><b>键值对</b>（{@code "min=1,max=10"}）：{@code min}/{@code max} 解析为
+     *       {@link Number}，因为评估器 {@code evalRange} 对其做 {@code (Number)} 强转，
+     *       保留字符串会抛 {@link ClassCastException}。</li>
+     *   <li><b>其他</b>：整体放 {@code threshold} 键，信息不丢。</li>
+     * </ol>
      */
     static Map<String, Object> parseParams(String threshold) {
         Map<String, Object> params = new LinkedHashMap<>();
@@ -100,11 +110,17 @@ final class RuleEngineRuleMapper {
             return params;
         }
         String trimmed = threshold.trim();
+        if (trimmed.startsWith(SQL_PREFIX)) {
+            params.put("sql", trimmed.substring(SQL_PREFIX.length()).trim());
+            return params;
+        }
         if (trimmed.contains("=")) {
             for (String kv : trimmed.split(",")) {
                 int i = kv.indexOf('=');
                 if (i > 0) {
-                    params.put(kv.substring(0, i).trim(), kv.substring(i + 1).trim());
+                    String key = kv.substring(0, i).trim();
+                    String value = kv.substring(i + 1).trim();
+                    params.put(key, isNumericParam(key) ? asNumber(value) : value);
                 }
             }
         }
@@ -114,6 +130,20 @@ final class RuleEngineRuleMapper {
             params.put("threshold", trimmed);
         }
         return params;
+    }
+
+    /** 需要数值语义的键：评估器对它们做 {@code (Number)} 强转。 */
+    private static boolean isNumericParam(String key) {
+        return "min".equals(key) || "max".equals(key);
+    }
+
+    /** 数值键能解析成数字就给 Double，否则保留原文（不臆造 0）。 */
+    private static Object asNumber(String value) {
+        try {
+            return Double.valueOf(value);
+        } catch (NumberFormatException e) {
+            return value;
+        }
     }
 
     private static String asString(Object o) {
