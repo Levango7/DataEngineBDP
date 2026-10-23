@@ -25,26 +25,18 @@ test.describe('运营后台（/admin）', () => {
     await expect(page.locator('.page-header__subtitle')).toBeVisible({ timeout: 15_000 })
   })
 
-  test('KPI 四卡片存在', async ({ page, request }) => {
+  test('KPI 四卡片存在', async ({ page }) => {
     // 先等本页渲染完成：/admin 的 h1 唯一（上一页 Dashboard 的 h1 是"工作台"）。
     // 否则切页过渡（DefaultLayout 的 <transition mode="out-in">）期间，上一页 Dashboard
     // 残留的 .grid.g4 会被下面的选择器命中——实测恒计数为 1（= Dashboard 在 overviewError
     // 态下唯一的那张 .card 告警卡），使断言取到上一页而非本页。
     await expect(page.locator('h1')).toContainText('运营后台', { timeout: 15_000 })
     // KPI 四卡片容器 .grid.g4 可见
+    // 这里不需要"API 非 200 就跳过"的条件式 skip：Admin.vue 是 loading/error/成功 三选一
+    // 的 v-if 链，.grid.g4 只存在于成功分支 ⇒ 上一行通过即说明数据已到，四卡片必然渲染；
+    // 真的 API 坏了，.grid.g4 压根不出现，这一行会以更直白的"元素不可见"判红。
     await expect(page.locator('.grid.g4')).toBeVisible({ timeout: 15_000 })
-    // 条件式 skip（台账 #58）：encaps-tenant 缺席或租户标识契约不齐时，
-    // AdminController#kpi() 进 error 态只渲染 1 个 error card，四卡片断言不可达；
-    // 判定用同源 API 探针，避免依赖 loading→error 的 DOM 过渡时序。
-    const token = await getApiToken(request)
-    const probe = await request.get(`${apiBase}/admin/kpi`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    test.skip(
-      probe.status() !== 200,
-      'KNOWN-FAILURES #58 租户标识契约或数据不齐时 KPI 四卡片不渲染，断言不可达；详见 docs/KNOWN-FAILURES.md #58'
-    )
-    // 四个 .card（租户总数/集群总数/月度营收/告警数）
+    // .grid.g4 里现渲染 7 张卡（租户/集群/营收/告警/工作空间/配额/项目），断言保留 ≥4 的下界
     const cardCount = await page.locator('.grid.g4 .card').count()
     expect(cardCount).toBeGreaterThanOrEqual(4)
     // KPI 数值 .kpi 至少渲染一个
