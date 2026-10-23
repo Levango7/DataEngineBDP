@@ -1,6 +1,7 @@
 # 项目留言板（Message Board）
 
 ## 使用规则
+
 - 每条留言一行，按时间**倒序**排列，最新在最上面。
 - 格式：`YYYY-MM-DD HH:MM | 作者 | 状态 | 主题 | 相关分支/PR | 备注`
 - 状态可选：`planning` / `in-progress` / `done` / `blocked` / `expired`
