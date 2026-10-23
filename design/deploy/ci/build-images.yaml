@@ -3,6 +3,14 @@
 # 关联：部署清单 v0.1 §6（多 Arch 镜像构建 CI）
 # 运行环境：GitHub Actions（或 GitLab CI 等价改写）；self-hosted runner（含 arm64）
 # 产物：registry.internal/sq/*:tag 的 amd64+arm64 manifest；信创额外 openeuler 变体
+#
+# ⚠️ 状态：设计稿，不执行（2026-10-24 复核，台账 #67）
+#   1) 本文件在 design/deploy/ci/ 下，不在 .github/workflows/ ⇒ GitHub 不会加载它；
+#   2) 仓内对它的引用为 0（git grep 查 .github/ scripts/ Makefile）；
+#   3) 它假定的 registry.internal/sq 在仓里没有任何凭据或推送步骤；
+#   4) 它调用的 scripts/unit-test.sh 不存在。
+#   镜像清单的权威来源是 .github/workflows/build.yml（产出 ghcr.io/levango7/sq-<模块>）。
+#   若将来要真跑这条流水线（离线/信创交付场景），先立项再做，见台账 #67 的启动条件。
 # ============================================================================
 name: build-images
 
