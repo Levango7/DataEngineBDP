@@ -1,0 +1,39 @@
+# ============================================================================
+# karmada-api · prod 环境 values（台账 #90②）
+# 覆盖：design/deploy/charts/karmada-api/values.yaml
+# 策略：多副本 · 开 HPA/PDB · 外部 Secret 存 JWT（不写明文）
+# 命名空间取 prod-system：APISIX 的路由 upstream 用短名（karmada-api:8090），
+# 短名只能在同 namespace 解析，故与 encaps-layer / catalog 等既有服务同域。
+# ============================================================================
+
+image:
+  repository: "ghcr.io/levango7/sq-karmada-api"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "1000m"
+    memory: "512Mi"
+
+hpa:
+  enabled: true
+
+pdb:
+  enabled: true
+
+auth:
+  # prod 必须用外部 Secret，不要把真密钥写进 values。
+  jwtSecretName: "karmada-api-jwt-prod"
+
+env:
+  KARMADA_API_PORT: "8090"
+  KARMADA_API_DB: "/app/data/karmada-api.db"
+  JWT_ISSUER: "shuqing-bigdata"
+  # prod 接入上游 Karmada 控制面后填写；待架构裁决前留空 ⇒ stub 响应
+  KARMADA_API_SERVER: ""
