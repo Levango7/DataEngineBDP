@@ -531,6 +531,131 @@ services:
       - it-net
 
   # ===========================================================================
+  # karmada 域四服务（profile: karmada-extra，台账 #90）
+  #
+  # 这四张 chart 此前 0/4 进入任何装载体，实现侧缺陷（karmada-api 的 /api/v1/clusters
+  # 被写成 /api/v1/clusters/clusters）也从未被任何自动化打到过——单测把 handler 挂在
+  # 与 main.go 不同的前缀上，所以测试绿而生产 404。
+  #
+  # 用 compose profile 隔离：默认不启动，ZAP/Playwright/nightly 的 `docker compose up`
+  # 行为不变；仅 ci.yml 的 Integration Test 以 `--profile karmada-extra` 追加拉起，
+  # 由 tests/integration/test_karmada_services.py 断言端点形状与鉴权。
+  # 宿主机端口 18101 沿用 e2e/conftest.py 的 KARMADA_URL 约定；18107-18109 为旧表
+  # 未占用的号段（18103-18106 已被 infra-orchestrator 等占用）。
+  #
+  # 上游 Karmada 控制面不在本栈内：karmada-api 未配 KARMADA_API_SERVER 时按
+  # main.go 的既定行为降级为 stub 响应。因此这里验的是"服务能起、路由形状对、
+  # 鉴权生效"，不是真实控制面联调；控制面接入见台账 #90 的待裁项。
+  # ===========================================================================
+
+  # karmada 控制台 API（Go/Gin, 容器 8090 → 主机 18101）
+  karmada-api:
+    profiles: ["karmada-extra"]
+    build:
+      context: ../../platform/karmada/karmada-api
+      dockerfile: Dockerfile
+      args: *base-args
+    image: shuqing/karmada-api:0.1.0
+    container_name: it-karmada-api
+    ports:
+      - "18101:8090"
+    environment:
+      - KARMADA_API_PORT=8090
+      - "KARMADA_API_DB=:memory:"
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # 故障迁移 API（Go/Gin, 容器 8094 → 主机 18107）
+  failover-api:
+    profiles: ["karmada-extra"]
+    build:
+      context: ../../platform/karmada/failover/failover-api
+      dockerfile: Dockerfile
+      args: *base-args
+    image: shuqing/failover-api:0.1.0
+    container_name: it-failover-api
+    ports:
+      - "18107:8094"
+    environment:
+      - FAILOVER_API_PORT=8094
+      - "FAILOVER_API_DB=:memory:"
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8094/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # 故障迁移引擎（Go, 容器 8095 → 主机 18108）；控制面指向栈内 karmada-api
+  failover-engine:
+    profiles: ["karmada-extra"]
+    build:
+      context: ../../platform/karmada/failover/failover-engine
+      dockerfile: Dockerfile
+      args: *base-args
+    image: shuqing/failover-engine:0.1.0
+    container_name: it-failover-engine
+    ports:
+      - "18108:8095"
+    environment:
+      - FAILOVER_ENGINE_PORT=8095
+      - KARMADA_API_URL=http://karmada-api:8090
+      - FAILOVER_PRIMARY_CLUSTER=primary
+      - FAILOVER_BACKUP_CLUSTERS=backup-a,backup-b
+    depends_on:
+      karmada-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8095/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - it-net
+
+  # 跨集群查询路由与归并（Java/Spring Boot, 容器 8094 → 主机 18109）
+  federated-query:
+    profiles: ["karmada-extra"]
+    build:
+      # Dockerfile 同批拷贝 platform/common-security 与 platform/karmada/federated-query，
+      # 故 context 必须是仓根（与 encaps-layer 同形）。
+      context: ../..
+      dockerfile: platform/karmada/federated-query/Dockerfile
+      args: *base-args
+    image: shuqing/federated-query:0.1.0
+    container_name: it-federated-query
+    ports:
+      - "18109:8094"
+    environment:
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - JWT_ISSUER=shuqing-bigdata
+      - KARMADA_API=http://karmada-api:8090
+    depends_on:
+      karmada-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8094/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    networks:
+      - it-net
+
+  # ===========================================================================
   # 台账 #57① 栈外服务扩栈（profile: nightly-extra）
   #
   # 这 5 个服务此前不在栈内，导致 nightly 里 /vector、/ai-assistant、
