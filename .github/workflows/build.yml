@@ -274,7 +274,7 @@ jobs:
                 dockerfile_arg="-f $df"
                 ;;
             esac
-            docker buildx build \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
@@ -345,7 +345,7 @@ jobs:
             echo "============================================"
             echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
-            docker buildx build \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
@@ -407,7 +407,7 @@ jobs:
             echo "============================================"
             echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
-            docker buildx build \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
