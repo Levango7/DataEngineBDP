@@ -26,6 +26,7 @@
 **条件**：上游已发布修复版本，且本仓直接或间接引用了受影响版本。
 
 **处置**：
+
 1. 查看 Dependabot 是否已自动开安全 PR（Security → Dependabot alerts → 该 CVE 的 "Dependabot security updates" 字段）。
 2. 若已开 PR：审查 diff，仅升级受影响版本，不顺带拉大版本；合并后告警应自动关闭。
 3. 若未开 PR：手动升级对应 `pom.xml` / `go.mod` / `requirements*.txt` / `package.json`，提交并推，触发 CI Trivy 门禁复验。
@@ -39,6 +40,7 @@
 **条件**：漏洞命中的是**传递依赖**，且本仓代码不调用受影响的类/函数，或受影响版本本仓未引用（`ignore-unfixed` 口径下 Trivy 不应报它，若报了通常是 SARIF 僵尸）。
 
 **处置**：
+
 1. 用 `scripts/trivy-sarif-report.py --gate --fail-on 0 <sarif>` 确认该条是否作用于当前 HEAD 的具体 `pom.xml` / `go.mod` 等清单文件。
 2. 若清单文件路径不存在于当前 HEAD，标记为“僵尸告警”，不处理。
 3. 若存在但本仓不调用受影响 API，可在 `docs/trivy-image-ignore.yaml` 风格下加一条**长期豁免**（不设 expired_at，附理由）。
@@ -50,6 +52,7 @@
 **条件**：Trivy `Fixed Version` 为空，或上游尚未发布修复。
 
 **处置**：
+
 1. 该条不会被 `--ignore-unfixed` 门禁阻断（CI 已过滤）。
 2. 加入 `docs/trivy-image-ignore.yaml` 风格的豁免表，`expired_at` 设为距今 1–3 个月（视严重度），到期未清自动重新判红，防止静默烂掉。
 3. 每月复核一次，上游发布修复后按 §2.1 升级。
