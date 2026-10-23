@@ -65,6 +65,9 @@ BASE_URLS: Dict[str, str] = {
     "failover_api": "http://localhost:18107",
     "failover_engine": "http://localhost:18108",
     "federated_query": "http://localhost:18109",
+    # FinOps：cost-model 与 dashboard 都在默认栈里（台账 #91）。
+    "cost_model": "http://localhost:18084",
+    "finops_dashboard": "http://localhost:18087",
 }
 
 # HTTP 请求默认超时（秒），避免测试卡死。
@@ -542,6 +545,16 @@ def rule_engine_url():
 def lineage_url():
     """血缘分析服务基础 URL（session 级别）。"""
     return BASE_URLS["lineage"]
+
+
+@pytest.fixture(scope="session")
+def cost_model_url():
+    return BASE_URLS["cost_model"]
+
+
+@pytest.fixture(scope="session")
+def finops_dashboard_url():
+    return BASE_URLS["finops_dashboard"]
 
 
 # ---------------------------------------------------------------------------
