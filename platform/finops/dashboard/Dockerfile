@@ -29,7 +29,7 @@ RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 # 创建非 root 用户
-RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+RUN addgroup -S appgroup && adduser -S -G appgroup appuser
 
 # 从构建阶段复制产物
 COPY --from=builder /build/target/*.jar /app/app.jar

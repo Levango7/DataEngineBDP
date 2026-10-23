@@ -41,8 +41,8 @@ FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
-RUN groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --home /app appuser
+RUN addgroup -S -g 1001 appgroup \
+    && adduser -S -u 1001 -G appgroup -h /app appuser
 
 COPY --from=builder /workspace/target/encaps-data-0.1.0-SNAPSHOT-exec.jar /app/app.jar
 
