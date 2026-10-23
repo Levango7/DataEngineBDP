@@ -34,8 +34,8 @@ RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 # 非 root 运行；uid/gid 固化 1001（与 deploy/local/values-local-core.yaml 的既有约定一致）
-RUN groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --home /app appuser
+RUN addgroup -S -g 1001 appgroup \
+    && adduser -S -u 1001 -G appgroup -h /app appuser
 
 # 可执行 jar（spring-boot-maven-plugin classifier=exec）
 COPY --from=builder /workspace/target/stream-batch-scheduler-0.1.0-exec.jar /app/app.jar

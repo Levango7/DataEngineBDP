@@ -54,7 +54,7 @@ RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 # 创建非 root 用户运行应用
-RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+RUN addgroup -S appgroup && adduser -S -G appgroup appuser
 
 # 从构建阶段复制产物（可执行 jar 带 exec classifier）
 COPY --from=builder /workspace/target/encaps-tenant-*-exec.jar /app/app.jar

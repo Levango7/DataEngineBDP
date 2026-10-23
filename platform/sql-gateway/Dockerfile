@@ -46,8 +46,8 @@ LABEL org.opencontainers.image.title="sql-gateway" \
 # 若 Chart 的 runAsGroup/fsGroup 与此处 gid 不一致，进程就对 /app/data 无写权，
 # H2 建库直接抛 java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
 # 三个 Java 服务统一为 1001，deploy/local/values-local-core.yaml 与之对齐。
-RUN groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --home /app appuser
+RUN addgroup -S -g 1001 appgroup \
+    && adduser -S -u 1001 -G appgroup -h /app appuser
 
 WORKDIR /app
 

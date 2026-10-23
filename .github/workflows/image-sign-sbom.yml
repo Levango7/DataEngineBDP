@@ -169,7 +169,7 @@ jobs:
             echo "============================================"
             echo "  Docker build & push: $comp"
             echo "============================================"
-            docker buildx build \
+            bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker buildx build \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${REGISTRY_NS}/sq-${comp}:latest" \
               -t "$img" \
