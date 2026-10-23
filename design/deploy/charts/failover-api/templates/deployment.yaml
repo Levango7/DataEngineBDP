@@ -49,13 +49,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "failover-api.configmapName" . }}
-          {{- if or .Values.auth.jwtSecretName }}
+          {{- if or .Values.auth.jwtSecretName .Values.auth.jwtSecretValue }}
           env:
-            {{- if .Values.auth.jwtSecretName }}
+            {{- if or .Values.auth.jwtSecretName .Values.auth.jwtSecretValue }}
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.auth.jwtSecretName }}
+                  name: {{ .Values.auth.jwtSecretName | default (printf "%s-jwt" (include "failover-api.fullname" .)) }}
                   key: {{ .Values.auth.jwtSecretKey | default "jwt-secret" }}
             {{- end }}
           {{- end }}
