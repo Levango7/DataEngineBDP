@@ -15,3 +15,5 @@
 | 2026-10-22 10:00 | 你 | done | 治理闭环收口 + 安全 triage 文档 | `fix/known-failures-39i-verify` | 已推送，无未完成任务 |
 | 2026-10-22 11:00 | 你 | done | CI：chart env 与 application.yml 默认值一致性门禁 | `fix/known-failures-39i-verify` | 已推送 7b178c57 |
 | 2026-10-22 11:10 | 你 | done | 治理闭环阶段 0：集成测试补“规则被实际评估（summary 计数）”断言 | `fix/known-failures-39i-verify` | 已推送 e6134c30 |
+| 2026-10-22 11:20 | 你 | done | CI：补缺失的 scripts/check-image-reference.py，避免 helm-lint job 步骤报文件不存在 | `fix/known-failures-39i-verify` | 脚本存在且自测全绿 |
+| 2026-10-22 11:30 | 你 | done | CI：check-image-reference.py 扩展裸 image: 形态（#67，台账 #65 下游） | `fix/known-failures-39i-verify` | 本地改，已提交 |
