@@ -342,7 +342,7 @@ jobs:
               echo "构建 sq/$comp:0.1.0（Python 组件，上下文=$dir）"
               build_args=("$dir")
             fi
-            if docker build -q --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
+            if bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker build -q --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq/$comp:0.1.0" "${build_args[@]}"; then
               images="$images sq/$comp:0.1.0"
             else
               echo "::warning::$comp 构建失败，跳过导入"
@@ -442,5 +442,5 @@ jobs:
           # 加速器只是便利层，兜底不能选"刚被证明不可达的那个宿主"；空值也不能喂给 --build-arg。
           BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
-          docker buildx build --platform linux/arm64 --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
+          bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker buildx build --platform linux/arm64 --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
             -f platform/nl2sql/Dockerfile platform/nl2sql >/dev/null && echo OK

@@ -274,9 +274,7 @@ jobs:
                 dockerfile_arg="-f $df"
                 ;;
             esac
-            # 台账 #93：docker build 失败且当前 BASE_REGISTRY 是加速器时，
-            # 用 docker.io 重试一次，把"挂了"变成"挂在哪一层"。
-            BASE_REGISTRY="$BASE_REGISTRY" bash scripts/docker-build-with-fallback.sh \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
@@ -347,9 +345,7 @@ jobs:
             echo "============================================"
             echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
-            # 台账 #93：docker build 失败且当前 BASE_REGISTRY 是加速器时，
-            # 用 docker.io 重试一次，把"挂了"变成"挂在哪一层"。
-            BASE_REGISTRY="$BASE_REGISTRY" bash scripts/docker-build-with-fallback.sh \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
@@ -411,9 +407,7 @@ jobs:
             echo "============================================"
             echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
-            # 台账 #93：docker build 失败且当前 BASE_REGISTRY 是加速器时，
-            # 用 docker.io 重试一次，把"挂了"变成"挂在哪一层"。
-            BASE_REGISTRY="$BASE_REGISTRY" bash scripts/docker-build-with-fallback.sh \
+            bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \

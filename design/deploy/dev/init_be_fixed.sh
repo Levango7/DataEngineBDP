@@ -156,7 +156,7 @@ jdk_version() {
     fi
     echo "${result}"
     return 0
-fi
+}
 
 # export env variables from be.conf
 #
