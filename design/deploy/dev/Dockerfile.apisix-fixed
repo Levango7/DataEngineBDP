@@ -1,0 +1,18 @@
+ARG BASE_REGISTRY=docker.io
+FROM ${BASE_REGISTRY}/apache/apisix:3.9.1-debian
+
+# No Lua patches: apisix/core/config_etcd.lua is used verbatim from upstream.
+# The "key prefix mismatch" diagnosis was wrong (self.key already carries the
+# /apisix prefix) and the earlier patch introduced a nil-reference crash in
+# http_waitdir that broke the watcher outright.
+
+# The stock conf/config.yaml already has `config_provider: etcd` but no etcd
+# host. Add one, using APISIX's native ${{VAR}} substitution so the host can
+# be changed per-environment without rebuilding.
+RUN printf 'deployment:\n  role: traditional\n  role_traditional:\n    config_provider: etcd\n  etcd:\n    host:\n      - "http://${{ETCD_HOST:=sq-etcd}}:2379"\n    prefix: "/apisix"\n    timeout: 30\n' > /usr/local/apisix/conf/config.yaml
+
+# Keep the base image's entrypoint and CMD unchanged. `docker-start` runs
+# `apisix init` + `apisix init_etcd` (the etcd bootstrap) then starts openresty.
+
+ENV ETCD_HOST=sq-etcd
+ENV ETCD_PORT=2379

@@ -115,8 +115,10 @@ env:
   NEBULA_GRAPHD_PORT: "9669"
   NEBULA_SPACE: "lineage"
   RULE_ENGINE_URL: "http://rule-engine:8083"
-  # 台账 #6 阶段 3：质量规则单一来源（rule-engine 为权威）；默认关，保持 additive
-  GOVERNANCE_QUALITY_SOURCE_ENABLED: "false"
+  # 台账 #6 阶段 3：质量规则单一来源（rule-engine 为权威）。
+  # 默认开：与 application.yml / RuleEngineRuleSource 的默认值一致。
+  # 若要临时退回"只用进程内注册"，显式设为 "false"。
+  GOVERNANCE_QUALITY_SOURCE_ENABLED: "true"
   METADATA_COLLECT_TIMEOUT_MS: "5000"
   ALERT_LATENCY_TARGET_MS: "5000"
   PIPELINE_P95_TARGET_MS: "10000"

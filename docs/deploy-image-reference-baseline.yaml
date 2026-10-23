@@ -16,6 +16,18 @@ known:
 - file: design/deploy/charts/flink-cdc/values.yaml
   repository: "harbor.shuqing.io/shuqing/flink-cdc"
   tag: "2.0.0"
+- file: design/deploy/charts/governance/values.yaml
+  repository: "sq-lineage"
+  tag: "0.1.0"
+- file: design/deploy/charts/governance/values.yaml
+  repository: "sq-metadata"
+  tag: "0.1.0"
+- file: design/deploy/charts/governance/values.yaml
+  repository: "sq-quality"
+  tag: "0.1.0"
+- file: design/deploy/charts/governance/values.yaml
+  repository: "sq-standard"
+  tag: "0.1.0"
 - file: design/deploy/charts/model-finetuning/values.yaml
   repository: "harbor.shuqing.io/shuqing/model-finetuning"
   tag: "2.0.0"
@@ -28,3 +40,54 @@ known:
 - file: design/deploy/charts/storage-io/values.yaml
   repository: "harbor.shuqing.io/shuqing/storage-io"
   tag: "2.0.0"
+- file: design/deploy/values/dolphinscheduler-values.yaml
+  repository: "sq-dolphinscheduler"
+  tag: "3.2-0.1.0"
+- file: design/deploy/values/doris-values.yaml
+  repository: "sq-doris"
+  tag: "2.1-0.1.0"
+- file: design/deploy/values/doris-values.yaml
+  repository: "sq-doris-be"
+  tag: "2.1-0.1.0"
+- file: design/deploy/values/doris-values.yaml
+  repository: "sq-doris-fe"
+  tag: "2.1-0.1.0"
+- file: design/deploy/values/governance-values.yaml
+  repository: "sq-lineage"
+  tag: "0.1.0"
+- file: design/deploy/values/governance-values.yaml
+  repository: "sq-metadata"
+  tag: "0.1.0"
+- file: design/deploy/values/governance-values.yaml
+  repository: "sq-quality"
+  tag: "0.1.0"
+- file: design/deploy/values/governance-values.yaml
+  repository: "sq-standard"
+  tag: "0.1.0"
+- file: design/deploy/values/iotdb-values.yaml
+  repository: "sq-iotdb"
+  tag: "2.0-0.1.0"
+- file: design/deploy/values/iotdb-values.yaml
+  repository: "sq-iotdb-confignode"
+  tag: "2.0-0.1.0"
+- file: design/deploy/values/iotdb-values.yaml
+  repository: "sq-iotdb-datanode"
+  tag: "2.0-0.1.0"
+- file: design/deploy/values/keycloak-values.yaml
+  repository: "sq-keycloak"
+  tag: "24.0-0.1.0"
+- file: design/deploy/values/seatunnel-values.yaml
+  repository: "sq-seatunnel"
+  tag: "2.3-0.1.0"
+- file: design/deploy/values/spark-values.yaml
+  repository: "sq-spark-shuffle"
+  tag: "3.5.3-0.1.0"
+- file: design/deploy/values/superset-values.yaml
+  repository: "sq-superset"
+  tag: "4.0-0.1.0"
+- file: design/deploy/values/theia-values.yaml
+  repository: "sq-theia"
+  tag: "1.45-0.1.0"
+- file: design/deploy/values/theia-values.yaml
+  repository: "sq-theia-init"
+  tag: "0.1.0"

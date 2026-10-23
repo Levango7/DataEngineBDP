@@ -15,15 +15,18 @@
 #   FE HTTP  18031 -> 8030 (WEB UI / 状态)
 #   FE MySQL 18030 -> 9030 (JDBC/ODBC 兼容协议, Doris FE 对外服务口)
 #   BE HTTP  18032 -> 8040 (BE Web, 查询 profile)
-#   FE 内部  18035 -> 9050 (edit_log/心跳, 暴露便于排查)
+#   FE 内部  18035 -> 9010 (edit_log/心跳, 暴露便于排查)
+#   FE heartbeat 18050 -> 9050 (BE 心跳注册必需)
 # ============================================================================
 services:
   doris-fe:
-    image: docker.m.daocloud.io/apache/doris:doris-fe-2.1.7
+    image: apache/doris:doris-fe-2.1.7
     container_name: sq-doris-lite-fe
     restart: unless-stopped
     environment:
-      # 官方 entrypoint ELECTION 模式: FE_SERVERS=名称:IP:edit_log_port
+      # 单节点模式：避免选主问题
+      ENABLE_SINGLE_NODE: "true"
+      # 官方 entrypoint 必需参数（单节点模式）
       FE_SERVERS: "fe1:172.31.88.2:9010"
       FE_ID: "1"
       # FE 内存上限（轻量实测用 1g）
@@ -32,6 +35,7 @@ services:
       - "18031:8030"   # FE HTTP
       - "18030:9030"   # FE MySQL
       - "18035:9010"   # FE edit_log(暴露,便于排查)
+      - "18050:9050"   # FE heartbeat (BE 心跳注册必需)
     volumes:
       - sq-doris-fe-data:/opt/apache-doris/fe/doris-meta
     healthcheck:
@@ -45,13 +49,13 @@ services:
         ipv4_address: 172.31.88.2
 
   doris-be:
-    image: docker.m.daocloud.io/apache/doris:doris-be-2.1.7
+    image: apache/doris:doris-be-2.1.7
     container_name: sq-doris-lite-be
     restart: unless-stopped
     depends_on:
       - doris-fe
     environment:
-      # 官方 entrypoint ELECTION 模式: FE_SERVERS + BE_ADDR=BE_IP:heartbeat_port
+      # 官方 entrypoint 必需参数（单节点模式）
       FE_SERVERS: "fe1:172.31.88.2:9010"
       BE_ADDR: "172.31.88.3:9050"
     ports:
@@ -67,6 +71,17 @@ services:
     networks:
       sq-doris-lite-net:
         ipv4_address: 172.31.88.3
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 4G
+    cap_add:
+      - SYS_RESOURCE
+      - SYS_ADMIN
+    privileged: true
+    command: ["bash", "-c", "swapoff -a 2>/dev/null || true; /usr/local/bin/entry_point.sh"]
 
 volumes:
   sq-doris-fe-data:

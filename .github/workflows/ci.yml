@@ -507,13 +507,15 @@ jobs:
         # 反向自检已做：临时加一个无主题块 + 一个自造类名，两项均被拦下。
         run: python3 scripts/check-mermaid-style.py
 
-      - name: 治理闭环契约（阶段 0；现为**预期红**契约，阶段 1/2 完成后转阻断）
+      - name: 治理闭环契约（阶段 1/3 已落地，阻断）
         # 依据 docs/治理闭环修复草案.md：三条断链的静态可失败契约——
         #   ① pipeline 自持血缘写入实现（写入者不唯一）
         #   ② /api/v1/lineage/events 零调用方（端点白造）
         #   ③ 采集器只写 catalog、不 emit（非 Iceberg 源无自动血缘）
         # 2026-10-04 转阻断：阶段 1（统一写入者）与阶段 2（采集器 emit）已落地，
-        # 契约 T1/T2/T3 实测全绿，故移除 continue-on-error。
+        # 契约 T1/T2/T3 实测全绿（5 passed），故移除 continue-on-error。
+        # 阶段 3（单一来源，rule-engine 为权威）已落地（commit 6d4a774e），T5（单一来源接线）
+        # 也已随之实测通过。
         # 本文件在 tests/contract/ 而非 tests/integration/，不参与 IT 腿收集。
         run: |
           python3 -m pip install -q pytest 2>/dev/null || true
@@ -898,6 +900,12 @@ jobs:
             echo "::error::共有 $fail_count 个 Helm Chart lint 失败，helm-lint 阻断 CI"
             exit 1
           fi
+
+      - name: Chart env 与 application.yml 默认值一致性校验（阻断）
+        run: |
+          # 防止 chart env 静默覆盖 Spring Boot 应用默认值（如
+          # GOVERNANCE_QUALITY_SOURCE_ENABLED 被 chart 覆盖为 "false" 而应用默认 true）。
+          python3 scripts/check-chart-env-default-parity.py
 
       - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
         # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对

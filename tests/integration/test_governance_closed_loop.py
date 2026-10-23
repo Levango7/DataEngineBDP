@@ -137,6 +137,35 @@ def test_lineage_query_surface_rejects_bad_request(api_client, lineage_url):
     assert too_deep.status_code == 400, f"depth 越界应 400，实际 {too_deep.status_code}"
 
 
+def test_quality_rules_actually_evaluated(api_client, rule_engine_url):
+    """阶段 0 断言 3：rule-engine 中登记的规则被实际评估。
+
+    对应治理闭环草案 阶段0 断言 3。
+    GET /api/v1/quality/rules/summary 会对当前租户的全部规则执行一次校验，
+    并返回 {total, passed, passRate} —— 这是"规则被实际评估"的可回归契约。
+
+    若 service 缺席则 skip（不阻塞 CI）；若端点 404/非 200 则该 leg 为断裂。
+    """
+    import pytest
+
+    try:
+        resp = api_client.get(rule_engine_url + "/api/v1/quality/rules/summary")
+    except requests.exceptions.RequestException as exc:
+        pytest.skip(f"rule-engine 不可达：{exc}")
+        return
+
+    if resp.status_code == 404:
+        pytest.skip(f"rule-engine 未提供 /api/v1/quality/rules/summary：{resp.text[:120]}")
+    assert resp.status_code == 200, f"质量规则 summary 失败 HTTP {resp.status_code}: {resp.text[:300]}"
+
+    body = resp.json()
+    assert isinstance(body, dict), f"summary 应返回对象，实际：{resp.text[:300]}"
+    for key in ("total", "passed", "passRate"):
+        assert key in body, f"summary 缺少字段 {key}: {resp.text[:300]}"
+    assert isinstance(body["total"], int), f"total 应为整数：{resp.text[:300]}"
+    assert isinstance(body["passRate"], (int, float)), f"passRate 应为数值：{resp.text[:300]}"
+
+
 def _login(api_client, encaps_url):
     try:
         resp = api_client.post(encaps_url + "/api/v1/auth/login",

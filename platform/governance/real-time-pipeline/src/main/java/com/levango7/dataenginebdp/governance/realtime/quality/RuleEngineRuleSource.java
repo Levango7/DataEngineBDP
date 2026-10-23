@@ -15,8 +15,9 @@ import java.util.Map;
  *
  * <p>这是 pipeline 侧"质量规则唯一来源"的接线：拉 {@code GET /api/v1/quality/rules}
  * （rule-engine 的持久化规则，含租户隔离），经 {@link RuleEngineRuleMapper} 归一为
- * {@link QualityRule} 交给引擎。**默认关**（{@code governance.quality.source-enabled=false}），
- * 保持改动 additive；开启后由 {@link QualityRuleRefreshScheduler} 启动 + 定时刷新。
+ * {@link QualityRule} 交给引擎。**默认开**（{@code governance.quality.source-enabled=true}），
+ * 可由 {@code GOVERNANCE_QUALITY_SOURCE_ENABLED=false} 关闭；开启后由
+ * {@link QualityRuleRefreshScheduler} 启动 + 定时刷新。
  *
  * <p>鉴权：与 {@code LineageIngestClient} 同源——服务端只认 JWT 声明租户，
  * 故随调用用 {@link ServiceTokenMinter} 签发短 TTL 服务令牌（{@code iss/tenantId/act=service}）。
@@ -44,7 +45,7 @@ public class RuleEngineRuleSource implements QualityRuleSource {
 
     public RuleEngineRuleSource(
             @Value("${governance.rule-engine.url:http://rule-engine:8083}") String baseUrl,
-            @Value("${governance.quality.source-enabled:false}") boolean enabled,
+            @Value("${governance.quality.source-enabled:true}") boolean enabled,
             @Value("${governance.quality.service-tenant:platform-admin}") String serviceTenant) {
         this.restClient = RestClient.builder().baseUrl(baseUrl).build();
         this.enabled = enabled;
