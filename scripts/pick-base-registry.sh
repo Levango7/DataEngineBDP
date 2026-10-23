@@ -17,12 +17,22 @@
 #   BASE_REGISTRY  显式指定则原样返回，不探测（本地/一次性覆盖用）
 #   BASE_REGISTRY_TIMEOUT  单次探测超时秒数，默认 8
 #   BASE_REGISTRY_CANDIDATES  覆盖候选序列（空格分隔），便于本地试验
+#   BASE_REGISTRY_TAG_PROBE  tag 级探测用的「镜像:tag」（默认 library/alpine:3.20）；
+#                     置空则跳过 tag 级探测，退回只探 /v2/ 的旧行为
+#   BASE_REGISTRY_TAG_PROBE_CMD  自测注入点：给 tag 级探测返回一个 HTTP 状态码
 set -uo pipefail
 
 CANDIDATES_DEFAULT=('docker.m.daocloud.io' 'docker.io')
 # 全部候选都探不通时取它：加速器只是便利层，上游才是真源
 FALLBACK='docker.io'
 TIMEOUT="${BASE_REGISTRY_TIMEOUT:-8}"
+# tag 级探测的代表镜像：alpine 运行层是全仓 Dockerfile 里最高频的一类，且匿名就能问出
+# 这个加速器此刻能不能把一次真拉取走完。置空即关闭这层探测。
+TAG_PROBE="${BASE_REGISTRY_TAG_PROBE:-library/alpine:3.20}"
+# 匿名 HEAD manifest 的两种"正常但拿不到内容"应答：401 是在要 token（Docker Hub 的规范行为）、
+# 404 是懒加载尚未缓存。它们都证明宿主在正常应答，不能当作不可用；
+# 真故障是 000（TLS 超时/连接被掐，台账 #93 实测形态）与 5xx（实测 daocloud 回 500）。
+TAG_PROBE_OK_CODES="200 301 302 307 308 401 404"
 
 log() { echo "[pick-base-registry] $*" >&2; }
 
@@ -58,6 +68,42 @@ probe() {
   esac
 }
 
+# 探一次「具体 tag 的 manifest」——这是台账 #93 的缺口：加速器答得出 `GET /v2/`，
+# 却在拉具体 tag 时 TLS 超时或回 500（2026-10-23 实测：daocloud 对 library/python/manifests/
+# 3.11-slim 回 500、对 library/golang 与 library/alpine 的 HEAD 直接 TLS handshake timeout，
+# 同一时间窗把 Kind Smoke / Docker Build Verify / Integration Test 三条腿同批带红）。
+# 探测层不看 tag，就永远只能在"构建已经失败"之后才发现源坏了。
+tag_probe_url() {
+  local host="$1" spec="$2" name tag reg
+  name="${spec%%:*}"
+  tag="${spec##*:}"
+  case "$host" in
+    docker.io | registry-1.docker.io | index.docker.io) reg='registry-1.docker.io' ;;
+    *) reg="$host" ;;
+  esac
+  printf 'https://%s/v2/%s/manifests/%s\n' "$reg" "$name" "$tag"
+}
+
+probe_tag() {
+  local host="$1" url code
+  if [ -z "$TAG_PROBE" ]; then
+    return 0
+  fi
+  url="$(tag_probe_url "$host" "$TAG_PROBE")"
+  if [ -n "${BASE_REGISTRY_TAG_PROBE_CMD:-}" ]; then
+    code="$($BASE_REGISTRY_TAG_PROBE_CMD "$host" 2>/dev/null || true)"
+  else
+    code="$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' \
+      -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json' \
+      "$url" 2>/dev/null || true)"
+  fi
+  case " $TAG_PROBE_OK_CODES " in
+    *" $code "*) return 0 ;;
+    *) log "候选 $host 的 /v2/ 通，但 tag 探测不可用（$url 回 HTTP ${code:-空}）⇒ 不选它"
+       return 1 ;;
+  esac
+}
+
 candidates() {
   if [ -n "${BASE_REGISTRY_CANDIDATES:-}" ]; then
     # shellcheck disable=SC2086
@@ -85,9 +131,21 @@ esac
 STUB
   chmod +x "$tmp/stub.sh"
 
-  run_picker() {  # 用桩跑一次，返回选中的宿主
-    BASE_REGISTRY_PROBE_CMD="$tmp/stub.sh" BASE_REGISTRY_CANDIDATES="host-a host-b" \
-      bash "$0" 2>/dev/null | tail -1
+  # 桩：tag 级探测（manifest HEAD）的状态码，同样按候选查表
+  cat >"$tmp/tagstub.sh" <<'TAGSTUB'
+#!/usr/bin/env bash
+# $1=宿主；查表返回预置码
+case "$1" in
+  host-a) echo "${TAGCODE_HOST_A:-200}" ;;
+  host-b) echo "${TAGCODE_HOST_B:-200}" ;;
+  *) echo "000" ;;
+esac
+TAGSTUB
+  chmod +x "$tmp/tagstub.sh"
+
+  run_picker() {  # 用桩跑一次，返回选中的宿主（两级探测都走桩，保证自测不联网）
+    BASE_REGISTRY_PROBE_CMD="$tmp/stub.sh" BASE_REGISTRY_TAG_PROBE_CMD="$tmp/tagstub.sh" \
+      BASE_REGISTRY_CANDIDATES="host-a host-b" bash "$0" 2>/dev/null | tail -1
   }
 
   check() {
@@ -114,6 +172,29 @@ STUB
   check "加速器宿主按原名探" "https://docker.m.daocloud.io/v2/" "$(probe_url docker.m.daocloud.io)"
   # 302 不是"可用"：官网跳转恰恰说明这个 URL 不是 registry API
   check "302 视为不可用（落到次候选）" "host-b" "$(CODE_HOST_A=302 CODE_HOST_B=401 run_picker)"
+  run_picker_both() {  # /v2/ 与 tag 两级都用桩
+    BASE_REGISTRY_PROBE_CMD="$tmp/stub.sh" BASE_REGISTRY_TAG_PROBE_CMD="$tmp/tagstub.sh" \
+      BASE_REGISTRY_CANDIDATES="host-a host-b" bash "$0" 2>/dev/null | tail -1
+  }
+
+  echo "SELFTEST（tag 级探测：/v2/ 通不等于 tag 拉得动，台账 #93）"
+  check "/v2/ 200 但 tag 回 500 ⇒ 不选它" "host-b" \
+    "$(TAGCODE_HOST_A=500 TAGCODE_HOST_B=200 run_picker_both)"
+  check "tag TLS 超时(000) ⇒ 不选它" "host-b" \
+    "$(TAGCODE_HOST_A=000 TAGCODE_HOST_B=401 run_picker_both)"
+  check "tag 401（Hub 匿名 HEAD 在要 token）⇒ 仍可选" "host-a" \
+    "$(TAGCODE_HOST_A=401 TAGCODE_HOST_B=200 run_picker_both)"
+  check "tag 404（加速器懒加载未缓存）⇒ 仍可选" "host-a" \
+    "$(TAGCODE_HOST_A=404 TAGCODE_HOST_B=200 run_picker_both)"
+  check "两候选 tag 全 500 ⇒ 回落 docker.io" "docker.io" \
+    "$(TAGCODE_HOST_A=500 TAGCODE_HOST_B=500 run_picker_both)"
+  check "BASE_REGISTRY_TAG_PROBE 置空 ⇒ 跳过 tag 层（旧行为）" "host-a" \
+    "$(BASE_REGISTRY_TAG_PROBE='' BASE_REGISTRY_PROBE_CMD="$tmp/stub.sh" BASE_REGISTRY_TAG_PROBE_CMD="$tmp/tagstub.sh" \
+       BASE_REGISTRY_CANDIDATES="host-a host-b" bash "$0" 2>/dev/null | tail -1)"
+  check "tag URL 走 registry API 宿主（docker.io）" "https://registry-1.docker.io/v2/library/alpine/manifests/3.20" \
+    "$(tag_probe_url docker.io library/alpine:3.20)"
+  check "tag URL 按加速器原名（daocloud）" "https://docker.m.daocloud.io/v2/library/python/manifests/3.11-slim" \
+    "$(tag_probe_url docker.m.daocloud.io library/python:3.11-slim)"
   return "$rc"
 }
 
@@ -130,7 +211,7 @@ main() {
   local h
   while IFS= read -r h; do
     [ -z "$h" ] && continue
-    if probe "$h"; then
+    if probe "$h" && probe_tag "$h"; then
       log "选定 base 镜像源：$h"
       if [ -n "${GITHUB_OUTPUT:-}" ]; then
         echo "base_registry=$h" >>"$GITHUB_OUTPUT"
