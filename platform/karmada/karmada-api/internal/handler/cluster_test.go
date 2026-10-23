@@ -27,7 +27,9 @@ func newClusterRouter(t *testing.T, upstreamURL string) *gin.Engine {
 		t.Fatalf("创建 karmada 客户端失败: %v", err)
 	}
 	r := gin.New()
-	NewClusterHandler(client).RegisterRoutes(r.Group("/api/v1"))
+	// 挂载形态必须与 main.go 一致（main.go 先 Group("/clusters") 再交给 handler），
+	// 否则测试与生产各挂一套前缀，/clusters/clusters 这类双前缀缺陷测不出来。
+	NewClusterHandler(client).RegisterRoutes(r.Group("/api/v1/clusters"))
 	return r
 }
 

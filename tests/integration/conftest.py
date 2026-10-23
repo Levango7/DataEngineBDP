@@ -58,6 +58,13 @@ BASE_URLS: Dict[str, str] = {
     "open_api_catalog": "http://localhost:8090",
     "industry_templates": "http://localhost:8091",
     "knowledge_engine": "http://localhost:8092",
+    # karmada 域（docker-compose.yml 的 karmada-extra profile，台账 #90）。
+    # 端口与 compose 的宿主机映射一致；karmada-api 的 18101 沿用
+    # e2e/conftest.py 既有的 KARMADA_URL 约定。
+    "karmada_api": "http://localhost:18101",
+    "failover_api": "http://localhost:18107",
+    "failover_engine": "http://localhost:18108",
+    "federated_query": "http://localhost:18109",
     # FinOps：cost-model 与 dashboard 都在默认栈里（台账 #91）。
     "cost_model": "http://localhost:18084",
     "finops_dashboard": "http://localhost:18087",
@@ -68,6 +75,14 @@ DEFAULT_TIMEOUT = 10
 
 # 健康检查路径（Java/Go 组件统一）。
 HEALTH_PATH = "/api/v1/health"
+
+# 不遵循统一健康路径的组件（台账 #90 入栈时才纳入探测）。
+# failover-engine 只暴露 /healthz 与 /metrics；
+# federated-query 的 /api/v1/federated/health 要求 JWT，未认证探测走 actuator。
+HEALTH_PATH_OVERRIDES = {
+    "failover_engine": "/healthz",
+    "federated_query": "/actuator/health",
+}
 
 
 def unwrap_response(body):
@@ -290,6 +305,9 @@ def is_service_available(name: str) -> bool:
     if name in PYTHON_COMPONENTS:
         health_path = PYTHON_COMPONENTS[name]["health_path"]
         return wait_for_service_path(url, health_path, timeout=3, interval=0.2)
+    override = HEALTH_PATH_OVERRIDES.get(name)
+    if override:
+        return wait_for_service_path(url, override, timeout=3, interval=0.2)
     return wait_for_service(url, timeout=3, interval=0.2)
 
 
@@ -540,6 +558,29 @@ def finops_dashboard_url():
 
 
 # ---------------------------------------------------------------------------
+# karmada 域 URL fixtures（session 级别，compose profile: karmada-extra）
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def karmada_api_url():
+    return BASE_URLS["karmada_api"]
+
+
+@pytest.fixture(scope="session")
+def failover_api_url():
+    return BASE_URLS["failover_api"]
+
+
+@pytest.fixture(scope="session")
+def failover_engine_url():
+    return BASE_URLS["failover_engine"]
+
+
+@pytest.fixture(scope="session")
+def federated_query_url():
+    return BASE_URLS["federated_query"]
+
+
+# ---------------------------------------------------------------------------
 # Python 组件 URL fixtures（session 级别，自动启动/停止组件）
 # ---------------------------------------------------------------------------
 # 设计说明：
@@ -772,7 +813,13 @@ def pytest_collection_modifyitems(config, items):
       SQ_IT_SKIP_PYTHON_START=1 且组件未外部启动）。
     """
     # 预先探测各服务可用性，避免每个测试都探测一次。
-    availability = {name: is_service_available(name) for name in BASE_URLS}
+    # 只探"确有测试文件按服务跳过"的组件：wait_for_service 在服务缺席时会轮询到
+    # 超时才返回，BASE_URLS 里的其余条目没有对应测试文件，探它们纯属把收集阶段
+    # 拖成 (服务数 × 3s) 的空转。karmada 域四服务的可用性由所属测试文件的
+    # module 级 fixture 自行判定（台账 #90）。
+    availability = {
+        name: is_service_available(name) for name in _SERVICE_TEST_PREFIX
+    }
 
     for item in items:
         # item.name 形如 "test_health_check"，无法区分所属文件；
