@@ -13,4 +13,4 @@
 | 时间 | 作者 | 状态 | 主题 | 分支/PR | 备注 |
 |------|------|------|------|---------|------|
 | 2026-10-22 10:00 | 你 | done | 治理闭环收口 + 安全 triage 文档 | `fix/known-failures-39i-verify` | 已推送，无未完成任务 |
-| 2026-10-22 11:00 | 你 | in-progress | CI：chart env 与 application.yml 默认值一致性门禁 | `fix/known-failures-39i-verify` | 本地已提交 192dfa10，待 push |
+| 2026-10-22 11:00 | 你 | done | CI：chart env 与 application.yml 默认值一致性门禁 | `fix/known-failures-39i-verify` | 已推送 7b178c57 |
