@@ -117,3 +117,21 @@ vulnerabilities:
     statement: "libx11 1.8.13-r0 → 1.8.14-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache libx11，本机实测升到 1.8.14-r0"
     expired_at: 2026-12-01
 
+
+  # ---- nginx:alpine / eclipse-temurin:17-jre-alpine：2026-10-24 扫描新出现的 brotli-libs ----
+  # 与上面 libexpat / libx11 两条完全同型：修复版已在 Alpine 仓库（1.2.0-r1 → 1.2.1-r0，
+  # CVE-2026-111497 HIGH），本仓把同一个包加进那 9 个 Dockerfile 的构建期升级里
+  # （`apk upgrade --no-cache libexpat brotli-libs`，frontend 另含 libx11）。本机实测：
+  #   apk list -I brotli-libs：eclipse-temurin:17-jre-alpine 基座 1.2.0-r1 ⇒ 加升级层后 1.2.1-r0
+  #                            nginx:alpine            基座 1.2.0-r1 ⇒ 加升级层后 1.2.1-r0
+  #   整镜像复扫（trivy 0.76.1，与 CI 同口径 --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed）：
+  #     基座 eclipse-temurin:17-jre-alpine findings=1 ⇒ 加 apk upgrade 后 findings=0，体积 256.2MB → 257.8MB（+1.6MB）
+  # 这条豁免只为「门禁的 image job 扫的是 FROM 里的基座引用本身、看不到构建期升级」而记；出货镜像已干净。
+  # 记一条反面结论省得下轮重走：把 9 个 Java 运行层换成 eclipse-temurin:17-jre（Debian）并不更干净——
+  # 本机实测该基座 HIGH/CRITICAL（有修复版）4 条，全是镜像内 /usr/bin/pebble 的 Go stdlib v1.27.1
+  # （就是本表第 80/89 行那两条豁免），CI 之所以报它 ✓ 正是因为那两条在豁免表里；换过去等于
+  # 「把一条没豁免的红换成四条靠豁免的绿」，且每个镜像 +163MB（244.3 → 407.2 MiB，本机 docker Size 实测）。
+  # 解锁：上游基座重建后（`docker run <base> apk list -I brotli-libs` 显示 ≥1.2.1-r0）删掉本条。
+  - id: CVE-2026-111497
+    statement: "brotli-libs 1.2.0-r1 → 1.2.1-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 9 个 Dockerfile 运行时阶段 apk upgrade --no-cache brotli-libs，本机实测两种基座均升到 1.2.1-r0、整镜像复扫 findings 1→0"
+    expired_at: 2026-12-01
