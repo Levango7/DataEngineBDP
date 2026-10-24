@@ -57,6 +57,18 @@ FALLBACK_RE = re.compile(r'\$\{\s*((?:\w*_)?BASE_REGISTRY|TRIVY_BASE_HOST)\s*:-\
 # 加条目必须写清理由，且 R4 那条例外表的规矩同样适用：无人使用的豁免也算过期。
 LEG_EXEMPT = set()
 
+# R9：`docker compose … up` 顺带构建的那些腿必须走 scripts/compose-retry.sh。
+# 判据范围是同一个 run 块（与 R7 对 docker build 的口径一致）：一块里多条 up 只要接了一次就算过，
+# 因为 ci.yml 的第 1 次尝试故意保留盲重试（它还覆盖健康检查超时这类非传输形态），第 2 次才走包装器。
+COMPOSE_UP_RE = re.compile(r'docker\s+compose\b.*?\bup\b')
+COMPOSE_WRAPPER = 'compose-retry.sh'
+# 加豁免条目必须写清理由，且同样受 R4「无人使用的豁免也算过期」约束。
+COMPOSE_LEG_EXEMPT = {
+    # local-e2e 的 infra 栈：只在 workflow_dispatch 且 run_infra=true 时跑，拉的是 trino 等公共
+    # 镜像，不读 BASE_REGISTRY 选源 ⇒ 换源重试对它没有意义（同参重试价值也低，先不纳入）。
+    ('.github/workflows/local-e2e.yml', 'infra-integration/Start Docker Compose infra'),
+}
+
 # 工作流之外的 shell 脚本构建腿豁免（相对路径 → 理由）。同样受"没人用就判红"约束。
 SCRIPT_EXEMPT = {
     'ske/node-image/build.sh': '其 Dockerfile 的 FROM 是 kindest/node:v1.30.0（外部宿主，'
@@ -234,7 +246,10 @@ def check_workflows(root):
     R7 判两种腿：`uses: docker/build-push-action`（看 with.build-args 里有没有
     BASE_REGISTRY）与 run 块里的 `docker build` / `docker buildx build`（看同块有没有
     `--build-arg BASE_REGISTRY`）。同块近似是故意的——build 与参数常跨续行，逐行匹配会漏。
-    compose 腿（`docker compose up --build`）不在这里判，它由 R5 管。
+    compose 腿（`docker compose up --build`）的 **build args 有没有传 BASE_REGISTRY** 由 R5 管；
+    它**有没有接传输类兜底**由 R9 管（同在这个函数里判）——2026-10-23 实测：R5 全绿的仓里，
+    compose 腿照样被一次 TLS 抖动打红三条（Playwright E2E 与 ZAP 两条腿），因为 R5 只管参数、
+    不管「挂了怎么办」。
 
     R8 防的是 2026-10-21 实测到的形态：选源器 fail-soft 的落点是上游 `docker.io`，
     工作流兜底却写死 `docker.m.daocloud.io`——即"刚被证明不可达的那个宿主"（那条 CI 的
@@ -247,6 +262,8 @@ def check_workflows(root):
     bad = []
     n_legs = 0
     used_exempt = set()
+    n_compose = 0
+    used_cexempt = set()
     for fn in files:
         rel = '.github/workflows/' + fn
         txt = io.open(os.path.join(wf_dir, fn), encoding='utf-8', errors='replace').read()
@@ -288,10 +305,25 @@ def check_workflows(root):
                     else:
                         bad.append((rel, 'R7', '%s：run 块里 %d 条 docker build 都没带 '
                                           '--build-arg BASE_REGISTRY ⇒ 同上' % (where, n_build)))
+                # R9：compose up 腿要接传输类兜底
+                n_c = len(COMPOSE_UP_RE.findall(run_blk))
+                n_compose += n_c
+                if n_c and COMPOSE_WRAPPER not in run_blk:
+                    if (rel, where) in COMPOSE_LEG_EXEMPT:
+                        used_cexempt.add((rel, where))
+                    else:
+                        bad.append((rel, 'R9', '%s：run 块里 %d 条 `docker compose … up` 没走 %s ⇒ '
+                                          'compose 顺带构建的镜像一旦碰上基座源的传输类抖动就直接判红，'
+                                          '而退出码只会说 exit 1，读不出是代码红还是源红（台账 #93）'
+                                          % (where, n_c, COMPOSE_WRAPPER)))
     stale_exempt = sorted(LEG_EXEMPT - used_exempt)
     for rel, where in stale_exempt:
         bad.append((rel, 'R4', '豁免条目 %s 无人使用（该腿已参选源或被删了），请从 LEG_EXEMPT 移除' % where))
-    return bad, n_legs, len(files), used_exempt
+    stale_c = sorted(COMPOSE_LEG_EXEMPT - used_cexempt)
+    for rel, where in stale_c:
+        bad.append((rel, 'R4', 'compose 腿豁免条目 %s 无人使用（该腿已接兜底或被删了），'
+                               '请从 COMPOSE_LEG_EXEMPT 移除' % where))
+    return bad, n_legs, len(files), used_exempt, n_compose, used_cexempt
 
 
 def check_build_scripts(root):
@@ -353,10 +385,14 @@ def run():
     if c_files == 0:
         print('::error::扫描失效：一个 compose 文件都没解析出 services（门禁失明，不放行）')
         return 2
-    w_bad, n_legs, n_wf, _used = check_workflows(root)
+    w_bad, n_legs, n_wf, _used, n_compose, _cused = check_workflows(root)
     viol.extend(w_bad)
     if n_wf == 0 or n_legs == 0:
         print('::error::扫描失效：工作流 %d 个 / 构建腿 %d 条（R7 失明，不放行）' % (n_wf, n_legs))
+        return 2
+    if n_compose == 0:
+        print('::error::扫描失效：工作流里一条 `docker compose … up` 都没发现（R9 失明，不放行）'
+              '——本仓有 Integration Test / Playwright / ZAP 几条腿靠它起栈，发现集为空只可能是判据坏了')
         return 2
     s_bad, n_sh, _sused = check_build_scripts(root)
     viol.extend(s_bad)
@@ -374,6 +410,8 @@ def run():
     print('  compose %d 个文件 / %d 个 build 服务已纳入 R5 检查' % (c_files, c_blocks))
     print('  工作流 %d 个 / 镜像构建腿 %d 条已纳入 R7 检查（豁免 %d 条）'
           % (n_wf, n_legs, len(LEG_EXEMPT)))
+    print('  compose up 腿 %d 条已纳入 R9 检查（豁免 %d 条，兜底=%s）'
+          % (n_compose, len(COMPOSE_LEG_EXEMPT), COMPOSE_WRAPPER))
     print('  含 docker build 的 shell 脚本 %d 个已纳入 R7 脚本半边检查（豁免 %d 个）'
           % (n_sh, len(SCRIPT_EXEMPT)))
     if viol:
@@ -391,6 +429,9 @@ def self_test():
     import tempfile
     tmp = tempfile.mkdtemp(prefix='base-reg-selftest-')
     ok = True
+    # 真实仓的豁免条目在合成树里必然对不上号，会污染 R4/计数断言；合成期先清空。
+    global COMPOSE_LEG_EXEMPT
+    COMPOSE_LEG_EXEMPT = set()
     try:
         def put(rel, text):
             p = os.path.join(tmp, rel)
@@ -439,6 +480,16 @@ def self_test():
             '      - name: 后端漏参\n        run: |\n'
             '          BASE_REGISTRY="${BASE_REGISTRY:-docker.m.daocloud.io}"\n'
             '          docker build -t y .\n')
+        # R9 的合成件：compose up 腿接没接传输类兜底（走包装器 / 裸跑 / 显式豁免各一条）
+        put('.github/workflows/leg-compose.yml',
+            'name: compose\njobs:\n  c:\n    steps:\n'
+            '      - name: 裸 compose 腿\n        run: |\n'
+            '          docker compose -f x.yml up -d --build\n'
+            '      - name: 包装 compose 腿\n        run: |\n'
+            '          bash scripts/compose-retry.sh docker compose -f x.yml up -d --build\n'
+            '  d:\n    steps:\n'
+            '      - name: 豁免 compose 腿\n        run: |\n'
+            '          docker compose up -d\n')
 
         def rules(root):
             out = []
@@ -490,7 +541,7 @@ def self_test():
         print('  [%s] 合成夹具真的被扫到（%d 个 Dockerfile，期望 11）' % ('PASS' if n == 11 else 'FAIL', n))
         ok = ok and n == 11
         # R7/R8：工作流侧
-        w_findings, w_legs, w_files, _we = check_workflows(tmp)
+        w_findings, w_legs, w_files, _we, w_nc, w_cused = check_workflows(tmp)
         wset = {(rel.split('/')[-1], rule) for rel, rule, _m in w_findings}
         for name, want in [('R7 build-push-action 漏传 BASE_REGISTRY 要被抓', ('leg-bad.yml', 'R7')),
                            ('R8 兜底选回加速器宿主要被抓', ('leg-bad.yml', 'R8'))]:
@@ -501,23 +552,49 @@ def self_test():
         print('  [%s] R7/R8 正例不误报' % ('PASS' if clean_ok else 'FAIL'))
         ok = ok and clean_ok
         rules_hit = {r for _rel, r, _m in w_findings}
-        two_rules = rules_hit == {'R7', 'R8'}
+        two_rules = {'R7', 'R8'} <= rules_hit
         print('  [%s] R7 与 R8 是两条独立判据（抓到 %s）'
               % ('PASS' if two_rules else 'FAIL', sorted(rules_hit)))
         ok = ok and two_rules
-        legs_ok = (w_legs == 4 and w_files == 2)
-        print('  [%s] 构建腿计数正确（%d 条 / %d 文件，期望 4/2）'
+        legs_ok = (w_legs == 4 and w_files == 3)
+        print('  [%s] 构建腿计数正确（%d 条 / %d 文件，期望 4/3）'
               % ('PASS' if legs_ok else 'FAIL', w_legs, w_files))
         ok = ok and legs_ok
+        # R9：compose up 腿必须走包装器，否则进带理由的豁免表
+        r9_msgs = [m for _rel, r, m in w_findings if r == 'R9']
+        r9_bare = any('裸 compose 腿' in m for m in r9_msgs)
+        r9_wrapped_quiet = not any('包装 compose 腿' in m for m in r9_msgs)
+        print('  [%s] R9 裸 `docker compose … up` 要被抓 / 走包装器的不误报'
+              % ('PASS' if r9_bare and r9_wrapped_quiet else 'FAIL'))
+        ok = ok and r9_bare and r9_wrapped_quiet
+        nc_ok = (w_nc == 3)
+        print('  [%s] compose up 腿计数正确（%d 条，期望 3）'
+              % ('PASS' if nc_ok else 'FAIL', w_nc))
+        ok = ok and nc_ok
+        exempt_c = ('.github/workflows/leg-compose.yml', 'd/豁免 compose 腿')
+        COMPOSE_LEG_EXEMPT = {exempt_c}
+        ce_findings, _l4, _f4, _u4, _n4, c_used = check_workflows(tmp)
+        c_quiet = not any('豁免 compose 腿' in m for _rel, _r, m in ce_findings)
+        c_used_ok = exempt_c in c_used
+        print('  [%s] compose 腿豁免生效且被计为"已使用"'
+              % ('PASS' if c_quiet and c_used_ok else 'FAIL'))
+        ok = ok and c_quiet and c_used_ok
+        COMPOSE_LEG_EXEMPT = {('.github/workflows/leg-compose.yml', '不存在的 compose 腿')}
+        cs_findings, _l5, _f5, _u5, _n5, _cu5 = check_workflows(tmp)
+        cs_hit = any(r == 'R4' and 'compose 腿豁免' in m for _rel, r, m in cs_findings)
+        print('  [%s] 无人使用的 compose 腿豁免被判过期（R4）'
+              % ('PASS' if cs_hit else 'FAIL'))
+        ok = ok and cs_hit
+        COMPOSE_LEG_EXEMPT = set()
         # 豁免必须"被用到"：塞一条对不上号的 LEG_EXEMPT ⇒ 必须按 R4 说过期
         global LEG_EXEMPT
         LEG_EXEMPT = {('.github/workflows/leg-bad.yml', 'b/不存在的腿')}
-        stale_findings, _l2, _f2, _u2 = check_workflows(tmp)
+        stale_findings, _l2, _f2, _u2, _n6, _cu6 = check_workflows(tmp)
         stale_hit = any(rule == 'R4' for _rel, rule, _m in stale_findings)
         print('  [%s] 无人使用的豁免条目被判过期（R4）' % ('PASS' if stale_hit else 'FAIL'))
         ok = ok and stale_hit
         LEG_EXEMPT = {('.github/workflows/leg-bad.yml', 'b/前端漏参')}
-        ex_findings, _l3, _f3, ex_used = check_workflows(tmp)
+        ex_findings, _l3, _f3, ex_used, _n7, _cu7 = check_workflows(tmp)
         bpa_quiet = not any('前端漏参' in m for _rel, _r, m in ex_findings)
         consumed = ('.github/workflows/leg-bad.yml', 'b/前端漏参') in ex_used
         print('  [%s] 豁免生效且被计为"已使用"' % ('PASS' if bpa_quiet and consumed else 'FAIL'))
