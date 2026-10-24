@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
 import com.levango7.dataenginebdp.flinkcdc.sink.SinkConfig;
 import com.levango7.dataenginebdp.flinkcdc.source.MySqlSourceConnector;
 import com.levango7.dataenginebdp.flinkcdc.source.SourceConfig;
-import com.ververica.cdc.connectors.mysql.source.MySqlSource;
+import org.apache.flink.cdc.connectors.mysql.source.MySqlSource;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.Configuration;
