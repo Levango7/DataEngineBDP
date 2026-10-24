@@ -2157,7 +2157,9 @@ jobs:
           docker compose down --remove-orphans || true
           sleep 60
           echo "启动 docker-compose 服务（重试）..."
-          if ! docker compose --profile karmada-extra up -d --wait; then
+          # 台账 #93：第 1 次是盲重试（覆盖健康检查超时），第 2 次交给 compose-retry.sh——
+          # 命中传输类签名时把 BASE_REGISTRY 从加速器换成上游，这正是盲重试换不掉的形态。
+          if ! bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose --profile karmada-extra up -d --wait; then
             echo "::error::docker-compose 启动失败或健康检查超时（已重试 1 次），集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
             echo "=== 容器日志（排障用）==="
