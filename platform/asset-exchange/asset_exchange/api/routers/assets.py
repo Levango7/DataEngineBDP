@@ -5,6 +5,7 @@
     POST   /assets/register              资产登记
     POST   /assets/{id}/audit            资产审核
     POST   /assets/{id}/publish          资产上架
+    POST   /assets/{id}/submit-audit     提交资产审核（DRAFT -> PENDING_AUDIT）
     GET    /assets                        浏览资产市场
     GET    /assets/{id}                   资产详情
     PUT    /assets/{id}                   更新资产
@@ -700,6 +701,23 @@ async def list_allocations(
     """列出某资产的分账记录（仅资产提供方或 admin）."""
     await require_asset_owner(registry, asset_id, ctx)
     return await registry.allocationService.list_by_asset(asset_id)
+
+
+@router.post(
+    "/{asset_id}/submit-audit",
+    response_model=Asset,
+    summary="提交资产审核",
+)
+async def submit_asset_audit(
+    asset_id: str,
+    registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
+) -> Asset:
+    """提交资产审核（DRAFT -> PENDING_AUDIT）.
+
+    仅资产提供方或 admin 可提交。
+    """
+    return await registry.assetService.submit_audit(asset_id)
 
 
 @router.get(

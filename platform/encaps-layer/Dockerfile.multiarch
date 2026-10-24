@@ -4,7 +4,7 @@
 
 ARG BASE_REGISTRY=docker.m.daocloud.io
 
-FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 WORKDIR /app
 
 # 创建非 root 用户运行应用

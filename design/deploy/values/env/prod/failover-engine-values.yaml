@@ -1,0 +1,35 @@
+# ============================================================================
+# failover-engine · prod 环境 values（台账 #90②）
+# 覆盖：design/deploy/charts/failover-engine/values.yaml
+# 策略：多副本 · 开 HPA/PDB
+# 命名空间取 prod-system：APISIX 的路由 upstream 用短名（failover-engine:8095），
+# 短名只能在同 namespace 解析，故与 encaps-layer / catalog 等既有服务同域。
+# ============================================================================
+
+image:
+  repository: "ghcr.io/levango7/sq-failover-engine"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 3
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "128Mi"
+  limits:
+    cpu: "1000m"
+    memory: "256Mi"
+
+hpa:
+  enabled: true
+
+pdb:
+  enabled: true
+
+env:
+  FAILOVER_ENGINE_PORT: "8095"
+  # 指向栈内 karmada-api；控制面未接入时引擎的集群健康会记为 down，但 /healthz 仍 200
+  KARMADA_API_URL: "http://karmada-api:8090"
+  FAILOVER_PRIMARY_CLUSTER: "prod-local"
+  FAILOVER_BACKUP_CLUSTERS: "prod-backup-a,prod-backup-b"

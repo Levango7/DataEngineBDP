@@ -24,7 +24,7 @@ COPY platform/stream-batch-scheduler/src ./src
 RUN mvn -B -q clean package -DskipTests
 
 # ---------- Stage 2: Runtime ----------
-FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 # 运行层不需要基镜自带的 Bitnami 服务管理器 pebble：本镜像下面自己覆写了 ENTRYPOINT 跑 java -jar。
 # 而 /usr/bin/pebble 带 4 条**尚无修复版**的 HIGH（CVE-2026-111943 / -78667 / -78669 / -97031，
 # 全是 Go stdlib v1.27.1 构建，上游修在 1.26.10 / 1.27.3）。删它是真减攻击面，不是绕扫描：
@@ -34,8 +34,8 @@ RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 # 非 root 运行；uid/gid 固化 1001（与 deploy/local/values-local-core.yaml 的既有约定一致）
-RUN groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --home /app appuser
+RUN addgroup -S -g 1001 appgroup \
+    && adduser -S -u 1001 -G appgroup -h /app appuser
 
 # 可执行 jar（spring-boot-maven-plugin classifier=exec）
 COPY --from=builder /workspace/target/stream-batch-scheduler-0.1.0-exec.jar /app/app.jar
