@@ -121,7 +121,10 @@ def main() -> int:
             key = longest_proxy_key(full, keys)
             if key is None:
                 gaps.append((full, sorted(mods), "无任何代理键匹配——dev server 自身 404"))
-            elif key == FALLBACK and "encaps-layer" not in mods:
+            elif key == FALLBACK and "encaps-layer" not in {m.split("/")[0] for m in mods}:
+                # 归属名可能带子路径（如 encaps-layer/src，见 #85 的多级目录口径），
+                # 判据要取顶层目录；早先这里用字符串全等，"encaps-layer/src" 永远不等于
+                # "encaps-layer"，于是兜底到 encaps-layer 的合法路径也被判成 32 处假缺口。
                 gaps.append((
                     full, sorted(mods),
                     "落到 /api 兜底（encaps-layer :8080）但后端归属不含 encaps-layer → 错误后端 404",
