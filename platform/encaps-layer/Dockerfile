@@ -34,7 +34,7 @@ COPY platform/encaps-layer/src ./src
 RUN mvn -B -q clean package -DskipTests
 
 # ---------- Stage 2: Runtime ----------
-FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 # 运行层不需要基镜自带的 Bitnami 服务管理器 pebble：本镜像下面自己覆写了 ENTRYPOINT 跑 java -jar。
 # 而 /usr/bin/pebble 带 4 条**尚无修复版**的 HIGH（CVE-2026-111943 / -78667 / -78669 / -97031，
 # 全是 Go stdlib v1.27.1 构建，上游修在 1.26.10 / 1.27.3）。删它是真减攻击面，不是绕扫描：
@@ -48,8 +48,8 @@ WORKDIR /app
 # 若 Chart 的 runAsGroup/fsGroup 与此处 gid 不一致，进程就对 /app/data 无写权，
 # H2 建库直接抛 java.nio.file.AccessDeniedException: /app/data/<svc>-db.mv.db。
 # 三个 Java 服务统一为 1001，deploy/local/values-local-core.yaml 与之对齐。
-RUN groupadd --system --gid 1001 appgroup \
-    && useradd --system --uid 1001 --gid 1001 --home /app appuser
+RUN addgroup -S -g 1001 appgroup \
+    && adduser -S -u 1001 -G appgroup -h /app appuser
 
 # 从构建阶段复制产物
 COPY --from=builder /workspace/target/encaps-layer-*-exec.jar /app/app.jar

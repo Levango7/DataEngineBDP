@@ -431,7 +431,9 @@ jobs:
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
-          docker compose up -d --build --wait
+          # 台账 #93：compose 顺带的镜像构建没有兜底，10-23 的 python:3.11-slim TLS 超时
+          # （job 120622656508）与 Maven Central Connection reset（job 120583916887）都红在这一步。
+          bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose up -d --build --wait || exit $?
           docker compose ps
 
       # T-07: PR/push 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）
