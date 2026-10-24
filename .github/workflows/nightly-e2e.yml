@@ -76,7 +76,10 @@ jobs:
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
           echo "启动 docker-compose 后端栈..."
-          if ! docker compose up -d --wait --wait-timeout 600; then
+          # 台账 #93：本腿 10-23 因 maven:3.9-eclipse-temurin-17 在加速器上 TLS 超时
+          # 判红过（job 120622656117），当时一条用例都没跑。传输类失败交给 compose-retry.sh
+          # 换源重试一次；真失败仍按原语义 exit 1 阻断。
+          if ! bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose up -d --wait --wait-timeout 600; then
             echo "::error::docker-compose 启动失败或健康检查超时，阻断"
             docker compose ps -a || true
             exit 1
@@ -198,7 +201,7 @@ jobs:
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
           echo "启动精简栈：encaps-layer + prometheus + 9 个 nightly-extra 服务"
-          if ! docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
+          if ! bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose --profile nightly-extra up -d --wait --wait-timeout 600 \
                 encaps-layer prometheus vector-engine ai-assistant query-api \
                 infra-orchestrator lineage-analyzer \
                 stream-batch-scheduler encaps-data encaps-gateway; then
