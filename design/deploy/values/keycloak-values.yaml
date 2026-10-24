@@ -9,7 +9,7 @@
 # Keycloak 在 base 中未声明，独立顶层 key
 keycloak:
   enabled: true
-  image: "sq-keycloak:24.0-0.1.0"
+  image: "quay.io/keycloak/keycloak:25.0"
   version: "25.0.0"
   # P2-E6 修复：显式声明端口（与 superset-values.yaml security.sso.keycloakUrl 对齐）
   port: 8080

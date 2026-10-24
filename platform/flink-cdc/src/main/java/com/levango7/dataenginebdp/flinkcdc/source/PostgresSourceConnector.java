@@ -1,9 +1,9 @@
 package com.levango7.dataenginebdp.flinkcdc.source;
 
 import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
-import com.ververica.cdc.connectors.base.options.StartupOptions;
-import com.ververica.cdc.connectors.postgres.source.PostgresSourceBuilder;
-import com.ververica.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.flink.cdc.connectors.base.options.StartupOptions;
+import org.apache.flink.cdc.connectors.postgres.source.PostgresSourceBuilder;
+import org.apache.flink.cdc.debezium.DebeziumDeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.util.Collector;
 import org.apache.kafka.connect.data.Field;

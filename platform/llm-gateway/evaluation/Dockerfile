@@ -6,7 +6,7 @@
 
 ARG BASE_REGISTRY=docker.m.daocloud.io
 
-FROM ${BASE_REGISTRY}/library/python:3.11-slim AS base
+FROM ${BASE_REGISTRY}/library/python:3.12-slim AS base
 
 # 设置工作目录
 WORKDIR /app

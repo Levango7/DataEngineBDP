@@ -13,7 +13,7 @@ numpy==1.26.4
 joblib==1.6.0
 
 # MLflow integration (optional, enabled when experiment_store.type=mlflow)
-mlflow==3.17.2      # 2026-10-24 安全修复 GHSA-wqmh-qccw-pqwf（HIGH，受影响 <=3.17.1，fix 3.17.2）；同 minor 补丁跃迁，不动其它版本
+mlflow==3.17.2
 
 # HTTP client (for MLflow SDK / external calls)
 httpx==0.28.1

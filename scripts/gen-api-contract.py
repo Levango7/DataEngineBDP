@@ -111,9 +111,7 @@ def collect_java_prefixes() -> dict[str, list[str]]:
         prefix = m.group(1)
         try:
             rel = java.relative_to(PLATFORM)
-            module = rel.parts[0]
-            if module == "governance" and len(rel.parts) > 1:
-                module = f"governance/{rel.parts[1]}"
+            module = "/".join(rel.parts[:2]) if len(rel.parts) > 1 else rel.parts[0]
         except ValueError:
             continue
         out.setdefault(prefix, [])
@@ -145,9 +143,7 @@ def collect_python_prefixes() -> dict[str, list[str]]:
             continue
         try:
             rel = py.relative_to(PLATFORM)
-            module = rel.parts[0]
-            if len(rel.parts) > 2 and rel.parts[1] == "api" and rel.parts[2] == "routers":
-                module = f"{rel.parts[0]}"  # 服务级聚合
+            module = "/".join(rel.parts[:2]) if len(rel.parts) > 1 else rel.parts[0]
         except ValueError:
             continue
         # 路由器定义：变量名 -> 前缀
@@ -205,15 +201,16 @@ GO_SERVICE_PREFIXES: dict[str, str] = {
     # 组路径写在 internal/handler/failover.go 里，静态不可绑定 ⇒ 按本表既有做法显式登记。
     # 注意：同文件 :55-58 还有一条 `clusters.GET("/:name/health")` 带路径参数，
     # 前缀路由表达不了，故意不登记（台账 #89 记为待决）。
-    "/api/v1/failover-events": "karmada failover-api internal/handler/failover.go:47 "
+    "/api/v1/failover-events": "karmada/failover failover-api internal/handler/failover.go:47 "
                                "rg.Group(\"/failover-events\")（GET 列表 / POST 触发 / GET :eventId）",
-    "/api/v1/replica-plans": "karmada failover-api internal/handler/failover.go:62 "
+    "/api/v1/replica-plans": "karmada/failover failover-api internal/handler/failover.go:62 "
                              "rg.Group(\"/replica-plans\")（GET / POST / PUT :policyName）",
-    "/api/v1/failover-policies": "karmada failover-api internal/handler/failover.go:71 "
+    "/api/v1/failover-policies": "karmada/failover failover-api internal/handler/failover.go:71 "
                                  "rg.Group(\"/failover-policies\")（GET / POST / GET :name / PUT / DELETE）",
-    "/api/v1/clusters/health": "karmada failover-api internal/handler/failover.go:55-57 "
+    "/api/v1/clusters/health": "karmada/failover failover-api internal/handler/failover.go:55-57 "
                                "rg.Group(\"/clusters\") 下 clusters.GET(\"/health\")；"
                                "粗前缀 /api/v1/clusters 仍归 infra-orchestrator，本条靠最长字面前缀分流",
+    "/api/v1/propagation-policies": "karmada/karmada-api karmada-api main.go:129 + internal/handler/propagation_policy.go:35",
 }
 
 
@@ -228,7 +225,7 @@ def collect_go_prefixes() -> dict[str, list[str]]:
             continue
         try:
             rel = go.relative_to(PLATFORM)
-            module = rel.parts[0]
+            module = "/".join(rel.parts[:2]) if len(rel.parts) > 1 else rel.parts[0]
         except ValueError:
             continue
         # 组前缀：顺序扫描维护 var -> 完整路径（父未解析则本变量及其子组一并跳过）

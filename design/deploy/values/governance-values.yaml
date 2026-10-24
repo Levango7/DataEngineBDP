@@ -48,7 +48,7 @@ governance:
   # ============================================================================
   metadata:
     enabled: true
-    image: "sq-metadata:0.1.0"
+    image: "sq-metadata-collector:0.1.0"
     version: "0.1.0"
     replicas: 2
 
@@ -190,7 +190,7 @@ governance:
   # ============================================================================
   lineage:
     enabled: true
-    image: "sq-lineage:0.1.0"
+    image: "sq-lineage-analyzer:0.1.0"
     version: "0.1.0"
     replicas: 2
 

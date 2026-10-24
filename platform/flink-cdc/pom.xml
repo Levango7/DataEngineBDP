@@ -21,7 +21,7 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flink.version>1.20.0</flink.version>
-        <flink.cdc.version>3.0.1</flink.cdc.version>
+        <flink.cdc.version>3.6.0-1.20</flink.cdc.version>
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
         <debezium.version>1.9.7.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
@@ -38,6 +38,23 @@
         <snakeyaml.version>2.7</snakeyaml.version>
         <flink.scope>provided</flink.scope>
     </properties>
+
+    <!-- Flink CDC 3.6.0 的 oracle 连接器传递依赖 org.geotools:gt-main（空间类型支持），
+         该 artifact 只在 OSGeo 仓库发布、不在 Maven Central。缺此声明会导致依赖解析失败：
+         "Could not find artifact org.geotools:gt-main:jar:28.2"。 -->
+    <repositories>
+        <repository>
+            <id>osgeo</id>
+            <name>OSGeo Release Repository</name>
+            <url>https://repo.osgeo.org/repository/release/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencies>
         <!-- 公共安全（TenantContext 租户上下文，R8 安全修复） -->
@@ -73,28 +90,32 @@
             <scope>${flink.scope}</scope>
         </dependency>
 
-        <!-- ============ Flink CDC 3.0 ============ -->
+        <!-- ============ Flink CDC 3.6.0（org.apache.flink 坐标；com.ververica 止于 3.0.1） ============ -->
+        <!-- 2026-10-24 迁移：groupId com.ververica → org.apache.flink，包名 com.ververica.cdc.* → org.apache.flink.cdc.*。
+             动机：com.ververica 坐标自 3.0.1 起停更，无法再获得修复；3.6.0-1.20 对应 Flink 1.20。
+             注意：3.6.0 仍依赖 Debezium 1.9.8.Final（非 2.x）——上游 Flink CDC 3.x 全线未切 2.x，
+             故 GHSA-hvw5-3mgw-7rcf（debezium-core < 2.3.0.Alpha1，CWE-233）仍存在，见 PR #631 的关闭说明。 -->
         <!-- MySQL CDC Source 连接器：基于 Debezium 读取 Binlog -->
         <dependency>
-            <groupId>com.ververica</groupId>
+            <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-mysql-cdc</artifactId>
             <version>${flink.cdc.version}</version>
         </dependency>
         <!-- PostgreSQL CDC Source 连接器：基于 Logical Replication Slot 读取 WAL -->
         <dependency>
-            <groupId>com.ververica</groupId>
+            <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-postgres-cdc</artifactId>
             <version>${flink.cdc.version}</version>
         </dependency>
         <!-- Oracle CDC Source 连接器：基于 LogMiner 读取 Redo Log -->
         <dependency>
-            <groupId>com.ververica</groupId>
+            <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-oracle-cdc</artifactId>
             <version>${flink.cdc.version}</version>
         </dependency>
         <!-- Flink CDC 基础框架：增量快照框架、Source/Sink 抽象 -->
         <dependency>
-            <groupId>com.ververica</groupId>
+            <groupId>org.apache.flink</groupId>
             <artifactId>flink-cdc-base</artifactId>
             <version>${flink.cdc.version}</version>
         </dependency>

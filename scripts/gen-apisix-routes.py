@@ -157,33 +157,34 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
 # 结果是 /api/v1/dashboard|allocation|suggestions|bill/export|cost|pricing|finops/*
 # 这些**确有实现**的前缀在生产网关上指向一个不被部署、也不提供这些接口的 Service。
 # 逐条给出实现坐标（改这些前缀的归属前先核这几行）：
+#
+# 注：已按 gen-api-contract.py 新口径（module 名取前两段目录）重校准 root：
+# finops/dashboard、finops/cost-model、karmada/failover、karmada/karmada-api、
+# karmada/federated-query 等直接命中 MODULE_CHART_OVERRIDes，不再需要 PREFIX_CHART_FIXUPS；
+# 仅保留 needless 兼容条目以防旧口径残留。
 PREFIX_CHART_FIXUPS: dict[str, tuple[str, str]] = {
     # platform/finops/dashboard（chart dashboard，service.port 8085）
-    "/api/v1/dashboard": ("finops", "dashboard"),  # .../dashboard/controller/DashboardController.java:39
-    "/api/v1/dashboard/billing": ("finops", "dashboard"),  # .../dashboard/controller/BillingController.java:31
-    "/api/v1/allocation": ("finops", "dashboard"),  # .../dashboard/controller/AllocationController.java:54
-    "/api/v1/suggestions": ("finops", "dashboard"),  # .../dashboard/controller/SuggestionController.java:35
-    "/api/v1/bill/export": ("finops", "dashboard"),  # .../dashboard/controller/BillExportController.java:47
+    "/api/v1/dashboard": ("finops/dashboard", "dashboard"),  # .../dashboard/controller/DashboardController.java:39
+    "/api/v1/dashboard/billing": ("finops/dashboard", "dashboard"),  # .../dashboard/controller/BillingController.java:31
+    "/api/v1/allocation": ("finops/dashboard", "dashboard"),  # .../dashboard/controller/AllocationController.java:54
+    "/api/v1/suggestions": ("finops/dashboard", "dashboard"),  # .../dashboard/controller/SuggestionController.java:35
+    "/api/v1/bill/export": ("finops/dashboard", "dashboard"),  # .../dashboard/controller/BillExportController.java:47
     # platform/finops/cost-model（chart cost-model，service.port 8084）
-    "/api/v1/cost": ("finops", "cost-model"),  # .../finops/controller/CostController.java:39
-    "/api/v1/pricing": ("finops", "cost-model"),  # .../finops/controller/PricingController.java:39
-    "/api/v1/finops/billing": ("finops", "cost-model"),  # .../finops/controller/BillingController.java:32
-    "/api/v1/finops/metering": ("finops", "cost-model"),  # .../finops/controller/MeteringController.java:40
-    # karmada 系（2026-10-21 现查）：四个子模块的 module 名一律被截断成 `karmada`，
-    # "同名 chart 回退"撞上 charts/karmada —— 那 chart 的镜像是上游 Karmada 控制面
-    # （registry.k8s.io/karmada/karmada-apiserver），不提供任何平台 REST 前缀，
-    # 已在 CHART_FALLBACK_DENY 里禁掉；此前这十条因此全部落在 unmapped 清单里，
-    # 生产网关对它们没有归属（台账 #85 后半、#89）。逐条实现坐标：
-    "/api/v1/override-policies": ("karmada", "failover-api"),  # .../failover-api/main.go:102 + internal/handler/override_policy.go:35
-    "/api/v1/failover-events": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:47
-    "/api/v1/replica-plans": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:62
-    "/api/v1/failover-policies": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:71
-    "/api/v1/clusters/health": ("karmada", "failover-api"),  # .../failover-api/internal/handler/failover.go:55-57
-    "/api/v1/propagation-policies": ("karmada", "karmada-api"),  # .../karmada-api/main.go:129 + internal/handler/propagation_policy.go:35
-    "/api/v1/federated": ("karmada", "federated-query"),  # .../federated/controller/FederatedQueryController.java:37
-    "/api/v1/federated/transactions": ("karmada", "federated-query"),  # .../federated/transaction/TransactionController.java:51
-    "/api/v1/federated/governance": ("karmada", "federated-query"),  # .../federated/governance/GovernanceController.java:58
-    "/api/v1/federated/scheduling": ("karmada", "federated-query"),  # .../federated/scheduling/SchedulingController.java:48
+    "/api/v1/cost": ("finops/cost-model", "cost-model"),  # .../finops/controller/CostController.java:39
+    "/api/v1/pricing": ("finops/cost-model", "cost-model"),  # .../finops/controller/PricingController.java:39
+    "/api/v1/finops/billing": ("finops/cost-model", "cost-model"),  # .../finops/controller/BillingController.java:32
+    "/api/v1/finops/metering": ("finops/cost-model", "cost-model"),  # .../finops/controller/MeteringController.java:40
+    # karmada 系：四个子模块的 module 名已由新口径直接生成（karmada/failover、karmada/karmada-api、karmada/federated-query）
+    "/api/v1/override-policies": ("karmada/failover", "failover-api"),  # .../failover-api/main.go:102 + internal/handler/override_policy.go:35
+    "/api/v1/failover-events": ("karmada/failover", "failover-api"),  # .../failover-api/internal/handler/failover.go:47
+    "/api/v1/replica-plans": ("karmada/failover", "failover-api"),  # .../failover-api/internal/handler/failover.go:62
+    "/api/v1/failover-policies": ("karmada/failover", "failover-api"),  # .../failover-api/internal/handler/failover.go:71
+    "/api/v1/clusters/health": ("karmada/failover", "failover-api"),  # .../failover-api/internal/handler/failover.go:55-57
+    "/api/v1/propagation-policies": ("karmada/karmada-api", "karmada-api"),  # .../karmada-api/main.go:129 + internal/handler/propagation_policy.go:35
+    "/api/v1/federated": ("karmada/federated-query", "federated-query"),  # .../federated/controller/FederatedQueryController.java:37
+    "/api/v1/federated/transactions": ("karmada/federated-query", "federated-query"),  # .../federated/transaction/TransactionController.java:51
+    "/api/v1/federated/governance": ("karmada/federated-query", "federated-query"),  # .../federated/governance/GovernanceController.java:58
+    "/api/v1/federated/scheduling": ("karmada/federated-query", "federated-query"),  # .../federated/scheduling/SchedulingController.java:48
 }
 
 # 禁止作为路由上游的 chart：这些 chart 部署的是第三方/基础设施组件，
