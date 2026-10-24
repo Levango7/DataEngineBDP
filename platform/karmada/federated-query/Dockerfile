@@ -24,7 +24,7 @@ FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine
 # 基座当前自带 libexpat 2.8.5-r0（CVE-2026-77214），Alpine 仓库已有 2.9.0-r0。
 # 镜像门禁扫的是基座引用本身（见 docs/trivy-image-ignore.yaml），
 # 出货镜像必须在这里升到修复版，不能只靠豁免账。
-RUN apk upgrade --no-cache libexpat
+RUN apk upgrade --no-cache libexpat brotli-libs
 
 # 创建非 root 用户（alpine 运行时使用 busybox 工具链，保持 root 执行）。
 RUN addgroup -S app && adduser -S -G app app
