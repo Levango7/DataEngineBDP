@@ -1,0 +1,37 @@
+# ============================================================================
+# federated-query · staging 环境 values（台账 #90②）
+# 覆盖：design/deploy/charts/federated-query/values.yaml
+# 策略：单副本 · 无 HPA/PDB · 内嵌 SQLite（emptyDir）· staging 弱密钥
+# 命名空间取 staging-system：APISIX 的路由 upstream 用短名（federated-query:8094），
+# 短名只能在同 namespace 解析，故与 encaps-layer / catalog 等既有服务同域。
+# ============================================================================
+
+image:
+  repository: "ghcr.io/levango7/sq-federated-query"
+  tag: "latest"
+  pullPolicy: Always
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+hpa:
+  enabled: false
+
+pdb:
+  enabled: false
+
+auth:
+  # 仅 staging 使用；chart 会据此生成 <release>-jwt Secret。
+  # 生产请用 auth.jwtSecretName 指向外部 Secret，不要把真密钥写进 values。
+  # 与签发端（encaps-layer / Keycloak）保持一致才能通过鉴权。
+  jwtSecretValue: "staging-env-karmada-jwt-0123456789abcdef-not-for-prod"
+
+env:
+  KARMADA_API: "http://karmada-api:8090"
