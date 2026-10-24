@@ -9,7 +9,7 @@
 # Superset 在 base 中未声明，独立顶层 key
 superset:
   enabled: true
-  image: "sq-superset:4.0-0.1.0"
+  image: "apache/superset:4.0.2"
   version: "4.1.0"
 
   # ---- 套餐分档 ----

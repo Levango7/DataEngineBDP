@@ -78,7 +78,7 @@ config:
     springBootVersion: 3.2.5
   metadata:
     enabled: true
-    image: sq-metadata:0.1.0
+    image: sq-metadata-collector:0.1.0
     replicas: 2
   standard:
     enabled: true
@@ -90,7 +90,7 @@ config:
     replicas: 2
   lineage:
     enabled: true
-    image: sq-lineage:0.1.0
+    image: sq-lineage-analyzer:0.1.0
     replicas: 2
 
 # ---- 引用提示 ----

@@ -4,6 +4,13 @@
 > **铁律**：Kubernetes 一律在客户自有机器上自建；云只作"裸 VM + 块存储 + 网络"，
 > 禁用任何云厂商托管 K8s（ACK/EKS/TKE/CCE）及云托管 DB/MQ/对象存储。
 
+⚠️ **镜像来源现状（2026-10-24，台账 #67）**：本目录的 `values-base.yaml` 与 `values/*.yaml`
+里仍有一批 `sq-*` 引用在 `build.yml` 里没有可产出的模块（逐条明细见
+`docs/deploy-image-reference-baseline.yaml`），照本文渲染安装会在目标集群 `ImagePullBackOff`。
+可用于生产的自研镜像坐标只有 `ghcr.io/levango7/sq-<模块>`（模块清单 = `platform/**/Dockerfile`）；
+外部组件以**上游官方坐标**为准（doris/keycloak/superset 已改指上游，其余待逐一钉 tag）。
+该缺口由 `scripts/check-image-reference.py` 纳入门禁（只减不增）。
+
 ## 目录
 
 ```
