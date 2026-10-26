@@ -41,6 +41,11 @@ CONFIG_DIRS = (
     os.path.join('design', 'deploy', 'charts'),
     os.path.join('design', 'deploy', 'values'),
 )
+# 顶层 values 文件：README 教运维 `-f values-base.yaml`，但它不在 CONFIG_DIRS 的子目录里，
+# 早先整份文件都在门禁视野之外（台账 #67 的盲区正是这里，不在"裸 image: 形态"）。
+CONFIG_FILES = (
+    os.path.join('design', 'deploy', 'values-base.yaml'),
+)
 SHA_RE = re.compile(r'^[0-9a-f]{40}$')
 REPO_RE = re.compile(r'^(\s*)repository:\s*"?([^"\n]+?)"?\s*$')
 TAG_RE = re.compile(r'^\s*tag:\s*"?([^"\n]+?)"?\s*$')
@@ -107,9 +112,47 @@ def _problems(repo, tag, modules):
     return probs
 
 
-def scan(root=ROOT):
-    modules = buildable_modules(root)
-    findings, scanned = [], 0
+def _scan_file(p, relpath, modules, findings):
+    """扫描单个 YAML：repository:+tag 形态与裸 image:name:tag 形态都算。"""
+    lines = io.open(p, encoding='utf-8-sig', errors='replace').read().split('\n')
+    for i, line in enumerate(lines):
+        m = REPO_RE.match(line)
+        if m:
+            repo = m.group(2).strip()
+            if not repo or '$' in repo or '{{' in repo:
+                continue
+            tag = '-'
+            for j in range(i + 1, min(i + 4, len(lines))):
+                t = TAG_RE.match(lines[j])
+                if t:
+                    tag = t.group(1).strip()
+                    break
+            if not is_ours(repo, modules):
+                continue
+            probs = _problems(repo, tag, modules)
+            if probs:
+                findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
+                                 'tag': tag, 'reasons': probs})
+            continue
+        # 裸 image: 形态，name 与 tag 同行（如 `image: "sq-encapsulation:0.1.0"`）
+        m2 = IMAGE_RE.match(line)
+        if not m2:
+            continue
+        repo = m2.group(2).strip()
+        tag = m2.group(3).strip()
+        if not repo or '$' in repo or '{{' in repo:
+            continue
+        if not is_ours(repo, modules):
+            continue
+        probs = _problems(repo, tag, modules)
+        if probs:
+            findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
+                             'tag': tag, 'reasons': probs})
+
+
+def scan_files(root=ROOT):
+    """产出 (绝对路径, 相对路径) 的可扫描清单：charts/ + values/ 目录树，外加顶层 values 文件。"""
+    out = []
     for rel in CONFIG_DIRS:
         d = os.path.join(root, rel)
         if not os.path.isdir(d):
@@ -117,45 +160,23 @@ def scan(root=ROOT):
         for dirpath, dirnames, filenames in os.walk(d):
             dirnames[:] = [x for x in dirnames if x not in SKIP_DIRS]
             for fn in sorted(filenames):
-                if not fn.endswith(('.yaml', '.yml')):
-                    continue
-                p = os.path.join(dirpath, fn)
-                relpath = os.path.relpath(p, root).replace(os.sep, '/')
-                scanned += 1
-                lines = io.open(p, encoding='utf-8-sig', errors='replace').read().split('\n')
-                for i, line in enumerate(lines):
-                    m = REPO_RE.match(line)
-                    if m:
-                        repo = m.group(2).strip()
-                        if not repo or '$' in repo or '{{' in repo:
-                            continue
-                        tag = '-'
-                        for j in range(i + 1, min(i + 4, len(lines))):
-                            t = TAG_RE.match(lines[j])
-                            if t:
-                                tag = t.group(1).strip()
-                                break
-                        if not is_ours(repo, modules):
-                            continue
-                        probs = _problems(repo, tag, modules)
-                        if probs:
-                            findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
-                                             'tag': tag, 'reasons': probs})
-                        continue
-                    # 裸 image: 形态，name 与 tag 同行（如 `image: "sq-encapsulation:0.1.0"`）
-                    m2 = IMAGE_RE.match(line)
-                    if not m2:
-                        continue
-                    repo = m2.group(2).strip()
-                    tag = m2.group(3).strip()
-                    if not repo or '$' in repo or '{{' in repo:
-                        continue
-                    if not is_ours(repo, modules):
-                        continue
-                    probs = _problems(repo, tag, modules)
-                    if probs:
-                        findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
-                                         'tag': tag, 'reasons': probs})
+                if fn.endswith(('.yaml', '.yml')):
+                    p = os.path.join(dirpath, fn)
+                    out.append((p, os.path.relpath(p, root).replace(os.sep, '/')))
+    for rel in CONFIG_FILES:
+        p = os.path.join(root, rel)
+        if os.path.isfile(p):
+            out.append((p, rel.replace(os.sep, '/')))
+    return out
+
+
+def scan(root=ROOT):
+    modules = buildable_modules(root)
+    findings, scanned = [], 0
+    for p, relpath in scan_files(root):
+        scanned += 1
+        _scan_file(p, relpath, modules, findings)
+    return findings, scanned, modules
     return findings, scanned, modules
 
 

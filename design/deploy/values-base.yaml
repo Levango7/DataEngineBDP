@@ -30,7 +30,7 @@ encapsulation:
   enabled: true
   crds: ["Workspace", "Project", "Task", "NodePoolLease", "WorkspaceRuntime"]
   controller:
-    image: "sq-encapsulation:0.1.0"
+    image: "sq-encaps-layer:0.1.0"
     replicas: 3
     resources:
       requests: { cpu: "500m", memory: "1Gi" }
@@ -98,7 +98,7 @@ sqlGateway:
 # ----------------------------------------------------------------------------
 governance:
   metadata:
-    image: "sq-metadata:0.1.0"
+    image: "sq-metadata-collector:0.1.0"
     replicas: 2
   standard:
     image: "sq-standard:0.1.0"
@@ -107,7 +107,7 @@ governance:
     image: "sq-quality:0.1.0"
     replicas: 1
   lineage:
-    image: "sq-lineage:0.1.0"
+    image: "sq-lineage-analyzer:0.1.0"
     replicas: 1
   catalog:
     image: "sq-catalog:0.1.0"      # 资产目录（数据地图）
@@ -133,10 +133,10 @@ integration:
 # ----------------------------------------------------------------------------
 aiLayer:
   vector:
-    image: "sq-vector:0.1.0"
+    image: "sq-vector-engine:0.1.0"
     replicas: 2
   kb:
-    image: "sq-kb:0.1.0"            # 知识工程 RAG
+    image: "sq-knowledge-engine:0.1.0"            # 知识工程 RAG
     replicas: 1
   llmops:
     image: "sq-llmops:0.1.0"

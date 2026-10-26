@@ -20,7 +20,7 @@ engines:
     # ---- FE（Frontend）----
     fe:
       replicas: 3                # HA：奇数副本
-      image: "sq-doris-fe:2.1-0.1.0"
+      image: "apache/doris:doris-fe-2.1.7"
       memory: "6Gi"
       cpu: 2
       resources:
@@ -45,7 +45,7 @@ engines:
     # ---- BE（Backend）----
     be:
       replicas: 3
-      image: "sq-doris-be:2.1-0.1.0"
+      image: "apache/doris:doris-be-2.1.7"
       memory: "16Gi"
       cpu: 4
       resources:

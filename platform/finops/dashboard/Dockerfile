@@ -19,7 +19,7 @@ COPY platform/finops/dashboard/src ./src
 RUN mvn -B -e -DskipTests clean package -f pom.xml
 
 # ============ 运行阶段 ============
-FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre AS runtime
+FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
 # 运行层不需要基镜自带的 Bitnami 服务管理器 pebble：本镜像下面自己覆写了 ENTRYPOINT 跑 java -jar。
 # 而 /usr/bin/pebble 带 4 条**尚无修复版**的 HIGH（CVE-2026-111943 / -78667 / -78669 / -97031，
 # 全是 Go stdlib v1.27.1 构建，上游修在 1.26.10 / 1.27.3）。删它是真减攻击面，不是绕扫描：
@@ -29,7 +29,7 @@ RUN rm -f /usr/bin/pebble
 WORKDIR /app
 
 # 创建非 root 用户
-RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+RUN addgroup -S appgroup && adduser -S -G appgroup appuser
 
 # 从构建阶段复制产物
 COPY --from=builder /build/target/*.jar /app/app.jar
@@ -46,6 +46,6 @@ USER appuser
 # JVM 参数：容器感知，限制堆内存
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
-HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD curl -f http://localhost:8085/actuator/health
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD wget --spider -q http://localhost:8085/actuator/health
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
