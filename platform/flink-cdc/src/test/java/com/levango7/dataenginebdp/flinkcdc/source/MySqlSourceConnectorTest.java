@@ -232,4 +232,31 @@ class MySqlSourceConnectorTest {
                     .isInstanceOf(NullPointerException.class);
         }
     }
+
+    @Nested
+    @DisplayName("safeJdbcProperties — CVE-2023-1419 加固基线")
+    class SafeJdbcPropertiesTest {
+
+        @Test
+        @DisplayName("显式关闭 autoDeserialize（Java 反序列化入口）")
+        void safeJdbcProperties_disablesAutoDeserialize() {
+            assertThat(MySqlSourceConnector.safeJdbcProperties().getProperty("autoDeserialize"))
+                    .isEqualTo("false");
+        }
+
+        @Test
+        @DisplayName("显式关闭 allowLoadLocalInfile 与 allowUrlInLocalInfile（本地文件读取）")
+        void safeJdbcProperties_disablesLocalInfile() {
+            java.util.Properties props = MySqlSourceConnector.safeJdbcProperties();
+            assertThat(props.getProperty("allowLoadLocalInfile")).isEqualTo("false");
+            assertThat(props.getProperty("allowUrlInLocalInfile")).isEqualTo("false");
+        }
+
+        @Test
+        @DisplayName("不设置 queryInterceptors（上游修复中该项为移除而非置值）")
+        void safeJdbcProperties_hasNoQueryInterceptors() {
+            assertThat(MySqlSourceConnector.safeJdbcProperties()
+                    .getProperty("queryInterceptors")).isNull();
+        }
+    }
 }

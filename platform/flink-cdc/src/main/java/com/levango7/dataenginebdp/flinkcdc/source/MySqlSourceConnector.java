@@ -93,11 +93,46 @@ public final class MySqlSourceConnector {
                 .databaseList(config.getDatabase())
                 .tableList(config.getTable())
                 .serverId(String.valueOf(config.getServerId()))
-                .deserializer(new ChangeRecordDeserializer());
+                .deserializer(new ChangeRecordDeserializer())
+                .jdbcProperties(safeJdbcProperties());
 
         builder.startupOptions(resolveStartupOptions(config));
 
         return builder.build();
+    }
+
+    /**
+     * 构造 JDBC 连接属性的安全基线。
+     *
+     * <p><b>动机：CVE-2023-1419 / GHSA-hvw5-3mgw-7rcf</b>（CWE-233，medium）。
+     * Debezium 的 MySQL 连接器会把用户提供的 JDBC 属性透传给驱动，
+     * 其中三个属性可被滥用于攻击：
+     * {@code autoDeserialize=true} 打开 Java 反序列化入口（可打反序列化 gadget），
+     * {@code allowLoadLocalInfile=true} / {@code allowUrlInLocalInfile=true}
+     * 允许读取客户端本地文件。</p>
+     *
+     * <p>上游 Debezium 自 <b>2.3.0.Alpha1</b> 起在 {@code MySqlConnection} 中强制关闭这三项
+     * （DBZ-6157，commit 58ef4f0b）。但 Flink CDC 3.x 全线（含 3.6.0）仍依赖
+     * Debezium 1.9.x，无法通过升级获得该修复——已用二进制比对实证：
+     * debezium-connector-mysql 1.9.8.Final 的 {@code MySqlConnection} 不含
+     * allowLoadLocalInfile/allowUrlInLocalInfile/autoDeserialize 任一字符串，
+     * 而 2.3.0.Final 的 {@code MySqlConnection$MySqlConnectionConfiguration} 四者俱全。</p>
+     *
+     * <p>因此在本模块的 JDBC 属性出口处自行实施等价加固：显式关闭这三项。
+     * 本项目 Source 配置为定型字段（host/port/username/password/database/table/serverId），
+     * 无任意 JDBC 属性透传路径，本方法属纵深防御——
+     * 即便未来新增配置路径，危险属性也不会被打开。</p>
+     *
+     * @return 含安全基线的 JDBC 属性（不可变，不含 queryInterceptors）
+     */
+    static java.util.Properties safeJdbcProperties() {
+        java.util.Properties props = new java.util.Properties();
+        // 关闭 Java 反序列化入口（CVE-2023-1419 的核心利用点）
+        props.setProperty("autoDeserialize", "false");
+        // 关闭客户端本地文件读取（LOAD DATA LOCAL INFILE / URL 变体）
+        props.setProperty("allowLoadLocalInfile", "false");
+        props.setProperty("allowUrlInLocalInfile", "false");
+        return props;
     }
 
     /**
