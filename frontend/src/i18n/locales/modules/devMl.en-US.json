@@ -56,7 +56,7 @@
         "resourceSpec": "Resource Spec",
         "resourceSpecPlaceholder": "e.g. 4c/16g × 2",
         "hyperparams": "Hyperparams JSON",
-        "hyperparamsPlaceholder": "{\"learning_rate\": 0.1}",
+        "hyperparamsPlaceholder": "{'{'}\"learning_rate\": 0.1{'}'}",
         "owner": "Owner",
         "ownerPlaceholder": "Owner name"
       },

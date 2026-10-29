@@ -56,7 +56,7 @@
         "resourceSpec": "资源规格",
         "resourceSpecPlaceholder": "如 4c/16g × 2",
         "hyperparams": "超参 JSON",
-        "hyperparamsPlaceholder": "{\"learning_rate\": 0.1}",
+        "hyperparamsPlaceholder": "{'{'}\"learning_rate\": 0.1{'}'}",
         "owner": "负责人",
         "ownerPlaceholder": "负责人姓名"
       },
