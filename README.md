@@ -34,7 +34,7 @@
 >
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
 >
-> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 41**（governance 3合1、finops 3合1、karmada failover 2合1 后）→ **服务形态组件 42**（扣 4 个库形态：common-security / flink-cdc / storage-io / chunker）→ **有 Helm Chart 可部署单元 35**（另有 7 个服务无 Chart，详见口径文档第 6 节）→ **platform/ 目录数 38**（一级子目录）。
+> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 47**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 42**（governance 3合1、finops 3合1、karmada failover 2合1 后）→ **服务形态组件 42**（扣 5 个库形态：common-security / flink-cdc / storage-io / chunker / encaps-shared-model）→ **有 Helm Chart 可部署单元 35**（另有 7 个服务无 Chart，详见口径文档第 6 节）→ **platform/ 目录数 39**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-RC（已发布）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
@@ -45,7 +45,7 @@
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
 > 2.1.0-RC 已发布（2026-08-27），基于 v2.0.0 RC 完成核心组件生产化加固（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
-> 22 组件 **RC 就绪（"真实可部署"，非 GA）** + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
+> 23 组件 **RC 就绪（"真实可部署"，非 GA）** + 19 组件 非 RC（7 服务级 + 12 骨架，另有 3 个已降级为规划），灰度发布/故障演练/性能调优/多集群联邦增强已交付。分档口径见 [组件成熟度矩阵](docs/component-maturity.md)。
 > **完成度口径**（三项分母不同、互不可比，全仓文档共用）：
 >
 > - ⚠️ **以下三项均为项目自评口径，分母各异，不得横向相加或相互换算**。可核验的独立口径以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](docs/KNOWN-FAILURES.md) 台账为准。
@@ -98,14 +98,14 @@ DataEngineBDP/
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 52 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 88 个 Helm Chart（全部含 templates 与 values）
+│   │   ├── charts/             # 101 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（46 个：Java 24 / Go 10 / Python 12）
+├── platform/                   # 自研组件（47 个：Java 25 / Go 10 / Python 12）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -146,7 +146,7 @@ DataEngineBDP/
 │   ├── profiles/               # 四环境 Profile
 │   ├── tuning/                 # 内核与系统调优
 │   └── wsl2/                   # WSL2 部署支持
-├── tests/integration/          # 集成测试（61 个）
+├── tests/integration/          # 集成测试（62 个）
 ├── scripts/poc/                # 端到端 PoC 验证脚本
 ├── docs/                       # 项目文档
 ├── CONVENTIONS.md              # 统一命名与约定
@@ -219,7 +219,7 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 46 个自研组件（Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
+平台共包含 47 个自研组件（Java 25 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
 （注：其中约 1/2 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
 ### Java 组件（24 个）
@@ -323,14 +323,14 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 46 个（Java 24 / Go 10 / Python 12） |
-| 有 Chart 可部署单元 | 35 个（46 − 4 个库形态组件 − 7 个尚无 Helm Chart 的服务，口径见 [模块数口径定义](docs/模块数口径定义.md) §6） |
-| Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
+| 自研组件目录 | 47 个（Java 25 / Go 10 / Python 12） |
+| 有 Chart 可部署单元 | 35 个（47 − 5 个库形态组件 − 7 个尚无 Helm Chart 的服务，口径见 [模块数口径定义](docs/模块数口径定义.md) §6） |
+| Helm Chart | 101 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 52 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |
 | 前端 Playwright E2E | 10 个测试文件（夜间回归门禁，2026-09-01 实跑口径） |
-| 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
-| 前端视图页面 | 72 个 .vue（全部有实质内容，无占位页面） |
+| 集成测试 | 62 个文件（910 个用例，tests/integration 目录） |
+| 前端视图页面 | 83 个 .vue（全部有实质内容，无占位页面） |
 | 支持环境 | 4 种（dev / staging / pre-prod / prod，均为配置模板） |
 | 框架基线 | Spring Boot 4.1.1 / Spring Framework 7.0.9 / Java 17 / Go 1.26.0 / Python 3.11 / Vue 3.5 + TS strict（均按 `mvn dependency:tree`、`go.mod`、`package.json` 实测） |
 | 工程成熟度 | 覆盖率门禁 Java≥40% / Go≥30% / Python≥55%（jacoco+pytest-cov 实测基线，2026-09-01） |

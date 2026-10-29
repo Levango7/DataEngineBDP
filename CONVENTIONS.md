@@ -36,14 +36,14 @@
 | 规范 | 说明 |
 | --- | --- |
 | **设计模块数 49** | §3.3 产品能力全景图逐行清点的真实模块数（含未实现规划模块） |
-| **自研组件数 46** | platform/ 构建文件实测（含子模块拆分，含 operations-api） |
-| **矩阵实列 41** | component-maturity.md 矩阵实列数（governance 3合1、finops 3合1、karmada failover 2合1 后；另 3 行"降级为规划"不计入） |
-| **独立部署单元 42** | ADR-001 定义的独立部署单元数（扣库形态组件） |
-| **platform/ 目录数 38** | platform/ 下一级子目录数 |
+| **自研组件数 47** | platform/ 构建文件实测（含子模块拆分，含 operations-api 与 encaps-shared-model） |
+| **矩阵实列 42** | component-maturity.md 矩阵实列数（governance 3合1、finops 3合1、karmada failover 2合1 后；另 3 行"降级为规划"不计入） |
+| **独立部署单元 42** | ADR-001 定义的独立部署单元数（扣 5 个库形态组件） |
+| **platform/ 目录数 39** | platform/ 下一级子目录数 |
 
 - 分布：L0.1–L0.12（12）+ L2.1–L2.10（10）+ L3.1–L3.7（7）+ L4.1–L4.5.6（10）+ L5.1–L5.6（6）+ X1–X4（4）= **49**。
 - 详细设计文档 52 份（design/详细设计/ 下实测，2026-09-12 glob 口径）。
-- 部署清单 88 个 Chart 条目（含 14 个自研组件 Chart + 74 个开源组件 Chart）。
+- 部署清单 101 个 Chart 条目（按目录名与 platform/ 模块名匹配识别：自研组件 Chart 34 个 + 开源/基础设施 Chart 67 个）。
 - **禁止**：混用口径（如"41 模块"既指设计模块又指部署单元）；引用模块数必须标注口径名称。
 
 ## 4. 版本号
@@ -227,10 +227,10 @@
 
 | 规范 | 说明 |
 | --- | --- |
-| **Java 模块** | 24 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
+| **Java 模块** | 25 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
 | **Go 模块** | 10 个（按 `go.mod` 实测） |
 | **Python 模块** | 12 个（按 `pyproject.toml` 实测） |
-| **总计** | 46 个自研组件（Java 24 + Go 10 + Python 12） |
+| **总计** | 47 个自研组件（Java 25 + Go 10 + Python 12） |
 
 - 模块计数以构建文件实测为准，不使用设计文档中的理论模块数。
 - **禁止**：使用"21 个 Java 模块"旧口径（governance 已拆分为 3 个独立子模块）。
