@@ -113,3 +113,22 @@ vulnerabilities:
   - id: CVE-2026-111497
     statement: "brotli-libs 1.2.0-r1 → 1.2.1-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 9 个 Dockerfile 运行时阶段 apk upgrade --no-cache brotli-libs，本机实测两种基座均升到 1.2.1-r0、整镜像复扫 findings 1→0"
     expired_at: 2026-12-01
+
+  # ---- nginx:alpine：2026-10-28 扫描新出现的 curl/libcurl（浮动 tag 已漂到 Alpine 3.24.3）----
+  # 基座自带 curl/libcurl 8.22.0-r0（CVE-2026-92392 HIGH），Alpine 仓库已有 8.23.0-r0。
+  # 处置同 libexpat/libx11/brotli：frontend/Dockerfile 运行时阶段 apk upgrade --no-cache curl。
+  # 取证：CI 的 SARIF 报基座 Installed 8.22.0-r0；Alpine v3.24 main 仓 APKINDEX 实测 V:8.23.0-r0
+  # （mirrors.aliyun.com/alpine/v3.24/main/x86_64/APKINDEX.tar.gz）。
+  # 解锁：上游基座重建后（docker run <base> apk list -I curl 显示 ≥8.23.0-r0）删掉本条。
+  - id: CVE-2026-92392
+    statement: "curl/libcurl 8.22.0-r0 → 8.23.0-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache curl 取仓内 8.23.0-r0（APKINDEX 实测）"
+    expired_at: 2026-12-01
+
+  # ---- maven:3.9-eclipse-temurin-17：2026-10-28 扫描报基座自带 guava 33.6.0-jre ----
+  # CVE-2026-102554（HIGH，修复版 33.7.2）。这个 guava 是 Maven 发行包 lib/ 内的自有依赖，
+  # 不是本仓依赖：本仓的 guava 传递依赖已由根 pom dependencyManagement 抬到 33.7.2-jre（见提交说明），
+  # 构建期无法替换基座内的 jar，且它不进入出货镜像（多阶段构建只 COPY 构建产物）。
+  # 解锁：上游 maven 基座重建后（docker run <base> ls lib/guava-*.jar 显示 ≥33.7.2）删掉本条。
+  - id: CVE-2026-102554
+    statement: "guava 33.6.0-jre（maven 基座 lib/ 自带）→ 33.7.2。仅 maven:3.9-eclipse-temurin-17 构建期基座；不进出货镜像；本仓依赖由根 pom 统一抬到 33.7.2-jre"
+    expired_at: 2026-12-01
