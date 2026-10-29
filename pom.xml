@@ -176,6 +176,21 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <!-- 2026-10-29：Trivy FS 通告批（CI `Trivy FS Scan (依赖漏洞扫描)` 10-28 红）。
+                 - snappy-java 1.1.10.5/1.1.10.7：CVE-2026-108106、CVE-2026-93451（HIGH），修复版 1.1.10.9；
+                 - guava 27.0/30.1.1/32.0.0/33.4.8-jre：CVE-2026-102554（HIGH），修复版 33.7.2-jre。
+                 两者都是各模块的传递依赖，根 dependencyManagement 统一抬版覆盖；中央仓已验证版本存在
+                 （maven.aliyun.com 的 guava release=33.7.2-jre、snappy-java 含 1.1.10.9）。 -->
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.10.9</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.7.2-jre</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
