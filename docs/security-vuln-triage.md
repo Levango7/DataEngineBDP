@@ -159,6 +159,10 @@ vulnerabilities:
 | GHSA-gmg8-593g-7mv3（POI OOXML） | org.apache.poi:poi-ooxml | 5.2.5 → 5.5.1 | 2026-10-23 | 本批 PR（等价 dependabot #636） |
 | GHSA-wqmh-qccw-pqwf（mlflow） | mlflow | 3.17.0 → 3.17.2 | 2026-10-24 | PR #736（`platform/business-portal`、`platform/llmops`、`platform/ml-platform` 三份 requirements 同步；同 minor 补丁，CI 的 Python Test 覆盖这三组件） |
 | GHSA-834v-8h66-3h79（happy-dom） | happy-dom | 20.14.6 → 21.0.4 | 2026-10-24 | PR #736（`frontend/package.json` + `frontend/package-lock.json`；vitest 双版本 FAIL 清单逐条一致，本地 495 例微测件与基线同集） |
+| CVE-2026-108106 / CVE-2026-93451（snappy-java） | org.xerial.snappy:snappy-java | 1.1.10.5 / 1.1.10.7 → 1.1.10.9 | 2026-10-29 | PR #739（根 `pom.xml` dependencyManagement 统一抬版；`mvn dependency:tree` 实测 flink-cdc / metadata-collector / encaps-layer 三处解析到 1.1.10.9） |
+| CVE-2026-102554（guava） | com.google.guava:guava | 27.0 / 30.1.1 / 32.0.0 / 33.4.8-jre → 33.7.2-jre | 2026-10-29 | PR #739（同上；本仓 9 个 pom 均为传递依赖、无直接声明。maven 基座自带的 33.6.0-jre 改不了，另记 `docs/trivy-image-ignore.yaml` 限期豁免） |
+| CVE-2026-92392（curl/libcurl） | nginx:alpine 基座内 curl | 8.22.0-r0 → 8.23.0-r0 | 2026-10-29 | PR #739（`frontend/Dockerfile` 运行时层 `apk upgrade --no-cache curl`；Alpine v3.24 main 仓 APKINDEX 实测 `V:8.23.0-r0`，并记基座豁免） |
+| CVE-2026-118256（门禁侧记作 CVE-2026-118257，上游 id 有碰撞） | vue-i18n + @intlify/core-base/shared | 10.0.8 → 11.4.16 | 2026-10-30 | PR #739（跨大版本；`devMl.{en-US,zh-CN}.json` 的 JSON 示例值改用 `{'}{'}…{'}}'}` 字面量转义，`t()` 渲染值与原字符串一致；双版本 vitest FAIL 清单逐条相等 + `vue-tsc`/`vite build` rc=0） |
 
 ### 5.3 已关闭（僵尸/不影响）
 

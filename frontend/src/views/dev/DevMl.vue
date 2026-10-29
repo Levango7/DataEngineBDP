@@ -165,6 +165,7 @@
             :placeholder="t('devMl.trainForm.fields.resourceSpecPlaceholder')"
           />
         </el-form-item>
+        <!-- 词条 hyperparamsPlaceholder 用 {'{'} / {'}'} 字面量转义：vue-i18n v11 的编译器会把裸 `{` 当占位符解析 -->
         <el-form-item :label="t('devMl.trainForm.fields.hyperparams')" prop="hyperparams">
           <el-input
             v-model="trainForm.hyperparams"
