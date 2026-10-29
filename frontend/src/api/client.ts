@@ -211,10 +211,10 @@ http.interceptors.request.use(
       config.headers = config.headers ?? {}
       config.headers.Authorization = `Bearer ${token}`
     }
-    // business-portal 在 AUTH_MODE=none 下从 X-Tenant-Id header 读租户（与
-    // asset-exchange 等匿名放行服务行为不一致，Sprint 3.1 联调发现）。
-    // 仅对 /business-lines 域注入，避免影响 encaps-layer 的多租户校验。
-    if (config.url?.includes('/business-lines')) {
+    // AUTH_MODE=none 下需要请求头补租户的端点：business-portal 的 /business-lines
+    // 与 asset-exchange 的 /settlements（claim 为空时租户级列表原先必然 401，
+    // 流通看板因此恒显示错误态）。仅对这两个域注入，避免影响 encaps-layer 的多租户校验。
+    if (config.url?.includes('/business-lines') || config.url?.startsWith('/settlements')) {
       config.headers = config.headers ?? {}
       config.headers['X-Tenant-Id'] = currentTenantId()
     }
