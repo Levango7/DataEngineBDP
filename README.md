@@ -98,7 +98,7 @@ DataEngineBDP/
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 52 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 101 个 Helm Chart（全部含 templates 与 values）
+│   │   ├── charts/             # 100 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置

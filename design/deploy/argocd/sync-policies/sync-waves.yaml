@@ -26,7 +26,7 @@
 #
 #   wave  -1 │ 平台网关与安全
 #            │ keycloak, apisix, ingress-nginx, external-secrets,
-#            │ knative-serving, karmada, keda
+#            │ knative-serving, keda
 #
 #   wave   0 │ 业务服务层
 #            │ encaps-layer, sql-gateway, catalog, rule-engine,

@@ -1,6 +1,6 @@
 # 部署指南
 
-> 本指南描述数据引擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以 SKE 交付底座（基于 kubeadm/kind 封装的 K8s）为底座，通过 Helm 编排全部 101 个 Helm Chart（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐）。
+> 本指南描述数据引擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以 SKE 交付底座（基于 kubeadm/kind 封装的 K8s）为底座，通过 Helm 编排全部 100 个 Helm Chart（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐）。
 
 ## 前置条件
 
@@ -83,7 +83,7 @@ kubectl get sc
 
 ## Helm Chart 部署
 
-数据引擎大数据平台共提供 101 个 Helm Chart（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐），位于 `design/deploy/charts/`。
+数据引擎大数据平台共提供 100 个 Helm Chart（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐），位于 `design/deploy/charts/`。
 
 ### 部署顺序
 
