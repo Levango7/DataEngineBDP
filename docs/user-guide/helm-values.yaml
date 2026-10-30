@@ -1332,37 +1332,6 @@ jupyter:
   affinity: {}
 
 # -----------------------------------------------------------------------------
-# karmada（Karmada 多集群管理 - 跨集群应用分发与故障转移 - 数据引擎大数据平台）
-# -----------------------------------------------------------------------------
-karmada:
-  enabled: true
-  image:
-    repository: "registry.k8s.io/karmada/karmada-apiserver"
-    tag: "v1.10.0"
-    pullPolicy: IfNotPresent
-  replicaCount: 1
-  service:
-    type: ClusterIP
-    port: 5443
-  resources:
-    requests: { cpu: "500m", memory: "512Mi" }
-    limits:   { cpu: "1000m", memory: "1Gi" }
-  securityContext:
-    enabled: true
-    runAsNonRoot: true
-    runAsUser: 1000
-  autoscaling:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 3
-  ingress:
-    enabled: false
-    className: apisix
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-# -----------------------------------------------------------------------------
 # keda（KEDA 弹性伸缩 - 事件驱动自动扩缩容 - 数据引擎大数据平台）
 # -----------------------------------------------------------------------------
 keda:
