@@ -9,6 +9,14 @@
 ### Added
 - **AutoBatch 归并**（2026-09-04 落地，commit `03c9129f`）：外部原型仓库 `Levango7/AutoBatch` 的五阶段批处理流水线引擎迁入 `platform/batch-pipeline`，形成平台第 46 个自研组件——python/polars/spark × local_csv/parquet/iceberg 正交引擎矩阵、8 类数据质量规则执行（DQ Score + 坏行隔离）、高水位 / Iceberg snapshot diff 增量、断点续跑、OpenLineage 血缘（经 lineage-analyzer 落平台）、批次台账；FastAPI 提交/查询壳按 `AUTH_MODE=jwt` 与租户上下文接入，工件路径按 `run/<tenant>/<batch>/` 分区。规则管理仍归 rule-engine（新增 `BatchPipelineRuleAdapter` 桥接，本组件保留行级求值执行）；平台 DAG 编排走 stream-batch-scheduler `BATCH_PIPELINE` TaskChannel。CI 加独立 job `batch-pipeline-test`（依赖重、需 MinIO service，不进通用矩阵）。源仓库已归档（readme 横幅 + tag `v-final`）、不再接受功能变更。登记与审计日志见 `docs/MERGE-LOG-autobatch.md`。
 
+### Changed
+- **2026-10 维护期批次（事后补记）**：本段为 2026-10-29 补记——2026-10-01 至 10-29 的合并批次此前未入 CHANGELOG（停更于 08-29），依据 `git log` 合并记录补齐。维护模式（2026-10-03 起）下以治理、安全与清偿为主，能力类合入均为例外审批项。分组：
+  - **依赖治理**：Flink CDC 3.0.1 → 3.6.0-1.20（坐标迁移 `com.ververica` → `org.apache.flink`，#737）；mlflow 3.17.2 ×3 模块 + happy-dom 21.0.4（#736，清 GHSA-834v-8h66-3h79 HIGH）；poi-ooxml 5.5.1 + scikit-learn 1.5.0（#727）；Dependabot 版本更新通道按生态收回（limit=0，#724）并清偿 30 条告警欠账（#726：修 6 个包 + 13 条限期豁免）。
+  - **安全加固**：基座 brotli-libs 升级 + 两条基座限期豁免（#735，#74 第三次复发按先例清红）；MySQL CDC 显式关闭危险 JDBC 属性加固 CVE-2023-1419（#738）；前端依赖 bump（#716）；构建层补 base 镜像源兜底、传输类失败自动换源重试一次（#729/#725，台账 #93①③）；运行基镜切 alpine 后健康检查改 busybox wget、addgroup/adduser 适配（6 个 alpine 服务）。
+  - **门禁与台账**：KNOWN-FAILURES 台账登记推进至 #95（finops-dashboard lint 在 main 跑不起来且 CI 不可见 / design/planned 不在 CI 覆盖面 / finetuning 鉴权 13 条恒红）并追加 10 月取证批次（#711/#717/#705/#685/#680/#678 等）；vite 代理校验修正 32 处合法路径误判（模块名带子路径后字符串全等失效）；umbrella 渲染产物门禁（#71）；镜像引用裁定① 13 处改到可产出坐标 + 门禁补 values-base 盲区（#734，#67）；收回 admin.spec.ts 条件式 skip 假绿（#58）。
+  - **维护期例外能力落地**：finops billing 计费直通（#714）、open-api 进 main（#709）、karmada IT compose + dev apps（#713/#715）与 gateway 路由（#687）、multicluster 进 main（#689）、asset 交付方式（#688）、配额审计门（#677）、ui-shell-depth（#674）、多级目录 module 命名口径（#85）。
+  - **口径事实订正（同批）**：`encaps-shared-model` 2026-10-13 抽出（commit `d23e00f5`）后，模块数口径链按实测更新——自研组件数 46→47（Java 25 / Go 10 / Python 12）、矩阵实列 41→42、platform/ 目录数 38→39；Helm Chart 88→101、集成测试 61→62（910 用例）、前端视图 72→83。唯一事实来源见 [模块数口径定义](docs/模块数口径定义.md)（升 v1.1）。
+
 ### Fixed
 - **R19 审查修复**（commit `199dff42`）：修复22个问题——① 文档版本号一致性（HEAD记录/§16.4.2版本号/文档版本标注）；② 13个动画时长token化 + 全局@keyframes dotBreath补充；③ 后端export防OOM重构 + IoTDB/Flink状态码修正 + escapeCsv/escapeJson转义补全
 - **R20 审查修复**（commit `42e07959`）：修复14个问题——① 产品原型版本号一致性（第5行逻辑矛盾+14处v0.5标注→v0.4+§16.2 v0.6→v0.5）；② CHANGELOG补充R19记录+ROADMAP HEAD更新；③ main.css品牌点颜色跳变修复（@keyframes dotBreathGreen）+Login.vue/Register.vue暗色硬编码token化；④ SearchController export防OOM分页查询+search方法合并+exportLimit可配置化+IoTDBClient连接超时应用+FlinkController死代码注释

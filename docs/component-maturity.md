@@ -1,23 +1,23 @@
 # 组件成熟度矩阵
 
-> 数据引擎大数据平台 `platform/` 全部 **46 个自研组件**（含子模块拆分：governance 3 + finops 3 + karmada 4，矩阵实列 41 条；Java 24 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
+> 数据引擎大数据平台 `platform/` 全部 **47 个自研组件**（含子模块拆分：governance 3 + finops 3 + karmada 4，矩阵实列 42 条；Java 25 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
 >
 > **更新日期: 2026-09-15** — 5个预存Java编译错误已全部修复（BillSummary/CollectionSchedulerService/NebulaLineageGraphClient/FieldLineageTest/K8sClientService），`mvn package -Dmaven.test.skip=true` 全项目通过。R17-R23共7轮审查修复153个问题，6维度收敛。
 >
-> 📐 **模块数口径**：四种口径（设计模块数 49 / 自研组件数 46 / 独立部署单元 42 / platform 目录数 38）统一定义见 [模块数口径定义](模块数口径定义.md)。
+> 📐 **模块数口径**：五种口径（设计模块数 49 / 自研组件数 47 / 矩阵实列 42 / 独立部署单元 42 / platform 目录数 39）统一定义见 [模块数口径定义](模块数口径定义.md)。
 >
 > **完成度口径**（三项分母不同、互不可比，全仓文档共用）：
 >
 > - ⚠️ **以下三项均为项目自评口径，分母各异，不得横向相加或相互换算**。可核验的独立口径以 CI 各 job 结论、部署验证记录与 [KNOWN-FAILURES](KNOWN-FAILURES.md) 台账为准。
 > - **80% 端到端可用** — 分母：无（估计值）｜来源：项目自评（含端到端联调、真实环境部署、外部依赖对接等因素）｜可复现性：无独立复现方法。相关实测：四环境交付验证 1/4（仅本地数据中心，见 [环境验证状态](环境验证状态.md)）；GA 清单"四环境零改动"检查项 0/6 通过（台账 #9）
 > - **74.1% 功能模块完成** — 分母：54 项 GA 检查清单条目；分子：40 项通过｜来源：`../releases/v2.0.0/ga-checklist.md`｜可复现性：可（按清单逐项核）
-> - **100% 本地基础功能** — 分母：本矩阵 §一 中 22 个"真实可部署"组件（**不是 46 个自研组件**）｜来源：本文件 §一｜可复现性：可（按组件清单本地起服务）
+> - **100% 本地基础功能** — 分母：本矩阵 §一 中 23 个"真实可部署"组件（**不是 47 个自研组件**）｜来源：本文件 §一｜可复现性：可（按组件清单本地起服务）
 >
 > - 成熟度分级：**真实可部署**（含库形态）/ **服务级**（SQLite/H2 或部分功能）/ **骨架**（Mock 默认或模板集）/ 规划中。
 > - 除表中单独注明外，全部组件的**四环境部署与升级验证均未在真实环境执行**（见 [V2.0.0 勘误公告](../releases/v2.0.0/ERRATUM.md)）。
 > - 技术栈与默认持久层依据各模块构建文件与配置核实（Spring Boot 4.1.1 / Go 1.26+ / Python 3.11 + FastAPI 为主）。
 
-## 一、真实可部署（22 个）
+## 一、真实可部署（23 个）
 
 | 组件 | 技术栈 | 成熟度 | 默认持久层 | 关键缺口 |
 | --- | --- | --- | --- | --- |
@@ -42,6 +42,7 @@
 | flink-cdc | Java 17 库（Flink CDC connectors + Debezium embedded；管道模板 YAML + 启动脚本） | 真实可部署（库形态） | 不适用（作业提交至 Flink 运行时；Kafka / Iceberg 为外部依赖） | — |
 | common-security | Java 17 库（Spring Security 自动装配 starter + JJWT 0.13） | 真实可部署（库） | 不适用 | — |
 | storage-io | Java 17 库（AWS S3 SDK） | 真实可部署（库） | 不适用 | — |
+| encaps-shared-model | Java 17 库（encaps 域 20 张实体表共享模型，切断 encaps-data/gateway/tenant 实体扫描重叠；commit `d23e00f5` 2026-10-13 抽出） | 真实可部署（库） | 不适用 | 测试覆盖薄（仅 1 个测试文件），待补实体契约测试 |
 | batch-pipeline | Python 3.11 · FastAPI（AutoBatch 归并：五阶段 + 8 类 DQ 规则 + 水位/Iceberg 增量 + OpenLineage 血缘） | 真实可部署 | 无持久化（任务态内存 + Iceberg 表） | 490+ 测试；生产规模批处理需真实 Spark/Iceberg 环境 |
 
 ## 二、服务级（7 个）
@@ -85,12 +86,12 @@
 | 口径 | 数值 | 与本矩阵的关系 |
 | --- | --- | --- |
 | 设计模块数 | 49 | 产品原型 §3.3 逻辑模块清单（含未实现规划模块），本矩阵不含规划模块 |
-| 自研组件数 | 46 | 本矩阵组件数（含子模块拆分：governance 3 + finops 3 + karmada 4 + operations-api + data-standard + master-data + ai-assistant + observability/query-api） |
-| 矩阵实列 | 41 | 本矩阵表格数据行数（平台内，不含 3 行"降级为规划"项）：46 − 2（governance 3 合 1）− 2（finops 3 合 1）− 1（karmada failover 2 合 1）= **41** |
-| 独立部署单元 | 42 | ADR-001 定义（46 − 4 库形态组件：common-security / storage-io / flink-cdc / chunker） |
-| platform/ 目录数 | 38 | platform/ 一级子目录数（governance / finops / karmada 子模块嵌套，非一级目录） |
+| 自研组件数 | 47 | 本矩阵组件数（含子模块拆分：governance 3 + finops 3 + karmada 4 + operations-api + data-standard + master-data + ai-assistant + observability/query-api + encaps-shared-model） |
+| 矩阵实列 | 42 | 本矩阵表格数据行数（平台内，不含 3 行"降级为规划"项）：47 − 2（governance 3 合 1）− 2（finops 3 合 1）− 1（karmada failover 2 合 1）= **42** |
+| 独立部署单元 | 42 | ADR-001 定义（47 − 5 库形态组件：common-security / storage-io / flink-cdc / chunker / encaps-shared-model） |
+| platform/ 目录数 | 39 | platform/ 一级子目录数（governance / finops / karmada 子模块嵌套，非一级目录；encaps-shared-model 为一级目录） |
 
-映射链：**49** →（−3 规划未落地）→ **46** →（−2 governance 合并）→（−2 finops 合并）→（−1 karmada failover 合并）→ **41** 矩阵实列 →（−4 库形态）→ **42** 部署单元 / **38** 目录数
+映射链：**49** →（−2 规划未落地）→ **47** →（−2 governance 合并）→（−2 finops 合并）→（−1 karmada failover 合并）→ **42** 矩阵实列 →（−5 库形态）→ **42** 部署单元 / **39** 目录数
 
 ## 子模块拆分说明
 
@@ -105,7 +106,7 @@
 - governance 3 个子模块在矩阵中合并为 1 行，矩阵实列 −2。
 - finops 3 个子模块（billing / cost-model / dashboard）在矩阵中合并为 1 行，矩阵实列 −2。
 - karmada 4 个构建单元（api / federated-query / failover-api / failover-engine）在矩阵中为 3 行（failover 两子模块合并为 1 行），矩阵实列 −1。
-- 合计：46（自研组件）− 2（governance 合并）− 2（finops 合并）− 1（karmada failover 合并）= **41 矩阵实列**。
+- 合计：47（自研组件）− 2（governance 合并）− 2（finops 合并）− 1（karmada failover 合并）= **42 矩阵实列**。
 
 ## 附：评级说明
 
