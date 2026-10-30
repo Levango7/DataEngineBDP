@@ -420,6 +420,13 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      # 台账 #97①：Go 模块代理的 HTTP/2 流错误必须被认成传输类，否则一次抖动
+      # 会被判成代码失败、不重试。自测不碰网络、不调 docker，成本可忽略。
+      - name: 自测换源兜底脚本（build-retry / compose-retry）
+        run: |
+          bash scripts/build-retry.sh --self-test
+          bash scripts/compose-retry.sh --self-test
+
       - name: 检查 ske/ske.sh 语法
         run: |
           if [ -f "ske/ske.sh" ]; then
