@@ -108,7 +108,7 @@ export default defineConfig({
         target: process.env.VITE_FAILOVER_API_TARGET || 'http://127.0.0.1:8094',
         changeOrigin: true
       },
-      // 基础设施编排（infra-orchestrator :8085——注意与 finops-dashboard 同默认端口）
+      // 基础设施编排（infra-orchestrator :8085——注意与 BI 子应用同默认端口）
       '/api/v1/clusters': {
         target: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:8085',
         changeOrigin: true
@@ -149,7 +149,7 @@ export default defineConfig({
         target: process.env.VITE_AI_TARGET || 'http://127.0.0.1:18110',
         changeOrigin: true
       },
-      // BI 看板（finops-dashboard :8085）
+      // BI 看板（finops子应用 :8085）
       '/api/v1/dashboards': {
         target: process.env.VITE_BI_TARGET || 'http://127.0.0.1:8085',
         changeOrigin: true
