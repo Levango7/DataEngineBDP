@@ -21,7 +21,7 @@
          role="alert"，文案与 data-test 都在同一棵 DOM 里，单测与读屏都能拿到。 -->
     <div v-if="error" class="ex-error" role="alert" data-test="overview-error">{{ error }}</div>
 
-    <div v-else-if="!loading && !rows.length" class="ex-card">
+    <div v-else-if="!loading && !rows.length" class="ex-card" data-test="overview-empty">
       <EmptyState :message="t('exchange.overview.empty')" />
     </div>
 

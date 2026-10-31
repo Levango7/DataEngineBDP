@@ -311,3 +311,32 @@ class TestAuthSettings:
         except RuntimeError:
             raised = True
         assert raised
+
+
+class TestSettlementsTenantHeader:
+    """租户级 GET /settlements 的租户来源（与 batch-pipeline 的 X-Tenant-Id 口径对齐）.
+
+    AUTH_MODE=none 下 claim 的 tenantId 是空串，前端 /exchange-overview 原先只能拿到 401；
+    现在仅 admin 身份可用 X-Tenant-Id 头补租户，claim 始终优先，两者都缺仍 fail-closed。
+    """
+
+    def test_tenant_header_supplies_missing_claim(self, client) -> None:
+        resp = client.get("/api/v1/settlements", headers={"X-Tenant-Id": "tenant-x"})
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["tenant"] == "tenant-x"
+        assert body["settlements"] == []
+
+    def test_without_claim_or_header_still_fail_closed(self, client) -> None:
+        resp = client.get("/api/v1/settlements")
+        assert resp.status_code == 401, resp.text
+        assert "租户" in resp.json()["message"]
+
+    def test_claim_wins_over_header(self, app, monkeypatch) -> None:
+        c = jwt_client(monkeypatch, app)
+        resp = c.get(
+            "/api/v1/settlements",
+            headers={**auth_headers(user_token("tenant-b")), "X-Tenant-Id": "tenant-a"},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["tenant"] == "tenant-b"

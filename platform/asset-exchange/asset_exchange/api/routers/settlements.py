@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Optional
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 
 from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
 from asset_exchange.api.routers.deps import get_registry
@@ -143,11 +143,18 @@ async def listSettlements(
     period: Optional[str] = Query(default=None, description="按账期过滤"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
+    x_tenant_id: Optional[str] = Header(default=None, alias="X-Tenant-Id"),
     ctx: AuthContext = Depends(getAuthContext),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> dict:
     """查询当前租户的结算列表."""
+    # AUTH_MODE=none（本地/IT 栈）下 claim 的 tenantId 是空串，本端点原先必然 401，
+    # 前端 /exchange-overview 因此永远只显示错误态。与 batch-pipeline / business-portal
+    # 的 X-Tenant-Id 口径对齐：claim 优先，仅 admin 身份可用请求头补租户；
+    # 两者都缺仍 fail-closed。
     tenantId = ctx.tenantId
+    if not tenantId and ctx.role == "admin":
+        tenantId = (x_tenant_id or "").strip()
     if not tenantId:
         raise HTTPException(status_code=401, detail="缺少租户上下文")
 
