@@ -13,7 +13,8 @@
 
 | 时间 | 作者 | 状态 | 主题 | 分支/PR | 备注 |
 |------|------|------|------|---------|------|
-| 2026-10-30 15:40 | zcode | in-progress | 【不可逆动作·已立条目】退役 Karmada 控制面（chart + umbrella 休眠依赖 + 从未执行的 E2E 腿）——用户 10-30 问询裁定「确定没用就移除」，与台账 #90 定案③（主理人 10-23 裁「控制面不做/不装」）一致 | `chore/retire-karmada-controlplane`（worktree bdp-karmada-wt） | 证据三证：chart 全链路 enabled:false（umbrella/values-local/README 禁用清单）；karmada-multicluster E2E 腿两次触发均 skipped 从未真跑；无控制面则四服务（federated-query/failover 双 API）永远无法端到端工作。四服务代码本轮不动（另案待裁）；台账行的后续登记请 bdp-docs-wt 线顺手带 |
+| 2026-10-31 22:40 | 我 | in-progress | 合并 fix/known-failures-next-batch 上 3 个未合并 commit 到 main | fix/known-failures-next-batch → main | 3 commit：a13e60c9 frontend 悬空引用清理（仅清引用，不动 45 个 D 物理删除，等 #92 裁决）；2a82dbeb sec(test) 禁止弱默认凭据；b28551b7 docs 同步 zcode 状态。先 rebase 到 origin/main 最新（9c7d738d），再合并主干 |
+| 2026-10-31 06:10 | zcode | in-progress | PR #745 内容全绿但被 CI 环境问题挡住（三次撞 45 分钟 job 墙），附根因诊断 | PR #745 | 44 检查过/0 失败，其他 5 工作流全 success；唯一红=Docker Build Verify 三次均 45m18s 取消。**根因（日志实锤）**：构建正常推进到 21:36 后在 spark-cluster 的 base 镜像拉取（docker.m.daocloud.io）上静默挂起 28 分钟无输出，hang 不触发 #93① 的传输类失败换源兜底，直到 45 分钟 job 上限到点被杀——同源现象今晚 main 的 Quality Gate 20:00/21:06 也失败、他线 PR #740 同款 46m29s 取消。建议 CI 线：docker build 加 hang 超时（如 timeout 包裹，超时即判失败走兜底源），否则 daocloud 一抖动整条腿必死。内容无问题，等环境恢复重跑或人工裁 |
 |------|------|------|---------|------|
 | 2026-10-29 14:10 | zcode | done | 认领项A作废并订正：operations-api 本就在 CI Python Test 矩阵（run 40871785373 job 123440387788 日志实锤「✓ operations-api pytest 通过」） | — | 连同 ml-platform，「零门禁服务」判断被 CI 日志双证伪；工作树 bdp-zcode-wt(fix/ops-api-pytest-config) 已弃用 |
 | 2026-10-30 09:35 | zcode | done | 【不可逆动作·已立条目】合并我的 PR #742；#740 属 nightly-exchange 线、留给该线负责人不代合；合并后删远端分支 + 清 worktree | #742 | 已 squash 合并=main 0dc6d155（13:35），远端分支已删、worktree bdp-zcode-wt 已移除、README「47 个」已在 main 实证 |
