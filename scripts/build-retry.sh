@@ -23,12 +23,21 @@
 #   BASE_REGISTRY_FALLBACK   重试时改用的源，默认 docker.io
 #   BASE_REGISTRY_ACCEL      「加速器」宿主名，只有当前源等于它才换源重试，默认 docker.m.daocloud.io
 #   BASE_RETRY_LOG           把每次尝试的日志落盘到此前缀（默认不落盘），便于 CI 取证据
+#   BASE_HANG_TIMEOUT        单次构建的挂起超时秒数，默认 600（台账 #97）
+#
+# 2026-10-31 增补（台账 #97）：daocloud 还有第三种抖动形态——**无输出挂起**：拉取既不报错
+# 也不退出，传输类签名永远等不到，单组件吃满整个 job 预算（PR #745 三次 45m18s 撞墙的根因：
+# 21:36 构建正常推进后在 spark-cluster 拉取上静默挂起 28 分钟）。所以给每次 attempt 套
+# per-attempt 超时，超时（exit 124/137）写入 BUILD_HANG_TIMEOUT 标记行并归入传输类，
+# 让既有换源兜底得以触发。
 set -uo pipefail
 
 # 传输类失败签名。只认这些才换源重试——否则会把"代码写错"也拿去重试一遍，白烧 2 倍时间。
-TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure'
+# BUILD_HANG_TIMEOUT 是 note_hang 写入日志的标记行（挂起超时按传输类处理，见上）。
+TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|BUILD_HANG_TIMEOUT'
 FALLBACK="${BASE_REGISTRY_FALLBACK:-docker.io}"
 ACCEL="${BASE_REGISTRY_ACCEL:-docker.m.daocloud.io}"
+HANG_TIMEOUT="${BASE_HANG_TIMEOUT:-600}"
 
 log() { echo "[build-retry] $*" >&2; }
 
@@ -58,19 +67,31 @@ rewrite_registry_arg() {
   done
 }
 
+# 挂起超时标记（台账 #97）：timeout 杀掉的 attempt（exit 124/137）写标记行进日志，
+# 使其命中 TRANSPORT_PATTERN ⇒ 归入传输类、触发换源兜底，而不是被误判为代码失败。
+note_hang() {
+  local log_path="$1" rc="$2"
+  if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+    echo "BUILD_HANG_TIMEOUT: 构建超过 ${HANG_TIMEOUT}s 被强制终止（无输出挂起形态）⇒ 按传输类处理" >> "$log_path"
+  fi
+}
+
 # 跑一次构建。输出原样打到 stdout；同时把本次输出路径记到 RUN_LOG_PATH、退码记到 RUN_RC。
+# 整条命令套 per-attempt 挂起超时（台账 #97）：daocloud 的无输出挂起形态靠它收敛到兜底重试。
 run_once() {
   local tag="$1"; shift
   RUN_LOG_PATH=""
   if [ -n "${BASE_RETRY_LOG:-}" ]; then
     RUN_LOG_PATH="${BASE_RETRY_LOG}.${tag}.log"
-    "$@" >"$RUN_LOG_PATH" 2>&1
+    timeout "${HANG_TIMEOUT}" "$@" >"$RUN_LOG_PATH" 2>&1
     RUN_RC=$?
+    note_hang "$RUN_LOG_PATH" "$RUN_RC"
     cat "$RUN_LOG_PATH"
   else
     RUN_LOG_PATH="$(mktemp -t build-retry.XXXXXX)"
-    "$@" >"$RUN_LOG_PATH" 2>&1
+    timeout "${HANG_TIMEOUT}" "$@" >"$RUN_LOG_PATH" 2>&1
     RUN_RC=$?
+    note_hang "$RUN_LOG_PATH" "$RUN_RC"
     cat "$RUN_LOG_PATH"
   fi
 }
