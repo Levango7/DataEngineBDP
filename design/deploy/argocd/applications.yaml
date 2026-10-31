@@ -502,53 +502,6 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: dev-karmada-api
-  namespace: argocd
-  labels:
-    app.kubernetes.io/name: karmada-api
-    app.kubernetes.io/part-of: gitops
-    environment: dev
-    component: karmada-api
-    sync-wave: "1"
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: platform-dev
-  source:
-    repoURL: https://github.com/Levango7/DataEngineBDP
-    targetRevision: main
-    path: design/deploy/charts/karmada-api
-    helm:
-      releaseName: karmada-api
-      valueFiles:
-        - values.yaml
-        - ../../values/env/dev/karmada-api-values.yaml
-      version: v2
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: dev-system
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
-      - PruneLast=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
-  revisionHistoryLimit: 10
----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
   name: dev-failover-api
   namespace: argocd
   labels:
@@ -1155,55 +1108,6 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: staging-app
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
-      - PruneLast=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
-  revisionHistoryLimit: 10
-
----
-# ---- staging-karmada-api（台账 #90②，suspended 待架构裁决）----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: staging-karmada-api
-  namespace: argocd
-  labels:
-    app.kubernetes.io/name: karmada-api
-    app.kubernetes.io/part-of: gitops
-    environment: staging
-    component: karmada-api
-    sync-wave: "1"
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: platform-staging
-  source:
-    repoURL: https://github.com/Levango7/DataEngineBDP
-    targetRevision: main
-    path: design/deploy/charts/karmada-api
-    helm:
-      releaseName: karmada-api
-      valueFiles:
-        - values.yaml
-        - ../../values/env/staging/karmada-api-values.yaml
-      version: v2
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: staging-system
   syncPolicy:
     automated:
       prune: true
@@ -1835,55 +1739,6 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: prod-app
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-      - ApplyOutOfSyncOnly=true
-      - PruneLast=true
-    retry:
-      limit: 5
-      backoff:
-        duration: 5s
-        factor: 2
-        maxDuration: 3m
-  revisionHistoryLimit: 10
-
----
-# ---- prod-karmada-api（台账 #90②，suspended 待架构裁决）----
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: prod-karmada-api
-  namespace: argocd
-  labels:
-    app.kubernetes.io/name: karmada-api
-    app.kubernetes.io/part-of: gitops
-    environment: prod
-    component: karmada-api
-    sync-wave: "1"
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
-spec:
-  project: platform-prod
-  source:
-    repoURL: https://github.com/Levango7/DataEngineBDP
-    targetRevision: main
-    path: design/deploy/charts/karmada-api
-    helm:
-      releaseName: karmada-api
-      valueFiles:
-        - values.yaml
-        - ../../values/env/prod/karmada-api-values.yaml
-      version: v2
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: prod-system
   syncPolicy:
     automated:
       prune: true
