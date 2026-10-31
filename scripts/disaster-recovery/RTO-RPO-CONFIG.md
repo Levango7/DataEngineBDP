@@ -210,30 +210,22 @@ groups:
 
 ### 4.2 集群健康监控
 
-代码示例：集群健康告警规则（YAML）
+> ⚠️ **2026-10-30 退役注记**：原「karmada-cluster-health」告警规则组已随 Karmada 控制面退役移除——`karmada_cluster_ready` 指标由 Karmada 控制面暴露，控制面 chart 与引用已全部移除（主理人 2026-10-23 台账 #90 定案「控制面不做/不装」）。以下仅保留 Velero/备份相关健康监控的写法参考。
+
+代码示例：备份调度健康告警规则（YAML）
 
 ```yaml
 groups:
-  - name: karmada-cluster-health
+  - name: backup-schedule-health
     rules:
-      # 集群不可达
-      - alert: KarmadaClusterUnreachable
-        expr: karmada_cluster_ready{condition="Ready"} == 0
-        for: 2m
+      # 备份调度未执行（Velero Schedule 指标）
+      - alert: BackupScheduleNotRun
+        expr: increase(velero_backup_success_total[24h]) == 0
+        for: 1h
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: "Karmada 集群不可达: {{ $labels.cluster }}"
-          description: "集群 {{ $labels.cluster }} 已连续 2 分钟不可达，可能触发故障切换"
-
-      # 集群就绪率低
-      - alert: KarmadaClusterReadyRatioLow
-        expr: count(karmada_cluster_ready{condition="Ready"} == 1) / count(karmada_cluster_ready{condition="Ready"}) < 0.5
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "超过半数集群不可用"
+          summary: "备份调度未执行: {{ $labels.schedule }}"
 ```
 
 ### 4.3 RTO/RPO 监控
