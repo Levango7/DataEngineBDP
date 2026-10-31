@@ -22,5 +22,8 @@ python-dateutil==2.9.0
 pyyaml==6.0.1
 
 # Testing
-pytest==8.3.4
-pytest-asyncio==0.25.2
+# 2026-10-23 安全修复 GHSA-6w46-j5rx-g56g（MEDIUM，fix 9.0.3）；pytest-asyncio 必须同批抬到
+# 1.4.0——0.25.2/0.26.0/1.0.0 都要求 pytest<9，只抬 pytest 会让本文件不可解析
+# （先例见 platform/business-portal/requirements.txt 的同一注释）。
+pytest==9.0.3
+pytest-asyncio==1.4.0

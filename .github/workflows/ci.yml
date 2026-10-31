@@ -926,6 +926,41 @@ jobs:
           chmod +x scripts/verify-all-templates.sh
           ./scripts/verify-all-templates.sh
 
+      - name: umbrella 渲染产物门禁（台账 #71，选①）
+        # 对默认 umbrella 做 `helm template`，要求出现的自研镜像全部可产出。
+        # 防止 charts/*.tgz 与源 values.yaml 长期不一致导致的 ImagePullBackOff。
+        run: |
+          echo "=== 对默认 umbrella 做 helm template ==="
+          helm template sq design/deploy/charts/dataenginebdp-umbrella > /tmp/umbrella-rendered.yaml
+
+          echo "=== 提取自研镜像（ghcr.io/levango7/sq-*） ==="
+          grep -oE 'image: "ghcr.io/levango7/sq-[a-z0-9-]+:[a-z0-9]+"' /tmp/umbrella-rendered.yaml | sed 's/image: "//;s/"$//' | sort -u > /tmp/rendered-images.txt || true
+
+          if [ ! -s /tmp/rendered-images.txt ]; then
+            echo "::warning::umbrella 渲染未出现任何自研镜像，门禁跳过（可能无子 chart 启用）"
+            exit 0
+          fi
+
+          echo "=== 对照可构建名单 ==="
+          fail_count=0
+          while IFS= read -r img; do
+            mod=$(echo "$img" | sed 's|ghcr.io/levango7/||;s|:.*||')
+            if [ -f "platform/$mod/Dockerfile" ]; then
+              echo "✓ $img 可产出（platform/$mod/Dockerfile）"
+            elif grep -rl "platform/$mod/" platform/*/Dockerfile 2>/dev/null | grep -q .; then
+              echo "✓ $img 可产出（仓库根上下文 Dockerfile 引用 $mod）"
+            else
+              echo "::error::自研镜像 $img 在 umbrella 渲染中出现，但 platform/ 下无对应 Dockerfile ⇒ 产不出"
+              fail_count=$((fail_count + 1))
+            fi
+          done < /tmp/rendered-images.txt
+
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个自研镜像在 umbrella 渲染中出现但产不出，门禁阻断"
+            exit 1
+          fi
+          echo "umbrella 渲染产物门禁通过：$(wc -l < /tmp/rendered-images.txt) 个自研镜像均可产出"
+
   # ============================================================
   # Java 构建与测试：JDK 17 + Maven 3.9
   # 遍历 platform/ 下所有含 pom.xml 的子目录，逐个执行 mvn test -B
@@ -2031,7 +2066,7 @@ jobs:
               ctx_kind="模块目录"
             fi
             # 使用本地镜像 tag，仅验证构建不 push
-            if docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq-${mod_name}:ci-verify" -f "$df" "$build_ctx"; then
+            if bash "$GITHUB_WORKSPACE/scripts/build-retry.sh" docker build --build-arg "BASE_REGISTRY=$BASE_REGISTRY" -t "sq-${mod_name}:ci-verify" -f "$df" "$build_ctx"; then
               echo "✓ $mod_name Docker 构建成功（上下文：$ctx_kind）"
             else
               echo "✗ $mod_name Docker 构建失败（上下文：$ctx_kind）"
@@ -2157,7 +2192,9 @@ jobs:
           docker compose down --remove-orphans || true
           sleep 60
           echo "启动 docker-compose 服务（重试）..."
-          if ! docker compose --profile karmada-extra up -d --wait; then
+          # 台账 #93：第 1 次是盲重试（覆盖健康检查超时），第 2 次交给 compose-retry.sh——
+          # 命中传输类签名时把 BASE_REGISTRY 从加速器换成上游，这正是盲重试换不掉的形态。
+          if ! bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose --profile karmada-extra up -d --wait; then
             echo "::error::docker-compose 启动失败或健康检查超时（已重试 1 次），集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
             echo "=== 容器日志（排障用）==="

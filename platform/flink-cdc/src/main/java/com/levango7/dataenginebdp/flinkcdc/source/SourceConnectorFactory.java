@@ -1,9 +1,9 @@
 package com.levango7.dataenginebdp.flinkcdc.source;
 
 import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
-import com.ververica.cdc.connectors.mysql.source.MySqlSource;
-import com.ververica.cdc.connectors.oracle.source.OracleSourceBuilder;
-import com.ververica.cdc.connectors.postgres.source.PostgresSourceBuilder;
+import org.apache.flink.cdc.connectors.mysql.source.MySqlSource;
+import org.apache.flink.cdc.connectors.oracle.source.OracleSourceBuilder;
+import org.apache.flink.cdc.connectors.postgres.source.PostgresSourceBuilder;
 import org.apache.flink.api.connector.source.Source;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

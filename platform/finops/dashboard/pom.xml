@@ -86,11 +86,14 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Apache POI：Excel 账单导出 -->
+        <!-- Apache POI：Excel 账单导出
+             2026-10-23 安全修复 GHSA-gmg8-593g-7mv3（MEDIUM，OOXML 解析输入校验不足，
+             fix 5.4.0）；同时清偿 dependabot #636（5.2.5 -> 5.5.1）。5.x 线内 API 兼容，
+             本模块只用到 XSSFWorkbook/Sheet/Row/Cell 这层导出 API。 -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
-            <version>5.2.5</version>
+            <version>5.5.1</version>
         </dependency>
         <!-- OpenCSV：CSV 账单导出 -->
         <dependency>

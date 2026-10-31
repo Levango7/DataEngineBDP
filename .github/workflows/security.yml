@@ -297,28 +297,59 @@ jobs:
             fi
           done < <(find platform -name requirements.txt 2>/dev/null)
           # 对使用 pyproject.toml 但无 requirements.txt 的组件
+          # 2026-10-24（台账 #96）：这里原先在组件目录里直接跑无参数的 `pip-audit`，
+          # 那审计的是「当前 Python 环境」——runner 全局的 pip-audit 依赖与 setup-python
+          # 预装的 setuptools，**不是**组件自己的依赖。结果是两头都错：工具链包的 CVE 把
+          # 门禁打红（实测 GHSA-xmj3-9gf7-h52w / setuptools 79.0.1），组件真实依赖漏审反而全绿。
+          # 改为先解析出依赖闭包（--dry-run --report，不安装），再用 -r 审计这份闭包。
           while IFS= read -r f; do
             mod_dir=$(dirname "$f")
             mod_name=$(basename "$mod_dir")
             if [ ! -f "$mod_dir/requirements.txt" ]; then
               audit_json="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json"
               audit_log="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.log"
+              audit_req="$(mktemp)"
+              audit_report="$(mktemp)"
               echo "============================================"
               echo "  pip-audit (pyproject): $mod_name"
               echo "============================================"
               rm -f "$audit_json"
-              if (cd "$mod_dir" && pip-audit --strict --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$audit_json" 2>&1) > "$audit_log" 2>&1; then
-                echo "✓ $mod_name 无已知漏洞"
+              if ! (cd "$mod_dir" && python -m pip install --dry-run --ignore-installed --quiet --report "$audit_report" .) > "$audit_log" 2>&1; then
+                echo "✗ $mod_name 依赖解析失败（未生成审计报告），完整输出（同存于 python-audit-reports/${mod_name}-audit.log）："
+                cat "$audit_log"
+                echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 依赖解析失败、未生成报告——通常是 pyproject 约束互相冲突（pip ResolutionImpossible），不是漏洞，请修版本约束"
+                fail_count=$((fail_count + 1))
+              elif ! python - "$audit_report" "$f" > "$audit_req" <<'PY'
+          import json, sys, tomllib
+
+          report_path, pyproject_path = sys.argv[1], sys.argv[2]
+          with open(pyproject_path, 'rb') as fh:
+              own = ((tomllib.load(fh).get('project') or {}).get('name') or '').lower()
+          with open(report_path, encoding='utf-8') as fh:
+              items = json.load(fh)['install']
+          lines = sorted({i['metadata']['name'] + '==' + i['metadata']['version']
+                          for i in items
+                          if i['metadata']['name'].lower() != own})
+          if not lines:
+              raise SystemExit('依赖闭包为空：拒绝以 0 个包通过')
+          print('\n'.join(lines))
+          PY
+              then
+                echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 依赖闭包为空或报表解析失败——审计失明，不放行"
+                fail_count=$((fail_count + 1))
+              elif (cd "$mod_dir" && pip-audit --strict -r "$audit_req" --ignore-vuln PYSEC-2026-3865 --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3447 --format=json --output="$audit_json" 2>&1) > "$audit_log" 2>&1; then
+                echo "✓ $mod_name 无已知漏洞（审计 $(wc -l < "$audit_req") 个包）"
               else
                 echo "✗ $mod_name pip-audit 失败，完整输出（同存于 python-audit-reports/${mod_name}-audit.log）："
                 if [ -f "$audit_log" ]; then cat "$audit_log"; fi
                 if [ -f "$audit_json" ]; then
                   echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 存在已知漏洞（报告已生成：${mod_name}-audit.json）"
                 else
-                  echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 依赖解析失败、未生成报告——通常是版本约束互相冲突（pip ResolutionImpossible），不是漏洞，请修版本约束"
+                  echo "::error file=platform/${mod_name}/pyproject.toml::$mod_name 审计解析失败、未生成报告——不是漏洞，请修版本约束"
                 fi
                 fail_count=$((fail_count + 1))
               fi
+              rm -f "$audit_req" "$audit_report"
             fi
           done < <(find platform -name pyproject.toml 2>/dev/null)
           if [ "$fail_count" -gt 0 ]; then
@@ -431,7 +462,9 @@ jobs:
           BASE_REGISTRY="$(bash "$GITHUB_WORKSPACE/scripts/pick-base-registry.sh" || true)"
           BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
           export BASE_REGISTRY
-          docker compose up -d --build --wait
+          # 台账 #93：compose 顺带的镜像构建没有兜底，10-23 的 python:3.11-slim TLS 超时
+          # （job 120622656508）与 Maven Central Connection reset（job 120583916887）都红在这一步。
+          bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" docker compose up -d --build --wait || exit $?
           docker compose ps
 
       # T-07: PR/push 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）

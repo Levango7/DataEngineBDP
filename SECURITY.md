@@ -57,5 +57,6 @@
 3. 将运维后台 `ADMIN_TOKEN` 设置为强随机值。
 4. 修改 `values-dev.yaml` 中所有 dev 占位凭据（doris / keycloak / dinky / superset 等），生产使用 `values-prod.yaml` 并接入外部密钥管理。
 5. 启用 NetworkPolicy 与 ResourceQuota 实现租户隔离。
+6. 禁止任何弱默认凭据（如 `admin/admin`、`user/user` 等），测试辅助代码中的硬编码账号仅限集成/安全测试环境，不得泄露到生产配置。
 
 详细步骤见 [部署指南](docs/deployment-guide.md)。

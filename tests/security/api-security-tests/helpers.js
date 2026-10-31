@@ -13,6 +13,8 @@ const assert = require('assert');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:18086';
 const API_PREFIX = '/api/v1';
+// ⚠️ 仅限集成/安全测试环境使用，不得用于生产配置。
+// 参见 SECURITY.md 生产部署安全清单第 6 条：禁止弱默认凭据。
 const ADMIN_USER = { username: 'admin', password: 'admin' };
 const NORMAL_USER = { username: 'user', password: 'user' };
 
