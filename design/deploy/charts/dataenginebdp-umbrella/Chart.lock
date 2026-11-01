@@ -173,9 +173,6 @@ dependencies:
 - name: velero
   repository: file://../velero
   version: 2.0.0
-- name: karmada
-  repository: file://../karmada
-  version: 2.0.0
 - name: knative-serving
   repository: file://../knative-serving
   version: 2.0.0

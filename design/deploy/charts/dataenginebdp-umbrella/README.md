@@ -64,7 +64,7 @@ design/deploy/charts/
 | 大数据引擎 | 禁用 | spark, flink, trino, doris, kafka, zookeeper, hive-metastore, iceberg-rest, seatunnel, flink-cdc, iotdb, elasticsearch, redis, postgresql, minio, nebula-graph, milvus |
 | 调度编排 | 禁用 | airflow, dolphinscheduler, stream-batch-scheduler |
 | 可视化与监控 | 禁用 | superset, grafana, prometheus, loki, tempo, observability |
-| 基础设施 | 禁用 | ske-infra, cni-cilium, csi-juicefs, csi-ceph, metallb, ingress-nginx, apisix, cert-manager, external-secrets, cluster-autoscaler, keda, descheduler, node-problem-detector, metrics-server, velero, karmada, knative-serving, argo-rollouts, reloader |
+| 基础设施 | 禁用 | ske-infra, cni-cilium, csi-juicefs, csi-ceph, metallb, ingress-nginx, apisix, cert-manager, external-secrets, cluster-autoscaler, keda, descheduler, node-problem-detector, metrics-server, velero, knative-serving, argo-rollouts, reloader |
 | 开发工具 | 禁用 | jupyter, vscode-server, theia, mlflow, model-finetuning, chunker |
 | 业务与平台组件 | 禁用 | business-portal, asset-exchange, finance-template, industry-templates, finops, open-api-catalog, registry, storage-io, infra-orchestrator, infra-provider-baremetal, infra-provider-cloud, infra-provider-private, infra-provider-xinchang, dqctl, keycloak |
 

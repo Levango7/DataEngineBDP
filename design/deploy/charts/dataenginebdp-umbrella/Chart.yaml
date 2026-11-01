@@ -261,10 +261,6 @@ dependencies:
     version: "2.0.0"
     repository: "file://../velero"
     condition: velero.enabled
-  - name: karmada
-    version: "2.0.0"
-    repository: "file://../karmada"
-    condition: karmada.enabled
   - name: knative-serving
     version: "2.0.0"
     repository: "file://../knative-serving"

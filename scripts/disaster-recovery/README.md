@@ -1,5 +1,7 @@
 # 多集群灾备方案 - 基于 Velero + Karmada
 
+> ⚠️ **2026-10-30 部分退役注记**：本文档中依赖 **Karmada 控制面**的内容（架构图上半部、跨集群联邦备份、集群健康告警、karmada-host 操作步骤）已随控制面 chart 及全部引用移除而失去可部署路径——主理人 2026-10-23 台账 #90 定案「控制面不做/不装」，2026-10-30 问询复核维持该裁定。**Velero 单集群备份部分仍然有效**，可按本文档正常执行。保留正文作历史设计参考。
+
 ## 架构概览
 
 图：灾备架构图
@@ -88,12 +90,9 @@ helm upgrade --install velero design/deploy/charts/velero \
   --set disasterRecovery.enabled=true \
   --set disasterRecovery.rto=30 \
   --set disasterRecovery.rpo=60
-
-# 部署 Karmada Chart（启用灾备）
-helm upgrade --install karmada design/deploy/charts/karmada \
-  --namespace karmada-system \
-  --set disasterRecovery.enabled=true
 ```
+
+> ⚠️ **2026-10-30 退役注记**：原「部署 Karmada Chart（启用灾备）」一段已移除——Karmada 控制面 chart（`design/deploy/charts/karmada`）与全部引用已于当日退役（主理人 2026-10-23 台账 #90 定案「控制面不做/不装」延续裁定）。本文档的 Velero 单集群备份部分不受影响；涉及 Karmada 控制面的跨集群联邦备份/故障切换内容仅作历史设计参考，不再有可部署路径。相关四服务（karmada-api/failover/federated-query）的处置另案待裁。
 
 ## 使用方法
 

@@ -93,8 +93,6 @@ argo-rollouts:
   enabled: false
 knative-serving:
   enabled: false
-karmada:
-  enabled: false
 velero:
   enabled: false
 chaos-mesh:
