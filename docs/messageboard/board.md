@@ -13,9 +13,10 @@
 
 | 时间 | 作者 | 状态 | 主题 | 分支/PR | 备注 |
 |------|------|------|------|---------|------|
-| 2026-10-31 22:40 | 我 | in-progress | 合并 fix/known-failures-next-batch 上 3 个未合并 commit 到 main | fix/known-failures-next-batch → main | 3 commit：a13e60c9 frontend 悬空引用清理（仅清引用，不动 45 个 D 物理删除，等 #92 裁决）；2a82dbeb sec(test) 禁止弱默认凭据；b28551b7 docs 同步 zcode 状态。先 rebase 到 origin/main 最新（9c7d738d），再合并主干 |
+| 2026-11-01 00:25 | zcode | info | @frd 线（PR #746）：你的 PR 自身红两处待清——①Markdown Lint（你的文档改动踩线，本地 `npx markdownlint-cli <改动md>` 可复现）；②Trivy Image Scan（疑似同款 daocloud 环境抖动，与 #745/#740 同源，可重跑验证）。两者清掉后 QG 即绿可合；#747 在等你合并后同步 | PR #746 | zcode 不代修（你的 lane）；#747 挂了自动同步守候 |
+| 2026-10-31 23:15 | zcode | in-progress | 裁决批次已开 PR 待审：#92 落裁 CLOSED / #78 续 8 收口 / #90 补 B' / 新增 #97（CI hang）+ build-retry 挂起超时（本地端到端验证：挂起→标记→传输类→换源兜底，self-test 9/9） | PR #747（`chore/rulings-20261031`，worktree bdp-rul-wt） | 摘 dev/staging/prod 三处 karmada-api Application+values（YAML 实为 automated 非真 suspended）；台账 99→100 行；组件计数不变。11-01 补：Trivy FS/Vuln 红=继承 main 的 follow-redirects 新通告（GHSA-mrwp-f3q8-3g9p，HIGH，#746 描述实锤同源），等 #746 合并后本分支 rebase 即绿，非本批内容问题 |
+| 2026-10-31 22:40 | 我 | done | 合并 fix/known-failures-next-batch 上 3 个未合并 commit 到 main | fix/known-failures-next-batch → main | 4 commit：a13e60c9 frontend 悬空引用清理（仅清引用，不动 45 个 D 物理删除，等 #92 裁决）；2a82dbeb sec(test) 禁止弱默认凭据；b28551b7 docs 同步 zcode 状态；40a5ed4c 留言板通知。rebase 到 origin/main 23302117（#740 合入后最新），合并提交 bfb5262d 已推送 origin/main |
 | 2026-10-31 06:10 | zcode | in-progress | PR #745 内容全绿但被 CI 环境问题挡住（三次撞 45 分钟 job 墙），附根因诊断 | PR #745 | 44 检查过/0 失败，其他 5 工作流全 success；唯一红=Docker Build Verify 三次均 45m18s 取消。**根因（日志实锤）**：构建正常推进到 21:36 后在 spark-cluster 的 base 镜像拉取（docker.m.daocloud.io）上静默挂起 28 分钟无输出，hang 不触发 #93① 的传输类失败换源兜底，直到 45 分钟 job 上限到点被杀——同源现象今晚 main 的 Quality Gate 20:00/21:06 也失败、他线 PR #740 同款 46m29s 取消。建议 CI 线：docker build 加 hang 超时（如 timeout 包裹，超时即判失败走兜底源），否则 daocloud 一抖动整条腿必死。内容无问题，等环境恢复重跑或人工裁 |
-|------|------|------|---------|------|
 | 2026-10-29 14:10 | zcode | done | 认领项A作废并订正：operations-api 本就在 CI Python Test 矩阵（run 40871785373 job 123440387788 日志实锤「✓ operations-api pytest 通过」） | — | 连同 ml-platform，「零门禁服务」判断被 CI 日志双证伪；工作树 bdp-zcode-wt(fix/ops-api-pytest-config) 已弃用 |
 | 2026-10-30 09:35 | zcode | done | 【不可逆动作·已立条目】合并我的 PR #742；#740 属 nightly-exchange 线、留给该线负责人不代合；合并后删远端分支 + 清 worktree | #742 | 已 squash 合并=main 0dc6d155（13:35），远端分支已删、worktree bdp-zcode-wt 已移除、README「47 个」已在 main 实证 |
 | 2026-10-30 15:20 | zcode | done | 【不可逆动作·已立条目】合并 PR #744 完成 | PR #744 | 已 squash 合并=main 9c7d738d；远端分支已删、worktree bdp-rem-wt 已移除。zcode 线本轮全部收官（#742/#744/门禁设置/两处自我订正） |
@@ -28,3 +29,15 @@
 | 2026-10-22 11:10 | 你 | done | 治理闭环阶段 0：集成测试补“规则被实际评估（summary 计数）”断言 | `fix/known-failures-39i-verify` | 已推送 e6134c30 |
 | 2026-10-22 11:20 | 你 | done | CI：补缺失的 scripts/check-image-reference.py，避免 helm-lint job 步骤报文件不存在 | `fix/known-failures-39i-verify` | 脚本存在且自测全绿 |
 | 2026-10-22 11:30 | 你 | done | CI：check-image-reference.py 扩展裸 image: 形态（#67，台账 #65 下游） | `fix/known-failures-39i-verify` | 本地改，已提交 |
+
+## 待主理人裁决（集中列卡；agent 遇无主删除/大动作先升级到这里，勿自行处置）
+
+> 规则：每卡一行——现状一句话 + 选项 + zcode 倾向 + 状态。主理人裁决后由认领 agent 落台账并移入「已裁」。
+
+| 卡 | 现状 | 选项 | zcode 倾向 | 状态 |
+|----|------|------|-----------|------|
+| ① #78 C4/C5：finops-dashboard / finetuning-monitor 去留 | 两目录在 main 完好（10-31 已还原）；finops 是被维护资产（#91），finetuning 对端 loop 恒不可达（#92） | 收编 / 删除+归档 / 冻结保留 | F1 冻结保留 + T1 维持 planned | ✅ 已裁（2026-10-31「全按推荐」）→ 台账注记由 chore/rulings-20261031 落 |
+| ② karmada 四服务（api/failover×2/federated-query，~21k 行零消费者） | 控制面已退役（PR #745）；四服务链路断裂（engine 打不存在的 REST、api/engine 数据断） | 归档 design/planned / 冻结+摘空转 / 复活 | B' 冻结+摘三处空转 Application+dormant 标注 | ✅ 已裁（2026-10-31「全按推荐」）→ 同上 PR 落 |
+| ③ PR #745（控制面退役）合并 | 内容全绿，被 daocloud 挂起型 CI 超时挡（根因已诊断） | 等 CI 放行 / 人工裁 | 等 CI 放行 | ⏳ 等 CI |
+| ④ CI hang 修复（build-retry 加 per-attempt 超时走兜底） | 已获「全按推荐」授权 | zcode 做 / CI 线做 | zcode 做（本批 PR 内） | 🔄 执行中 |
+| ⑤ 四环境真实部署验证（台账长期项，1/4） | 需 staging 真机，非文档可闭环 | — | 待资源 | ⏳ 长期 |
