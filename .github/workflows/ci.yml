@@ -10,10 +10,19 @@
 name: CI
 
 on:
-  # 推送到任意分支时触发
+  # 推送到 main（或 release/** 发布分支）时触发。
+  # 2026-11-01（台账 #102①）：此前此处是 branches: ['*']，即**任意分支推送都跑全量 27 个作业**。
+  # 但 PR 分支的每次推送本来就会经 pull_request 事件跑同一批作业 ⇒ 一次推送 = 两遍全量 CI，
+  # 而本仓其余 6 个工作流（build/security/codeql/sonarqube/image-sign-sbom/local-e2e）的 push
+  # 触发早已收窄到 main（build.yml 另含 release/**），只有 ci.yml 是异类。
+  # 现对齐到同一口径：feature 分支靠 pull_request 拿门禁结论，main 与 release/** 保留 push 触发。
+  # 实测口径：一个完整 PR 合并周期 = PR 侧 50 作业 + 推 feature 分支 27 + 合并后推 main 52
+  # = 129 作业；收窄后 = 102 作业（按账号吞吐 ≈20 作业/小时，约 6.5 小时 → 5.1 小时）。
+  # 另：feature 分支若**不开 PR** 就没有自动 CI 结论——需要时用 workflow_dispatch 手动触发。
   push:
     branches:
-      - '*'
+      - main
+      - 'release/**'
     tags:
       - 'v*'  # 打标签时自动触发 CI（版本发布门禁）
   # 向 main 分支发起 PR 时触发
