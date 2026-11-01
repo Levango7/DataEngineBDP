@@ -95,7 +95,7 @@
 | 1.7.3 | 公有云部署通过 | CCE/ACK/EKS helm install 成功 | 云原生组 | △ | 需公有云集群实际部署验证，ske/profiles/publiccloud.yaml 已就绪 |
 | 1.7.4 | 私有云部署通过 | VMware/OpenStack helm install 成功 | 云原生组 | △ | 需私有云集群实际部署验证，ske/profiles/privatecloud.yaml 已就绪 |
 | 1.7.5 | 四环境功能验证一致 | 787 用例四环境全通过 | 测试组 | △ | 需四环境实际运行 787 用例验证一致性 |
-| 1.7.6 | 四环境共用同一 Chart | Chart 内容四环境一致 | 云原生组 | ☑ | **静态等价证据已闭环（2026-11-02）**：① `grep -rn "global\.env" design/deploy/` 实测 0 处——chart 模板零引用环境开关，Chart 与环境正交，环境差异全部由 values 表达（原备注所称「global.env 切换 Profile 机制」仅存在于文档，模板与 values 均未消费，已订正）；② `scripts/env-profile-consistency-check.sh`（CI: `.github/workflows/env-profile-gate.yml` gate 步骤，本 PR 落地）对 13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染，本机实测 39/39 全绿，拓扑差异均为 values/env/README.md 明文声明的设计意图（dev 无 HPA/PDB、prod 有）。边界：交付轴四环境 values 骨架尚未落地（台账 #106），交付轴渲染维度待骨架后闭环；真机部署维度仍属 1.7.1-1.7.4 / 台账 #9 |
+| 1.7.6 | 四环境共用同一 Chart | Chart 内容四环境一致 | 云原生组 | ☑ | **静态等价证据已闭环（2026-11-02）**：① `grep -rn "global\.env" design/deploy/` 实测 0 处——chart 模板零引用环境开关，Chart 与环境正交，环境差异全部由 values 表达（原备注所称「global.env 切换 Profile 机制」仅存在于文档，模板与 values 均未消费，已订正）；② `scripts/env-profile-consistency-check.sh`（CI: `.github/workflows/env-profile-gate.yml` gate 步骤，本 PR 落地）对 13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染，本机实测 39/39 全绿（kubeconform v0.6.7 + k8s 1.29.0 standalone-strict schema 经本地镜像复验：148 资源 Valid=148 / Invalid=0 / Errors=0），拓扑差异均为 values/env/README.md 明文声明的设计意图（dev 无 HPA/PDB、prod 有）。注：该门禁在 CI 首跑即实证抓出既有门禁全家盲视的系统性 bug——全部 66 个 chart 的 Ingress 模板输出 `httpPaths`（schema 要求 `paths`，开启 ingress 的 12 个环境渲染在严格校验下判无效），已随本 PR 修复模板与生成器并复验，见台账 #108。边界：交付轴四环境 values 骨架尚未落地（台账 #106），交付轴渲染维度待骨架后闭环；真机部署维度仍属 1.7.1-1.7.4 / 台账 #9 |
 
 ---
 
@@ -398,7 +398,7 @@
 #### 9.3.7 四环境检查（1/6 通过）
 
 - **△ 1.7.1-1.7.5**：全部需实际环境验证（四环境 helm install + 787 用例一致性）
-- **☑ 1.7.6**：静态等价证据已闭环（2026-11-02）——chart 模板零引用 `global.env`（实测 0 处），13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染 39/39 全绿（`scripts/env-profile-consistency-check.sh`，CI 门禁 `.github/workflows/env-profile-gate.yml`）。注：ske/profiles/ 四环境 Profile 双副本（design vs ske）存在 33 处语义漂移，已取证登记台账 #107 待主理人裁决，不影响「共用同一 Chart」结论（漂移在 values/profile 层，非 chart 层）
+- **☑ 1.7.6**：静态等价证据已闭环（2026-11-02）——chart 模板零引用 `global.env`（实测 0 处），13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染 39/39 全绿（`scripts/env-profile-consistency-check.sh`，CI 门禁 `.github/workflows/env-profile-gate.yml`；kubeconform 严格 schema 校验经本地镜像复验零无效资源，该门禁 CI 首跑实证抓出 Ingress `httpPaths` 系统性错键并已修，见台账 #108）。注：ske/profiles/ 四环境 Profile 双副本（design vs ske）存在 33 处语义漂移，已取证登记台账 #107 待主理人裁决，不影响「共用同一 Chart」结论（漂移在 values/profile 层，非 chart 层）
 
 ### 9.4 建议后续行动
 

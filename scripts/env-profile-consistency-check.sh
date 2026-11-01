@@ -321,7 +321,10 @@ for name in $VALUES_CHARTS; do
             "$out" > "$TMPDIR_R/kc.out" 2>&1; then
         # Invalid: N=内容问题（失败）；Invalid: 0=基础设施错误（warn）
         if grep -qE "Invalid: [1-9]" "$TMPDIR_R/kc.out"; then
-          det=$(grep -E "failed validation" "$TMPDIR_R/kc.out" | head -3 | tr '\n' ' ' | cut -c1-220)
+          # v0.6.7 文本输出：违规为 "<path> - <Kind> <name> is invalid: ..."，
+          # 基础设施错误为 "... failed validation: ..."；两者都捞并去掉路径前缀。
+          det=$(grep -E "is invalid|failed validation" "$TMPDIR_R/kc.out" \
+                 | sed 's/^[^ ]* - //' | head -3 | tr '\n' ' ' | cut -c1-220)
           fail "SCHEMA-INVALID $name/$env :: kubeconform 判出无效资源 :: $det"
           echo "  ✗ $name/$env: kubeconform 判出无效资源"
           schema_invalid=$((schema_invalid+1))
