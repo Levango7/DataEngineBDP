@@ -1,4 +1,4 @@
-# 组件成熟度矩阵
+﻿# 组件成熟度矩阵
 
 > 数据引擎大数据平台 `platform/` 全部 **47 个自研组件**（含子模块拆分：governance 3 + finops 3 + karmada 4，矩阵实列 42 条；Java 25 / Go 10 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
 >
@@ -72,9 +72,9 @@
 | model-finetuning | Python 3.11 · FastAPI（PEFT / LLaMA-Factory / DeepSpeed 适配器 + Volcano 调度配置模板） | 骨架（Mock 默认） | `FINETUNE_MOCK_MODE=true` 默认（任务态内存） | 真实微调需 GPU 节点池与训练框架环境 | **降级为规划**：移至 `design/planned/` |
 | registry | Python 3.11 · FastAPI | 骨架（部署假闭环） | 模型 / 部署元数据为内存 dict | DeploymentManager 默认 `mock_mode=True`：不实际启动容器即标记 running 并伪造 endpoint | **降级为规划**：移至 `design/planned/` |
 | industry-templates | Python 3.11 包（金融 / 能源 / 政务等模板元数据 DDL + DAG + Dashboard）+ 8 个行业 Helm Chart 包装 | 骨架（chart+SQL 包） | 不适用（模板资产） | 模板安装落地依赖目标引擎真实可用 | **保留骨架**：模板资产天然骨架 |
-| karmada-api | Go 1.26+ · Gin + GORM | 骨架（策略 CRUD 未接控制面） | SQLite（GORM sqlite driver） | PropagationPolicy CRUD 仅落本地库，未对接 Karmada 控制面实际下发 | **合并降维**：并入 karmada-federation（见 A-14） |
-| karmada-federated-query | Java 17 · Spring Boot 4.1.1（跨集群联邦查询模块） | 骨架（查询编排未接真实多集群） | H2 文件 | 跨集群查询路由与结果归并需真实 Karmada 控制面环境 | **合并降维**：并入 karmada-federation（见 A-14） |
-| karmada-failover | Go 1.26+（含 failover/api + failover/engine 两子模块） | 骨架（故障转移引擎脚手架） | 无持久化（故障转移策略内存态） | 故障检测与切换执行需真实多集群环境验证 | **合并降维**：并入 karmada-federation（见 A-14） |
+| karmada-api | Go 1.26+ · Gin + GORM | 骨架（策略 CRUD 未接控制面） | SQLite（GORM sqlite driver） | PropagationPolicy CRUD 仅落本地库，未对接 Karmada 控制面实际下发 | **合并降维**：并入 karmada-federation（见 A-14） **2026-10-31 主理人裁：冻结保留（dormant）**——摘除三环境 karmada-api Application 与 values（chore/rulings-20261031）；复活条件=①真实多集群功能诉求出现 ②控制面资源决策（台账 #90 定案③的反向） |
+| karmada-federated-query | Java 17 · Spring Boot 4.1.1（跨集群联邦查询模块） | 骨架（查询编排未接真实多集群） | H2 文件 | 跨集群查询路由与结果归并需真实 Karmada 控制面环境 | **合并降维**：并入 karmada-federation（见 A-14） **2026-10-31 主理人裁：冻结保留（dormant）**——摘除三环境 karmada-api Application 与 values（chore/rulings-20261031）；复活条件=①真实多集群功能诉求出现 ②控制面资源决策（台账 #90 定案③的反向） |
+| karmada-failover | Go 1.26+（含 failover/api + failover/engine 两子模块） | 骨架（故障转移引擎脚手架） | 无持久化（故障转移策略内存态） | 故障检测与切换执行需真实多集群环境验证 | **合并降维**：并入 karmada-federation（见 A-14） **2026-10-31 主理人裁：冻结保留（dormant）**——摘除三环境 karmada-api Application 与 values（chore/rulings-20261031）；复活条件=①真实多集群功能诉求出现 ②控制面资源决策（台账 #90 定案③的反向） |
 | knative | 函数运行时模板集（Go/Gin、Java/Spring、Python 三语言 runtime + KafkaSource / CronJobSource / PingSource / KService examples） | 骨架（模板集） | 不适用 | 需要 Knative 就绪集群方可部署验证 | **降级为规划**：移至 `design/planned/` |
 | data-standard | Java 17 · Spring Boot 4.1.1（JPA + 数据标准 CRUD + 分类管理 + JSON Schema 约束） | 骨架（标准 CRUD 骨架） | H2 文件（`./data/data-standard-db`），`DB_URL` 切 PostgreSQL | L3.2 数据标准治理层骨架模块；标准定义 / 分类 / 版本管理已就绪，标准校验与映射待完善 | **保留骨架**：L3.2 层基础骨架，待标准校验引擎接入 |
 | master-data | Java 17 · Spring Boot 4.1.1（JPA + 主数据模型定义 + 主数据记录 CRUD） | 骨架（主数据 CRUD 骨架） | H2 文件（`./data/master-data-db`），`DB_URL` 切 PostgreSQL | L3.6 主数据管理层骨架模块；模型定义 / 记录 CRUD 已就绪，审批流与分发待完善 | **保留骨架**：L3.6 层基础骨架，待主数据审批与分发接入 |
