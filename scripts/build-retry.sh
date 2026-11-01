@@ -34,7 +34,10 @@ set -uo pipefail
 
 # 传输类失败签名。只认这些才换源重试——否则会把"代码写错"也拿去重试一遍，白烧 2 倍时间。
 # BUILD_HANG_TIMEOUT 是 note_hang 写入日志的标记行（挂起超时按传输类处理，见上）。
-TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|BUILD_HANG_TIMEOUT'
+# 2026-10-30（台账 #97①）：Go 模块代理被掐时打的是 HTTP/2 流错误
+# （`stream error: stream ID 235; INTERNAL_ERROR; received from peer`），
+# 与 `TLS handshake timeout` 同族，原先不在表里 ⇒ 被误判成代码/依赖类。
+TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|BUILD_HANG_TIMEOUT|stream error|received from peer|INTERNAL_ERROR'
 FALLBACK="${BASE_REGISTRY_FALLBACK:-docker.io}"
 ACCEL="${BASE_REGISTRY_ACCEL:-docker.m.daocloud.io}"
 HANG_TIMEOUT="${BASE_HANG_TIMEOUT:-600}"
@@ -172,6 +175,7 @@ printf '%s\n' "$@" > "$STUB_ARGS_FILE"
 case "${STUB_MODE:-ok}" in
   ok) echo "BUILD OK"; exit 0 ;;
   transport) echo 'ERROR: failed to do request: Head "https://x/v2/...": net/http: TLS handshake timeout' >&2; exit 1 ;;
+  goproxy) echo 'go: github.com/go-playground/locales@v0.14.1: read "https://proxy.golang.org/github.com/go-playground/locales/@v/v0.14.1.zip": stream error: stream ID 235; INTERNAL_ERROR; received from peer' >&2; exit 1 ;;
   code) echo "ERROR: COPY failed: file not found" >&2; exit 1 ;;
   *) exit 1 ;;
 esac
@@ -200,6 +204,11 @@ STUB
   STUB_ARGS_FILE="$tmp/args" STUB_MODE=transport \
     bash "$0" "$tmp/stub.sh" --build-arg "BASE_REGISTRY=docker.io" 2>/dev/null
   check "当前源已是 docker.io ⇒ 2（不是加速器，不换源）" 2 $?
+
+  # 台账 #97①：Go 模块代理的 HTTP/2 流错误与 TLS 超时同族，必须命中传输类
+  STUB_ARGS_FILE="$tmp/args" STUB_MODE=goproxy \
+    bash "$0" "$tmp/stub.sh" --build-arg "BASE_REGISTRY=docker.m.daocloud.io" 2>/dev/null
+  check "Go 代理流错误且重试仍失败 ⇒ 2（命中传输类）" 2 $?
 
   # 换源确实生效：stub 记录的参数里 BASE_REGISTRY 应变成 docker.io
   STUB_ARGS_FILE="$tmp/args" STUB_MODE=transport \

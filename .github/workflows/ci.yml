@@ -420,6 +420,13 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      # 台账 #97①：Go 模块代理的 HTTP/2 流错误必须被认成传输类，否则一次抖动
+      # 会被判成代码失败、不重试。自测不碰网络、不调 docker，成本可忽略。
+      - name: 自测换源兜底脚本（build-retry / compose-retry）
+        run: |
+          bash scripts/build-retry.sh --self-test
+          bash scripts/compose-retry.sh --self-test
+
       - name: 检查 ske/ske.sh 语法
         run: |
           if [ -f "ske/ske.sh" ]; then
@@ -2013,6 +2020,18 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+
+      # 台账 #100：这条 job 两天内出过两种"容量型"红（46m29s 撞 45 分钟超时、
+      # 13m35s runner 自身 No space left on device 而 steps 全无不失败项）。
+      # 两种红在日志尾部都读不出来，故开头先落一次读数——只读不删：
+      # runner 是组织级共享的，缓存可能属于别的仓，本仓不做 prune。
+      - name: 容量读数（磁盘与 docker 占用，仅诊断不阻断）
+        continue-on-error: true
+        run: |
+          echo "::group::容量读数"
+          df -h / /home 2>&1 || true
+          docker system df 2>&1 || true
+          echo "::endgroup::"
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3

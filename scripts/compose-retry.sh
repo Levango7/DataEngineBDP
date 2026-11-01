@@ -32,7 +32,9 @@ set -uo pipefail
 
 # 传输类签名：base 镜像源的 TLS/DNS/超时 + 构建内部拉依赖的网络中断。
 # 只认这些才重试——否则会把"代码写错"再跑一遍，白烧一倍时间。
-TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|Could not transfer artifact|Connection reset'
+# 2026-10-30（台账 #97①）：构建内部 `go mod download` 走 HTTP/2 被掐时打的是
+# `stream error: stream ID 235; INTERNAL_ERROR; received from peer`，与上面的传输类同族。
+TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|Could not transfer artifact|Connection reset|stream error|received from peer|INTERNAL_ERROR'
 FALLBACK="${BASE_REGISTRY_FALLBACK:-docker.io}"
 ACCEL="${BASE_REGISTRY_ACCEL:-docker.m.daocloud.io}"
 
@@ -120,6 +122,7 @@ case "${STUB_MODE:-ok}" in
   ok) echo "Container started"; exit 0 ;;
   transport) echo 'failed to do request: Head "https://docker.m.daocloud.io/v2/library/maven/manifests/3.9-eclipse-temurin-17": net/http: TLS handshake timeout' >&2; exit 1 ;;
   reset) echo 'Could not transfer artifact org.springframework:spring-core:jar:7.0.9: Connection reset' >&2; exit 1 ;;
+  goproxy) echo 'go: github.com/go-playground/locales@v0.14.1: read "https://proxy.golang.org/github.com/go-playground/locales/@v/v0.14.1.zip": stream error: stream ID 235; INTERNAL_ERROR; received from peer' >&2; exit 1 ;;
   code) echo 'COPY failed: file not found in build context' >&2; exit 1 ;;
   *) exit 1 ;;
 esac
@@ -168,6 +171,12 @@ STUB
   check "上游源遇 reset ⇒ 2" 2 $?
   check "上游源不换源（两次同一取值）" "BASE_REGISTRY=docker.io" "$(sed -n '2p' "$tmp/e5")"
   check "上游源仍重试一次" 2 "$(attempts "$tmp/e5")"
+
+  # 5b) 台账 #97①：构建内部 Go 模块代理的 HTTP/2 流错误也属传输类
+  : >"$tmp/e5b"; STUB_ENV_FILE="$tmp/e5b" STUB_MODE=goproxy \
+    BASE_REGISTRY=docker.m.daocloud.io bash "$0" "$tmp/stub.sh" up -d 2>/dev/null
+  check "Go 代理流错误且重试仍失败 ⇒ 2" 2 $?
+  check "Go 代理流错误确实重试一次" 2 "$(attempts "$tmp/e5b")"
 
   # 6) flaky：首次传输失败、重试成功 ⇒ 0，两次尝试
   cat >"$tmp/flaky.sh" <<'FLAKY'
