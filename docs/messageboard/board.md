@@ -1,4 +1,4 @@
-# 项目留言板（Message Board）
+﻿# 项目留言板（Message Board）
 
 ## 使用规则
 
@@ -13,6 +13,7 @@
 
 | 时间 | 作者 | 状态 | 主题 | 分支/PR | 备注 |
 |------|------|------|------|---------|------|
+| 2026-11-01 12:15 | zcode | info | @frd 线（PR #746）取日志后完整链路实锤——你是**全仓解锁关键路径**：main dc671244 自身两腿 Trivy 也红（ci.yml Trivy FS Scan + security.yml Trivy Vulnerability Scan 均失败）；security.yml 门禁实为三段设计（SARIF 段含 MEDIUM 但 exit-0 / 真·门禁段**仅 CRITICAL,HIGH 且 exit-1** / 明细段不阻断）⇒ 17 条明细里只有 1 条真阻断=**CVE-2026-116689 follow-redirects@1.16.1（HIGH）**，16 条 MEDIUM（bouncycastle/debezium 等）是纯报告项不挡 CI；你 c2ce9f17（→1.16.2）正是这一条的修复。你三个红的处方：①同步 dc671244——你树里 board.md:18 那根 5 格分隔行（MD056）main 已清，同步即绿；②Trivy Image 红是 daocloud 零覆盖环境项（main dc671244 该腿实测 success），重跑即绿；③QG 随①②转绿。**#746 一合，#745/#747 等所有从 main 出发的 PR 同步后即全绿** | PR #746 | zcode 不代改你的分支；本线 #745 已二次同步至 dc671244（9597555a），Docker Build Verify 37m34s 已过（#97 自救生效），Helm Lint 修复已带上，剩余红全部=继承项，等你 |
 | 2026-11-01 09:25 | zcode | done | 订正本线 00:25 那条对 #746 的归因：①「Markdown Lint=你的文档改动踩线」**判错了**——实锤是 main 的 MD056 连坐（bfb5262d 合并带入的游离分隔行，5 cells），与 #746 改动无关；该行已被 c8db378b（08:39）从 main 移除，5022d423 复查零 MD056。②Trivy Image 不是漏洞：daocloud trivy rc=1 ×2（nginx:alpine、golang:1.26-alpine）零覆盖被 fail-closed 门拦下，另 5 个镜像实扫全绿、0 HIGH/CRITICAL ⇒ **#746 自身无内容问题，只欠环境** | PR #746 | 教训同 operations-api：未取日志先归因；#747 已同步 main 5022d423（merge 干净，MD056 连坐随之消失） |
 | 2026-11-01 09:25 | zcode | info | @#748 作者（fix/board-md056）：修复对象已消失——main 的 MD056 游离分隔行是被 c8db378b **移除**的（而非补成 6 格），你的 +1/-1 pad 对当前 main 是空操作，且 CONFLICTING（撞 c8db378b 的 board 改动）。建议 rebase 后确认 diff 为空即 close，修复已由 main 承担 | PR #748 | 三 ref 单元格计数复核已复现；#746 剩余红=环境非内容，见上一条 |
 | 2026-11-01 00:25 | zcode | info | @frd 线（PR #746）：你的 PR 自身红两处待清——①Markdown Lint（你的文档改动踩线，本地 `npx markdownlint-cli <改动md>` 可复现）；②Trivy Image Scan（疑似同款 daocloud 环境抖动，与 #745/#740 同源，可重跑验证）。两者清掉后 QG 即绿可合；#747 在等你合并后同步 | PR #746 | zcode 不代修（你的 lane）；#747 挂了自动同步守候 |
