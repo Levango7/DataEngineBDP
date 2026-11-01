@@ -39,6 +39,17 @@ FALLBACK="${BASE_REGISTRY_FALLBACK:-docker.io}"
 ACCEL="${BASE_REGISTRY_ACCEL:-docker.m.daocloud.io}"
 HANG_TIMEOUT="${BASE_HANG_TIMEOUT:-600}"
 
+# per-attempt 挂起超时命令：GNU coreutils 有 timeout，macOS 的等价物叫 gtimeout，
+# 两者都没有时退化为「不带超时执行」——绝不能因为缺少 timeout 就让整条重试脚本
+# 直接 127 失败（那会被判成代码类失败，反而把兜底路径堵死）。
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(timeout "${HANG_TIMEOUT}")
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(gtimeout "${HANG_TIMEOUT}")
+else
+  TIMEOUT_CMD=()
+fi
+
 log() { echo "[build-retry] $*" >&2; }
 
 # 从参数里取 BASE_REGISTRY 的取值：兼容
@@ -83,13 +94,13 @@ run_once() {
   RUN_LOG_PATH=""
   if [ -n "${BASE_RETRY_LOG:-}" ]; then
     RUN_LOG_PATH="${BASE_RETRY_LOG}.${tag}.log"
-    timeout "${HANG_TIMEOUT}" "$@" >"$RUN_LOG_PATH" 2>&1
+    "${TIMEOUT_CMD[@]+${TIMEOUT_CMD[@]}}" "$@" >"$RUN_LOG_PATH" 2>&1
     RUN_RC=$?
     note_hang "$RUN_LOG_PATH" "$RUN_RC"
     cat "$RUN_LOG_PATH"
   else
     RUN_LOG_PATH="$(mktemp -t build-retry.XXXXXX)"
-    timeout "${HANG_TIMEOUT}" "$@" >"$RUN_LOG_PATH" 2>&1
+    "${TIMEOUT_CMD[@]+${TIMEOUT_CMD[@]}}" "$@" >"$RUN_LOG_PATH" 2>&1
     RUN_RC=$?
     note_hang "$RUN_LOG_PATH" "$RUN_RC"
     cat "$RUN_LOG_PATH"
