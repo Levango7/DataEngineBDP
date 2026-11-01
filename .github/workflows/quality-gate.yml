@@ -6,9 +6,12 @@
 #   1. 不重复执行任何检查，仅聚合既有工作流结果
 #   2. 只统计「触发本次聚合的那个 commit」上的运行（按 head_sha 取数），
 #      该 commit 上仍有前置未完成时记 neutral——不允许在证据不全时自称 success
-#   3. 任一前置失败 → 本检查记 failure；但 Quality Gate 不在分支保护的 required 名单内，
-#      因此它目前是聚合报告而非合并闸门（要真阻断需另行把它加进保护规则）
-#   4. 报告写入 Job Summary + 创建 Check Run
+#   3. 判定逻辑收敛到 scripts/quality-gate-verdict.py（单一事实来源，可本地自测）：
+#      失败/超时 → failure；取消（未出结论）→ 单列一档并仍阻断，处置是重跑而不是改代码；
+#      取数异常/未知结论 → neutral（不冒充通过）；评估对象已被后续提交取代 → 结论作废
+#   4. 本检查已在 main 的 required 名单内（9 项之一，2026-10-29 加入），
+#      且是 Security / CodeQL / SonarQube 的唯一必需代理——它失败即阻断合并
+#   5. 报告写入 Job Summary + 创建 Check Run
 name: Quality Gate
 
 on:
@@ -98,43 +101,109 @@ jobs:
                 }
               } catch (err) {
                 core.warning(`获取 ${wfName} 运行结果失败: ${err.message}`);
-                results[wfName] = { conclusion: 'error', html_url: null, created_at: null };
+                results[wfName] = { conclusion: 'error', status: 'absent', html_url: null, created_at: null };
               }
             }
+            core.info(`前置未完成 ${pendingCount} 个（最终判定以 scripts/quality-gate-verdict.py 为准）`);
 
-            // 判定 Quality Gate 结论
-            // - failure: 任一工作流 failure / cancelled / timed_out
-            // - neutral: 没有失败，但有前置在该 commit 上仍未完成 ⇒ 不许自称通过
-            // - success: 该 commit 上跑过的前置全部 success（未触发的 not_found 不阻断）
-            let overall = 'success';
-            let failCount = 0;
-            for (const [name, info] of Object.entries(results)) {
-              if (info.conclusion === 'failure' || info.conclusion === 'cancelled' || info.conclusion === 'timed_out') {
-                overall = 'failure';
-                failCount++;
+            // 评估上下文：用于判「本次评估的 commit 是否已被后续提交取代」。
+            // 取代关系来自源分支当前 head 与本次评估对应的源分支提交不一致；
+            // 判不准（取不到当前 head / PR 事件缺 pull_requests）时一律不启用，按保守档处理。
+            const wr = context.payload.workflow_run || {};
+            const event = wr.event || 'unknown';
+            const headBranch = wr.head_branch || null;
+            let expectedHeadSha = sha;
+            let stalenessKnown = false;
+            if (event === 'pull_request') {
+              const prHeadSha = (wr.pull_requests && wr.pull_requests[0] && wr.pull_requests[0].head && wr.pull_requests[0].head.sha) || null;
+              if (prHeadSha) {
+                expectedHeadSha = prHeadSha;
+                stalenessKnown = true;
+              }
+            } else if (headBranch) {
+              expectedHeadSha = sha;
+              stalenessKnown = true;
+            }
+            let currentHeadSha = null;
+            if (headBranch) {
+              try {
+                const branch = await github.rest.repos.getBranch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: headBranch
+                });
+                currentHeadSha = branch.data.commit.sha;
+              } catch (err) {
+                core.info(`分支 ${headBranch} 当前 head 取不到（${err.message}）⇒ 不启用陈旧隔离，按保守档处理`);
               }
             }
-            if (overall === 'success' && pendingCount > 0) {
-              overall = 'neutral';
-              core.info(`${pendingCount} 个前置工作流在该 commit 上尚未出结论 ⇒ 记 neutral，不冒充 success`);
-            }
+            const evaluation = {
+              head_sha: sha,
+              event: event,
+              head_branch: headBranch,
+              expected_head_sha: expectedHeadSha,
+              current_head_sha: currentHeadSha,
+              staleness_known: stalenessKnown
+            };
+            core.setOutput('evaluation_json', JSON.stringify(evaluation));
+            core.info(`评估上下文: ${JSON.stringify(evaluation)}`);
 
-            core.setOutput('overall', overall);
-            core.setOutput('fail_count', failCount);
-            core.setOutput('pending_count', pendingCount);
-            core.setOutput('head_sha', sha);
             core.setOutput('results_json', JSON.stringify(results));
-            core.info(`Quality Gate 结论: ${overall}（失败 ${failCount} 个、未完成 ${pendingCount} 个，head_sha=${sha}）`);
+
+      - name: 准备 Python（判据脚本运行环境）
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 判定 Quality Gate 结论（判据单一事实来源）
+        # 判据全部落在 scripts/quality-gate-verdict.py，本地可自测：
+        #   python3 scripts/quality-gate-verdict.py --self-test
+        # 台账 #99 选项③④（取消单列、判据口径入档）/ #103（取数异常不许盖绿章）。
+        id: verdict
+        env:
+          QUALITY_GATE_RESULTS: ${{ steps.workflow_results.outputs.results_json }}
+          QUALITY_GATE_EVALUATION: ${{ steps.workflow_results.outputs.evaluation_json }}
+        run: |
+          set -euo pipefail
+          python3 scripts/quality-gate-verdict.py >> "$GITHUB_OUTPUT"
+          grep -E '^(overall|fail_count|failed_count|cancelled_count|stale_count|pending_count|unknown_count|stale|reasons)=' "$GITHUB_OUTPUT" || true
 
       - name: 生成 Quality Gate 报告
         uses: actions/github-script@v7
+        env:
+          QUALITY_GATE_RESULTS: ${{ steps.workflow_results.outputs.results_json }}
+          QUALITY_GATE_OVERALL: ${{ steps.verdict.outputs.overall }}
+          QUALITY_GATE_FAIL_COUNT: ${{ steps.verdict.outputs.fail_count }}
+          QUALITY_GATE_FAILED_COUNT: ${{ steps.verdict.outputs.failed_count }}
+          QUALITY_GATE_CANCELLED_COUNT: ${{ steps.verdict.outputs.cancelled_count }}
+          QUALITY_GATE_STALE_COUNT: ${{ steps.verdict.outputs.stale_count }}
+          QUALITY_GATE_PENDING_COUNT: ${{ steps.verdict.outputs.pending_count }}
+          QUALITY_GATE_UNKNOWN_COUNT: ${{ steps.verdict.outputs.unknown_count }}
+          QUALITY_GATE_STALE: ${{ steps.verdict.outputs.stale }}
+          QUALITY_GATE_REASONS: ${{ steps.verdict.outputs.reasons }}
+          QUALITY_GATE_HEAD_SHA: ${{ steps.verdict.outputs.head_sha }}
+          QUALITY_GATE_BUCKETS: ${{ steps.verdict.outputs.buckets_json }}
         with:
           script: |
-            const results = JSON.parse('${{ steps.workflow_results.outputs.results_json }}');
-            const overall = '${{ steps.workflow_results.outputs.overall }}';
-            const failCount = '${{ steps.workflow_results.outputs.fail_count }}';
-            const pendingCount = '${{ steps.workflow_results.outputs.pending_count }}';
-            const headSha = '${{ steps.workflow_results.outputs.head_sha }}';
+            const results = JSON.parse(process.env.QUALITY_GATE_RESULTS);
+            const overall = process.env.QUALITY_GATE_OVERALL;
+            const failCount = Number(process.env.QUALITY_GATE_FAIL_COUNT || 0);
+            const failedCount = Number(process.env.QUALITY_GATE_FAILED_COUNT || 0);
+            const cancelledCount = Number(process.env.QUALITY_GATE_CANCELLED_COUNT || 0);
+            const staleCount = Number(process.env.QUALITY_GATE_STALE_COUNT || 0);
+            const pendingCount = Number(process.env.QUALITY_GATE_PENDING_COUNT || 0);
+            const unknownCount = Number(process.env.QUALITY_GATE_UNKNOWN_COUNT || 0);
+            const isStale = process.env.QUALITY_GATE_STALE === 'true';
+            const reasons = process.env.QUALITY_GATE_REASONS || '';
+            const headSha = process.env.QUALITY_GATE_HEAD_SHA || '';
+            const buckets = JSON.parse(process.env.QUALITY_GATE_BUCKETS || '{}');
+
+            const bucketOf = (name) => {
+              for (const [bucket, names] of Object.entries(buckets)) {
+                if (names.includes(name)) { return bucket; }
+              }
+              return 'ok';
+            };
 
             // 写入 Job Summary
             const summary = core.summary;
@@ -142,32 +211,52 @@ jobs:
             const verdict = overall === 'success' ? '✅ 通过' : (overall === 'neutral' ? '⚠️ 未完成（不冒充通过）' : '❌ 失败');
             summary.addRaw(`**整体结论**: ${verdict}\n\n`);
             summary.addRaw(`**评估对象**: \`head_sha=${headSha}\`（只统计该 commit 上的运行）\n\n`);
-            summary.addRaw(`**失败工作流数**: ${failCount}；**未完成数**: ${pendingCount}\n\n`);
+            summary.addRaw(`**判定依据**: ${reasons}\n\n`);
+            summary.addRaw(`**失败**: ${failedCount} 个（已出结论且失败）｜**取消**: ${cancelledCount} 个（未出结论，处置是重跑而不是改代码）｜**未完成**: ${pendingCount} 个｜**取数异常/未知结论**: ${unknownCount} 个｜**因提交被取代而作废**: ${staleCount} 个\n\n`);
             summary.addRaw('### 前置工作流结果\n\n');
-            summary.addRaw('| 工作流 | 结论 | 运行时间 | 链接 |\n');
-            summary.addRaw('|--------|------|---------|------|\n');
+            summary.addRaw('| 工作流 | 结论 | 分类 | 运行时间 | 链接 |\n');
+            summary.addRaw('|--------|------|------|---------|------|\n');
             for (const [name, info] of Object.entries(results)) {
+              const bucket = bucketOf(name);
               const emoji = info.conclusion === 'success' ? '✅' :
                             info.conclusion === 'failure' ? '❌' :
-                            info.conclusion === 'not_found' ? '⬜' : '⚠️';
+                            info.conclusion === 'cancelled' ? '⛔' :
+                            info.conclusion === 'not_found' ? '⬜' :
+                            info.conclusion === 'error' ? '❓' : '⚠️';
+              const bucketLabel = {
+                failed: '失败', cancelled: '取消（未出结论）', pending: '未完成',
+                unknown: '取数异常/未知', ok: '通过'
+              }[bucket] || bucket;
               const link = info.html_url ? `[查看](${info.html_url})` : 'N/A';
-              summary.addRaw(`| ${name} | ${emoji} ${info.conclusion} | ${info.created_at || 'N/A'} | ${link} |\n`);
+              summary.addRaw(`| ${name} | ${emoji} ${info.conclusion} | ${bucketLabel} | ${info.created_at || 'N/A'} | ${link} |\n`);
             }
             summary.addRaw('\n### 门禁策略\n\n');
             summary.addRaw('- CI（ci.yml）：代码检查 + 单元测试 + 覆盖率门禁 + 趋势阻断 + 基线一致性\n');
             summary.addRaw('- Security（security.yml）：Trivy + govulncheck + pip-audit + OWASP + ZAP + Semgrep\n');
             summary.addRaw('- CodeQL：代码语义级 SAST 静态分析\n');
             summary.addRaw('- SonarQube Analysis：代码质量 + 安全 hotspot\n');
-            summary.addRaw('\n> 口径如实说明：本检查**不在分支保护的 required 名单内**（required 为 Java/Frontend/Go/Python Test + Analyze×4），\n');
-            summary.addRaw('> 因此它是聚合报告，不构成合并阻断；需要真阻断得把它加进保护规则，那是另一个决定。\n');
+            summary.addRaw('\n> 口径如实说明：本检查**在** main 分支保护的 required 名单内（9 项之一：Java / Frontend / Go / Python Test + Analyze×4 + 本检查），\n');
+            summary.addRaw('> 且 Security / CodeQL / SonarQube 三者**不在** required 名单内——本检查是它们唯一的必需代理，因此它失败即阻断合并。\n');
+            if (isStale) {
+              summary.addRaw('> 本次评估的提交已被后续提交取代，结论作废（不冒充通过也不冒充失败）；请以最新提交上的结论为准。\n');
+            }
             await summary.write();
 
       - name: 设置 GitHub Status Check
         uses: actions/github-script@v7
+        env:
+          QUALITY_GATE_OVERALL: ${{ steps.verdict.outputs.overall }}
+          QUALITY_GATE_FAIL_COUNT: ${{ steps.verdict.outputs.fail_count }}
+          QUALITY_GATE_FAILED_COUNT: ${{ steps.verdict.outputs.failed_count }}
+          QUALITY_GATE_CANCELLED_COUNT: ${{ steps.verdict.outputs.cancelled_count }}
+          QUALITY_GATE_REASONS: ${{ steps.verdict.outputs.reasons }}
         with:
           script: |
-            const overall = '${{ steps.workflow_results.outputs.overall }}';
-            const failCount = '${{ steps.workflow_results.outputs.fail_count }}';
+            const overall = process.env.QUALITY_GATE_OVERALL;
+            const failCount = Number(process.env.QUALITY_GATE_FAIL_COUNT || 0);
+            const failedCount = Number(process.env.QUALITY_GATE_FAILED_COUNT || 0);
+            const cancelledCount = Number(process.env.QUALITY_GATE_CANCELLED_COUNT || 0);
+            const reasons = process.env.QUALITY_GATE_REASONS || '';
 
             // 创建 Check Run（在对应 commit 上设置状态）
             const { data: check } = await github.rest.checks.create({
@@ -178,18 +267,23 @@ jobs:
               status: 'completed',
               conclusion: overall,
               output: {
-                title: overall === 'success' ? 'Quality Gate Passed' : `Quality Gate Failed (${failCount} workflows)`,
+                title: overall === 'success' ? 'Quality Gate Passed'
+                      : (overall === 'neutral' ? `Quality Gate Inconclusive (${reasons})`
+                      : `Quality Gate Failed (${failedCount} failed / ${cancelledCount} cancelled)`),
                 summary: overall === 'success'
                   ? '✅ 所有前置工作流通过'
-                  : `❌ ${failCount} 个前置工作流失败，详见 Job Summary`
+                  : (overall === 'neutral'
+                      ? `⚠️ 未完成，不冒充通过：${reasons}`
+                      : `❌ ${failCount} 个前置工作流未通过（失败 ${failedCount}、取消 ${cancelledCount}），详见 Job Summary。取消＝未出结论，处置动作是重跑，不是改代码。`)
               }
             });
 
             core.info(`Check Run 创建成功: ${check.html_url}`);
 
       - name: 阻断 CI（如有工作流失败）
-        if: steps.workflow_results.outputs.overall == 'failure'
+        if: steps.verdict.outputs.overall == 'failure'
         run: |
-          echo "::error::Quality Gate 失败：${{ steps.workflow_results.outputs.fail_count }} 个前置工作流未通过"
+          echo "::error::Quality Gate 失败：${{ steps.verdict.outputs.fail_count }} 个前置工作流未通过"
           echo "请查看上方报告定位失败的工作流，修复后重新触发"
+          echo "::notice::取消（cancelled）＝未出结论，不是代码失败：若失败项里有取消项，处置动作是重跑该次运行，而不是改代码"
           exit 1
