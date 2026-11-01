@@ -270,6 +270,12 @@ finops:
 open-api-catalog:
   enabled: false  # 开放API目录
   # 详细配置见 design/deploy/charts/open-api-catalog/values.yaml
+dashboard:
+  enabled: false  # FinOps 成本看板（cost-model 依赖），与 finops 骨架分离
+  # 详细配置见 design/deploy/charts/dashboard/values.yaml
+cost-model:
+  enabled: false  # FinOps 成本模型（计量采集/定价与成本测算）
+  # 详细配置见 design/deploy/charts/cost-model/values.yaml
 registry:
   enabled: false  # 镜像与制品仓库
   # 详细配置见 design/deploy/charts/registry/values.yaml

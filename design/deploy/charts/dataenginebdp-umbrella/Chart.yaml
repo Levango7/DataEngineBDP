@@ -323,6 +323,14 @@ dependencies:
     version: "2.0.0"
     repository: "file://../finops"
     condition: finops.enabled
+  - name: dashboard
+    version: "2.0.0"
+    repository: "file://../dashboard"
+    condition: dashboard.enabled
+  - name: cost-model
+    version: "2.0.0"
+    repository: "file://../cost-model"
+    condition: cost-model.enabled
   - name: open-api-catalog
     version: "2.0.0"
     repository: "file://../open-api-catalog"
