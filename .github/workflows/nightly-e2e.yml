@@ -4,11 +4,15 @@
 # 说明：本地无法验证 GitHub Actions 运行时行为，首次 schedule/手动触发需人工观察日志
 #
 # T-03: PR 触发策略
-#   - pull_request 触发时仅运行 7 个稳定 spec（STABLE_SPECS），快速反馈不阻断
-#   - schedule/workflow_dispatch（夜间）运行全量 28 个 spec（含 flaky）
-#   - 稳定/flaky 分类依据：基础流程（auth/navigation/api-format/i18n/view-smoke）
-#     与轻量页面（search/standards）为稳定；涉及复杂数据加载/实时流/性能/多集群
-#     的 21 个 spec 标记为 flaky，仅夜间全量运行
+#   - pull_request 触发时仅运行 STABLE_SPECS 列出的稳定 spec，快速反馈不阻断
+#   - schedule/workflow_dispatch（夜间）运行全量（= `tests/e2e` 下所有 *.spec.ts，
+#     与 playwright.config.ts 的 testDir/testMatch 同口径，不写死数量）
+#   - 稳定/flaky 分类依据：基础流程（auth/navigation/api-format/i18n-switch/view-smoke）
+#     与轻量页面（search/standards）为稳定；涉及复杂数据加载/实时流/性能/多集群的标为 flaky
+#   - 2026-11-02 现查：这段原先写死「全量 28 个 / 21 个 flaky」，而目录下实有 53 个
+#     spec（`find frontend/tests/e2e -name '*.spec.ts' | wc -l`）⇒ 计数改成运行时自己数，
+#     因为门禁的覆盖面声明一旦小于实际，读它的人会以为剩下那批没人跑（与 #86/#102 同型的
+#     "读数说假话"，只是发生在注释里）。
 name: Nightly E2E
 
 on:
@@ -106,17 +110,20 @@ jobs:
         # webServer 由 playwright.config.ts 托管（npm run dev -> 127.0.0.1:5173）；
         # 测试失败非零退出 -> 本 job 失败（正式门禁，无 continue-on-error）
         #
-        # T-03: PR 触发时仅运行 7 个稳定 spec（快速反馈），夜间/手动触发运行全量 28 个 spec
+        # T-03: PR 触发时仅运行 STABLE_SPECS 列出的稳定 spec（快速反馈），夜间/手动触发运行全量
         # 稳定 spec 选取依据：基础流程 + 轻量页面，不依赖复杂数据加载/实时流/性能
         env:
-          # 7 个稳定 spec（非 @flaky）：auth, navigation, view-smoke, i18n-switch, api-format, search, standards
+          # 稳定 spec（非 @flaky）：auth, navigation, view-smoke, i18n-switch, api-format, search, standards
           STABLE_SPECS: "tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/view-smoke.spec.ts tests/e2e/i18n-switch.spec.ts tests/e2e/api-format.spec.ts tests/e2e/search.spec.ts tests/e2e/standards.spec.ts"
         run: |
+          # 数量一律现算，不再写死（写死的计数会与目录失同步，见文件头 2026-11-02 注记）
+          spec_total=$(find tests/e2e -name '*.spec.ts' | wc -l | tr -d ' ')
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "▶ PR 触发：仅运行 7 个稳定 spec（STABLE_SPECS）"
+            set -- $STABLE_SPECS
+            echo "▶ PR 触发：仅运行 $# 个稳定 spec（STABLE_SPECS；目录全量 ${spec_total} 个）"
             npx playwright test $STABLE_SPECS
           else
-            echo "▶ 夜间/手动触发：运行全量 28 个 spec（含 flaky）"
+            echo "▶ 夜间/手动触发：运行全量 ${spec_total} 个 spec（含 flaky）"
             npx playwright test
           fi
 
