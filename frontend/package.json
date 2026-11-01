@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "finops-dashboard",
-    "finetuning-monitor"
+    "finops-dashboard"
   ],
   "scripts": {
     "dev": "vite",
@@ -23,10 +22,9 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
-    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace finetuning-monitor",
+    "build:all": "npm run build && npm run build --workspace finops-dashboard",
     "dev:finops": "npm run dev --workspace finops-dashboard",
-    "dev:finetuning": "npm run dev --workspace finetuning-monitor",
-    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace finetuning-monitor",
+    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
