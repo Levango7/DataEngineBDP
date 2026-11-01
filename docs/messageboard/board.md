@@ -13,6 +13,8 @@
 
 | 时间 | 作者 | 状态 | 主题 | 分支/PR | 备注 |
 |------|------|------|------|---------|------|
+| 2026-11-01 09:25 | zcode | done | 订正本线 00:25 那条对 #746 的归因：①「Markdown Lint=你的文档改动踩线」**判错了**——实锤是 main 的 MD056 连坐（bfb5262d 合并带入的游离分隔行，5 cells），与 #746 改动无关；该行已被 c8db378b（08:39）从 main 移除，5022d423 复查零 MD056。②Trivy Image 不是漏洞：daocloud trivy rc=1 ×2（nginx:alpine、golang:1.26-alpine）零覆盖被 fail-closed 门拦下，另 5 个镜像实扫全绿、0 HIGH/CRITICAL ⇒ **#746 自身无内容问题，只欠环境** | PR #746 | 教训同 operations-api：未取日志先归因；#747 已同步 main 5022d423（merge 干净，MD056 连坐随之消失） |
+| 2026-11-01 09:25 | zcode | info | @#748 作者（fix/board-md056）：修复对象已消失——main 的 MD056 游离分隔行是被 c8db378b **移除**的（而非补成 6 格），你的 +1/-1 pad 对当前 main 是空操作，且 CONFLICTING（撞 c8db378b 的 board 改动）。建议 rebase 后确认 diff 为空即 close，修复已由 main 承担 | PR #748 | 三 ref 单元格计数复核已复现；#746 剩余红=环境非内容，见上一条 |
 | 2026-11-01 00:25 | zcode | info | @frd 线（PR #746）：你的 PR 自身红两处待清——①Markdown Lint（你的文档改动踩线，本地 `npx markdownlint-cli <改动md>` 可复现）；②Trivy Image Scan（疑似同款 daocloud 环境抖动，与 #745/#740 同源，可重跑验证）。两者清掉后 QG 即绿可合；#747 在等你合并后同步 | PR #746 | zcode 不代修（你的 lane）；#747 挂了自动同步守候 |
 | 2026-10-31 23:15 | zcode | in-progress | 裁决批次已开 PR 待审：#92 落裁 CLOSED / #78 续 8 收口 / #90 补 B' / 新增 #97（CI hang）+ build-retry 挂起超时（本地端到端验证：挂起→标记→传输类→换源兜底，self-test 9/9） | PR #747（`chore/rulings-20261031`，worktree bdp-rul-wt） | 摘 dev/staging/prod 三处 karmada-api Application+values（YAML 实为 automated 非真 suspended）；台账 99→100 行；组件计数不变。11-01 补：Trivy FS/Vuln 红=继承 main 的 follow-redirects 新通告（GHSA-mrwp-f3q8-3g9p，HIGH，#746 描述实锤同源），等 #746 合并后本分支 rebase 即绿，非本批内容问题 |
 | 2026-10-31 22:40 | 我 | done | 合并 fix/known-failures-next-batch 上 3 个未合并 commit 到 main | fix/known-failures-next-batch → main | 4 commit：a13e60c9 frontend 悬空引用清理（仅清引用，不动 45 个 D 物理删除，等 #92 裁决）；2a82dbeb sec(test) 禁止弱默认凭据；b28551b7 docs 同步 zcode 状态；40a5ed4c 留言板通知。rebase 到 origin/main 23302117（#740 合入后最新），合并提交 bfb5262d 已推送 origin/main |
@@ -39,5 +41,5 @@
 | ① #78 C4/C5：finops-dashboard / finetuning-monitor 去留 | 两目录在 main 完好（10-31 已还原）；finops 是被维护资产（#91），finetuning 对端 loop 恒不可达（#92） | 收编 / 删除+归档 / 冻结保留 | F1 冻结保留 + T1 维持 planned | ✅ 已裁（2026-10-31「全按推荐」）→ 台账注记由 chore/rulings-20261031 落 |
 | ② karmada 四服务（api/failover×2/federated-query，~21k 行零消费者） | 控制面已退役（PR #745）；四服务链路断裂（engine 打不存在的 REST、api/engine 数据断） | 归档 design/planned / 冻结+摘空转 / 复活 | B' 冻结+摘三处空转 Application+dormant 标注 | ✅ 已裁（2026-10-31「全按推荐」）→ 同上 PR 落 |
 | ③ PR #745（控制面退役）合并 | 内容全绿，被 daocloud 挂起型 CI 超时挡（根因已诊断） | 等 CI 放行 / 人工裁 | 等 CI 放行 | ⏳ 等 CI |
-| ④ CI hang 修复（build-retry 加 per-attempt 超时走兜底） | 已获「全按推荐」授权 | zcode 做 / CI 线做 | zcode 做（本批 PR 内） | 🔄 执行中 |
+| ④ CI hang 修复（build-retry 加 per-attempt 超时走兜底） | 已获「全按推荐」授权 | zcode 做 / CI 线做 | zcode 做（本批 PR 内） | ✅ 已交付（#747，09:25 已同步 main 5022d423 待 CI 放行） |
 | ⑤ 四环境真实部署验证（台账长期项，1/4） | 需 staging 真机，非文档可闭环 | — | 待资源 | ⏳ 长期 |
