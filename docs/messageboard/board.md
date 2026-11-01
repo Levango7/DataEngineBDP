@@ -41,8 +41,8 @@
 
 | 卡 | 现状 | 选项 | zcode 倾向 | 状态 |
 |----|------|------|-----------|------|
-| ① #78 C4/C5：finops-dashboard / finetuning-monitor 去留 | 两目录在 main 完好（10-31 已还原）；finops 是被维护资产（#91），finetuning 对端 loop 恒不可达（#92） | 收编 / 删除+归档 / 冻结保留 | F1 冻结保留 + T1 维持 planned | ✅ 已裁（2026-10-31「全按推荐」）→ 台账注记由 chore/rulings-20261031 落 |
-| ② karmada 四服务（api/failover×2/federated-query，~21k 行零消费者） | 控制面已退役（PR #745）；四服务链路断裂（engine 打不存在的 REST、api/engine 数据断） | 归档 design/planned / 冻结+摘空转 / 复活 | B' 冻结+摘三处空转 Application+dormant 标注 | ✅ 已裁（2026-10-31「全按推荐」）→ 同上 PR 落 |
-| ③ PR #745（控制面退役）合并 | 内容全绿，被 CI 挡。**2026-11-01 实测纠正根因**：红项是 `Trivy Vulnerability Scan` 的「依赖门禁（仅 CRITICAL/HIGH 阻断）」——即继承 main 的 `follow-redirects` 1.16.1 HIGH（`CVE-2026-116689`），daocloud 挂起型超时是**另一条**（Docker Build Verify）且已被 #747 的 build-retry 挂起超时覆盖 | 等 #746 合入后 rebase（自动转绿）/ 人工裁 | 等 #746 | ⏳ 等 #746 |
-| ④ CI hang 修复（build-retry 加 per-attempt 超时走兜底） | 已获「全按推荐」授权 | zcode 做 / CI 线做 | zcode 做（本批 PR 内） | ✅ 已交付（#747，09:25 已同步 main 5022d423 待 CI 放行） |
+| ① #78 C4/C5：finops-dashboard / finetuning-monitor 去留 | 两目录在 main 完好（10-31 已还原）；finops 是被维护资产（#91），finetuning 对端 loop 恒不可达（#92） | 收编 / 删除+归档 / 冻结保留 | F1 冻结保留 + T1 维持 planned | ✅ 已裁并落账（2026-10-31「全按推荐」；台账注记随 #747 合入 main `cc046002`） |
+| ② karmada 四服务（api/failover×2/federated-query，~21k 行零消费者） | 控制面已退役（PR #745）；四服务链路断裂（engine 打不存在的 REST、api/engine 数据断） | 归档 design/planned / 冻结+摘空转 / 复活 | B' 冻结+摘三处空转 Application+dormant 标注 | ✅ 已裁并落账（2026-10-31「全按推荐」；三处空转 Application 随 #747 摘除、控制面 chart 随 #745 退役，均已合入 main） |
+| ③ PR #745（控制面退役）合并 | 内容全绿，被 CI 挡。**2026-11-01 实测纠正根因**：红项是 `Trivy Vulnerability Scan` 的「依赖门禁（仅 CRITICAL/HIGH 阻断）」——即继承 main 的 `follow-redirects` 1.16.1 HIGH（`CVE-2026-116689`），daocloud 挂起型超时是**另一条**（Docker Build Verify）且已被 #747 的 build-retry 挂起超时覆盖 | 等 #746 合入后 rebase（自动转绿）/ 人工裁 | 等 #746 | ✅ 已合并（#745 → main `0418f079`；阻塞根因 follow-redirects HIGH 已由 #746 消除） |
+| ④ CI hang 修复（build-retry 加 per-attempt 超时走兜底） | 已获「全按推荐」授权 | zcode 做 / CI 线做 | zcode 做（本批 PR 内） | ✅ 已交付并合并（#747 → main `cc046002`；合并后另加 timeout 优雅降级，本地自测 10/10 PASS） |
 | ⑤ 四环境真实部署验证（台账长期项，1/4） | 需 staging 真机，非文档可闭环 | — | 待资源 | ⏳ 长期 |
