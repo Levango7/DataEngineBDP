@@ -24,6 +24,10 @@
         <flink.cdc.version>3.0.1</flink.cdc.version>
         <iceberg.version>1.12.0</iceberg.version>
         <flink.scope>provided</flink.scope>
+        <!-- 2026-11-01 安全修复：MySQL 驱动抬到通告 GHSA-m6vm-37g8-gqvh 的修复版本
+             （受影响区间 com.mysql:mysql-connector-j < 8.2.0；旧坐标
+             mysql:mysql-connector-java <= 8.0.33 在上游无修复版本，只能迁坐标） -->
+        <mysql.connector.version>8.2.0</mysql.connector.version>
     </properties>
 
     <dependencies>
@@ -118,11 +122,29 @@
             <groupId>com.ververica</groupId>
             <artifactId>flink-connector-mysql-cdc</artifactId>
             <version>${flink.cdc.version}</version>
+            <exclusions>
+                <!-- 2026-11-01 安全修复：Debezium 1.9.8 传递引入
+                     mysql:mysql-connector-java:8.0.28（旧坐标，落在 GHSA-m6vm-37g8-gqvh
+                     的受影响区间 `mysql:mysql-connector-java <= 8.0.33`，该区间无修复版本）
+                     ⇒ 排除，改由下方显式声明的 com.mysql:mysql-connector-j:8.2.0 承担。 -->
+                <exclusion>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.ververica</groupId>
             <artifactId>flink-cdc-base</artifactId>
             <version>${flink.cdc.version}</version>
+        </dependency>
+
+        <!-- 2026-11-01 安全修复：排除 Debezium 链上的旧坐标驱动后，由本模块显式提供
+             修复版驱动（GHSA-m6vm-37g8-gqvh 的修复版本 8.2.0，新坐标） -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>${mysql.connector.version}</version>
         </dependency>
 
         <!-- ============ Iceberg Core & API（REST Catalog 事件解析） ============ -->
