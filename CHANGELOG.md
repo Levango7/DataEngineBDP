@@ -7,9 +7,11 @@
 ## [Unreleased]
 
 ### Added
+
 - **AutoBatch 归并**（2026-09-04 落地，commit `03c9129f`）：外部原型仓库 `Levango7/AutoBatch` 的五阶段批处理流水线引擎迁入 `platform/batch-pipeline`，形成平台第 46 个自研组件——python/polars/spark × local_csv/parquet/iceberg 正交引擎矩阵、8 类数据质量规则执行（DQ Score + 坏行隔离）、高水位 / Iceberg snapshot diff 增量、断点续跑、OpenLineage 血缘（经 lineage-analyzer 落平台）、批次台账；FastAPI 提交/查询壳按 `AUTH_MODE=jwt` 与租户上下文接入，工件路径按 `run/<tenant>/<batch>/` 分区。规则管理仍归 rule-engine（新增 `BatchPipelineRuleAdapter` 桥接，本组件保留行级求值执行）；平台 DAG 编排走 stream-batch-scheduler `BATCH_PIPELINE` TaskChannel。CI 加独立 job `batch-pipeline-test`（依赖重、需 MinIO service，不进通用矩阵）。源仓库已归档（readme 横幅 + tag `v-final`）、不再接受功能变更。登记与审计日志见 `docs/MERGE-LOG-autobatch.md`。
 
 ### Changed
+
 - **2026-10 维护期批次（事后补记）**：本段为 2026-10-29 补记——2026-10-01 至 10-29 的合并批次此前未入 CHANGELOG（停更于 08-29），依据 `git log` 合并记录补齐。维护模式（2026-10-03 起）下以治理、安全与清偿为主，能力类合入均为例外审批项。分组：
   - **依赖治理**：Flink CDC 3.0.1 → 3.6.0-1.20（坐标迁移 `com.ververica` → `org.apache.flink`，#737）；mlflow 3.17.2 ×3 模块 + happy-dom 21.0.4（#736，清 GHSA-834v-8h66-3h79 HIGH）；poi-ooxml 5.5.1 + scikit-learn 1.5.0（#727）；Dependabot 版本更新通道按生态收回（limit=0，#724）并清偿 30 条告警欠账（#726：修 6 个包 + 13 条限期豁免）。
   - **安全加固**：基座 brotli-libs 升级 + 两条基座限期豁免（#735，#74 第三次复发按先例清红）；MySQL CDC 显式关闭危险 JDBC 属性加固 CVE-2023-1419（#738）；前端依赖 bump（#716）；构建层补 base 镜像源兜底、传输类失败自动换源重试一次（#729/#725，台账 #93①③）；运行基镜切 alpine 后健康检查改 busybox wget、addgroup/adduser 适配（6 个 alpine 服务）。
@@ -18,6 +20,7 @@
   - **口径事实订正（同批）**：`encaps-shared-model` 2026-10-13 抽出（commit `d23e00f5`）后，模块数口径链按实测更新——自研组件数 46→47（Java 25 / Go 10 / Python 12）、矩阵实列 41→42、platform/ 目录数 38→39；Helm Chart 88→101、集成测试 61→62（910 用例）、前端视图 72→83。唯一事实来源见 [模块数口径定义](docs/模块数口径定义.md)（升 v1.1）。
 
 ### Fixed
+
 - **R19 审查修复**（commit `199dff42`）：修复22个问题——① 文档版本号一致性（HEAD记录/§16.4.2版本号/文档版本标注）；② 13个动画时长token化 + 全局@keyframes dotBreath补充；③ 后端export防OOM重构 + IoTDB/Flink状态码修正 + escapeCsv/escapeJson转义补全
 - **R20 审查修复**（commit `42e07959`）：修复14个问题——① 产品原型版本号一致性（第5行逻辑矛盾+14处v0.5标注→v0.4+§16.2 v0.6→v0.5）；② CHANGELOG补充R19记录+ROADMAP HEAD更新；③ main.css品牌点颜色跳变修复（@keyframes dotBreathGreen）+Login.vue/Register.vue暗色硬编码token化；④ SearchController export防OOM分页查询+search方法合并+exportLimit可配置化+IoTDBClient连接超时应用+FlinkController死代码注释
 - **R21 审查修复**（commit `fd4c0d8a`）：修复4个问题——① PROJECT-ROADMAP HEAD更新为42e07959（R20 commit）；② CHANGELOG补充R20审查修复记录；③ SearchController删除likeSearch/likeSearchTotal死代码；④ SearchController import顺序调整
@@ -25,19 +28,23 @@
 ## [2.1.0-RC] - 2026-08-29（遗留项收尾批次）
 
 ### Security
+
 - **AUTH_MODE 生产 fail-fast 化**：jwt_auth.py 七副本在 K8s 环境（KUBERNETES_SERVICE_HOST）且 AUTH_MODE **未显式设置**时拒绝启动（防生产匿名 admin）；显式 `AUTH_MODE=none`（本地/测试）仍放行。配套：6 个 Python 服务 chart（llmops/ml-platform/knowledge-engine/nl2sql/open-api-catalog/asset-exchange）values 新增 `auth` 段（生产默认 `authMode: jwt`）+ deployment 注入 `AUTH_MODE`/`JWT_SECRET`（secretKeyRef，默认引用 `shuqing-jwt-secret` 的 `jwt-secret` 键），helm 渲染验证通过
 
 ### Fixed
+
 - **错误码 snake_case 全量迁移**（偏差表 #2 解决）：QuotaExceeded→`quota_exceeded`、Conflict→`conflict`、ROLE_NOT_FOUND→`role_not_found`、AGENT_NOT_FOUND→`agent_not_found`、TOOL_NOT_FOUND→`tool_not_found`、RULE_NOT_FOUND→`rule_not_found`、UNSUPPORTED_RULE_TYPE→`unsupported_rule_type`；api-reference 错误码表同步
 - **vector-engine 可插拔 embedding**（偏差表 #6 解决）：新增 `internal/embedding` 包——配置 `VECTOR_EMBEDDING_API`（可选 KEY/MODEL）即真实语义检索（OpenAI 兼容，15s 超时/4MB 上限/错误显式化）；未配置降级为 n-gram 特征向量（256 维，替代旧 8 维字符哈希），GlobalSearch 响应改为 `{mode, results}`（`semantic`/`hash-fallback`），调用方可提示"语义检索未启用"
 - **偏差表核查**：#3（CORS 中间件）、#4（open-api-catalog 管理端鉴权）、#5（nl2sql schema 端点 requireAdmin）确认已于历史批次修复，更新偏差表为"已解决"
 
 ### Test
+
 - vector-engine 新增：embedding 单元测试 5 用例（相似性/距离/HTTP mock/非2xx/降级工厂）+ GlobalSearch 契约测试 3 用例
 - jwt_auth 测试更新为 fail-fast 断言（K8s 未显式 → RuntimeError；显式 none 放行）
 - 前端 vitest 全量 22 文件 197 测试通过（串行模式验证，并行模式在本机 jsdom 环境初始化慢，非代码问题）
 
 ### Docs
+
 - 新增 `design/deploy/JWT鉴权配置指南.md`：AUTH_MODE fail-fast 配套的 Secret 创建（shuqing-jwt-secret）、三种鉴权模式、部署后验证、常见问题（CrashLoopBackOff/全 401/本地起不来）；部署手册关联行同步
 - 遗留改动核查（flink-cdc debezium 降级、SecurityConfig AutoConfiguration 顺序）：已于提交 058c16c2 解决——Debezium 3.x 移除 DatabaseHistory API 而 Flink CDC 3.0.1 依赖 1.9.7，降级为正确修复；@AutoConfiguration(before=...) 修复默认安全配置抢占，均无需回滚
 - 新增 `design/deploy/向量检索embedding联调指南.md`：vector-engine 语义检索启用（OpenAI 兼容端点、OpenAI/百炼/混元/Ollama 对接示例、维度一致性、排障）；vector-engine chart 新增 `embedding` 配置段（api/model/apiKeySecretName），helm 渲染验证通过（默认降级 / 配置后注入 Secret）
@@ -45,10 +52,12 @@
 ## [2.1.0-RC] - 2026-08-29（交付前审计修复批次）
 
 ### Security
+
 - **P0 修复：sql-gateway 跨源查询租户越权**（审计发现，未登记偏差表）：`/api/v1/sql/cross-source` 与 `/cross-source/explain` 的 tenantId 原直接取自请求体并透传 Trino/Doris（X-Trino-User），现改为 JWT claim 优先，body 携带值与 claim 不一致返回 403（新增 `TenantMismatchException`，`resolveCrossSourceTenant` 裁决），无认证上下文（单测/内部调用）回退 body 兼容历史行为；CONVENTIONS §9.8 偏差表 #7 登记并解决
 - **jwt_auth.py 七副本 K8s 环境告警**：KUBERNETES_SERVICE_HOST 存在且 AUTH_MODE 未显式设置时打印显著高危告警（进程内一次）；文件头注释"四处副本"修正为"七处"
 
 ### Fixed
+
 - **sql-gateway 跨源失败 HTTP 语义**（偏差表 #1 解决）：`CrossSourceException` 按错误码映射 HTTP 状态（PARSE_ERROR/UNSUPPORTED→400、SOURCE_NOT_FOUND→404、RESULT_TOO_LARGE→413、QUERY_TIMEOUT→504、QUERY_FAILED/MERGE_ERROR→502、INTERNAL→500），body 保留 `status=FAILED` 结构兼容旧 SDK；api-reference 4.11 同步
 - **前端错误提示增强**：client.ts 增加 502/504/413 友好文案，服务端 `error` 字段优先展示
 - **前端 emoji 功能图标清零**（P0 规则）：Develop.vue（📁📄→Folder/Document 图标）、Gateway.vue 与 ErrorBoundary.vue（⚠️→WarningFilled 图标）
@@ -58,15 +67,18 @@
 - **前端覆盖率统计范围扩大**：vitest coverage include 从 12 个文件扩大至 API 层全部 + stores/composables + 20+ 核心视图（去白名单化），CI 保持非阻断报告
 
 ### Corrected
+
 - README 口径更新：Helm Chart 87→88（86 骨架说法过时）、.vue 66→78（当前 72，视图页面精简）、集成测试 14 文件 89 方法→61 文件 331 用例、单元测试 6000+→6200+（Java 3950/Go 677/Python 1611 实测）（2026-09-01 更新：6830，Java 4022/Go 686/Python 1936/前端 187）
 - .gitignore 增加根目录 `data/` 规则（防本地 H2 库文件误提交）
 - 新增审计交付物：`docs/审计报告-2026-08-29.md`（全仓只读审计 + 修复记录）
 
 ## [2.1.0-RC] - 2026-08-27
 
+<!-- markdownlint-disable MD024 —— 本节是「进行中」工作区，同级小标题（Fixed/Corrected/Changed/Added）按设计重复 -->
 ### v2.1.0 进行中 — 行业生态扩展与生产化加固
 
 #### Security
+
 - **P0 baremetal 登录漏洞**：修复任意凭据可获取 admin JWT 的完整鉴权绕过；新增 CredentialConfig（SHA256 哈希生产模式/明文+DEV开关开发模式），常量时间比较，启动 fail-fast（fix/security-audit-hardening）
 - **Python 四服务统一 JWT 鉴权**：llmops/ml-platform/nl2sql/evaluation 接入 MIRRORED jwt_auth.py（纯 stdlib HS256），AUTH_MODE=jwt 生产强制、none 本地放行；evaluation 的死代码 validate_security 替换为真实中间件
 - **vector-engine 默认开鉴权**：secure-by-default，仅显式 VECTOR_AUTH_REQUIRED=false 放行并告警
@@ -76,6 +88,7 @@
 - **Phase A 安全止血**（2×P0+10 组 P1）：knowledge-engine 无鉴权 nGQL 执行+注入+会话竞态修复并接入 jwt_auth；前端 AI 助手 token 存储错位修复；baremetal 登录移出 JWT 组解除认证死锁；vector-engine 健康检查免鉴权消除探针重启循环；ai-assistant 补认证中间件+租户 claim 裁决；karmada failover 检测窗口改时间戳判定+迁移去重重新武装；llm-gateway SSE 按 rune 切分修复中文乱码；observability 租户 PromQL 过滤改 AST 选择器注入修复聚合恒空；open-api-catalog invoke 强制 AK+SK 常量时间校验+secretKey 出参脱敏；evaluation 评测异步化+mock 兜底默认关闭；model-finetuning 版本 key 错位+fd 泄漏修复；jwt_auth.py 镜像扩至六处
 
 #### Fixed
+
 - **Phase B 功能正确性**：FinOps 执行分账按钮错绑修复；useSearch/useApi 请求序号守卫消除旧响应覆盖；DevMl/DevSched/EngFlink/EngSpark 补工作空间切换重载；401 并发单飞去重；llmops/ml-platform/industry-templates/registry/model-finetuning 五服务 async 阻塞改造（to_thread 卸载）；ml-platform /evaluate 从恒 400 修复可用；registry 模型存在性校验生效；model-finetuning 日志有界读取+嵌套 event loop+非幂等 POST 重试收紧
 - **Phase D 安全加固**：asset-exchange/nl2sql/model-finetuning CORS 中间件+测试；open-api-catalog JWT 鉴权扩展+管理端鉴权；encaps-layer JwtAuthFilter 适配；mlflow 适配器 store/trainer/monitor/deployer 增强；MultiTenantIsolationTest 改为仓库层直测+SecurityMockMvc 配置；nightly E2E 流水线
 - **审核修复**：清理 245ae0fe 误入库的临时调试脚本（.codeartsdoer/tmp/）；补 .gitignore 规则（.codeartsdoer/tmp/、frontend/vitest-*.txt、frontend/run-vitest.ps1）
@@ -83,12 +96,14 @@
 - **Phase C 状态码与规范**：vector-engine 内部错误 400→500、校验错误归位 400；karmada 三处创建接口按错误类型映射（409 仅唯一冲突/500 内部）；open-api-catalog invoke 认证失败返回真实 HTTP 401；encaps-layer 八处创建端点 200→201（响应体不变）；行业模板假运营数据（installCount/rating）清理；APIMarket mock 兜底遮错改真实错误态+重试；审批 store 失败不再静默保留假数据；api-reference.md 升 V2.2 勘误（鉴权矩阵/nl2sql 整章/OpenAPI 附录实况化等 11 项）；CONVENTIONS §9 接口规范基线+现存偏差登记表
 
 #### Corrected
+
 - **V2.0.0 定级勘误**：`releases/v2.0.0/` 新增 ERRATUM.md 正式勘误公告，v2.0.0 的 GA 定级修订为 RC（候选版本）；逐条更正 release-notes.md 中与 ga-checklist.md 矛盾的表述——四环境部署验证实际为 0/6 通过（待实际环境验证）、787 用例与性能基线未经四环境实测、覆盖率未达 85%（门禁后经调整至实际值之下）；明确 V2.0 真实定位（骨架与文档交付为主体、核心链路可用、AI 层为演示模式）；release-notes.md 与 ga-checklist.md 历史原文保留不改
 
 #### Fixed
+
 - **第三轮检索驱动的容器安全加固**：18 个以 root 运行的 Dockerfile 全部非 root 化（Python slim×12+Go alpine×5+Java temurin-alpine×1）——统一模式为安装阶段保持 root、运行段创建系统用户 app、COPY --chown 交接文件、chown /app 保数据可写（SQLite 落盘服务）、USER app 紧邻 CMD/ENTRYPOINT；knative/runtimes/{go,java} 因 runtime 段已是 distroless :nonroot 镜像（内置 uid 65532 且无 shell 无法建户）按约束豁免；federated-query 运行时为 temurin-jre-alpine 正确适配 busybox addgroup -S 工具链。同轮良性排除：前端 v-html 均经 DOMPurify 净化、定时器/监听器注册-清理差集为空、requests 无 timeout 与 goroutine 裸启动均误报、shell=True 经 shlex.join 防注入、open() 长句柄带 noqa 有意设计
 - **第二轮检索驱动的 5 项修复**：chart-render-check.sh 硬编码作者 WSL 绝对路径改为脚本相对定位（$(dirname "$0")/..，兼容任意调用 cwd）；catalog JWT_SIGNING_KEY 兑现"至少 32 字节"注释承诺——补 len<32 启动 fail-fast（全仓密钥值核算：test 39/local 48/env ≥32/CI smoke 33 字符，零破坏）；loki-values Grafana adminPassword 与 alertmanager SMTP 密码的字面量占位符统一 REPLACE_WITH_* 显式化并修正失实注释；catalog chart values.yaml 注释中引用不存在的 catalog-values.yaml 修正为真实 env 路径
-- **审核驱动的 7 项缺陷修复**（方案经子代理逐项审核修订后执行）：local-up.sh ArgoCD valueFiles 相对路径补齐 4 级上溯（原 2 级解析到 design/deploy/deploy/... 不存在路径）；nightly arm64 冒烟移除 buildx 多余第二 context（标准 buildx 报 requires exactly 1 argument）；catalog chart jwtSigningKey 弱默认值改空串激活 secret.yaml required fail-fast，local/dev/staging/prod 四套 values 显式补 ≥32 字符键，chart-render-check.sh 对 catalog 与 umbrella 注入 smoke 占位值保 CI 渲染门禁不破；open-api-catalog _save_metric_sync 三条 DML 包裹 BEGIN IMMEDIATE 显式事务且 _metrics_buffer.append 移至 COMMIT 后消除 DB/buffer 不一致窗口；catalog 两测试文件删除过时 //go:build !nocgo 标签（驱动已切纯 Go glebarez）；_generate_charts.py 补覆盖写危险警示（docstring + main 入口 stderr 双重）；values-local-core.yaml 删除 umbrella 不存在的 encaps-tenant 无效键
+- **审核驱动的 7 项缺陷修复**（方案经子代理逐项审核修订后执行）：local-up.sh ArgoCD valueFiles 相对路径补齐 4 级上溯（原 2 级解析到 design/deploy/deploy/... 不存在路径）；nightly arm64 冒烟移除 buildx 多余第二 context（标准 buildx 报 requires exactly 1 argument）；catalog chart jwtSigningKey 弱默认值改空串激活 secret.yaml required fail-fast，local/dev/staging/prod 四套 values 显式补 ≥32 字符键，chart-render-check.sh 对 catalog 与 umbrella 注入 smoke 占位值保 CI 渲染门禁不破；open-api-catalog `_save_metric_sync` 三条 DML 包裹 BEGIN IMMEDIATE 显式事务且 `_metrics_buffer.append` 移至 COMMIT 后消除 DB/buffer 不一致窗口；catalog 两测试文件删除过时 //go:build !nocgo 标签（驱动已切纯 Go glebarez）；_generate_charts.py 补覆盖写危险警示（docstring + main 入口 stderr 双重）；values-local-core.yaml 删除 umbrella 不存在的 encaps-tenant 无效键
 - **catalog 容器化三连修**：sqlite 驱动切纯 Go glebarez（CGO_ENABLED=0 镜像可正常启动，兼修 arm64）；chart 补 emptyDir 数据卷+CATALOG_DB 指向；显式覆盖 K8s 同名 Service 注入的 CATALOG_PORT 环境变量；新增 auth Secret 注入 JWT_SIGNING_KEY
 - **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
 - **P0/P1 修复批次——Dockerfile HEALTHCHECK**：17 个应用 Dockerfile 添加 HEALTHCHECK 指令（start-period=30s/interval=10s/timeout=5s/retries=3）；逐应用端点映射——Java 用 /actuator/health、tag-engine 用 /health、karmada Go 用 /api/v1/health 或 /healthz、open-api-catalog 用 /api/v1/health；alpine 镜像（governance/infra/karmada-federated-query）用 wget --spider -q，非 alpine 用 curl -f；dqctl CLI 工具不加 HEALTHCHECK
@@ -100,13 +115,16 @@
 - **P0/P1 修复批次——encaps-layer K8s Client**：引入 fabric8 Kubernetes Client 6.13.4 依赖，新建 K8sClientService（namespace/pod/service/configmap CRUD + 健康检查 + in-cluster/kubeconfig 双模式）和 K8sController（REST API 暴露 K8s 操作），application.yml 添加 K8s 连接配置；Maven 编译验证通过
 
 #### Corrected
+
 - **P0/P1 修复批次——文档勘误**：FINAL-DELIVERY-SUMMARY.md 降级 GA 100%→RC（候选版本），修正"886测试0失败"为含已知失败用例表述；PROJECT-AUDIT-REPORT.md 评分 96/100→72/100（反映真实完成度 40~50%）；ROADMAP.md HPA 覆盖数 82→67（实际 Chart 数）、v2.0.0 GA→RC 定级修正；README.md "全通过"→"含已知失败"、"GA 就绪"→"RC 就绪"；component-maturity.md 确认无需修改（无 82/HPA 字样）
 - **P0/P1 修复批次——RC Checklist 本地验证**：rc-checklist.md 执行本地可验证项并标记结果——✅ 通过 15 项（版本基线 5 项 + Helm lint 88/88 通过 + 文档交付物 4 项 + 已知限制披露 5 项）、❌ 失败 2 项（4.3 frontend/Dockerfile 缺 USER 非指令、6.4 升级指南未覆盖 V2.0→V2.1）、⏳ 待外部环境 23 项（CI/CD 流水线 + 功能验收 + 安全扫描 + 云部署）；本地可判定项通过率 88.2%（15/17）
 
 #### Changed
+
 - **配置中心 Apollo → Nacos**（ADR-001 §3 决策执行）：归档 charts/apollo（10 文件 −706 行）；新建 charts/nacos（6 文件——Chart.yaml/values.yaml/templates/{_helpers.tpl,statefulset.yaml,service.yaml}/README.md），standalone 模式默认（Derby 内嵌 DB 零外部依赖）、非 root 运行（uid=1000）、资源配额 0.2C/512Mi~1C/1Gi、存活/就绪探针齐备、鉴权 fail-fast 强制注入 tokenSecretKey（≥32 字符 Base64）；_validate_charts.py 引用更新；ADR-001 §3 决策从"维持 Apollo"改为"选 Nacos"（主流优先原则：Nacos 作为 SCA 生态入口 + Apache 顶级项目更主流，兼容性全绿 Boot 3.2/Java 17/K8s/多语言 ENV）
 
 #### Added
+
 - **K8s 安全策略模板全量推广**（P0 等保三级合规）：新建 namespace-security Chart（ResourceQuota + LimitRange 命名空间级配额管控）；81 个应用 Chart 添加 NetworkPolicy（deny-all 入站 + allow-same-namespace + 允许所有出站）+ ServiceMonitor（Prometheus 指标采集）条件模板，默认 enabled: false 向后兼容；批量推广脚本 _apply_security_templates.py 幂等可复用；helm lint 88/88 通过；5 个结构特殊 Chart 中 3 个已补全（argo-rollouts 补 fullname/labels/selectorLabels helper + NP/SM 模板、iceberg-compaction 补 selectorLabels + NP/SM 模板、nacos 适配 service.ports.http + NP/SM 模板），剩余 2 个（chaos-mesh/finance-template）因无 service.port 暂跳过
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）
@@ -116,6 +134,7 @@
 - **前端Monorepo统一**：6个dashboard统一为npm workspace，依赖版本对齐，open-api-dashboard配置格式统一（c3f2468c）
 
 #### Changed
+
 - **ROADMAP更新**：v1.1/v1.2/v2.1进展项标记完成
 - **前后端接线**：24个API模块全部接通后端
 - **覆盖率门禁调整**：Java 50%/40%→35%/15%，Go 70%→35%，Python 75%→55%，设为略低于实际覆盖率确保CI可通过（f7b5a0e4）
@@ -123,6 +142,7 @@
 - **Go版本统一**：3个模块go.mod从1.26统一为1.25.0，.golangci.yml版本与go.mod对齐
 
 #### Fixed
+
 - **K8s翻译边界**：createNamespace空/非法校验（add2030）
 - **前端状态残留**：工作空间切换watch重载（add2030）
 - **开发环境**：vite bind 127.0.0.1修复IPv6问题、Windows原生启动脚本、RestTemplate超时修复
@@ -137,6 +157,8 @@
 - **套餐命名修复**：operations/main.py中basic→base（违反CONVENTIONS.md规范）
 - **CI cache修复**：cache-dependency-path补充缺失的knative/runtimes/go/go.sum
 - **catalog/.golangci.yml修复**：删除重复的fmt.Fprintf行
+
+<!-- markdownlint-enable MD024 -->
 
 ## [2.0.0] - 2026-08-08
 
@@ -247,4 +269,3 @@
 [Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.1.0-RC...HEAD
 [2.0.0]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0
-
