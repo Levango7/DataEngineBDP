@@ -84,7 +84,8 @@
                  · bouncycastle 1.75/1.78.1 -> 1.85
                    CVE-2025-14813 / CVE-2026-8763 (CRITICAL) / CVE-2026-13506 (HIGH)
                    1.85 与 encaps-layer 既有版本一致，jdk18on 同分支 minor 升级，风险低。
-                 · lz4-java 1.8.0 -> 1.8.1（CVE-2025-12183，patch 级） -->
+                 · lz4-java 1.8.0 -> 1.8.1（CVE-2025-12183，patch 级）
+                   —— 2026-11-01 复核后口径已改，见下方 lz4 处的专项说明 -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk18on</artifactId>
@@ -95,6 +96,25 @@
                 <artifactId>bcpkix-jdk18on</artifactId>
                 <version>1.86</version>
             </dependency>
+            <!-- 2026-11-01 复核：这条 pin **承重，不能删**；而 dependabot 对它的两条
+                 HIGH 告警属**坐标口径误报**（不是「可接受风险」，见台账 #105 的口径登记）。
+                 事实（均为本机全反应堆实测，非推断）：
+                 ① `org.lz4:lz4-java:1.8.1` 在上游是 Sonatype 与 LZ4 维护者联合发布的
+                    **relocation 存根 pom**（`distributionManagement/relocation` → `at.yawk.lz4`）
+                    ⇒ Maven 解析时直接改道到 fork 坐标。pin 在时全反应堆依赖树里
+                    **org.lz4 零命中**，只有 `at.yawk.lz4:lz4-java:1.12.0`
+                    （高于该 fork 的修复版本 1.11.4 ⇒ 不受影响）；
+                    CI 产出的 CycloneDX SBOM（run 41288127859 / artifact 13075713333）
+                    同样只有 at.yawk 1.12.0。dependabot 按坐标字符串判、不解析 relocation
+                    ⇒ 通告 GHSA-mcr4-qmvw-px4g / GHSA-cmp6-m4wj-q63q（受影响区间
+                    `org.lz4:lz4-java >= 1.7.0, <= 1.8.1`）在本仓**不成立**。
+                 ② 但 pin 绝不能删：删掉后 flink-cdc / real-time-governance-pipeline /
+                    stream-batch-scheduler 三个模块（scope=provided，来自 Flink 依赖链）
+                    会解析到真实的 `org.lz4:lz4-java:1.8.0`
+                    （CVE-2025-12183 受影响版本）——本批实测删 pin 后依赖树立刻出现这 3 条。
+                 ⇒ 结论：保留 pin 到 1.8.1，并在此写明事实，防止后人再按「死 pin」误删。
+                 注：同一文件下面的 at.yawk.lz4 pin 同样承重，且它解析到的版本 1.12.0
+                 已高于该 fork 的修复版本 1.11.4 ⇒ 那一条本就不受通告影响。 -->
             <dependency>
                 <groupId>org.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
