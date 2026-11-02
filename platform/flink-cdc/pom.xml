@@ -24,7 +24,7 @@
         <flink.cdc.version>3.6.0-1.20</flink.cdc.version>
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
         <debezium.version>1.9.7.Final</debezium.version>
-        <mysql.connector.version>8.0.33</mysql.connector.version>
+        <mysql.connector.version>8.2.0</mysql.connector.version>
         <!-- 2026-09-24 安全修复：CVE-2026-42198（HIGH），42.7.3 -> 42.7.11
              2026-09-26 再抬：CVE-2026-54513/54515（HIGH），42.7.11 -> 42.7.13。
              对齐 Spring Boot 4.1.1 BOM 已托管的 42.7.13 —— 其余 19 个模块不写版本、
@@ -100,6 +100,20 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-mysql-cdc</artifactId>
             <version>${flink.cdc.version}</version>
+            <exclusions>
+                <!-- 2026-11-01 安全修复：Debezium 1.9.8 会传递引入
+                     mysql:mysql-connector-java:8.0.28（旧坐标；本地仓库 pom 实测
+                     该版本**不带** relocation 元数据、而 8.0.33 才带 ⇒ Maven 不会自动改写
+                     旧坐标，8.0.28 会原样进入 classpath），
+                     它落在 GHSA-m6vm-37g8-gqvh 的受影响区间
+                     （`mysql:mysql-connector-java <= 8.0.33` 无修复版本）。
+                     排除后由本模块显式声明的 com.mysql:mysql-connector-j:8.2.0 唯一承担，
+                     同时消除「8.0.28 与 8.2.0 两个驱动同 classpath」的版本冲突。 -->
+                <exclusion>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- PostgreSQL CDC Source 连接器：基于 Logical Replication Slot 读取 WAL -->
         <dependency>
@@ -133,9 +147,18 @@
         </dependency>
 
         <!-- ============ MySQL Connector ============ -->
+        <!-- 2026-11-01 安全修复：抬到 8.2.0 并改用反向 DNS 新坐标。
+             旧坐标 mysql:mysql-connector-java:8.0.33 已被 Maven 自动 relocated 到
+             com.mysql:mysql-connector-j:8.0.33（Oracle 在 8.0.33 后迁移坐标），而通告
+             GHSA-m6vm-37g8-gqvh（MySQL Connectors takeover vulnerability）的受影响区间是
+             `com.mysql:mysql-connector-j < 8.2.0`、修复版本 **8.2.0** ⇒ 旧坐标写法即便
+             relocation 到新坐标，版本仍落在受影响区间内。
+             旧坐标 `mysql:mysql-connector-java <= 8.0.33` 在上游**无修复版本**（坐标已改名），
+             故只能迁移坐标 + 抬版本，不能原地升版。
+             本机实测（离线依赖树）：改前解析为 com.mysql:mysql-connector-j:8.0.33（compile）。 -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.connector.version}</version>
         </dependency>
 

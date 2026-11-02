@@ -24,8 +24,20 @@
 #   2) 本地用新版本跑 `black <模块>` / `isort <模块>` 对齐格式；
 #   3) 复跑 CI 的 python-lint 命令确认全绿后再合并。
 #   只改版本不对齐格式 = 全量重排红灯。
+#
+# 2026-11-01 升版 black 26.5.1 → 26.10.1（安全通告驱动，零格式重排）：
+#   · 通告：GHSA-cg8m-r9f2-5wm2（"Black: GitHub Action installs unvalidated
+#     required-version from pyproject.toml"），GitHub Advisory Database 记的受影响
+#     包是 **pip 包 black**，区间 `< 26.10.1`、修复版本 `26.10.1`；本仓的 black 正是
+#     以 pip 形式从本文件安装（工作流未使用 psf/black action，已全文检索确认），
+#     故抬到 26.10.1 即为修复版本本身。
+#   · 本仓实跑（隔离安装 black 26.10.1 后，从仓库根执行 CI 同口径命令）：
+#     `black --check platform` ⇒ **624 files would be left unchanged**，即新版本对
+#     现有代码**零重排**——符合本文件「升版必须成对对齐格式」的前置要求，
+#     不会像 2026-09-24 那次（black 24+ 补切片空格）造成全量重排红灯。
+#   · 其余四个工具（isort / flake8 / pylint / mypy）版本未动，判据不变。
 # ============================================================
-black==26.5.1
+black==26.10.1
 isort==9.0.1
 flake8==7.4.1
 mypy==2.3.1
