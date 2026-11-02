@@ -1,0 +1,85 @@
+# ============================================================================
+# env-profile-gate.yml — 四环境 Profile 一致性门禁（纯模拟层闭环）
+# ----------------------------------------------------------------------------
+# 动机：releases/v2.0.0/ga-checklist.md 1.7.6「四环境共用同一 Chart」此前
+# 无证据（△）。本 workflow 把不用真机也能钉死的部分钉进 CI：
+#
+#   gate 步骤（阻断）
+#     - 13 个核心 chart 在 dev/staging/prod 三套真实 values 下全部渲染成功
+#     - 渲染产物经 kubeconform 校验，判出无效资源即失败
+#     - design/deploy/values/env/{dev,staging,prod} 三套 13 组件 values 齐全
+#     （以上均为「零改动即可判定」的事实，与 chart-render-check.sh 同口径）
+#
+#   audit 步骤（advisory，continue-on-error，不阻断）
+#     - 四环境交付轴 Profile 与 SKE 副本的语义漂移（5 环境 33 处，其中
+#       信创 TLCP 仅存在于 design 副本——SKE 发行版层拿不到国密传输差异）
+#     - docs/环境验证状态.md 声称的 values 骨架目录实际不存在（台账 #106）
+#     内容级不一致的裁决属于主理人，本步骤只保证可见性。
+#
+# 交付轴四环境（信创/公有云/私有云）的真机验证仍由台账 #9 跟踪，本
+# workflow 不替代、不重定义其口径。
+#
+# kubeconform 与 nightly-e2e.yml 同版本（v0.6.7）；helm 与 ci.yml
+# helm-lint 同版本（v3.16.4）。
+# ============================================================================
+name: 四环境 Profile 一致性门禁
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/env-profile-consistency-check.sh'
+      - '.github/workflows/env-profile-gate.yml'
+      - 'design/deploy/charts/**'
+      - 'design/deploy/values/**'
+      - 'design/deploy/profiles/**'
+      - 'ske/profiles/**'
+  pull_request:
+    paths:
+      - 'scripts/env-profile-consistency-check.sh'
+      - '.github/workflows/env-profile-gate.yml'
+      - 'design/deploy/charts/**'
+      - 'design/deploy/values/**'
+      - 'design/deploy/profiles/**'
+      - 'ske/profiles/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: env-profile-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  env-profile-gate:
+    name: 四环境 Profile 一致性
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Helm（固定 v3.16.4，与 ci.yml helm-lint 一致）
+        uses: azure/setup-helm@v5
+        with:
+          version: 'v3.16.4'
+
+      - name: 安装 Python + PyYAML
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: 安装 kubeconform（v0.6.7，与 nightly-e2e.yml 一致）
+        run: |
+          curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      - name: 安装 PyYAML
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: gate 模式（渲染 + schema + 已落地 values 齐全性，阻断）
+        run: bash scripts/env-profile-consistency-check.sh gate
+
+      - name: audit 模式（双副本漂移 + 文档承诺兑现，advisory 不阻断）
+        continue-on-error: true
+        if: always()
+        run: bash scripts/env-profile-consistency-check.sh audit
