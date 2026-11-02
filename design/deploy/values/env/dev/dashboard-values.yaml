@@ -1,0 +1,52 @@
+# ============================================================================
+# dashboard · dev 环境 values（umbrella 依赖条目：dashboard.enabled）
+# 覆盖：design/deploy/charts/dashboard/values.yaml
+# 策略：单副本 · H2 内存库 · 无HPA/PDB/NetworkPolicy · 默认启用
+# ============================================================================
+
+dashboard:
+  enabled: true
+
+  image:
+    repository: "ghcr.io/levango7/sq-dashboard"
+    tag: "latest"
+    pullPolicy: Always
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  hpa:
+    enabled: false
+
+  podDisruptionBudget:
+    enabled: false
+
+  networkPolicy:
+    enabled: false
+
+  serviceMonitor:
+    enabled: false
+
+  env:
+    SERVER_PORT: "8085"
+    LOG_LEVEL: debug
+    JAVA_OPTS: "-Xms128m -Xmx256m"
+    COST_MODEL_URL: "http://cost-model:8084"
+    DB_URL: ""
+    DB_USERNAME: ""
+    CORS_ORIGINS: ""
+    DDL_AUTO: "update"
+    FINOPS_TOP_N: "10"
+    ALLOCATION_DIMENSION: "namespace"
+    ALLOCATION_RATIOS: "default=1.0"
+    IDLE_CPU_THRESHOLD: "10.0"
+    IDLE_GPU_THRESHOLD: "5.0"
+
+  config: {}
