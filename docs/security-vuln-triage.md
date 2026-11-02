@@ -147,6 +147,16 @@ vulnerabilities:
 
 **一条口径提醒（本轮现查所得）**：fs 门禁（Security 的 `Trivy Vulnerability Scan` 与 `ci.yml` 的 `Trivy FS Scan`）没有挂任何 ignorefile（`.trivyignore` 在本仓不存在，`security.yml` 的 fs job 只传 `severity` 与 `ignore-unfixed`），所以「进依赖豁免账」**不等于**「门禁不红」——门禁只认版本。此刻 main 上这两条尚未判红（trivy 侧 advisory DB 收录滞后于 Dependabot），属**潜伏红**，先记账，不等它红起来才处理。
 
+**2026-11-03 复核（main `d2339e63`，同一 API 现查，open 共 14 条）**
+
+> 读数构成（`GET /dependabot/alerts?state=open` 逐条取 `package.name` 计数）：`org.lz4:lz4-java` **7**（HIGH×2 / MEDIUM×4 / LOW×1）、`pytest` **2**（medium）、`minimatch` **1**、`postcss-selector-parser` **1**、`brace-expansion` **1**、`io.debezium:debezium-core` **1**、`uuid` **1** = 14。上一轮在账上的 `black`、`mysql:mysql-connector-java` 两条**已不在 open 列表**（分别由升版与换坐标 `com.mysql:mysql-connector-j:8.2.0` 消解）。
+>
+> - **两条 HIGH 的复验结论**：本机重跑 `mvn -o dependency:tree`（26 模块，BUILD SUCCESS）——`org.lz4:lz4-java` **0 命中**、`at.yawk.lz4:lz4-java` **10 命中且全为 1.12.0**；本地仓库 `org/lz4/lz4-java/1.8.1/` **只有 pom 无 jar** 且 pom 内 `<relocation>` 指向 `at.yawk.lz4`（1.8.0 才有真 jar）；Maven Central 该坐标最新就是 1.8.1，且 Dependabot 对这 7 条的 `first_patched_version` **全部为 null** ⇒ 维持「坐标口径误报 + 上游无修复版」，**不存在可升版本**。剩下唯一能清掉告警的动作是在 Security tab 逐条 dismiss 并附证据，属仓库对外可见面，**等主理人签字**，本轮不做。
+> - **`minimatch` 此前漏入账**（GHSA-g3hv-75wg-m249，`< 11.0.1`）：锁内三份副本 3.1.5 / 9.0.9 / 10.2.6，声明方分 `^3`（eslint 系）/ `^9`（glob、@vue/language-core、editorconfig）/ `^10`（finops 的 eslint、@typescript-eslint）三个大版本，都接不了 11.x ⇒ 已补进 `docs/dependency-vuln-exemptions.yaml` 并写清判据。
+> - **`postcss-selector-parser` 现在是两份**：根 `eslint-plugin-vue` 要 `^6.0.15`（落 6.1.5），finops-dashboard 的 `eslint-plugin-vue` 要 `^7.1.4`（落 7.1.5）。告警 #100 指的是 7.x 那份，7.1.5→7.1.6 虽是补丁级，但要 scoped override ＋真 `npm ci` 复验才敢确认不打穿 lint 链，**本轮没做这项验证就不登记成「已修」**，列为待办。
+> - **`pytest` 2 条可修**（`first_patched 9.0.3`）：把 `tests/integration/{,e2e,perf}/requirements.txt` 与 `design/planned/registry/tests/requirements.txt` 的 `>=8.0 / >=7.4.0` 收紧到 `>=9.0.3,<10.0` 即可，CI 实测早已跑 9.0.3/9.2.0，属零运行行为变更。这条由 `fix/dep-advisory` 线在其 worktree 内进行，**本文件只记状态，不重复改、不代提交**。
+> - 数字纪律照旧：上面每个计数都是当轮现查；引用历史结论（含本文件上一节的 20/30 条）一律注明时点。
+
 ### 5.2 已修复
 
 | CVE | 包 | 旧版 → 新版 | 处理日期 | PR 链接 |
