@@ -95,7 +95,7 @@
 | 1.7.3 | 公有云部署通过 | CCE/ACK/EKS helm install 成功 | 云原生组 | △ | 需公有云集群实际部署验证，ske/profiles/publiccloud.yaml 已就绪 |
 | 1.7.4 | 私有云部署通过 | VMware/OpenStack helm install 成功 | 云原生组 | △ | 需私有云集群实际部署验证，ske/profiles/privatecloud.yaml 已就绪 |
 | 1.7.5 | 四环境功能验证一致 | 787 用例四环境全通过 | 测试组 | △ | 需四环境实际运行 787 用例验证一致性 |
-| 1.7.6 | 四环境共用同一 Chart | Chart 内容四环境一致 | 云原生组 | △ | helm-values.yaml 已实现 global.env 切换 Profile 机制，需实际验证 |
+| 1.7.6 | 四环境共用同一 Chart | Chart 内容四环境一致 | 云原生组 | ☑ | **静态等价证据已闭环（2026-11-02）**：① `grep -rn "global\.env" design/deploy/` 实测 0 处——chart 模板零引用环境开关，Chart 与环境正交，环境差异全部由 values 表达（原备注所称「global.env 切换 Profile 机制」仅存在于文档，模板与 values 均未消费，已订正）；② `scripts/env-profile-consistency-check.sh`（CI: `.github/workflows/env-profile-gate.yml` gate 步骤，本 PR 落地）对 13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染，本机实测 39/39 全绿（kubeconform v0.6.7 + k8s 1.29.0 standalone-strict schema 经本地镜像复验：148 资源 Valid=148 / Invalid=0 / Errors=0），拓扑差异均为 values/env/README.md 明文声明的设计意图（dev 无 HPA/PDB、prod 有）。注：该门禁在 CI 首跑即实证抓出既有门禁全家盲视的系统性 bug——全部 66 个 chart 的 Ingress 模板输出 `httpPaths`（schema 要求 `paths`，开启 ingress 的 12 个环境渲染在严格校验下判无效），已随本 PR 修复模板与生成器并复验，见台账 #108。边界：交付轴四环境 values 骨架尚未落地（台账 #106），交付轴渲染维度待骨架后闭环；真机部署维度仍属 1.7.1-1.7.4 / 台账 #9 |
 
 ---
 
@@ -138,6 +138,7 @@
 
 - [ ] 所有自研组件镜像推送至 Harbor，tag=2.0.0
 - [ ] 镜像支持 ARM64 + x86_64 双架构 manifest
+  > 2026-11-02 取证注（zcode 线，台账 #109/#110）：本机 QEMU 已验证 ARM64 **功能层**〔catalog（本仓 Go 源码同参数交叉编译）health HTTP 200、Temurin 17 JVM、nginx arm64 三级〕，但**生产双架构 manifest 仍未验证**——MULTI_ARCH_BUILD.md 所述 `multi-arch-build.yml` 不存在（build.yml 合并该流水线后默认仅 amd64，台账 #110，OPEN 待裁决）。本复选框保持未勾。
 - [ ] 镜像漏洞扫描通过
 - [ ] 镜像签名完成
 
@@ -319,8 +320,8 @@
 | 1.4 文档检查 | 8 | 8 | 0 | 0 | 100% |
 | 1.5 Helm 检查 | 7 | 7 | 0 | 0 | 100% |
 | 1.6 兼容性检查 | 5 | 1 | 4 | 0 | 20% |
-| 1.7 四环境检查 | 6 | 0 | 6 | 0 | 0% |
-| **合计** | **54** | **40** | **14** | **0** |
+| 1.7 四环境检查 | 6 | 1 | 5 | 0 | 16.7% |
+| **合计** | **54** | **41** | **13** | **0** |
 
 ### 9.2 关键差距清单
 
@@ -343,7 +344,7 @@
 | 代码检查 | 阻塞 PR（1.1.7） | GitHub 远端确认 |
 | 测试检查 | 覆盖率门禁提升至 85%（1.2.2）、性能压测加入 CI（1.2.5）、24h 内存泄漏（1.2.8） | CI 阈值调整 + 性能 CI job 补充 + 长稳环境 |
 | 兼容性检查 | 实际升级（1.6.2）、数据完整性（1.6.3）、回滚（1.6.4）、API 向后兼容（1.6.5） | 测试环境实际执行 |
-| 四环境检查 | 信创/本地/公有云/私有云部署、功能一致性（1.7.1-1.7.6） | 四环境实际部署验证 |
+| 四环境检查 | 信创/本地/公有云/私有云部署、功能一致性（1.7.1-1.7.6） | 四环境实际部署验证（1.7.6 已由静态等价门禁闭环，见 9.3.7） |
 
 ### 9.3 各类别验证详情
 
@@ -395,9 +396,10 @@
 - **☑ 1.6.1**：upgrade-script.sh 存在且支持 --dry-run 参数，升级路径脚本已就绪
 - **△ 1.6.2-1.6.5**：需实际环境验证（实际升级、数据完整性、回滚、API 向后兼容）
 
-#### 9.3.7 四环境检查（0/6 通过）
+#### 9.3.7 四环境检查（1/6 通过）
 
-- **△ 1.7.1-1.7.6**：全部需实际环境验证，ske/profiles/ 四环境 Profile 已就绪
+- **△ 1.7.1-1.7.5**：全部需实际环境验证（四环境 helm install + 787 用例一致性）
+- **☑ 1.7.6**：静态等价证据已闭环（2026-11-02）——chart 模板零引用 `global.env`（实测 0 处），13 个核心 chart 在 dev/staging/prod 三套真实 values 下渲染 39/39 全绿（`scripts/env-profile-consistency-check.sh`，CI 门禁 `.github/workflows/env-profile-gate.yml`；kubeconform 严格 schema 校验经本地镜像复验零无效资源，该门禁 CI 首跑实证抓出 Ingress `httpPaths` 系统性错键并已修，见台账 #108）。注：ske/profiles/ 四环境 Profile 双副本（design vs ske）存在 33 处语义漂移，已取证登记台账 #107 待主理人裁决，不影响「共用同一 Chart」结论（漂移在 values/profile 层，非 chart 层）
 
 ### 9.4 建议后续行动
 
