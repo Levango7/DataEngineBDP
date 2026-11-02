@@ -164,6 +164,8 @@ vulnerabilities:
 > **为什么只 dismiss 了两条**：同族 7 条 lz4 告警里只有这两条是 HIGH，主理人的授权范围就是 `#74 / #80`；**余下 5 条（MEDIUM×4 / LOW×1）仍是 open**，它们与这两条同源同证据，但 MEDIUM 不挡 Trivy 门禁也不挡合并，是否一并 dismiss 由主理人决定，本批不自作扩大范围。
 >
 > **反噬条件**：pin 仍在根 pom（且承重，删它会让我方解析到带真 jar 的 `org.lz4:1.8.0`）。若 Dependabot 日后重扫并把这两条重新打开，处置是**按同一组证据复核**，而不是直接续豁免、更不是删 pin。
+>
+> **2026-11-03 第二批**：经主理人「可以」，同族余下 5 条（`#75/#76/#77/#78` MEDIUM、`#79` LOW）以同一理由（`inaccurate`，正文 253 字符）一并 dismiss，**lz4 这一族 7 条全部关闭**。**取数纪律补一条**：第一批 dismiss 后同一 API 两次读数不一致（先 `open=9 / low=1`，再 `open=7 / 全 medium`），是 Dependabot 侧的最终一致性延迟 ⇒ 这类计数必须同轮复读再落文档。**当前 open = 7 条，全 MEDIUM**：pytest 2、minimatch 1、postcss-selector-parser 1、brace-expansion 1、debezium 1、uuid 1。
 
 ### 5.2 已修复
 
