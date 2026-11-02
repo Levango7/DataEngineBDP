@@ -2014,7 +2014,9 @@ jobs:
   docker-build:
     name: Docker Build Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 台账 #99①：46m29s 实测撞 45 分钟上限而失败（PR-only）；同为 45 的
+    # Java Build & Test 实测最长 30m59s 仍有余量，故只抬这一条，不动它。
+    timeout-minutes: 60
     # 仅在 PR 到 main 时执行，push 时不执行以节省资源
     if: github.event_name == 'pull_request'
     steps:
