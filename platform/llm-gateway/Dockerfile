@@ -22,6 +22,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
+# brotli-libs 基座为 1.2.0-r1（CVE-2026-111497），Alpine 仓库已有修复版 1.2.1-r0；
+# libexpat 的豁免记的是 2.8.5-r0→2.9.0-r0，2026-11-02 新拉基座已随上游重建到
+# 2.9.0-r0，但 CI 可能复用旧层，故一并列入升级。docs/trivy-image-ignore.yaml 的
+# 豁免按 CVE 号全局生效，出货镜像仍须构建期自证修复（与已兜底的 8 个文件同口径）。
+RUN apk upgrade --no-cache libexpat brotli-libs
+
 # 安装最小运行时依赖（ca-certificates 用于 HTTPS 调用大模型 API，curl 用于 healthcheck）。
 RUN apk add --no-cache ca-certificates tzdata curl
 
