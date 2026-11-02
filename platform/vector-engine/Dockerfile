@@ -27,10 +27,10 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -tags milvus_enabled 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
-# 基座自带 libexpat 2.8.5-r0（CVE-2026-77214）与 brotli-libs 1.2.0-r1（CVE-2026-111497），
-# Alpine 仓库已有修复版 2.9.0-r0 / 1.2.1-r0。镜像门禁扫的是基座引用本身，且
-# docs/trivy-image-ignore.yaml 的豁免是按 CVE 号全局生效的——出货镜像必须在这里
-# 升到修复版，不能只靠豁免账（与已兜底的 8 个文件同一口径）。
+# brotli-libs 基座为 1.2.0-r1（CVE-2026-111497），Alpine 仓库已有修复版 1.2.1-r0；
+# libexpat 的豁免记的是 2.8.5-r0→2.9.0-r0，2026-11-02 新拉基座已随上游重建到
+# 2.9.0-r0，但 CI 可能复用旧层，故一并列入升级。docs/trivy-image-ignore.yaml 的
+# 豁免按 CVE 号全局生效，出货镜像仍须构建期自证修复（与已兜底的 8 个文件同口径）。
 RUN apk upgrade --no-cache libexpat brotli-libs
 
 # 安装最小运行时依赖。
