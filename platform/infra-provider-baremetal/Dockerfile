@@ -43,6 +43,12 @@ RUN mkdir -p /out/config && cp -r src/config/config.yaml /out/config/config.yaml
 ###############################################################################
 FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 
+# 基座自带 libexpat 2.8.5-r0（CVE-2026-77214）与 brotli-libs 1.2.0-r1（CVE-2026-111497），
+# Alpine 仓库已有修复版 2.9.0-r0 / 1.2.1-r0。镜像门禁扫的是基座引用本身，且
+# docs/trivy-image-ignore.yaml 的豁免是按 CVE 号全局生效的——出货镜像必须在这里
+# 升到修复版，不能只靠豁免账（与已兜底的 8 个文件同一口径）。
+RUN apk upgrade --no-cache libexpat brotli-libs
+
 # 安装最小运行时依赖
 RUN apk add --no-cache ca-certificates tzdata curl && \
     update-ca-certificates

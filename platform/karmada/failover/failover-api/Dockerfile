@@ -28,6 +28,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o f
 # ---------------------------------------------------------------------------
 FROM ${BASE_REGISTRY}/library/alpine:3.20
 
+# 基座自带 libexpat 2.8.5-r0（CVE-2026-77214）与 brotli-libs 1.2.0-r1（CVE-2026-111497），
+# Alpine 仓库已有修复版 2.9.0-r0 / 1.2.1-r0。镜像门禁扫的是基座引用本身，且
+# docs/trivy-image-ignore.yaml 的豁免是按 CVE 号全局生效的——出货镜像必须在这里
+# 升到修复版，不能只靠豁免账（与已兜底的 8 个文件同一口径）。
+RUN apk upgrade --no-cache libexpat brotli-libs
+
 # 安装 ca-certificates（HTTPS 调用 Karmada/Prometheus 需要，保持 root 执行）。
 RUN apk add --no-cache ca-certificates tzdata
 

@@ -28,6 +28,12 @@ RUN mvn -B -e -DskipTests clean package -f pom.xml
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/library/eclipse-temurin:17-jre-alpine AS runtime
+
+# 基座自带 libexpat 2.8.5-r0（CVE-2026-77214）与 brotli-libs 1.2.0-r1（CVE-2026-111497），
+# Alpine 仓库已有修复版 2.9.0-r0 / 1.2.1-r0。镜像门禁扫的是基座引用本身，且
+# docs/trivy-image-ignore.yaml 的豁免是按 CVE 号全局生效的——出货镜像必须在这里
+# 升到修复版，不能只靠豁免账（与已兜底的 8 个文件同一口径）。
+RUN apk upgrade --no-cache libexpat brotli-libs
 # 运行层不需要基镜自带的 Bitnami 服务管理器 pebble：本镜像下面自己覆写了 ENTRYPOINT 跑 java -jar。
 # 而 /usr/bin/pebble 带 4 条**尚无修复版**的 HIGH（CVE-2026-111943 / -78667 / -78669 / -97031，
 # 全是 Go stdlib v1.27.1 构建，上游修在 1.26.10 / 1.27.3）。删它是真减攻击面，不是绕扫描：
