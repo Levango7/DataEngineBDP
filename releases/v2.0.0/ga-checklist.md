@@ -138,6 +138,7 @@
 
 - [ ] 所有自研组件镜像推送至 Harbor，tag=2.0.0
 - [ ] 镜像支持 ARM64 + x86_64 双架构 manifest
+  > 2026-11-02 取证注（zcode 线，台账 #109/#110）：本机 QEMU 已验证 ARM64 **功能层**〔catalog（本仓 Go 源码同参数交叉编译）health HTTP 200、Temurin 17 JVM、nginx arm64 三级〕，但**生产双架构 manifest 仍未验证**——MULTI_ARCH_BUILD.md 所述 `multi-arch-build.yml` 不存在（build.yml 合并该流水线后默认仅 amd64，台账 #110，OPEN 待裁决）。本复选框保持未勾。
 - [ ] 镜像漏洞扫描通过
 - [ ] 镜像签名完成
 
