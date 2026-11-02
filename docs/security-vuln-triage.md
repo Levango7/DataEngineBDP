@@ -157,6 +157,16 @@ vulnerabilities:
 > - **`pytest` 2 条可修**（`first_patched 9.0.3`）：把 `tests/integration/{,e2e,perf}/requirements.txt` 与 `design/planned/registry/tests/requirements.txt` 的 `>=8.0 / >=7.4.0` 收紧到 `>=9.0.3,<10.0` 即可，CI 实测早已跑 9.0.3/9.2.0，属零运行行为变更。这条由 `fix/dep-advisory` 线在其 worktree 内进行，**本文件只记状态，不重复改、不代提交**。
 > - 数字纪律照旧：上面每个计数都是当轮现查；引用历史结论（含本文件上一节的 20/30 条）一律注明时点。
 
+**2026-11-03 dismiss 执行（主理人签字，Qoder 代操作）**：`#74`（GHSA-cmp6-m4wj-q63q）与 `#80`（GHSA-mcr4-qmvw-px4g）已 `PATCH` 为 `state=dismissed / dismissed_reason=inaccurate`，dismiss 正文（254 字符）写的是三条可复核判据：relocation 存根（本地仓库 `org/lz4/lz4-java/1.8.1/` 只有 pom 无 jar，pom 内 `<relocation>` 指向 `at.yawk.lz4`）、全反应堆 26 模块 `org.lz4` 0 命中 / `at.yawk.lz4` 10 命中全为 1.12.0、Central 最新即 1.8.1 且 `first_patched_version=null`。**现查 open 由 14 → 12（MEDIUM×11 / LOW×1），HIGH 清零。**
+
+> **两条 API 侧的坑（下次别再踩）**：① 本仓 `dismissed_reason` 的**实际允许值**（以 422 报错回显为准）是 `fix_started / inaccurate / no_bandwidth / not_used / tolerable_risk`——**`not_applicable` 会被拒**，坐标口径型误报用 `inaccurate`；② `dismissed_comment` 有 **280 字符硬上限**（实测 572 字符同样 422），所以证据要压成短句、细节留在台账 #105。
+>
+> **为什么只 dismiss 了两条**：同族 7 条 lz4 告警里只有这两条是 HIGH，主理人的授权范围就是 `#74 / #80`；**余下 5 条（MEDIUM×4 / LOW×1）仍是 open**，它们与这两条同源同证据，但 MEDIUM 不挡 Trivy 门禁也不挡合并，是否一并 dismiss 由主理人决定，本批不自作扩大范围。
+>
+> **反噬条件**：pin 仍在根 pom（且承重，删它会让我方解析到带真 jar 的 `org.lz4:1.8.0`）。若 Dependabot 日后重扫并把这两条重新打开，处置是**按同一组证据复核**，而不是直接续豁免、更不是删 pin。
+>
+> **2026-11-03 第二批**：经主理人「可以」，同族余下 5 条（`#75/#76/#77/#78` MEDIUM、`#79` LOW）以同一理由（`inaccurate`，正文 253 字符）一并 dismiss，**lz4 这一族 7 条全部关闭**。**取数纪律补一条**：第一批 dismiss 后同一 API 两次读数不一致（先 `open=9 / low=1`，再 `open=7 / 全 medium`），是 Dependabot 侧的最终一致性延迟 ⇒ 这类计数必须同轮复读再落文档。**当前 open = 7 条，全 MEDIUM**：pytest 2、minimatch 1、postcss-selector-parser 1、brace-expansion 1、debezium 1、uuid 1。
+
 ### 5.2 已修复
 
 | CVE | 包 | 旧版 → 新版 | 处理日期 | PR 链接 |
