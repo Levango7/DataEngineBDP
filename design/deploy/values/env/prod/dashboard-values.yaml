@@ -1,0 +1,57 @@
+# ============================================================================
+# dashboard · prod 环境 values（umbrella 依赖条目：dashboard.enabled）
+# 覆盖：design/deploy/charts/dashboard/values.yaml
+# 策略：双副本 · 生产建议接 PostgreSQL（DB_URL/DB_USERNAME/DB_PASSWORD）+ 迁移
+# 资源与安全按生产档；JWT_SECRET/DB_PASSWORD 须通过 Secret 注入（值留空，
+# 由 prod 部署时按需填充，此处不写死敏感口令）
+# ============================================================================
+
+dashboard:
+  enabled: true
+
+  image:
+    repository: "ghcr.io/levango7/sq-dashboard"
+    tag: "latest"
+    pullPolicy: Always
+
+  replicaCount: 2
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+
+  hpa:
+    enabled: false
+
+  podDisruptionBudget:
+    enabled: false
+
+  networkPolicy:
+    enabled: false
+
+  serviceMonitor:
+    enabled: false
+
+  env:
+    SERVER_PORT: "8085"
+    LOG_LEVEL: info
+    JAVA_OPTS: "-Xms512m -Xmx1g"
+    COST_MODEL_URL: "http://cost-model:8084"
+    DB_URL: ""
+    DB_USERNAME: ""
+    CORS_ORIGINS: ""
+    DDL_AUTO: "validate"
+    FINOPS_TOP_N: "10"
+    ALLOCATION_DIMENSION: "namespace"
+    ALLOCATION_RATIOS: "default=1.0"
+    IDLE_CPU_THRESHOLD: "10.0"
+    IDLE_GPU_THRESHOLD: "5.0"
+
+  config: {}
+
+  # prod 生效需按需填充：
+  # auth.jwtSecretName / db.existingSecret（由运维按环境注入 Secret）

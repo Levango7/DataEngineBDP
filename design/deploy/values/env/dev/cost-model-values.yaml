@@ -1,0 +1,52 @@
+# ============================================================================
+# cost-model · dev 环境 values（umbrella 依赖条目：cost-model.enabled）
+# 覆盖：design/deploy/charts/cost-model/values.yaml
+# 策略：单副本 · H2 内存库 · 无HPA/PDB/NetworkPolicy · 默认启用
+# ============================================================================
+
+cost-model:
+  enabled: true
+
+  image:
+    repository: "ghcr.io/levango7/sq-cost-model"
+    tag: "latest"
+    pullPolicy: Always
+
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  hpa:
+    enabled: false
+
+  podDisruptionBudget:
+    enabled: false
+
+  networkPolicy:
+    enabled: false
+
+  serviceMonitor:
+    enabled: false
+
+  env:
+    SERVER_PORT: "8084"
+    LOG_LEVEL: debug
+    JAVA_OPTS: "-Xms128m -Xmx256m"
+    DB_URL: ""
+    DB_USERNAME: ""
+    CORS_ORIGINS: ""
+    DDL_AUTO: "update"
+    COLLECTOR_INTERVAL: "60"
+    COLLECT_CPU: "true"
+    COLLECT_GPU: "true"
+    COLLECT_MEMORY: "true"
+    COLLECT_NETWORK: "true"
+    COLLECT_STORAGE: "true"
+
+  config: {}
