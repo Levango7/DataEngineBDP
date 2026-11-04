@@ -91,16 +91,31 @@ jobs:
             echo "::warning::未发现任何 Java 组件（pom.xml），跳过构建"
             exit 0
           fi
+          total_count=0
+          failed_count=0
+          failed_list=""
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
+            total_count=$((total_count + 1))
             echo "============================================"
             echo "  CodeQL 构建准备: mvn compile $mod_name"
             echo "============================================"
-            mvn -f "$pom" compile -B -q \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
-              || echo "::warning::$mod_name 编译失败，继续下一个"
+            if ! mvn -f "$pom" compile -B -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
+              echo "::error::$mod_name 编译失败（CodeQL 构建准备）"
+              failed_count=$((failed_count + 1))
+              failed_list="${failed_list} $mod_name"
+            fi
           done < <(find platform -name pom.xml -not -path "*/target/*")
+
+          # 台账 #97③：不许把 mvn 失败吞成 warning——汇总打印本 job 未编译成功的模块数，
+          # 且有模块失败时让步骤失败（CodeQL 分析不完整即应显式红，不再伪装成功）。
+          if [ "$failed_count" -gt 0 ]; then
+            echo "::error::本 job 有 $failed_count/$total_count 个 Java 模块未编译成功：${failed_list# }"
+            exit 1
+          fi
+          echo "CodeQL 构建准备汇总：$total_count 个 Java 模块全部编译成功"
 
       # ============================================================
       # 自动构建（非 Java 语言）：CodeQL 会根据语言自动执行构建
