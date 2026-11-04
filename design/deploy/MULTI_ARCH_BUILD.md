@@ -29,7 +29,7 @@
 
 | 镜像 | 组件 | 技术栈 | 基础镜像 | 基础镜像多架构 | CI 默认构建架构（build.yml） |
 | --- | --- | --- | --- | --- | --- |
-| sq-frontend | Vue3 前端控制台 | Node.js 22 + Nginx | node:22-alpine / nginx:alpine | 官方 amd64+arm64 | `linux/amd64`（build.yml:142，`build-frontend-image`） |
+| sq-frontend | Vue3 前端控制台 | Node.js 22 + Nginx | node:22-alpine / nginx:alpine-slim | 官方 amd64+arm64 | `linux/amd64`（build.yml:142，`build-frontend-image`） |
 | sq-encaps-layer | Java 后端封装层 | Spring Boot 3 + JDK 17 | maven:3.9-eclipse-temurin-17 / eclipse-temurin:17-jre | 官方 amd64+arm64 | `linux/amd64`（build.yml:235，`build-java-images`） |
 | sq-sql-gateway | SQL 网关 | Spring Boot 3 + JDK 17 | 同上 | 官方 amd64+arm64 | `linux/amd64`（同上，Java 矩阵） |
 | sq-catalog | 元数据 Catalog | Go 1.22+ | golang:1.26-alpine / alpine:3.19 | 官方 amd64+arm64 | **`linux/amd64,linux/arm64`**（build.yml:331，`build-go-images`） |
@@ -97,7 +97,7 @@ T-10 合并后只剩一条镜像构建流水线，多架构覆盖度由各 job �
 
 | 组件 | 适配方式 | 说明 |
 | --- | --- | --- |
-| frontend | 官方多架构基础镜像 | node:22-alpine / nginx:alpine 官方提供 amd64+arm64 |
+| frontend | 官方多架构基础镜像 | node:22-alpine / nginx:alpine-slim 官方提供 amd64+arm64 |
 | encaps-layer | 官方多架构基础镜像 | eclipse-temurin 官方提供 amd64+arm64 JDK |
 | sql-gateway | 官方多架构基础镜像 | 同 encaps-layer |
 | rule-engine | 官方多架构基础镜像 | 同 encaps-layer |
@@ -109,12 +109,14 @@ T-10 合并后只剩一条镜像构建流水线，多架构覆盖度由各 job �
 
 ```text
 node:22-alpine          → linux/amd64 + linux/arm64  ✓
-nginx:alpine            → linux/amd64 + linux/arm64  ✓
+nginx:alpine-slim       → linux/amd64 + linux/arm64  ✓
 maven:3.9-eclipse-temurin-17 → linux/amd64 + linux/arm64  ✓
 eclipse-temurin:17-jre  → linux/amd64 + linux/arm64  ✓
 golang:1.26-alpine      → linux/amd64 + linux/arm64  ✓
 alpine:3.19             → linux/amd64 + linux/arm64  ✓
 ```
+
+> **基座变更（2026-11-05，台账 #111/#74 收口）**：前端运行时基座由 `nginx:alpine` 换为 `nginx:alpine-slim`——同官方多架构（amd64+arm64）、Alpine 3.24.3，但不含 libexpat/libx11/curl/brotli-libs 等在浮动 tag 上反复曝 CVE 的包，本机 trivy 与 CI 同口径实测 **0 命中**（同期 `nginx:alpine` = 3 条 libexpat HIGH），体积 89.3MB→19.7MB，`nginx -t` 用本仓 `frontend/nginx.conf` 实测 rc=0、容器以 `USER nginx` 运行 8080 端口健康检查通过。另补正既有缺陷：`USER nginx` 下 root 所有的 `/var/cache/nginx/*`（configure 时写死的 temp 路径）与 `/run/nginx.pid` 会导致 master 起不来，已预建 temp 目录归属 nginx 并把 pid 挪进 `/tmp`。
 
 ### 3.3 Go 交叉编译说明
 
