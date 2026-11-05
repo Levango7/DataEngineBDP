@@ -166,6 +166,8 @@ vulnerabilities:
 > **反噬条件**：pin 仍在根 pom（且承重，删它会让我方解析到带真 jar 的 `org.lz4:1.8.0`）。若 Dependabot 日后重扫并把这两条重新打开，处置是**按同一组证据复核**，而不是直接续豁免、更不是删 pin。
 >
 > **2026-11-03 第二批**：经主理人「可以」，同族余下 5 条（`#75/#76/#77/#78` MEDIUM、`#79` LOW）以同一理由（`inaccurate`，正文 253 字符）一并 dismiss，**lz4 这一族 7 条全部关闭**。**取数纪律补一条**：第一批 dismiss 后同一 API 两次读数不一致（先 `open=9 / low=1`，再 `open=7 / 全 medium`），是 Dependabot 侧的最终一致性延迟 ⇒ 这类计数必须同轮复读再落文档。**当前 open = 7 条，全 MEDIUM**：pytest 2、minimatch 1、postcss-selector-parser 1、brace-expansion 1、debezium 1、uuid 1。
+>
+> **2026-11-03 pytest 那 2 条的落地说明**：上面写的「由 `fix/dep-advisory` 线在其 worktree 内进行」实际停在那棵树的未提交状态约 4.5 小时（`bdp-deps-wt`，分支 `fix/dep-advisory-20261029`，4 个 requirements 文件 dirty）。经主理人「提交 pytest 的改动」，本刀把**那 4 行原样**落到分支 `chore/pytest-lower-bound`（逐文件比对内容与那棵树**字节一致**，仅保留各自 BOM/LF 形态），**没有改动也没有代提交那棵树里的东西**——它仍保持原 dirty 状态。落地前后的证据：`packaging.requirements.Requirement` 解析 4 行均得 `<10.0,>=9.0.3`；CI 的 Integration Test 作业日志实测早已跑 `pytest-9.0.3` / `pytest-9.2.0`（收紧下界属零运行行为变更）；同文件其余插件（`pytest-html>=4.1`、`pytest-xdist>=3.5`、`pytest-progress>=1.2`、`pytest-junit-xml>=2.7`、`pytest-asyncio>=0.23`）都是开区间，与仓内既有先例「pytest 9 需 pytest-asyncio ≥1.4」不冲突（解析取新版即满足）。消解结果以 Dependabot 重扫为准。
 
 ### 5.2 已修复
 
