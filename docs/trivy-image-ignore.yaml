@@ -169,3 +169,21 @@ vulnerabilities:
   - id: CVE-2026-113351
     statement: "libexpat 2.9.0-r0 → 2.10.0-r0，本轮仅 nginx:alpine 基座引用命中；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）"
     expired_at: 2026-12-15
+
+  # ---- 2026-11-06：同一 CVE 跨多个基座反复（#113 预言的「打地鼠」形态）----
+  # 现场（两次实测，见台账 #115）：① PR #768 head b4d978f3 的 Trivy Image Scan（run 41960550478）
+  #   报 python:3.12-slim（asset-exchange）——apt/libapt-pkg7.0 3.0.3→3.0.4；
+  #   ② merge head 6a6e4035 的 Trivy Image Scan（run 42117297939）报
+  #   maven:3.9-eclipse-temurin-17（encaps-data）——apt/libapt-pkg6.0t64 2.8.3（Ubuntu 侧同一 CVE）。
+  #   同一轮 main（302de56a，run 41968420185）红在 python:3.12-slim ⇒ **非任何 PR 内容引入，
+  #   daocloud 镜像站不同 pull 落到带洞 digest（#88 同形态），扫到哪个基座看运气**。
+  # 处置（按 #74 标准路线、补包追不上的形态）：同一 CVE 记一条全基座面豁免。
+  # 出货镜像侧已做的：python:3.12-slim 的两个消费者（asset-exchange、batch-pipeline）
+  #   构建期 `apt-get install --only-upgrade apt libapt-pkg7.0` 自升（台账 #115 本机实测 3.0.4）；
+  #   maven:3.9-eclipse-temurin-17 是 Java 的 **build 阶段**基座（jar 拷进 temurin-alpine runtime，
+  #   maven 层不随出货镜像发布）⇒ 对 18 个 Java Dockerfile 补 apt 升级对出货零收益，不补。
+  # 解锁：上游各基座重建带上修复版 apt 后删除本条。
+  # 判据：docker run <base> 后 `apt-cache policy apt` 显示 Debian 侧 ≥3.0.4 / Ubuntu 侧 ≥2.8.4。
+  - id: CVE-2026-109518
+    statement: "apt/libapt 修复版水位漂移，已实测命中两个基座引用：python:3.12-slim（apt/libapt-pkg7.0 3.0.3→3.0.4）与 maven:3.9-eclipse-temurin-17（apt/libapt-pkg6.0t64 2.8.3）。python 侧出货镜像构建期已自升（本机实测 3.0.4）；maven 侧为 Java build 阶段基座、不随出货镜像发布"
+    expired_at: 2026-12-15
