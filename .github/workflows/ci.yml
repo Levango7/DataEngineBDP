@@ -436,6 +436,12 @@ jobs:
           bash scripts/build-retry.sh --self-test
           bash scripts/compose-retry.sh --self-test
 
+      # 台账 #112：钉版外链预检的三态判据（OK / FAIL / INCONCLUSIVE）离线自测。
+      # 只跑自测不碰网——真检放在它保护的 Docker Build Verify 腿里（见 docker-build 作业），
+      # 避免每次 push 都去打外部镜像站。
+      - name: 自测钉版外链可达性判据（check-pinned-downloads）
+        run: bash scripts/check-pinned-downloads.sh --self-test
+
       - name: 检查 ske/ske.sh 语法
         run: |
           if [ -f "ske/ske.sh" ]; then
@@ -2043,6 +2049,13 @@ jobs:
           df -h / /home 2>&1 || true
           docker system df 2>&1 || true
           echo "::endgroup::"
+
+      # 台账 #112：钉版外链可达性预检——2026-11-03 这条腿两次 attempt 各烧 ~44 分钟后红
+      # （job 125845945766 / 125877121473），真因是 Apache 快源把钉住的 spark 4.2.0 / 3.5.5
+      # 挤出目录，构建退到 archive 大文件后被 scripts/build-retry.sh:43 的 600 秒挂起预算误杀。
+      # 本步把同一个事实压到几十秒内说清楚，所以放在构建循环之前。
+      - name: 钉版外链可达性预检（台账 112，快源挤出即早失败）
+        run: bash scripts/check-pinned-downloads.sh
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
