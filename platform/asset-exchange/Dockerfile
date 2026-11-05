@@ -9,8 +9,15 @@ FROM ${BASE_REGISTRY}/library/python:3.12-slim
 WORKDIR /app
 
 # 系统依赖（curl 用于健康检查）
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 定向补包（台账 #115，承 #74/#98 C-1 口径，Debian 侧对应动作）：基座 python:3.12-slim 的
+# 浮动 tag 曾以 apt/libapt-pkg7.0 3.0.3 形态漂入 CVE-2026-109518（HIGH，fixed 3.0.4）。
+# Trivy Image Scan 扫的是 FROM 基座引用、看不见构建期升级，故出货镜像必须自升到修复版；
+# 基座引用那一面由 docs/trivy-image-ignore.yaml 限期豁免覆盖（到期后未清自动重新判红）。
+# --only-upgrade 只动已安装包：目标版本已在基座内时为无操作成功（本机实测 exit 0）。
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade \
     curl \
+    apt \
+    libapt-pkg7.0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖
