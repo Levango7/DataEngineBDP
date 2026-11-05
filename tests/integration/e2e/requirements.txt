@@ -7,7 +7,7 @@
 # 并补充 E2E 跨领域测试所需的可选异步 HTTP 客户端。
 
 # 测试框架
-pytest>=8.0
+pytest>=9.0.3,<10.0  # GHSA-6w46-j5rx-g56g / CVE-2025-71176 修复版起 9.0.3；CI 的 Integration Test 实测已跑 9.0.3/9.2.0，收紧下界不改运行行为
 
 # HTTP 客户端，调用各组件 REST API
 requests>=2.31

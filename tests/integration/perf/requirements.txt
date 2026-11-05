@@ -6,7 +6,7 @@
 # 本文件在 tests/integration/requirements.txt 基础上追加性能压测专用依赖。
 
 # ---- 测试框架（继承自集成测试）----
-pytest>=8.0
+pytest>=9.0.3,<10.0  # GHSA-6w46-j5rx-g56g / CVE-2025-71176 修复版起 9.0.3；CI 的 Integration Test 实测已跑 9.0.3/9.2.0，收紧下界不改运行行为
 pytest-html>=4.1
 pytest-xdist>=3.5
 pytest-asyncio>=0.23
