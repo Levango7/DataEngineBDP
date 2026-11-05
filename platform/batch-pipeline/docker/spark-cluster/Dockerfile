@@ -1,13 +1,13 @@
 # ── batch-pipeline Spark Standalone Cluster ─────────────────────
 # Base: Eclipse Temurin JRE 17（Master/Worker 运行时仅需 JRE）
-# Spark: 4.2.0（清华镜像加速） + Hadoop-AWS 3.5.0 + AWS SDK v2 Bundle
+# Spark: 4.2.1（清华镜像加速） + Hadoop-AWS 3.5.0 + AWS SDK v2 Bundle
 # Python3 + PySpark（Worker Python 需要）
 #
 # Phase 5 可选：Iceberg Spark extensions（用 ARG ENABLE_ICEBERG=true 开启）
 #   - Iceberg 官方 JAR 最高支持 Spark 4.1，不支持 Spark 4.2
 #   - 启用 Iceberg 时需把 SPARK_VERSION 改为 4.1.0 + ICEBERG_VERSION=1.11.0
 #   - JAR: iceberg-spark-runtime-4.1_2.13-1.11.0.jar + iceberg-aws-bundle-1.11.0.jar
-#   - 缺省 ENABLE_ICEBERG=false，不影响现有 cluster 测试（Spark 4.2.0 保持）
+#   - 缺省 ENABLE_ICEBERG=false，不影响现有 cluster 测试（Spark 4.2.1 保持）
 #
 # 供应链校验（二轮审查 H-5，任务79）：
 #   - 所有外部下载（Spark tarball + 5 类 JAR）均钉扎官方校验和
@@ -33,7 +33,7 @@ LABEL maintainer="batch-pipeline DevOps"
 LABEL description="Spark Standalone cluster node (Master/Worker)"
 
 # ── 构建参数 ────────────────────────────────────────────────────
-ARG SPARK_VERSION=4.2.0
+ARG SPARK_VERSION=4.2.1
 ARG HADOOP_AWS_VERSION=3.5.0
 ARG AWS_SDK_V2_BUNDLE_VERSION=2.35.4
 # ── 供应链校验和（钉扎官方值，版本与校验和必须同步变更） ────────
@@ -68,11 +68,16 @@ RUN python3 --version | grep -q "Python 3\.12\." || { \
     }
 
 # ── Spark 下载（含版本回退 + 国内镜像） ─────────────────────────
-# 优先 ${SPARK_VERSION}（ARG，缺省 4.2.0），若不可用则回退 3.5.5
+# 优先 ${SPARK_VERSION}（ARG，缺省 4.2.1），若不可用则回退 3.5.9
+# 2026-11-03 由 4.2.0/3.5.5 抬到 4.2.1/3.5.9：Apache 快源目录按「当前发布线」滚动，
+# 4.2.0 与 3.5.5 已被挤出（tuna / aliyun / downloads.apache.org 三条实测 404），
+# 只剩 archive.apache.org 有（实测 530MB / 382MB）⇒ 下载被拖到挂起预算之外，
+# build-retry 按传输类重试后仍失败（不是代码问题，也不是可无限重跑的抖动）。
+# 抬版后回到快源：tuna 实测 529MB / 36 秒，sha512 与 downloads.apache.org 官方值逐字节一致。
 # 使用清华镜像加速，回退到 Apache 官方
 # 注意：ENV 引用 ARG 必须在 ARG 声明之后（已在 line 20 声明）
 ENV SPARK_VERSION_PRIMARY=${SPARK_VERSION}
-ENV SPARK_VERSION_FALLBACK=3.5.5
+ENV SPARK_VERSION_FALLBACK=3.5.9
 
 RUN set -eux; \
     SPARK_VER=${SPARK_VERSION_PRIMARY}; \
@@ -122,13 +127,17 @@ RUN set -eux; \
     # ── 供应链校验（任务79）：版本 → 官方钉扎 SHA512 ─────────────
     # 无论实际下载自哪个镜像源，一律对照官方钉扎值校验，失败即 exit 1。
     # 校验和来源（获取日期 2026-08-27，详见 CHECKSUMS.md）：
+    #   4.2.1 ← https://downloads.apache.org/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz.sha512（2026-11-03 取，且与 tuna 实下载值核对一致）
     #   4.2.0 ← https://downloads.apache.org/spark/spark-4.2.0/spark-4.2.0-bin-hadoop3.tgz.sha512
     #   4.1.0 ← https://archive.apache.org/dist/spark/spark-4.1.0/spark-4.1.0-bin-hadoop3.tgz.sha512
+    #   3.5.9 ← https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz.sha512（2026-11-03 取）
     #   3.5.5 ← https://archive.apache.org/dist/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz.sha512
     # 未在清单中的版本（如升级 SPARK_VERSION 忘更新）直接拒绝构建。
     case "${SPARK_VER}" in \
+        4.2.1) SPARK_TGZ_SHA512="2f76b113ebb2f3677766e38b6dc78f27756c5ae5a7c103f1a76dac523dba8e5f82077b7f480360391c0cceee79ad712d7843f23389fbfeb18bc018fb85e27866" ;; \
         4.2.0) SPARK_TGZ_SHA512="3a6559e8546ff387db8fe7a04b8fe4008853b467b972c2e343df8e14a81450534777719fc5d4998dd96519a86fdf9de140cee753c61e2e94db044d5f9555ddc4" ;; \
         4.1.0) SPARK_TGZ_SHA512="fff7f929d98779b096a2d2395b1b9db1ce277660f3852dd45e1457c373013f2669074315252181a3cea291d8f3a726c70f7f9b247e723edbf8080f40888edde1" ;; \
+        3.5.9) SPARK_TGZ_SHA512="66097faf48b12f8673dc13256a44d731c27c86a5831cd8ca930c6fd9dd9bdf31d40593095e959461351d55da1a8e3ad5ed95e0b4b51bea87ca3989ab002ea8ce" ;; \
         3.5.5) SPARK_TGZ_SHA512="ec5ff678136b1ff981e396d1f7b5dfbf399439c5cb853917e8c954723194857607494a89b7e205fce988ec48b1590b5caeae3b18e1b5db1370c0522b256ff376" ;; \
         *) \
             echo ">>> [FATAL] Spark ${SPARK_VER} 无钉扎 SHA512，供应链校验不可跳过！"; \
@@ -249,7 +258,7 @@ RUN set -eux; \
 # 注意：移除 `|| true`，让 PySpark 安装失败立即暴露构建问题
 # （此前 `|| true` 会掩盖 pip 安装失败，导致 Worker 启动后才报错）
 # 版本取 /opt/spark/.version（下载阶段写入的**实际**安装版本）：
-# 主版本下载失败回退 3.5.5 时，若仍按 ${SPARK_VERSION} 装 pyspark 4.2.0，
+# 主版本下载失败回退 3.5.9 时，若仍按 ${SPARK_VERSION} 装 pyspark 4.2.1，
 # Worker 端 Python 与集群 JVM 版本错配必然运行时报错。
 RUN PYSPARK_VER=$(cat /opt/spark/.version) && \
     echo ">>> installing pyspark==${PYSPARK_VER}" && \
@@ -271,7 +280,7 @@ RUN PYSPARK_VER=$(cat /opt/spark/.version) && \
 #
 # ── 构建期防护（任务71） ────────────────────────────────────────
 # 下方 ENABLE_ICEBERG 块下载的是 Iceberg 4.1 runtime JAR，必须配合 SPARK_VERSION=4.1.0
-# （ARG 缺省 4.2.0），否则运行期不兼容。此前仅靠注释警告，这里改为显式断言：
+# （ARG 缺省 4.2.1），否则运行期不兼容。此前仅靠注释警告，这里改为显式断言：
 # ENABLE_ICEBERG=true 且 SPARK_VERSION!=4.1.0 时立即终止构建，避免产出带病镜像。
 # ARG 作用域：SPARK_VERSION / ENABLE_ICEBERG 均已在上方声明（单 stage，作用域有效）。
 RUN if [ "${ENABLE_ICEBERG}" = "true" ] && [ "${SPARK_VERSION}" != "4.1.0" ]; then \

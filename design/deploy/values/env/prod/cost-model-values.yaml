@@ -8,10 +8,13 @@
 cost-model:
   enabled: true
 
+  # prod 钉版本（台账 #111，2026-11-05 主理人裁「那就用版本号吧」）：tag 用 main 构建推给 GHCR 的
+  # 40 位 commit sha（.github/workflows/build.yml:281 同时推 :latest 与 :<sha>），与同目录
+  # catalog-values.yaml:9 的 prod 口径一致。升级 = 把 sha 换成新一次 main 构建的 commit。
   image:
     repository: "ghcr.io/levango7/sq-cost-model"
-    tag: "latest"
-    pullPolicy: Always
+    tag: "5ea7e17753d9714df0122de1cf37cdc3874a9b34"
+    pullPolicy: IfNotPresent
 
   replicaCount: 2
 

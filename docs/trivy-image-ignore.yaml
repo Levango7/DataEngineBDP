@@ -132,3 +132,40 @@ vulnerabilities:
   - id: CVE-2026-102554
     statement: "guava 33.6.0-jre（maven 基座 lib/ 自带）→ 33.7.2。仅 maven:3.9-eclipse-temurin-17 构建期基座；不进出货镜像；本仓依赖由根 pom 统一抬到 33.7.2-jre"
     expired_at: 2026-12-01
+
+  # ---- 2026-11-03：libexpat 的补丁水位又漂了一档（2.9.0-r0 → 2.10.0-r0）----
+  # 现场：main `8ff6662a` 的 Trivy Image Scan（job 125833023453，09:33:04Z→09:34:15Z）报
+  #   「共有 2 个镜像存在 HIGH/CRITICAL 漏洞，阻断 CI」，两条都是 libexpat 2.9.0-r0：
+  #   CVE-2026-117610 与 CVE-2026-118370，Fixed Version 均为 2.10.0-r0。
+  #   命中面＝eclipse-temurin:17-jre-alpine（encaps-data 等）与 nginx:alpine（frontend）。
+  # 为什么不是「放过风险」：这道门禁扫的是**基座引用本身**（security.yml:669 传 --ignorefile、
+  #   :702-704 按镜像计数），而出货镜像在运行时阶段自己升这个包——
+  #   frontend/Dockerfile:28 是 `apk upgrade --no-cache libexpat brotli-libs libx11 curl`，
+  #   仓内 29 个 Alpine 运行时 Dockerfile 各有一条 `apk upgrade --no-cache libexpat brotli-libs`
+  #   （台账 #98 C-1 补齐，2026-11-02 起 29/29）。
+  # 本机实测（2026-11-03，真容器）：两个基座 `apk info -v` 都是 libexpat-2.9.0-r0，
+  #   执行 `apk upgrade --no-cache libexpat` 后都取到 **libexpat-2.10.0-r0**（alpine 3.24.3，
+  #   仓库 policy 显示可给 2.10.0-r0）⇒ 出货镜像不落在受影响区间，红的只是基座引用。
+  # 解锁：上游基座重建带上 2.10.0-r0 后删掉这两条（判据 `docker run <base> apk info -v | grep ^libexpat-`
+  #   显示 2.10.0-r0）。到期未解就重新复核，不许只挪日期。
+  - id: CVE-2026-117610
+    statement: "libexpat 2.9.0-r0 → 2.10.0-r0，仅 eclipse-temurin:17-jre-alpine 与 nginx:alpine 基座引用；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）"
+    expired_at: 2026-12-15
+  - id: CVE-2026-118370
+    statement: "同上（同一包同一水位、同日同一次扫描报出）：基座引用 2.9.0-r0，出货镜像 apk upgrade 后为 2.10.0-r0"
+    expired_at: 2026-12-15
+
+  # ---- 2026-11-05：libexpat 补丁水位 24 小时内二次漂移（同一修复版 2.10.0-r0 上又添一条 CVE）----
+  # 现场：PR #767 head b483d7b4 的 Trivy Image Scan（Security run 41893870538 / job 126798064106，
+  #   2026-11-04T19:28:35Z）报「1 个镜像存在 HIGH/CRITICAL」：docker.m.daocloud.io/library/nginx:alpine
+  #   （frontend）——CVE-2026-113351，Package libexpat，Installed 2.9.0-r0，Fixed 2.10.0-r0。
+  #   同一轮 eclipse-temurin:17-jre-alpine 是 0 命中（11-03 的 117610/118370 两条豁免生效）。
+  # 本机实测（2026-11-05，真容器）：两个基座 /etc/alpine-release 都是 3.24.3、apk info -v 都是
+  #   libexpat-2.9.0-r0；nginx 基座 apk upgrade --no-cache libexpat 后为 2.10.0-r0；
+  #   frontend/Dockerfile:28 与 30 个 Alpine 运行时 Dockerfile 都带这条升级 ⇒ 出货镜像不在受影响区间。
+  # 如实记下的未知：两条基座同 Alpine 版本、同包版本，但只有 nginx:alpine 被匹配到这条 CVE，
+  #   trivy 侧的匹配差异未查清——本豁免只覆盖 SARIF 实测到的这个面。
+  # 解锁：上游基座重建带上 2.10.0-r0 后删掉本条（判据 docker run <base> apk info -v | grep ^libexpat-）。
+  - id: CVE-2026-113351
+    statement: "libexpat 2.9.0-r0 → 2.10.0-r0，本轮仅 nginx:alpine 基座引用命中；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）"
+    expired_at: 2026-12-15
