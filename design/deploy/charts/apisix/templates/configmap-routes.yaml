@@ -72,7 +72,34 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "encaps-gateway:8082": 1
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/apis/generate/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/asset-subscriptions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/assets/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
             }
           }
         },
@@ -82,6 +109,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/audit-logs/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
             }
           }
         },
@@ -104,11 +140,47 @@ data:
           }
         },
         {
+          "uri": "/api/v1/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/business-lines/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "business-portal:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/capacity/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "infra-orchestrator:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/catalog/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "catalog:8082": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/cluster/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
             }
           }
         },
@@ -189,7 +261,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "dashboard:8085": 1
+              "business-portal:8080": 1
             }
           }
         },
@@ -199,6 +271,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-data:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/deployments/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
             }
           }
         },
@@ -221,6 +302,24 @@ data:
           }
         },
         {
+          "uri": "/api/v1/eval/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "evaluation:8086": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/experiments/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/failover-events/**",
           "upstream": {
             "type": "roundrobin",
@@ -235,6 +334,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/feature-groups/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
             }
           }
         },
@@ -401,6 +509,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/llmops/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/metadata/**",
           "upstream": {
             "type": "roundrobin",
@@ -415,6 +532,24 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/models/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ops/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
             }
           }
         },
@@ -572,6 +707,24 @@ data:
           }
         },
         {
+          "uri": "/api/v1/settlements/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/spaces/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "knowledge-engine:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/sql/**",
           "upstream": {
             "type": "roundrobin",
@@ -599,6 +752,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/subscriptions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/suggestions/**",
           "upstream": {
             "type": "roundrobin",
@@ -617,11 +779,38 @@ data:
           }
         },
         {
+          "uri": "/api/v1/templates/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "industry-templates:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/tenants/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/training/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/training/jobs/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
             }
           }
         },
@@ -649,6 +838,33 @@ data:
             "type": "roundrobin",
             "nodes": {
               "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/platform/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
+            }
+          }
+        },
+        {
+          "uri": "/tenant/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
+            }
+          }
+        },
+        {
+          "uri": "/v1/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llm-gateway:8084": 1
             }
           }
         }

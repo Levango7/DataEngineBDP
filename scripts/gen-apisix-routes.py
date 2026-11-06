@@ -152,7 +152,39 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     "karmada/failover/failover-api": "failover-api",
     "karmada/failover/failover-engine": "failover-engine",
     "karmada/federated-query": "federated-query",
-    "observability/query-api": "observability-query-api",
+    # Python 组件的 contract module 名是两级目录形式（<组件目录>/<包名>）；Go 部分
+    # 则是 <目录>/<文件>.go（gen-api-contract.py 的 module 名取前两段路径）。带 "/" 的
+    # module 一律只认本显式映射，于是这些前缀即使 chart 明明就位也曾整体进 unmapped。
+    # 下列每条均已核实：chart values.yaml 存在且含 service.port；chart 镜像目录名
+    # （下划线→连字符）与 module 首段目录一致；该 module 就是该 chart 部署的服务。
+    "asset-exchange/asset_exchange": "asset-exchange",  # charts/asset-exchange/values.yaml service.port 8080；镜像 ghcr.io/levango7/sq-asset-exchange = platform/asset-exchange/Dockerfile 所在目录名
+    "business-portal/business_portal": "business-portal",  # .../business-portal/values.yaml service.port 8080；sq-business-portal = platform/business-portal/Dockerfile 目录名；/api/v1/dashboards 的归属裁决（business-portal）此前因本模块不可解析而未生效
+    "ml-platform/ml_platform": "ml-platform",  # .../ml-platform/values.yaml service.port 8080；sq-ml-platform = platform/ml-platform/Dockerfile 目录名
+    "open-api-catalog/openapi_catalog": "open-api-catalog",  # .../open-api-catalog/values.yaml service.port 8080；sq-open-api-catalog = platform/open-api-catalog/Dockerfile 目录名；/api/v1/apis 归属裁决（open-api-catalog）同理落到实现方
+    "llmops/llmops": "llmops",  # .../llmops/values.yaml service.port 8080；sq-llmops = platform/llmops/Dockerfile 目录名；/api/v1/llmops 权威裁决（见上方 PREFIX_OWNER_OVERRIDES）同样是 llmops
+    "industry-templates/industry_templates": "industry-templates",  # .../industry-templates/values.yaml service.port 8080；sq-industry-templates = platform/industry-templates/Dockerfile 目录名；/api/v1/templates 归属裁决（template.ts 要 /{id}/deploy 等）指向本 chart
+    "knowledge-engine/knowledge_engine": "knowledge-engine",  # .../knowledge-engine/values.yaml service.port 8080；sq-knowledge-engine = platform/knowledge-engine/Dockerfile 目录名
+    # llm-gateway 子服务 evaluation：platform/llm-gateway/evaluation/Dockerfile（目录名 evaluation）
+    # 是独立 FastAPI 进程（app/main.py 默认 8086，经 LLM_GATEWAY_URL 回访网关，而非被网关托管），
+    # 其 routes.py 自身声明 /api/v1/eval/**（KNOWN-FAILURES #44② 的合成前缀即由此而来）；
+    # charts/evaluation/values.yaml service.port 8086、镜像 sq-evaluation 正是该目录的部署单元。
+    "llm-gateway/evaluation": "evaluation",
+    # llm-gateway/internal 与 llm-gateway 同一 go module、同一二进制（Dockerfile 在
+    # platform/llm-gateway/ 根）；multimodal_handler.go:76 的 /v1 组（OpenAI 兼容端点）
+    # 属该服务，charts/llm-gateway/values.yaml service.port 8084。
+    "llm-gateway/internal": "llm-gateway",
+    # Go 服务的 module 名形如 <目录>/<文件>.go：platform/catalog/main.go:105-111 在
+    # /api/v1 下挂 catalogGroup，serviceName=catalog、defaultPort=8082；
+    # charts/catalog/values.yaml service.port 8082、镜像 sq-catalog 为其部署单元。
+    "catalog/main.go": "catalog",
+    # observability/query-api：原目标 "observability-query-api" 在本仓根本无此 chart
+    # （charts/ 下只有 query-api 与 observability 门面骨架）⇒ 该映射恒返回 None，
+    # /api/v1/ops、/api/v1/cluster、/platform、/tenant 整体不可达。修正为真实部署单元
+    # query-api：charts/query-api/values.yaml service.port 8090、镜像 sq-query-api
+    # （= platform/observability/query-api/Dockerfile 目录名），chart 头注自述"dashboard/
+    # cluster-overview 等页面的数据源（/api/v1/ops/**、/api/v1/cluster/** 后端）"；
+    # KNOWN-FAILURES #65 亦裁 observability 门面 chart 的目标模块 chart 即 query-api。
+    "observability/query-api": "query-api",
 }
 
 # 前缀 → (截断后的 module 名, chart 名) 的直连裁决。
