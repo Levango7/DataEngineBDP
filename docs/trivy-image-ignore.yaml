@@ -188,3 +188,18 @@ vulnerabilities:
   - id: CVE-2026-109518
     statement: "apt / libapt-pkg6.0t64 2.8.3 → 2.8.4ubuntu0.1，仅 maven:3.9-eclipse-temurin-17 的 AS builder 阶段（19 个 Dockerfile）；运行阶段是 temurin-alpine/distroless，apt 不随产物出货。同一 CVE 在 python:3.12-slim 那半已由基座自重建消解（现镜像 3.0.4，PR #769 复跑 0 命中实证），本条只覆盖 Ubuntu 线"
     expired_at: 2026-12-15
+
+  # ---- 2026-11-06：alpine:3.20 基座 musl 补丁水位漂移（PR #771 Security run 42297558888 实证）----
+  # 现场：`Trivy Image Scan`（job 2026-11-06T21:33:10Z）报 1 个镜像 HIGH：
+  #   docker.m.daocloud.io/library/alpine:3.20 (ai-assistant)——musl / musl-utils
+  #   1.2.5-r3 → 1.2.5-r4（CVE-2026-107891，HIGH）。SARIF 工件 13542073955 解出两条
+  #   results（musl、musl-utils）。命中面=4 个 Dockerfile 的 FROM alpine:3.20：
+  #   ai-assistant / catalog / dqctl / infra-provider-baremetal。
+  # 处置=#98 C-1 同款定向补包：四文件既有 `apk upgrade --no-cache libexpat brotli-libs`
+  #   行追加 musl musl-utils（出货镜像构建期自升）；基座引用那一面由本豁免覆盖
+  #   （#87 结构：门禁扫 FROM 引用、看不见构建期升级）。
+  # 解锁：上游基座重建带上 1.2.5-r4 后删掉本条。
+  # 判据：docker run <base> 后 `apk info -v musl` 显示 ≥1.2.5-r4。
+  - id: CVE-2026-107891
+    statement: "musl / musl-utils 1.2.5-r3 → 1.2.5-r4，alpine:3.20 基座引用（ai-assistant/catalog/dqctl/infra-provider-baremetal 四个 Dockerfile 的运行时层）；四文件构建期 apk upgrade 已补 musl musl-utils，出货镜像不在受影响区间"
+    expired_at: 2026-12-15
