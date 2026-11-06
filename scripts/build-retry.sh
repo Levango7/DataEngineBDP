@@ -37,7 +37,14 @@ set -uo pipefail
 # 2026-10-30（台账 #97①）：Go 模块代理被掐时打的是 HTTP/2 流错误
 # （`stream error: stream ID 235; INTERNAL_ERROR; received from peer`），
 # 与 `TLS handshake timeout` 同族，原先不在表里 ⇒ 被误判成代码/依赖类。
-TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|BUILD_HANG_TIMEOUT|stream error|received from peer|INTERNAL_ERROR'
+# 2026-11-06（台账 #114）：加速器在 manifest HEAD 上回 5xx 时，BuildKit 打的是
+# `failed to resolve source metadata for <base>: unexpected status from HEAD request to
+#  https://<accel>/v2/.../manifests/<tag>: 500 Internal Server Error`。实证：main `5ab02ca3`
+# 的 Build run 42157747248 里 Go(job 127715521150) 与 Java(job 127715521171) 同时吃这一条，
+# 当时的表里没有 ⇒ 打印「未命中传输类签名 ⇒ 代码/依赖类失败，不重试」并以 exit 1 红掉整条 Build。
+# 只认 5xx：**404 不能进表**（那是钉错 tag／发布线被挤出，属内容类，见台账 #112），
+# 401/403 也不进（鉴权配错，换源无用）。
+TRANSPORT_PATTERN='TLS handshake timeout|no such host|context deadline exceeded|i/o timeout|connection reset by peer|TLS handshake failure|BUILD_HANG_TIMEOUT|stream error|received from peer|INTERNAL_ERROR|unexpected status from (HEAD|GET) request to [^ ]*: 5[0-9][0-9]'
 FALLBACK="${BASE_REGISTRY_FALLBACK:-docker.io}"
 ACCEL="${BASE_REGISTRY_ACCEL:-docker.m.daocloud.io}"
 HANG_TIMEOUT="${BASE_HANG_TIMEOUT:-600}"
@@ -176,6 +183,8 @@ case "${STUB_MODE:-ok}" in
   ok) echo "BUILD OK"; exit 0 ;;
   transport) echo 'ERROR: failed to do request: Head "https://x/v2/...": net/http: TLS handshake timeout' >&2; exit 1 ;;
   goproxy) echo 'go: github.com/go-playground/locales@v0.14.1: read "https://proxy.golang.org/github.com/go-playground/locales/@v/v0.14.1.zip": stream error: stream ID 235; INTERNAL_ERROR; received from peer' >&2; exit 1 ;;
+  registry500) echo 'ERROR: failed to resolve source metadata for docker.m.daocloud.io/library/golang:1.26-alpine: unexpected status from HEAD request to https://docker.m.daocloud.io/v2/library/golang/manifests/1.26-alpine: 500 Internal Server Error' >&2; exit 1 ;;
+  registry404) echo 'ERROR: failed to resolve source metadata for docker.m.daocloud.io/library/spark:4.2.0: unexpected status from HEAD request to https://docker.m.daocloud.io/v2/library/spark/manifests/4.2.0: 404 Not Found' >&2; exit 1 ;;
   code) echo "ERROR: COPY failed: file not found" >&2; exit 1 ;;
   *) exit 1 ;;
 esac
@@ -209,6 +218,13 @@ STUB
   STUB_ARGS_FILE="$tmp/args" STUB_MODE=goproxy \
     bash "$0" "$tmp/stub.sh" --build-arg "BASE_REGISTRY=docker.m.daocloud.io" 2>/dev/null
   check "Go 代理流错误且重试仍失败 ⇒ 2（命中传输类）" 2 $?
+
+  # 台账 #114：加速器 manifest HEAD 回 5xx ⇒ 必须算传输类并换源重试
+  STUB_ARGS_FILE="$tmp/args" STUB_MODE=registry500     bash "$0" "$tmp/stub.sh" --build-arg "BASE_REGISTRY=docker.m.daocloud.io" 2>/dev/null
+  check "加速器 HEAD 500 且重试仍失败 ⇒ 2（命中传输类）" 2 $?
+  # 反例：同一条文案但是 404（钉错 tag／发布线被挤出）⇒ 属内容类，不许换源重跑
+  STUB_ARGS_FILE="$tmp/args" STUB_MODE=registry404     bash "$0" "$tmp/stub.sh" --build-arg "BASE_REGISTRY=docker.m.daocloud.io" 2>/dev/null
+  check "加速器 HEAD 404 ⇒ 1（内容类，不重试）" 1 $?
 
   # 换源确实生效：stub 记录的参数里 BASE_REGISTRY 应变成 docker.io
   STUB_ARGS_FILE="$tmp/args" STUB_MODE=transport \
