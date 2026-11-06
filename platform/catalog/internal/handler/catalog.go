@@ -172,10 +172,11 @@ func (h *CatalogHandler) CreateDatabase(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "database name is required"})
 		return
 	}
-	// 若未提供 ID，则生成 UUID v4。
-	if db.ID == "" {
-		db.ID = newUUID()
-	}
+	// ID 一律服务端生成，忽略客户端提供的值（2026-11-06 审计）：
+	// ID 是全局主键（非租户域唯一）——接受客户端 ID 等于允许跨租户 ID 抢占与
+	// 存在性探测（同 ID 他租户已建则 409、未建则 201 ⇒ 探测 Oracle）。
+	// 与 TenantID 强制取自 token 同一原则：主键与租户归属都不信任请求体。
+	db.ID = newUUID()
 	db.TenantID = tenantID // 安全：租户归属以 token 为准
 	now := time.Now().UTC()
 	if db.CreatedAt.IsZero() {

@@ -293,8 +293,10 @@ func (h *OpsHandler) JobLogs(c *gin.Context) {
 		c.String(http.StatusNotFound, "作业 %s 不存在\n", id)
 		return
 	}
-	// TODO: 从日志存储（Loki/ES）查询作业日志
-	c.String(http.StatusOK, "# 作业 %s 日志\n# 名称: %s\n# 类型: %s\n# 状态: %s\n# TODO: 接入日志存储后返回真实日志\n",
+	// 日志存储（Loki/ES）未接入：诚实地返回 501，而非伪造 200 内容——
+	// 200 + TODO 占位会让调用方把"未实现"误读成"日志为空"，比不返回更坏（2026-11-06 审计）。
+	// 接入判据：日志存储选型落地后，把本分支替换为真实查询，body 保持 text/plain 不变。
+	c.String(http.StatusNotImplemented, "# 作业 %s 日志查询未实现：日志存储（Loki/ES）尚未接入\n# 名称: %s\n# 类型: %s\n# 状态: %s\n",
 		id, job.Name, job.Type, job.Status)
 }
 

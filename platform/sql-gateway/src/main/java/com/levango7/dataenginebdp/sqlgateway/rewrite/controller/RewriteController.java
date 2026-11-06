@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * 查询改写与物化视图自动路由 REST 控制器。
@@ -60,6 +61,7 @@ import java.util.Optional;
 @RestController
 @Tag(name = "SQL网关-查询改写", description = "SQL改写与物化视图路由")
 @RequestMapping("/api/v1/rewrite")
+@PreAuthorize("isAuthenticated()") // 2026-11-06 审计：原全类零鉴权注解（写端点仅靠默认链），与兄弟 SqlGatewayController 类级口径对齐
 public class RewriteController {
 
     private static final Logger log = LoggerFactory.getLogger(RewriteController.class);
