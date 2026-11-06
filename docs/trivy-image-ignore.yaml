@@ -1,4 +1,4 @@
-# Trivy 镜像扫描的**限期**豁免账（台账 #74）
+﻿# Trivy 镜像扫描的**限期**豁免账（台账 #74）
 #
 # 来由：#604 把 security.yml 的镜像扫描修好（扫描前展开 ${BASE_REGISTRY} + 不再用
 # `if trivy … | tee` 吞退码）之后，main 第一次真扫出 HIGH/CRITICAL。
@@ -170,20 +170,21 @@ vulnerabilities:
     statement: "libexpat 2.9.0-r0 → 2.10.0-r0，本轮仅 nginx:alpine 基座引用命中；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）"
     expired_at: 2026-12-15
 
-  # ---- 2026-11-06：同一 CVE 跨多个基座反复（#113 预言的「打地鼠」形态）----
-  # 现场（两次实测，见台账 #115）：① PR #768 head b4d978f3 的 Trivy Image Scan（run 41960550478）
-  #   报 python:3.12-slim（asset-exchange）——apt/libapt-pkg7.0 3.0.3→3.0.4；
-  #   ② merge head 6a6e4035 的 Trivy Image Scan（run 42117297939）报
-  #   maven:3.9-eclipse-temurin-17（encaps-data）——apt/libapt-pkg6.0t64 2.8.3（Ubuntu 侧同一 CVE）。
-  #   同一轮 main（302de56a，run 41968420185）红在 python:3.12-slim ⇒ **非任何 PR 内容引入，
-  #   daocloud 镜像站不同 pull 落到带洞 digest（#88 同形态），扫到哪个基座看运气**。
-  # 处置（按 #74 标准路线、补包追不上的形态）：同一 CVE 记一条全基座面豁免。
-  # 出货镜像侧已做的：python:3.12-slim 的两个消费者（asset-exchange、batch-pipeline）
-  #   构建期 `apt-get install --only-upgrade apt libapt-pkg7.0` 自升（台账 #115 本机实测 3.0.4）；
-  #   maven:3.9-eclipse-temurin-17 是 Java 的 **build 阶段**基座（jar 拷进 temurin-alpine runtime，
-  #   maven 层不随出货镜像发布）⇒ 对 18 个 Java Dockerfile 补 apt 升级对出货零收益，不补。
-  # 解锁：上游各基座重建带上修复版 apt 后删除本条。
-  # 判据：docker run <base> 后 `apt-cache policy apt` 显示 Debian 侧 ≥3.0.4 / Ubuntu 侧 ≥2.8.4。
+  # ---- 2026-11-06：CVE-2026-109518（apt / libapt-pkg）跨两条基座线命中，本条只覆盖仍未消解的那半 ----
+  # 同一条 CVE 先在 python:3.12-slim 报 Installed 3.0.3（Fixed 3.0.4，Debian 线）：main `302de56a`
+  #   的扫描（2026-11-05T04:44:25Z，job `127050736879`）就是这么红的；基座在 08:00:30Z 自重建
+  #   （现 digest `e695ab189fa2…`，容器内 `dpkg -l apt` 已是 3.0.4）⇒ 那一半**本仓零改动**，
+  #   并且 PR #769 的复跑（Security run `42063726469`）里 python 那格已 0 命中，实证闭环。
+  # 随后它改在 maven:3.9-eclipse-temurin-17 报 Installed 2.8.3（Fixed `2.8.4ubuntu0.1`，Ubuntu noble 线）。
+  #   命中面实测＝19 个 Dockerfile 的 `FROM ... AS builder` 构建阶段（grep 计数），运行阶段是
+  #   eclipse-temurin:17-jre-alpine / distroless ⇒ apt 不随产物出货。
+  # 本机实测（2026-11-06，真容器，同一基座现 digest `1a352420f7ab…`）：apt 与 libapt-pkg6.0t64 都还是
+  #   2.8.3，而 `apt-cache policy` 的 Candidate 已是 **2.8.4ubuntu0.1** ⇒ 修复版 Ubuntu 仓里已发布，
+  #   只差基座重建。两条可选解法：① 等基座自重建（与 python 那半同一条路，已验证会自己消）；
+  #   ② 在 19 个构建阶段各加一条 `apt-get upgrade -y apt libapt-pkg6.0t64`——代价是每次 Java 镜像构建
+  #   多一层 apt update/upgrade，而 `Java Build & Test` / `Docker Build Verify` 已是全仓最长的两条腿，不划算。
+  # 记法与本表既有的 maven openssl 条目同口径（构建阶段基座、不随产物出货）；到期未解自动重新判红。
+  # 解锁：`docker run <base> dpkg -l apt | awk '/^ii/{print $3}'` 显示 ≥2.8.4ubuntu0.1 后删掉本条。
   - id: CVE-2026-109518
-    statement: "apt/libapt 修复版水位漂移，已实测命中两个基座引用：python:3.12-slim（apt/libapt-pkg7.0 3.0.3→3.0.4）与 maven:3.9-eclipse-temurin-17（apt/libapt-pkg6.0t64 2.8.3）。python 侧出货镜像构建期已自升（本机实测 3.0.4）；maven 侧为 Java build 阶段基座、不随出货镜像发布"
+    statement: "apt / libapt-pkg6.0t64 2.8.3 → 2.8.4ubuntu0.1，仅 maven:3.9-eclipse-temurin-17 的 AS builder 阶段（19 个 Dockerfile）；运行阶段是 temurin-alpine/distroless，apt 不随产物出货。同一 CVE 在 python:3.12-slim 那半已由基座自重建消解（现镜像 3.0.4，PR #769 复跑 0 命中实证），本条只覆盖 Ubuntu 线"
     expired_at: 2026-12-15
