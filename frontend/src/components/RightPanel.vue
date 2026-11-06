@@ -34,7 +34,7 @@
 
         <!-- 通知中心 -->
         <div v-if="activeTab === 'notice'" role="tabpanel" :aria-label="t('app.noticeList')">
-          <div v-for="n in notices" :key="n.id" class="rp-item" :class="{ unread: n.unread }">
+          <div v-for="n in noticesWithState" :key="n.id" class="rp-item" :class="{ unread: n.unread }">
             <span class="rp-dot" :class="n.level" aria-hidden="true"></span>
             <div class="rp-item-main">
               <div class="rp-item-title">{{ n.title }}</div>
@@ -56,7 +56,7 @@
       </div>
 
       <div class="rp-foot">
-        <button class="rp-clear" :aria-label="t('app.markAllRead')">
+        <button class="rp-clear" :aria-label="t('app.markAllRead')" @click="markAllRead">
           {{ t('app.markAllRead') }}
         </button>
       </div>
@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 
@@ -116,6 +116,22 @@ const notices = computed<PanelItem[]>(() => [
     level: 'info'
   }
 ])
+
+/* 未读状态（2026-11-06 审计补）：
+ * 顶栏铃铛原为 ref(2) 写死、「全部标为已读」无 handler。演示数据的 unread 是初值，
+ * readIds 记录本会话内已读的 id——computed 每次返回新数组，直接改条目的 unread 无效，
+ * 必须用独立状态集合。接口接入后替换 notices 数据来源即可，状态机不变。 */
+const readIds = ref<Set<string>>(new Set())
+const noticesWithState = computed<PanelItem[]>(() =>
+  notices.value.map((n) => ({ ...n, unread: n.unread === true && !readIds.value.has(n.id) }))
+)
+const unreadCount = computed(() => noticesWithState.value.filter((n) => n.unread).length)
+watch(unreadCount, (n) => ui.setUnreadNotices(n), { immediate: true })
+
+function markAllRead(): void {
+  notices.value.forEach((n) => readIds.value.add(n.id))
+  ui.markAllNoticesRead()
+}
 
 const activities = computed<PanelItem[]>(() => [
   {

@@ -73,6 +73,7 @@
         :aria-label="t('app.globalSearchPlaceholder')"
         @focus="searchFocus = true"
         @blur="searchFocus = false"
+        @keyup.enter="submitGlobalSearch"
       />
       <kbd class="gs-kbd" :class="{ dim: searchFocus }">⌘K</kbd>
     </div>
@@ -202,8 +203,10 @@ async function loadWsList() {
 
 const crumb = computed(() => crumbOf(route.path))
 
-/** 通知数（预留：接通知中心后替换为真实未读数） */
-const noticeCount = ref(2)
+/** 通知未读数（2026-11-06 审计：原为写死 ref(2)。由 ui store 驱动——
+ *  RightPanel 挂载时按演示数据同步、点「全部标为已读」即清零；
+ *  接通知中心后把 RightPanel 的数据源换成 API 即可，此处无需再改）。 */
+const noticeCount = computed(() => ui.unreadNotices)
 
 const avatarText = computed(() => {
   const name = auth.user?.username
@@ -216,6 +219,21 @@ function onKeydown(e: KeyboardEvent) {
     e.preventDefault()
     ui.toggleSidebar()
   }
+  // ⌘K / Ctrl+K 全局搜索（徽标此前是纯装饰——2026-11-06 审计：全仓无 K 监听）
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault()
+    submitGlobalSearch()
+  }
+}
+
+/** 顶栏全局搜索：跳转检索门户并带 q（SearchPortal 挂载时预填）。 */
+function submitGlobalSearch(): void {
+  const kw = searchKw.value.trim()
+  if (!kw) {
+    router.push('/search')
+    return
+  }
+  router.push({ path: '/search', query: { q: kw } })
 }
 
 onMounted(() => {
