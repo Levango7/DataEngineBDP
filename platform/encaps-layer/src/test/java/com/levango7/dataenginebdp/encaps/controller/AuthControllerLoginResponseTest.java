@@ -128,4 +128,43 @@ class AuthControllerLoginResponseTest {
     private static String base64Url(String s) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(s.getBytes(StandardCharsets.UTF_8));
     }
+
+    // ============ POST /me（2026-11-06 审计 #117 P0-2） ============
+
+    /**
+     * 前端启动时 hydrateUser 调 POST /auth/me 恢复会话（前端无 roles 时按空 roles 判权）。
+     * 契约：从 Bearer token payload 解析，tenantId/roles 与 login 分支同源同构。
+     */
+    @Test
+    @DisplayName("/me 必须从 Bearer token 解析出 tenantId 与 roles（同 login 契约）")
+    void me_projectsTokenClaims() throws Exception {
+        AuthController controller = new AuthController();
+        String payload = """
+                {"sub":"u-42","preferred_username":"zhangsan","email":"z@example.com",
+                "name":"张三","tenantId":"t-99","realm_access":{"roles":["SUPER_ADMIN","USER"]}}
+                """;
+        String bearer = "Bearer " + base64Url("{\"alg\":\"none\"}") + "." + base64Url(payload) + ".sig";
+
+        ResponseEntity<?> resp = controller.me(bearer);
+
+        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) resp.getBody();
+        assertThat(user).containsEntry("id", "u-42");
+        assertThat(user).containsEntry("username", "zhangsan");
+        assertThat(user).containsEntry("tenantId", "t-99");
+        assertThat((List<String>) user.get("roles")).containsExactly("SUPER_ADMIN", "USER");
+    }
+
+    @Test
+    @DisplayName("/me 无 Bearer 头必须 401（不静默返回空用户）")
+    void me_withoutBearer_returns401() {
+        AuthController controller = new AuthController();
+
+        ResponseEntity<?> noHeader = controller.me(null);
+        assertThat(noHeader.getStatusCode().value()).isEqualTo(401);
+
+        ResponseEntity<?> badHeader = controller.me("Basic abc");
+        assertThat(badHeader.getStatusCode().value()).isEqualTo(401);
+    }
 }
