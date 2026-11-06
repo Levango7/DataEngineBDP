@@ -61,6 +61,15 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
     # 故生产网关把租户管理 API 统一指向 encaps-layer；encaps-tenant 仅供集群内直连。
     "/api/v1/tenants": "encaps-layer",
+    # 审计 #117 P0-4（2026-11-06）：/api/v1/clusters 被 infra-orchestrator 与
+    # karmada-api 同时声明。取证：前端 infra.ts 打的 /{env}/{id}、/{env}/{id}/scale、
+    # /providers、/environments、/profiles、/network、/storage、/nodes 等**全部**
+    # 由 infra-orchestrator ClusterController.java:62 起实现了（15+ 端点，
+    # :96/:138/:159/:180/:200/:219/:234/:252/:325/:368…）；karmada-api 的
+    # /api/v1/clusters 是联邦集群平行语义（main.go:133-136，仅 4 端点、集群内消费）。
+    # 裁决：对外前缀归 infra-orchestrator；karmada-api 侧保持集群内直连
+    # （与 /api/v1/tenants 同型处置）。
+    "/api/v1/clusters": "infra-orchestrator",
     # 台账 #1b Q1（2026-10-10）：/api/v1/llmops 权威 = **llmops 服务**——
     # encaps-layer 的 LLMOps 门面已退场，llmops 服务端契约由 PR #421 补齐
     # （9 端点 + 形状对齐 llmops.ts，含 /inference-services）。
@@ -251,6 +260,14 @@ def resolve_chart(module: str, chart_ports: dict[str, int]) -> str | None:
         chart = MODULE_CHART_OVERRIDES[module]
         return chart if chart in chart_ports else None
     if "/" in module or module in CHART_FALLBACK_DENY:
+        # 2026-11-06 审计 #117 P0-4：Java contract 的 module 名带源码根后缀
+        # （encaps-layer/src、rule-engine/src 等 17 个），chart 名不带 ⇒ 这些前缀
+        # 系统性不可解析、生产不可达（chart 明明就位）。剥掉 `/src` 后缀重试一次：
+        # 纯归一化（同一组件的 chart 名），不跨服务重归属，override/冲突裁决逻辑不变。
+        if module.endswith("/src"):
+            base = module[: -len("/src")]
+            if base not in CHART_FALLBACK_DENY:
+                return base if base in chart_ports else None
         return None
     return module if module in chart_ports else None
 
