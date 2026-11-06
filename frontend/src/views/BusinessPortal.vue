@@ -248,18 +248,24 @@
                     </el-table-column>
                     <el-table-column label="">
                       <template #default>
-                        <el-button
-                          size="small"
-                          @click="store.showToast(t('businessPortal.workbench.todos.approveDone'))"
-                        >
-                          {{ t('businessPortal.workbench.todos.approve') }}
-                        </el-button>
-                        <el-button
-                          size="small"
-                          @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))"
-                        >
-                          {{ t('businessPortal.workbench.todos.reject') }}
-                        </el-button>
+                        <!-- 2026-11-06 审计：后端无任何审批端点（approval 只是 workbench 的
+                             只读种子数据）——原点击弹「已批准/已驳回」假成功反馈，
+                             对真实数据说谎，运维会误判审批已生效。禁用+标注，接入真实
+                             API 后移除 disabled 与 tooltip。 -->
+                        <el-tooltip :content="t('businessPortal.workbench.todos.notImplemented')">
+                          <span>
+                            <el-button size="small" disabled>
+                              {{ t('businessPortal.workbench.todos.approve') }}
+                            </el-button>
+                          </span>
+                        </el-tooltip>
+                        <el-tooltip :content="t('businessPortal.workbench.todos.notImplemented')">
+                          <span>
+                            <el-button size="small" disabled>
+                              {{ t('businessPortal.workbench.todos.reject') }}
+                            </el-button>
+                          </span>
+                        </el-tooltip>
                       </template>
                     </el-table-column>
                     <template #empty>
@@ -403,6 +409,33 @@
         </template>
       </main>
     </div>
+
+    <!-- 报表详情（只读）——2026-11-06 审计：替代假跳转 toast -->
+    <Modal
+      v-if="reportDetailVisible"
+      :visible="reportDetailVisible"
+      :title="t('businessPortal.reportActions.detailTitle')"
+      @close="reportDetailVisible = false"
+    >
+      <div class="report-detail">
+        <div class="report-detail-row">
+          <span class="k">{{ t('businessPortal.reportActions.detailName') }}</span>
+          <span class="v">{{ currentReport?.name }}</span>
+        </div>
+        <div class="report-detail-row">
+          <span class="k">{{ t('businessPortal.reportActions.detailType') }}</span>
+          <span class="v">{{ currentReport?.config.type }}</span>
+        </div>
+        <div class="report-detail-row">
+          <span class="k">{{ t('businessPortal.reportActions.detailChart') }}</span>
+          <span class="v">{{ currentReport?.config.chartType }}</span>
+        </div>
+        <div class="report-detail-row">
+          <span class="k">{{ t('businessPortal.reportActions.detailDesc') }}</span>
+          <span class="v">{{ currentReport?.description || t('businessPortal.reportActions.detailEmpty') }}</span>
+        </div>
+      </div>
+    </Modal>
 
     <!-- 新建业务线 Modal -->
     <Modal
@@ -710,8 +743,15 @@ async function handleDeleteReport(reportId: string): Promise<void> {
   }
 }
 
+// 2026-11-06 审计：原点击只弹「即将跳转 BI 工作台」的假动作提示。
+// BI 工作台未接入，但报表数据是真实的——改为展示报表详情（只读），
+// 接入 BI 工作台后再把 dialog 换成真实跳转。
+const reportDetailVisible = ref(false)
+const currentReport = ref<Report | null>(null)
+
 function viewReport(r: Report): void {
-  store.showToast(t('businessPortal.reportActions.viewToast', { name: r.name }))
+  currentReport.value = r
+  reportDetailVisible.value = true
 }
 
 /* ------------------------------ 辅助函数 ------------------------------ */
@@ -889,6 +929,21 @@ onMounted(async () => {
   }
   .bp-sidebar {
     max-height: none;
+  }
+  .report-detail-row {
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: var(--ds-font-size-sm);
+  }
+  .report-detail-row .k {
+    color: var(--ds-text-tertiary);
+    min-width: 56px;
+    flex: none;
+  }
+  .report-detail-row .v {
+    color: var(--ds-text-primary);
+    word-break: break-all;
   }
 }
 </style>

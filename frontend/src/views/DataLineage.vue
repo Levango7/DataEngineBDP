@@ -172,11 +172,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { useChartPalette } from '@/composables/useChartTheme'
 import { PageHeader } from '@/components/ui'
 import {
   analyzeLineage,
@@ -194,6 +195,10 @@ const store = useAppStore()
 // ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色常量
 const COLOR_TABLE_LINEAGE = '#047857' // 表级血缘边色（对应 --ds-color-success-700）
 const COLOR_COLUMN_LINEAGE = '#8b5cf6' // 字段级血缘边色（紫色，无对应 token）
+
+// 图谱文字 / 图例底色随主题切换：canvas 不解析 CSS 变量，必须喂真实色值，
+// 否则暗色档下节点名与图例走 ECharts 出厂默认 #333 / #ccc，在暗色画布上不可读。
+const palette = useChartPalette()
 
 // SQL 输入
 const sqlText = ref('')
@@ -286,14 +291,20 @@ async function retryQuery(): Promise<void> {
   await executeQuery(lastQueryKind)
 }
 
+/** 最近一次渲染的血缘图（切主题时用它重绘） */
+let lastGraph: LineageGraph | null = null
+
 /** 渲染 ECharts 关系图 */
 function renderChart(g: LineageGraph): void {
   if (!chartRef.value) return
   if (chartInstance) {
     chartInstance.dispose()
   }
+  lastGraph = g
+  const pal = palette.value
   chartInstance = echarts.init(chartRef.value)
   const option: echarts.EChartsCoreOption = {
+    textStyle: { color: pal.axisText },
     tooltip: {
       formatter: (params: unknown) => {
         const p = params as { data?: { name?: string; expression?: string }; dataType?: string }
@@ -306,7 +317,8 @@ function renderChart(g: LineageGraph): void {
     legend: [
       {
         data: g.categories.map((c) => c.name),
-        top: 10
+        top: 10,
+        textStyle: { color: pal.legendText }
       }
     ],
     series: [
@@ -342,7 +354,8 @@ function renderChart(g: LineageGraph): void {
         label: {
           show: true,
           position: 'right',
-          fontSize: 11
+          fontSize: 11,
+          color: pal.axisText
         },
         emphasis: {
           focus: 'adjacency',
@@ -353,6 +366,11 @@ function renderChart(g: LineageGraph): void {
   }
   chartInstance.setOption(option)
 }
+
+// 切主题时重绘：ECharts 颜色是 init 时写入 canvas 的，不重绘不会跟随主题
+watch(palette, () => {
+  if (lastGraph) renderChart(lastGraph)
+})
 
 /** 方向标签词条 */
 function directionLabel(d: string): string {

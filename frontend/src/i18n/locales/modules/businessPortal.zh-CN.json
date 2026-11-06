@@ -70,7 +70,8 @@
         "approve": "批准",
         "approveDone": "已批准",
         "reject": "驳回",
-        "rejectDone": "已驳回"
+        "rejectDone": "已驳回",
+        "notImplemented": "审批能力尚未接入（后端暂无审批端点），接入后启用"
       },
       "tools": {
         "title": "常用工具"
@@ -145,7 +146,12 @@
       "created": "报表已创建"
     },
     "reportActions": {
-      "viewToast": "查看报表：{name}（即将跳转 BI 工作台）",
+      "detailTitle": "报表详情",
+      "detailName": "名称",
+      "detailType": "类型",
+      "detailChart": "图表",
+      "detailDesc": "描述",
+      "detailEmpty": "（无）",
       "deleted": "报表已删除"
     },
     "status": {

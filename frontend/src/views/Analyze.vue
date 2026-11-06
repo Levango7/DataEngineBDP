@@ -123,10 +123,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { useChartPalette } from '@/composables/useChartTheme'
 import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
@@ -232,6 +233,10 @@ function panelData(p: Panel): { rows: PanelRow[] } {
 }
 
 const chartPool = new Map<string, echarts.ECharts>()
+
+// 画布文字色随主题切换：canvas 不解析 CSS 变量，必须喂真实色值，
+// 否则暗色档下坐标轴 / 图例走 ECharts 出厂默认 #333 / #ccc，在暗色画布上不可读。
+const palette = useChartPalette()
 
 /** 面板 DOM 元素 Map（通过模板 ref 回调收集，避免 querySelector 选择器注入风险） */
 const panelEls = new Map<string, HTMLElement>()
