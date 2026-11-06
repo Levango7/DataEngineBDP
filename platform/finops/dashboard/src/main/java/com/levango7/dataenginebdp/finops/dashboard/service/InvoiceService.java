@@ -19,6 +19,11 @@ import java.util.UUID;
  *
  * <p>P-03 出账支付分账（后半段）— 出账服务骨架。</p>
  *
+ * <p><b>未接线（2026-11-06 审计）：无任何 Controller/路由引用，72 项 TODO 未实现；
+ * 产品裁决（接线 or 删除）见 docs/KNOWN-FAILURES.md #117 待裁项。</b>
+ * 本类当前仅为编译期骨架：PDF 生成/邮件/编号序列/税率配置化/持久化均未实现，
+ * 不可通过任何 HTTP 端点触达。</p>
+ *
  * <p>出账流程：
  * <pre>
  *   账单聚合（BillingAggregatorService）

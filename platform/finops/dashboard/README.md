@@ -286,3 +286,19 @@ pytest docker/test_finops_dashboard.py -v
 | 分账比例合计=1.0 校验 | `AllocationService.validateRatios` | ✅ |
 | pytest 测试套件 | `tests/integration/docker/test_finops_dashboard.py` | ✅ |
 | Dockerfile 可构建 | `Dockerfile`（多阶段构建） | ✅ |
+
+## 10. 已知状态：invoice / payment 未实现脚手架、当前不可达（2026-11-06 审计）
+
+以下两个 Service 已在源码树中，但**没有任何 Controller / 路由引用**（全仓 grep 零注入点），
+因此**不可通过任何 HTTP 端点触达**，仅为编译期骨架：
+
+| 类 | 路径（service 包） | 状态 |
+|----|--------------------|------|
+| `InvoiceService` | `service/InvoiceService.java` | 未接线：PDF 生成/邮件模板/编号序列/税率配置化/持久化均 TODO，类头已标注 |
+| `PaymentService` | `service/PaymentService.java` | 未接线：持久化/回调/超时/对账均 TODO，类头已标注 |
+
+连同同族 `PaymentGateway` / `MockPaymentGateway` / `SplitNotificationService`，
+该流程（P-03 出账支付分账后半段）共约 74 处 TODO 未实现。
+
+**处置口径**：不删代码、不造端点（端点本就不存在，造 501 反而是新攻击面）；
+接线 or 删除的产品裁决见 `docs/KNOWN-FAILURES.md` #117 待裁项。

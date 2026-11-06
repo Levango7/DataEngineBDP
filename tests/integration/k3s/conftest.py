@@ -413,16 +413,22 @@ class K3sApiClient:
     - 提供 get/post/put/delete 方法.
     """
 
-    def __init__(self, max_retries: int = 3, retry_delay: float = 1.0):
+    def __init__(
+        self,
+        max_retries: int = 3,
+        retry_delay: float = 1.0,
+        roles: tuple[str, ...] = ("USER",),
+    ):
         self._token: Optional[str] = None
         self._max_retries = max_retries
         self._retry_delay = retry_delay
+        self._roles = roles
 
     @property
     def auth_header(self) -> Dict[str, str]:
         """返回携带 Bearer token 的请求头."""
         if self._token is None:
-            self._token = generate_test_jwt()
+            self._token = generate_test_jwt(roles=self._roles)
         return {"Authorization": f"Bearer {self._token}"}
 
     def _request(self, method: str, url: str, **kwargs) -> requests.Response:
@@ -466,6 +472,18 @@ class K3sApiClient:
 def k3s_client():
     """K3s 服务 HTTP 客户端 fixture（自动携带 JWT + 重试）."""
     return K3sApiClient()
+
+
+@pytest.fixture
+def k3s_writer_client():
+    """带 SQL_GATEWAY_WRITER/SUPER_ADMIN 角色的客户端 fixture.
+
+    用于受 ``@PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")``
+    保护的写端点（如 sql-gateway ``POST /api/v1/rewrite/views``，2026-11-06 审计补齐，
+    与 docker conftest 的 admin_token 助手同范式）。普通只读用例继续用 k3s_client，
+    这样"越权应被拒"的断言仍然有效。
+    """
+    return K3sApiClient(roles=("USER", "SQL_GATEWAY_WRITER", "SUPER_ADMIN"))
 
 
 def _make_service_url_fixture(service_name: str):
