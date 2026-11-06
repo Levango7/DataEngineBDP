@@ -95,6 +95,30 @@ func TestCreateCollection_Success(t *testing.T) {
 	assert.EqualValues(t, 128, resp["dimension"])
 }
 
+// TestCreateCollection_FrontendContractAlias 前端契约别名 POST /vector（2026-11-06
+// 审计 #117 P1-3）：前端 createCollection 走 BASE=/vector，此前只有
+// POST /collections 一个入口 ⇒ 前端恒 404。
+func TestCreateCollection_FrontendContractAlias(t *testing.T) {
+	r, _ := setupRouter()
+
+	w := doRequest(t, r, http.MethodPost, "/api/v1/vector", map[string]interface{}{
+		"name":       "contract_col",
+		"dimension":  64,
+		"metricType": "L2",
+		"indexType":  "HNSW",
+	})
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var resp map[string]interface{}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "contract_col", resp["name"])
+
+	// 别名必须真的落库（列表端点能读到）
+	w2 := doRequest(t, r, http.MethodGet, "/api/v1/vector", nil)
+	assert.Equal(t, http.StatusOK, w2.Code)
+	assert.Contains(t, w2.Body.String(), "contract_col")
+}
+
 func TestCreateCollection_AlreadyExists(t *testing.T) {
 	r, _ := setupRouterWithCollection(t, "col", 4)
 
