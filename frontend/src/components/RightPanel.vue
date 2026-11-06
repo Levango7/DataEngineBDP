@@ -248,8 +248,8 @@ const tabs = computed(() => [
     transform var(--ds-transition-fast);
 }
 .rp-close:hover {
-  color: var(--ds-color-error-500);
-  background: var(--c-red-50);
+  color: var(--ds-danger);
+  background: var(--ds-danger-soft);
   transform: rotate(90deg);
 }
 

@@ -612,23 +612,23 @@ onBeforeUnmount(() => {
   color: var(--ds-text-tertiary);
 }
 .gs-running {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .gs-success {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .gs-failed {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .gs-stopped {
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
 }
 .gs-paused {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 
@@ -809,16 +809,16 @@ onBeforeUnmount(() => {
   border-color: var(--c-slate-300);
 }
 .legend-dot.s-running {
-  border-color: var(--ds-color-warning-500);
-  background: var(--c-amber-50);
+  border-color: var(--ds-warning);
+  background: var(--ds-warning-soft);
 }
 .legend-dot.s-success {
-  border-color: var(--ds-color-success-500);
-  background: var(--c-green-50);
+  border-color: var(--ds-success);
+  background: var(--ds-success-soft);
 }
 .legend-dot.s-failed {
-  border-color: var(--ds-color-error-500);
-  background: var(--c-red-50);
+  border-color: var(--ds-danger);
+  background: var(--ds-danger-soft);
 }
 .legend-dot.s-skipped {
   border-color: var(--c-slate-300);
@@ -826,7 +826,7 @@ onBeforeUnmount(() => {
 }
 .legend-dot.s-waiting_human {
   border-color: var(--c-violet);
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
 }
 
 /* 详情面板 */

@@ -254,13 +254,20 @@ function setPanelEl(id: string, el: HTMLElement | null): void {
 function buildOption(p: Panel): echarts.EChartsCoreOption | null {
   const rows = panelData(p).rows
   if (!rows.length) return null
+  const c = palette.value
   if (p.type === 'pie') {
     return {
+      textStyle: { color: c.axisText },
       tooltip: { trigger: 'item' },
+      legend: {
+        top: 0,
+        textStyle: { color: c.legendText }
+      },
       series: [
         {
           type: 'pie',
           radius: '65%',
+          label: { color: c.axisText },
           data: rows.map((r) => ({
             name: r.label ?? r.name ?? '',
             value: r.value
@@ -273,14 +280,40 @@ function buildOption(p: Panel): echarts.EChartsCoreOption | null {
   const values = rows.map((r) => r.value)
   if (p.type === 'bar') {
     return {
-      xAxis: { type: 'category', data: labels },
-      yAxis: { type: 'value' },
+      textStyle: { color: c.axisText },
+      tooltip: { trigger: 'axis' },
+      grid: { left: 12, right: 16, bottom: 8, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLine: { lineStyle: { color: c.axisLine } },
+        axisLabel: { color: c.axisText }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { lineStyle: { color: c.axisLine } },
+        axisLabel: { color: c.axisText },
+        splitLine: { lineStyle: { color: c.gridLine } }
+      },
       series: [{ type: 'bar', data: values }]
     }
   }
   return {
-    xAxis: { type: 'category', data: labels },
-    yAxis: { type: 'value' },
+    textStyle: { color: c.axisText },
+    tooltip: { trigger: 'axis' },
+    grid: { left: 12, right: 16, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText },
+      splitLine: { lineStyle: { color: c.gridLine } }
+    },
     series: [{ type: 'line', data: values, smooth: true }]
   }
 }
@@ -302,6 +335,12 @@ function renderCharts(): void {
     }
   }
 }
+
+// 切主题时重绘：ECharts 颜色是 init 时写入 canvas 的，不重绘不会跟随主题。
+// setOption(opt, true) 是 notMerge 全量替换，换一组色值即可整体改掉文字色。
+watch(palette, () => {
+  renderCharts()
+})
 
 onMounted(() => {
   void loadBoards()

@@ -535,15 +535,15 @@ onMounted(() => {
   border-radius: var(--ds-radius-md);
 }
 .tg-run {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .tg-resume {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .tg-replay {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 .status-tag {
@@ -553,23 +553,23 @@ onMounted(() => {
   border-radius: var(--ds-radius-md);
 }
 .st-success {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .st-failed {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .st-running {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .st-stopped {
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
 }
 .st-paused {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 .st-draft {
@@ -642,7 +642,7 @@ onMounted(() => {
   opacity: var(--ds-opacity-10);
 }
 .event.current {
-  background: var(--c-amber-50);
+  background: var(--ds-warning-soft);
   font-weight: var(--ds-font-weight-semibold);
 }
 .ev-seq {
@@ -675,28 +675,28 @@ onMounted(() => {
 }
 
 .event.ev-node_start .ev-kind {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .event.ev-node_success .ev-kind {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .event.ev-node_failed .ev-kind {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .event.ev-node_skip .ev-kind {
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
 }
 .event.ev-checkpoint .ev-kind {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 .event.ev-intervene .ev-kind {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .event.ev-tool_call .ev-kind {
   background: var(--ds-color-primary-50);
@@ -734,16 +734,16 @@ onMounted(() => {
   color: var(--ds-text-tertiary);
 }
 .ckpt-kind.k-auto {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .ckpt-kind.k-manual {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .ckpt-kind.k-intervention {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .ckpt-time {
   font-size: var(--ds-font-size-xs);
@@ -812,20 +812,20 @@ onMounted(() => {
   border-radius: var(--ds-radius-md);
 }
 .iv-status.iv-st-pending {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 .iv-status.iv-st-approved {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .iv-status.iv-st-rejected {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .iv-status.iv-st-timeout {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .iv-time {
   margin-left: auto;
