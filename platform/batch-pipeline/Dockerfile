@@ -23,6 +23,16 @@ RUN pip install --no-cache-dir --target=/install -r requirements.txt
 FROM ${BASE_REGISTRY}/library/python:3.12-slim AS runtime
 WORKDIR /app
 
+# 定向补包（台账 #115，承 #74/#98 C-1 口径）：同 asset-exchange——python:3.12-slim 浮动 tag
+# 曾以 apt/libapt-pkg7.0 3.0.3 形态漂入 CVE-2026-109518（HIGH，fixed 3.0.4）；门禁扫的是
+# FROM 基座引用、看不见构建期升级，故出货镜像（runtime 段）必须自升修复版，基座引用那一面
+# 由 docs/trivy-image-ignore.yaml 限期豁免覆盖。--only-upgrade 只动已安装包，
+# 目标版本已在基座内时为无操作成功。builder 段不随出货镜像发布，故不重复此条。
+RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade \
+    apt \
+    libapt-pkg7.0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # 拷贝 builder 阶段安装的依赖
 COPY --from=builder /install /app/vendor
 ENV PYTHONPATH="/app/vendor"

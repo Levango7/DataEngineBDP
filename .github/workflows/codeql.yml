@@ -80,27 +80,26 @@ jobs:
           cache: 'maven'
 
       # ============================================================
-      # 自定义 Java 构建：遍历 platform/ 下所有 pom.xml 执行 mvn compile
-      # 替代 autobuild，解决 "Could not detect build system" 问题
+      # 自定义 Java 构建：根 pom 反应堆整体 install（替代 autobuild，解决
+      # "Could not detect build system" 问题）
       # ============================================================
-      - name: 自定义构建（Java Maven 多模块）
+      # 台账 #97③ 收口：旧的「逐模块 mvn -f <pom> compile」无法解析模块间
+      # 0.1.0-SNAPSHOT 依赖——compile 不把 jar 装进本地仓、find 也不是拓扑序，
+      # fail-red 上线后 encaps-tenant 等接连 "Could not find artifact
+      # ...:encaps-shared-model:jar:0.1.0-SNAPSHOT"。根 pom 本就是 26 模块聚合器，
+      # 反应堆 install 由 Maven 自解拓扑，mvn 退码非零即步骤红（不吞、不需人工计数）。
+      - name: 自定义构建（Java Maven 反应堆）
         if: matrix.language == 'java'
         run: |
-          java_count=$(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null | wc -l)
-          if [ "$java_count" -eq 0 ]; then
+          if ! find platform -name pom.xml -not -path "*/target/*" 2>/dev/null | grep -q .; then
             echo "::warning::未发现任何 Java 组件（pom.xml），跳过构建"
             exit 0
           fi
-          while IFS= read -r pom; do
-            mod_dir=$(dirname "$pom")
-            mod_name=$(basename "$mod_dir")
-            echo "============================================"
-            echo "  CodeQL 构建准备: mvn compile $mod_name"
-            echo "============================================"
-            mvn -f "$pom" compile -B -q \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
-              || echo "::warning::$mod_name 编译失败，继续下一个"
-          done < <(find platform -name pom.xml -not -path "*/target/*")
+          echo "============================================"
+          echo "  CodeQL 构建准备: 根反应堆 mvn install -DskipTests"
+          echo "============================================"
+          mvn install -B -DskipTests \
+            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
       # ============================================================
       # 自动构建（非 Java 语言）：CodeQL 会根据语言自动执行构建

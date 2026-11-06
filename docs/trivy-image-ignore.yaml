@@ -1,4 +1,4 @@
-# Trivy 镜像扫描的**限期**豁免账（台账 #74）
+﻿# Trivy 镜像扫描的**限期**豁免账（台账 #74）
 #
 # 来由：#604 把 security.yml 的镜像扫描修好（扫描前展开 ${BASE_REGISTRY} + 不再用
 # `if trivy … | tee` 吞退码）之后，main 第一次真扫出 HIGH/CRITICAL。
