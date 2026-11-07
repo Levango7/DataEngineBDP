@@ -1,0 +1,21 @@
+{{- if .Values.pdb.enabled -}}
+# PodDisruptionBudget：条件渲染 values.pdb.enabled
+# 配置 minAvailable 或 maxUnavailable，selector 匹配 pod selectorLabels。
+# 保障滚动更新与节点维护期间最少可用副本数，提升集群稳定性。
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "data-standard.fullname" . }}
+  labels:
+    {{- include "data-standard.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.pdb.minAvailable }}
+  minAvailable: {{ .Values.pdb.minAvailable | int }}
+  {{- end }}
+  {{- if .Values.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.pdb.maxUnavailable | int }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "data-standard.selectorLabels" . | nindent 6 }}
+{{- end -}}

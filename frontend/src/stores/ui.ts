@@ -37,7 +37,12 @@ export const useUiStore = defineStore('ui', {
     /** 右侧信息面板展开（通知/动态） */
     rightPanelOpen: readBool(RIGHTPANEL_KEY, false),
     /** 移动端侧边栏抽屉展开——仅 ≤640px 生效，控制 .side.is-open */
-    sidebarOpen: readBool(SIDEBAR_OPEN_KEY, false)
+    sidebarOpen: readBool(SIDEBAR_OPEN_KEY, false),
+    /** 通知未读数（2026-11-06 审计：顶栏铃铛原为 ref(2) 写死常量、
+     *  「全部标为已读」无 handler。接入通知中心前，由 RightPanel 的演示数据
+     *  驱动；接口就绪后改为 API 初始化，模板结构不变）。不持久化：
+     *  「已读」是会话态，刷新即回到演示初值，避免 localStorage 撒谎。 */
+    unreadNotices: 0
   }),
   getters: {
     /** 侧边栏是否处于折叠态（用户偏好 OR 平板自动折叠） */
@@ -85,6 +90,15 @@ export const useUiStore = defineStore('ui', {
       } catch {
         /* 忽略持久化失败 */
       }
+    },
+    /** 设置通知未读数（RightPanel 初始化时调用：演示数据未读条数） */
+    setUnreadNotices(n: number) {
+      this.unreadNotices = Math.max(0, n)
+    },
+    /** 全部标为已读（RightPanel「全部标为已读」按钮，
+     *  2026-11-06 审计前该按钮无 handler） */
+    markAllNoticesRead() {
+      this.unreadNotices = 0
     }
   }
 })

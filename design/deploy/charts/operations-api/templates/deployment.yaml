@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "operations-api.fullname" . }}
+  labels:
+    {{- include "operations-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | int }}
+  selector:
+    matchLabels:
+      {{- include "operations-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "operations-api.selectorLabels" . | nindent 8 }}
+      annotations:
+        # ConfigMap 变更时滚动重启
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
+      # 关闭服务链接注入：与同族 Python 服务 asset-exchange 同口径（组件间寻址走
+      # Service DNS / 显式 URL，不依赖 k8s 注入的 <SVC>_PORT 链接变量）；
+      # 本服务无 env_prefix 配置不会与注入变量冲突，关闭属防御性加固。
+      enableServiceLinks: false
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort | int }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "operations-api.configmapName" . }}
+          # AUTH_MODE 显式钉死（jwt_auth fail-fast 配套）：K8s 环境未显式 AUTH_MODE 时
+          # jwt_auth.py 拒绝启动（"拒绝以匿名 admin 模式启动"），不能依赖缺省 none。
+          # JWT_SECRET 经 Secret 注入，不写入 ConfigMap；Secret 缺失 ⇒
+          # CreateContainerConfigError，失败暴露在部署期而非运行期。
+          env:
+            - name: AUTH_MODE
+              value: {{ .Values.auth.authMode | default "jwt" | quote }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName | quote }}
+                  key: {{ .Values.auth.jwtSecretKey | quote }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.httpGet.path | quote }}
+              port: {{ .Values.probes.liveness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds | default 5 | int }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.httpGet.path | quote }}
+              port: {{ .Values.probes.readiness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds | default 5 | int }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- if .Values.securityContext.enabled }}
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+{{- range .Values.securityContext.capabilities.drop }}
+                - {{ . }}
+{{- end }}
+{{- end }}

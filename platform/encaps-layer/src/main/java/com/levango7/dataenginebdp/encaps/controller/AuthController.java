@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
@@ -170,10 +171,43 @@ public class AuthController {
      * @param req 用户名密码
      * @return LoginResult（token/expiresIn/refreshToken/user）
      */
+    /**
+     * 当前登录用户信息（2026-11-06 审计 #117 P0-2 补）：前端启动时
+     * {@code stores/auth.ts hydrateUser} 调 {@code POST /auth/me} 恢复会话，
+     * 此前全仓无实现 ⇒ 生产环境 token 有效但用户信息永不恢复，路由守卫按
+     * 空用户 roles 判权（dev 有 mock 兜底掩盖、production 无）。
+     *
+     * <p>用户信息直接解析 Authorization Bearer token 的 payload——签名已由
+     * {@code JwtAuthFilter} 在过滤链校验（未通过者根本到不了本端点），
+     * 此处与 login 的 token 解析同源同口径（realm_access.roles / tenantId）。</p>
+     */
+    @Operation(summary = "当前登录用户", description = "从 Bearer token 解析用户信息，"
+            + "返回 User 契约（id/username/nickname/email/tenantId/roles）")
+    @PostMapping("/me")
+    public ResponseEntity<?> me(@RequestHeader(value = "Authorization", required = false) String auth) {
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(Map.of("error", "缺少 Bearer token"));
+        }
+        try {
+            JsonNode payload = decodeJwtPayload(auth.substring("Bearer ".length()));
+            String username = payload.path("preferred_username").asText("");
+            Map<String, Object> user = new LinkedHashMap<>();
+            user.put("id", payload.path("sub").asText(""));
+            user.put("username", username);
+            user.put("nickname", payload.path("name").asText(username));
+            user.put("email", payload.path("email").asText(""));
+            user.put("tenantId", payload.path("tenantId").asText(""));
+            user.put("roles", rolesFromPayload(payload));
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.warn("解析 token 失败: {}", e.getMessage());
+            return ResponseEntity.status(401).body(Map.of("error", "token 无效"));
+        }
+    }
+
     @AuditLog(action = "LOGIN", resource = "auth")
     @Operation(summary = "用户登录", description = "代理 Keycloak direct grant（password flow），"
             + "返回前端 LoginResult 契约（token/expiresIn/refreshToken/user）")
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         try {

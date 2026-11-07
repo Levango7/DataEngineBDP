@@ -61,6 +61,22 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
     # 故生产网关把租户管理 API 统一指向 encaps-layer；encaps-tenant 仅供集群内直连。
     "/api/v1/tenants": "encaps-layer",
+    # 审计 #117 追加（2026-11-07）：/api/v1/standards 被 data-standard 与
+    # encaps-layer 同时声明（两模块各有 StandardController）。取证：前端
+    # standard.ts 只调 CRUD + /summary，而 /summary 与 /compliance **只有
+    # encaps-layer 侧实现**（其 :160/:213；data-standard 侧只有 CRUD）⇒
+    # 对外前缀归 encaps-layer（覆盖面完整）；data-standard 的
+    # standard-categories 前缀独立路由（:28 类级路径不冲突）。
+    "/api/v1/standards": "encaps-layer",
+    # 审计 #117 P0-4（2026-11-06）：/api/v1/clusters 被 infra-orchestrator 与
+    # karmada-api 同时声明。取证：前端 infra.ts 打的 /{env}/{id}、/{env}/{id}/scale、
+    # /providers、/environments、/profiles、/network、/storage、/nodes 等**全部**
+    # 由 infra-orchestrator ClusterController.java:62 起实现了（15+ 端点，
+    # :96/:138/:159/:180/:200/:219/:234/:252/:325/:368…）；karmada-api 的
+    # /api/v1/clusters 是联邦集群平行语义（main.go:133-136，仅 4 端点、集群内消费）。
+    # 裁决：对外前缀归 infra-orchestrator；karmada-api 侧保持集群内直连
+    # （与 /api/v1/tenants 同型处置）。
+    "/api/v1/clusters": "infra-orchestrator",
     # 台账 #1b Q1（2026-10-10）：/api/v1/llmops 权威 = **llmops 服务**——
     # encaps-layer 的 LLMOps 门面已退场，llmops 服务端契约由 PR #421 补齐
     # （9 端点 + 形状对齐 llmops.ts，含 /inference-services）。
@@ -143,7 +159,39 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     "karmada/failover/failover-api": "failover-api",
     "karmada/failover/failover-engine": "failover-engine",
     "karmada/federated-query": "federated-query",
-    "observability/query-api": "observability-query-api",
+    # Python 组件的 contract module 名是两级目录形式（<组件目录>/<包名>）；Go 部分
+    # 则是 <目录>/<文件>.go（gen-api-contract.py 的 module 名取前两段路径）。带 "/" 的
+    # module 一律只认本显式映射，于是这些前缀即使 chart 明明就位也曾整体进 unmapped。
+    # 下列每条均已核实：chart values.yaml 存在且含 service.port；chart 镜像目录名
+    # （下划线→连字符）与 module 首段目录一致；该 module 就是该 chart 部署的服务。
+    "asset-exchange/asset_exchange": "asset-exchange",  # charts/asset-exchange/values.yaml service.port 8080；镜像 ghcr.io/levango7/sq-asset-exchange = platform/asset-exchange/Dockerfile 所在目录名
+    "business-portal/business_portal": "business-portal",  # .../business-portal/values.yaml service.port 8080；sq-business-portal = platform/business-portal/Dockerfile 目录名；/api/v1/dashboards 的归属裁决（business-portal）此前因本模块不可解析而未生效
+    "ml-platform/ml_platform": "ml-platform",  # .../ml-platform/values.yaml service.port 8080；sq-ml-platform = platform/ml-platform/Dockerfile 目录名
+    "open-api-catalog/openapi_catalog": "open-api-catalog",  # .../open-api-catalog/values.yaml service.port 8080；sq-open-api-catalog = platform/open-api-catalog/Dockerfile 目录名；/api/v1/apis 归属裁决（open-api-catalog）同理落到实现方
+    "llmops/llmops": "llmops",  # .../llmops/values.yaml service.port 8080；sq-llmops = platform/llmops/Dockerfile 目录名；/api/v1/llmops 权威裁决（见上方 PREFIX_OWNER_OVERRIDES）同样是 llmops
+    "industry-templates/industry_templates": "industry-templates",  # .../industry-templates/values.yaml service.port 8080；sq-industry-templates = platform/industry-templates/Dockerfile 目录名；/api/v1/templates 归属裁决（template.ts 要 /{id}/deploy 等）指向本 chart
+    "knowledge-engine/knowledge_engine": "knowledge-engine",  # .../knowledge-engine/values.yaml service.port 8080；sq-knowledge-engine = platform/knowledge-engine/Dockerfile 目录名
+    # llm-gateway 子服务 evaluation：platform/llm-gateway/evaluation/Dockerfile（目录名 evaluation）
+    # 是独立 FastAPI 进程（app/main.py 默认 8086，经 LLM_GATEWAY_URL 回访网关，而非被网关托管），
+    # 其 routes.py 自身声明 /api/v1/eval/**（KNOWN-FAILURES #44② 的合成前缀即由此而来）；
+    # charts/evaluation/values.yaml service.port 8086、镜像 sq-evaluation 正是该目录的部署单元。
+    "llm-gateway/evaluation": "evaluation",
+    # llm-gateway/internal 与 llm-gateway 同一 go module、同一二进制（Dockerfile 在
+    # platform/llm-gateway/ 根）；multimodal_handler.go:76 的 /v1 组（OpenAI 兼容端点）
+    # 属该服务，charts/llm-gateway/values.yaml service.port 8084。
+    "llm-gateway/internal": "llm-gateway",
+    # Go 服务的 module 名形如 <目录>/<文件>.go：platform/catalog/main.go:105-111 在
+    # /api/v1 下挂 catalogGroup，serviceName=catalog、defaultPort=8082；
+    # charts/catalog/values.yaml service.port 8082、镜像 sq-catalog 为其部署单元。
+    "catalog/main.go": "catalog",
+    # observability/query-api：原目标 "observability-query-api" 在本仓根本无此 chart
+    # （charts/ 下只有 query-api 与 observability 门面骨架）⇒ 该映射恒返回 None，
+    # /api/v1/ops、/api/v1/cluster、/platform、/tenant 整体不可达。修正为真实部署单元
+    # query-api：charts/query-api/values.yaml service.port 8090、镜像 sq-query-api
+    # （= platform/observability/query-api/Dockerfile 目录名），chart 头注自述"dashboard/
+    # cluster-overview 等页面的数据源（/api/v1/ops/**、/api/v1/cluster/** 后端）"；
+    # KNOWN-FAILURES #65 亦裁 observability 门面 chart 的目标模块 chart 即 query-api。
+    "observability/query-api": "query-api",
 }
 
 # 前缀 → (截断后的 module 名, chart 名) 的直连裁决。
@@ -251,6 +299,14 @@ def resolve_chart(module: str, chart_ports: dict[str, int]) -> str | None:
         chart = MODULE_CHART_OVERRIDES[module]
         return chart if chart in chart_ports else None
     if "/" in module or module in CHART_FALLBACK_DENY:
+        # 2026-11-06 审计 #117 P0-4：Java contract 的 module 名带源码根后缀
+        # （encaps-layer/src、rule-engine/src 等 17 个），chart 名不带 ⇒ 这些前缀
+        # 系统性不可解析、生产不可达（chart 明明就位）。剥掉 `/src` 后缀重试一次：
+        # 纯归一化（同一组件的 chart 名），不跨服务重归属，override/冲突裁决逻辑不变。
+        if module.endswith("/src"):
+            base = module[: -len("/src")]
+            if base not in CHART_FALLBACK_DENY:
+                return base if base in chart_ports else None
         return None
     return module if module in chart_ports else None
 

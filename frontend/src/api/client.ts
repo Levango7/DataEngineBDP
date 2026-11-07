@@ -246,16 +246,20 @@ http.interceptors.response.use(
     const status: number = error?.response?.status ?? 0
     let msg = translateError('errors.http.default', '请求失败，请稍后重试')
 
-    if (error?.response?.data?.error) {
-      // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）优先展示
-      // 脱敏处理：防止后端 error 字段泄露 IP、连接串、密码等敏感信息
-      msg = sanitizeErrorMessage(String(error.response.data.error))
-    } else if (status === 401) {
+    // 2026-11-06 审计（#117 P1-6）：401/403 必须**先于** body 消息判定。
+    // 后端三制信封并存：Java {code,message}、Python/Go {error,message}。
+    // 原顺序「先取 data.error」会把 Python/Go 的 401 body（{error:"缺少 Bearer token"}）
+    // 当成普通业务错误展示机器码，handleUnauthorized() 被跳过 ⇒ 登录态不清理、不跳登录。
+    if (status === 401) {
       msg = translateError('errors.http.unauthorized', '登录已过期，请重新登录')
       if (unauthorizedInFlight) {
         return Promise.reject(new ApiError(msg, status, status))
       }
       handleUnauthorized()
+    } else if (error?.response?.data?.error) {
+      // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）——非 401/403 才展示
+      // 脱敏处理：防止后端 error 字段泄露 IP、连接串、密码等敏感信息
+      msg = sanitizeErrorMessage(String(error.response.data.error))
     } else if (status === 403) {
       msg = translateError('errors.http.forbidden', '无权限访问该资源')
     } else if (status === 500) {

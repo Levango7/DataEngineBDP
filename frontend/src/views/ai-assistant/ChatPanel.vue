@@ -480,9 +480,9 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
-  border: 1px solid var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
+  border: 1px solid var(--ds-danger);
   border-radius: var(--ds-radius-md);
   padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-base);

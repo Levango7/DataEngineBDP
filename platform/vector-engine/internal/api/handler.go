@@ -106,8 +106,11 @@ func (h *VectorHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/collections/:name/stats", h.GetStats)
 
 	// 前端契约端点（frontend/src/api/vector.ts BASE=/vector）：
-	// GET /vector 列表集合、POST /vector/search 全局检索
+	// GET /vector 列表集合、POST /vector/search 全局检索、
+	// POST /vector 创建集合（2026-11-06 审计 #117 P1-3 补——此前只有
+	// POST /collections，前端 createCollection 打 /vector 恒 404）
 	rg.GET("/vector", h.ListCollections)
+	rg.POST("/vector", h.CreateCollection)
 	rg.POST("/vector/search", h.GlobalSearch)
 }
 

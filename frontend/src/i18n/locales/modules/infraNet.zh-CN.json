@@ -92,7 +92,7 @@
         },
         "actions": {
           "cancel": "取消",
-          "save": "保存"
+          "save": "保存（下次供应/重建时生效）"
         }
       }
     },
@@ -103,7 +103,7 @@
       "selectorRequired": "请输入 Pod 选择器"
     },
     "messages": {
-      "configUpdated": "网络配置已更新",
+      "configUpdated": "网络配置已保存：Pod/Service CIDR 与 CNI 为集群引导期输入，将在下次供应/重建时生效",
       "policyCreated": "策略已下发",
       "policyDeleted": "策略已删除",
       "deleteConfirm": "确认删除策略「{name}」？",

@@ -189,24 +189,24 @@ onMounted(load)
 }
 
 .step.k-observe .kind-badge {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .step.k-plan .kind-badge {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 .step.k-act .kind-badge {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .step.k-reflect .kind-badge {
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
 }
 .step.k-decide .kind-badge {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 
 .step-body {

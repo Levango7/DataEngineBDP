@@ -15,6 +15,7 @@
 //	GET    /api/v1/clusters/baremetal            列出集群
 //	GET    /api/v1/clusters/baremetal/{id}/nodes 查询节点
 //	POST   /api/v1/clusters/baremetal/{id}/scale 扩缩容
+//	PUT    /api/v1/clusters/baremetal/{id}/network 更新集群网络配置 Profile（意图持久化）
 //	POST   /api/v1/auth/login                    签发Token
 //	GET    /healthz                              存活探针
 //	GET    /readyz                               就绪探针

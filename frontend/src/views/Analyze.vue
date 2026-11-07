@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="rootEl">
     <PageHeader :title="t('analyze.title')" :subtitle="t('analyze.subtitle')" />
     <Toolbar
       :show-create="true"
@@ -123,10 +123,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { useChartPalette } from '@/composables/useChartTheme'
 import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
@@ -233,6 +234,10 @@ function panelData(p: Panel): { rows: PanelRow[] } {
 
 const chartPool = new Map<string, echarts.ECharts>()
 
+// 画布文字色随主题切换：canvas 不解析 CSS 变量，必须喂真实色值，
+// 否则暗色档下坐标轴 / 图例走 ECharts 出厂默认 #333 / #ccc，在暗色画布上不可读。
+const palette = useChartPalette()
+
 /** 面板 DOM 元素 Map（通过模板 ref 回调收集，避免 querySelector 选择器注入风险） */
 const panelEls = new Map<string, HTMLElement>()
 
@@ -249,13 +254,20 @@ function setPanelEl(id: string, el: HTMLElement | null): void {
 function buildOption(p: Panel): echarts.EChartsCoreOption | null {
   const rows = panelData(p).rows
   if (!rows.length) return null
+  const c = palette.value
   if (p.type === 'pie') {
     return {
+      textStyle: { color: c.axisText },
       tooltip: { trigger: 'item' },
+      legend: {
+        top: 0,
+        textStyle: { color: c.legendText }
+      },
       series: [
         {
           type: 'pie',
           radius: '65%',
+          label: { color: c.axisText },
           data: rows.map((r) => ({
             name: r.label ?? r.name ?? '',
             value: r.value
@@ -268,14 +280,40 @@ function buildOption(p: Panel): echarts.EChartsCoreOption | null {
   const values = rows.map((r) => r.value)
   if (p.type === 'bar') {
     return {
-      xAxis: { type: 'category', data: labels },
-      yAxis: { type: 'value' },
+      textStyle: { color: c.axisText },
+      tooltip: { trigger: 'axis' },
+      grid: { left: 12, right: 16, bottom: 8, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLine: { lineStyle: { color: c.axisLine } },
+        axisLabel: { color: c.axisText }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { lineStyle: { color: c.axisLine } },
+        axisLabel: { color: c.axisText },
+        splitLine: { lineStyle: { color: c.gridLine } }
+      },
       series: [{ type: 'bar', data: values }]
     }
   }
   return {
-    xAxis: { type: 'category', data: labels },
-    yAxis: { type: 'value' },
+    textStyle: { color: c.axisText },
+    tooltip: { trigger: 'axis' },
+    grid: { left: 12, right: 16, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.axisText },
+      splitLine: { lineStyle: { color: c.gridLine } }
+    },
     series: [{ type: 'line', data: values, smooth: true }]
   }
 }
@@ -298,12 +336,43 @@ function renderCharts(): void {
   }
 }
 
+// 切主题时重绘：ECharts 颜色是 init 时写入 canvas 的，不重绘不会跟随主题。
+// setOption(opt, true) 是 notMerge 全量替换，换一组色值即可整体改掉文字色。
+watch(palette, () => {
+  renderCharts()
+})
+
+/* ------------------------------ 画布尺寸自适应 ------------------------------ */
+
+const rootEl = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
+
+/**
+ * 容器尺寸变化后重排 ECharts 画布。
+ *
+ * <p>ECharts 的 canvas 不随 CSS 容器自动伸缩：侧栏折叠 / 窗口缩放后
+ * 面板盒子变了而画布还是旧尺寸，出现图表被压扁或留白。这里显式 resize。</p>
+ */
+function handleResize(): void {
+  for (const inst of chartPool.values()) inst.resize()
+}
+
 onMounted(() => {
   void loadBoards()
   void loadMetrics()
+  // 布局变化（窗口缩放、侧栏折叠）同步画布尺寸：照 ChartView.vue 的
+  // ResizeObserver + window resize 双通道写法，卸载时成对移除。
+  if (rootEl.value && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => handleResize())
+    resizeObserver.observe(rootEl.value)
+  }
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   chartPool.forEach((inst) => inst.dispose())
   chartPool.clear()
 })

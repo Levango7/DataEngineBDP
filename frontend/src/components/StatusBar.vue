@@ -70,10 +70,17 @@ async function probeHealth() {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 2000)
-    const resp = await fetch('/actuator/health', { signal: ctrl.signal })
+    // 2026-11-06 审计（#117 P2-1）：原探 '/actuator/health' 两环境都无代理
+    // （vite 无该规则、nginx/APISIX 亦无）⇒ 拿到 SPA index.html 且 resp.ok=true
+    // ⇒ 永远显示"正常"（假绿）。改探真实可达端点：catalog 的 /api/v1/health
+    // （Go 服务，经 /api 面到 APISIX → catalog）。
+    const resp = await fetch('/api/v1/health', { signal: ctrl.signal })
     clearTimeout(timer)
     const latency = Date.now() - t0
-    const status: SvcStatus['status'] = resp.ok ? (latency > 800 ? 'warn' : 'up') : 'down'
+    // 防呆：偶发拿到 HTML（网关兜底页等）不算健康
+    const ct = resp.headers.get('content-type') || ''
+    const isJson = ct.includes('json')
+    const status: SvcStatus['status'] = resp.ok && isJson ? (latency > 800 ? 'warn' : 'up') : 'down'
     // 单服务架构：三项同源，统一状态（多服务后逐项探活）
     services.value = services.value.map((x) => ({ ...x, status }))
   } catch {

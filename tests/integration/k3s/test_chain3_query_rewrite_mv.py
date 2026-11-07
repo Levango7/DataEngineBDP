@@ -70,8 +70,12 @@ class TestChain3ViewManagement:
         record_test_result(CHAIN_NAME, "列出物化视图", passed, detail, duration_ms)
         assert passed, detail
 
-    def test_add_view(self, k3s_client, sql_gateway_url):
-        """测试新增物化视图定义: POST /api/v1/rewrite/views."""
+    def test_add_view(self, k3s_writer_client, sql_gateway_url):
+        """测试新增物化视图定义: POST /api/v1/rewrite/views.
+
+        写端点自 2026-11-06 审计起需 SQL_GATEWAY_WRITER/SUPER_ADMIN 角色
+        （RewriteController 方法级 @PreAuthorize），故用 k3s_writer_client。
+        """
         start = time.time()
         view_name = f"mv_test_{uuid.uuid4().hex[:8]}"
         payload = {
@@ -82,7 +86,7 @@ class TestChain3ViewManagement:
             "refreshInterval": 3600,
         }
         try:
-            resp = k3s_client.post(
+            resp = k3s_writer_client.post(
                 sql_gateway_url + "/api/v1/rewrite/views", json=payload
             )
             passed = resp.status_code in (200, 201)
@@ -200,8 +204,12 @@ class TestChain3RuleManagement:
 class TestChain3EndToEnd:
     """端到端：添加物化视图 → 查询命中 → 自动改写."""
 
-    def test_add_view_then_rewrite(self, k3s_client, sql_gateway_url):
-        """完整链路: 添加物化视图 → 查询命中 → 自动改写."""
+    def test_add_view_then_rewrite(self, k3s_client, k3s_writer_client, sql_gateway_url):
+        """完整链路: 添加物化视图 → 查询命中 → 自动改写.
+
+        步骤1（POST /views 写端点）用 k3s_writer_client（SQL_GATEWAY_WRITER 角色，
+        2026-11-06 审计口径）；步骤2/3（/execute、/route 只读）用 k3s_client。
+        """
         start = time.time()
         view_name = f"mv_e2e_{uuid.uuid4().hex[:8]}"
         try:
@@ -213,7 +221,7 @@ class TestChain3EndToEnd:
                 "queryPattern": "SELECT.*FROM sales.*GROUP BY region",
                 "refreshInterval": 1800,
             }
-            add_resp = k3s_client.post(
+            add_resp = k3s_writer_client.post(
                 sql_gateway_url + "/api/v1/rewrite/views", json=view_payload
             )
             assert add_resp.status_code in (200, 201), f"添加视图失败: {add_resp.text}"

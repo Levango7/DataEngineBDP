@@ -194,8 +194,8 @@ function onSelect(rec: ChartRecommendation): void {
   background: var(--ds-color-primary-50);
 }
 .rec-item.primary {
-  border-color: var(--ds-color-success-500);
-  background: var(--c-green-50);
+  border-color: var(--ds-success);
+  background: var(--ds-success-soft);
 }
 .rec-item.active {
   border-color: var(--ds-color-primary-500);
@@ -214,32 +214,32 @@ function onSelect(rec: ChartRecommendation): void {
   flex: none;
 }
 .rec-icon.type-bar {
-  background: var(--ds-color-info-50);
-  color: var(--ds-color-info-600);
+  background: var(--ds-info-soft);
+  color: var(--ds-info);
 }
 .rec-icon.type-line {
-  background: var(--ds-color-success-50);
-  color: var(--ds-color-success-600);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .rec-icon.type-pie {
-  background: var(--ds-color-warning-50);
-  color: var(--ds-color-orange-600);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .rec-icon.type-scatter {
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-600);
 }
 .rec-icon.type-map {
-  background: var(--ds-color-error-50);
-  color: var(--ds-color-error-600);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .rec-icon.type-area {
-  background: var(--ds-color-info-50);
-  color: var(--ds-color-accent-600);
+  background: var(--ds-info-soft);
+  color: var(--ds-info);
 }
 .rec-icon.type-radar {
-  background: var(--ds-color-warning-50);
-  color: var(--ds-color-warning-600);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 
 .rec-info {

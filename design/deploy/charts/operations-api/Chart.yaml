@@ -1,0 +1,19 @@
+apiVersion: v2
+name: operations-api
+description: "数擎运营后台 - 合同管理服务 (P-04) - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - operations-api
+  - operations
+  - contract
+  - shuqing-platform
+  - platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）；
+# 与既有 design/deploy/services/operations/k8s.yaml（platform-ops）保持一致
+namespace: platform-ops

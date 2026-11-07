@@ -33,6 +33,9 @@
       "approve": "Approve",
       "reject": "Reject"
     },
+    "list": {
+      "loadFailed": "Failed to load the registration list"
+    },
     "dialog": {
       "approveTitle": "Approve Registration",
       "rejectTitle": "Reject Registration",

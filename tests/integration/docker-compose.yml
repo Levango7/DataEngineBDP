@@ -1019,8 +1019,12 @@ services:
       - "16686:16686"  # Jaeger UI
       - "4317:4317"    # OTLP gRPC receiver
       # OTLP HTTP：宿主 4318 常被本机开发工具（如 IDE 的 otel collector）占用，
-      # 宿主侧映射改走 14318；容器内仍是 4318（服务间通信走容器网络不受影响）
-      - "14318:4318"
+      # 2026-11-06 审计（本机 Windows 实测）：14318 落在 Windows Hyper-V 动态端口
+      # 保留段内（netsh int ipv4 show excludedportrange 实测 14219–14318 一段），
+      # `docker compose up` 直接 bind 失败 ⇒ Windows 本机全栈起不来（CI Linux 不触发）。
+      # 改用随机宿主端口（`-p 4318` 短语法= ephemeral）：容器内仍 4318 不变，
+      # 服务间通信走容器网络不受影响；需要固定宿主端口的场景自行 override 到保留段外。
+      - "4318"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     networks:

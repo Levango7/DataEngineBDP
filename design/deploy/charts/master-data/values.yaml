@@ -1,0 +1,186 @@
+# ============================================================================
+# master-data Helm Chart 默认 values
+# 关联：design/deploy/values/env/{dev,staging,prod}/（各环境覆盖文件，按需补）
+# 说明：本文件为 Chart 骨架级默认值；完整生产配置请用 -f 引用环境 values 覆盖。
+# ============================================================================
+
+# ---- 镜像配置（自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values）----
+image:
+  repository: "ghcr.io/levango7/sq-master-data"
+  tag: "latest"
+  pullPolicy: Always
+
+# ---- 副本数 ----
+# 默认 1：H2 文件库（master-data-db）是单文件单写者存储，多副本各自挂独立卷 ⇒ 数据分裂、
+# 且同文件并发写会抛 JdbcSQLIntegrityConstraintViolation。横向扩容前请先切 PostgreSQL
+# （改 DB_URL 指向外部库，见文末 dbUrl 说明）。
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8088
+  # 容器端口（application.yml:2 server.port=${MASTER_DATA_PORT:8088}）
+  containerPort: 8088
+
+# ---- 资源配额（默认 standard 档，与 catalog / rule-engine 对齐）----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+# uid/gid 必须与镜像内 appuser 固化的 1001 一致（platform/master-data/Dockerfile:
+# addgroup -S -g 1001 appgroup && adduser -S -u 1001 -G appgroup）：
+# /app/data 是镜像内目录（非卷），K8s 的 fsGroup 对它不生效，只有 runAsUser/runAsGroup
+# 与镜像 uid/gid 对齐，H2 建库才有写权（否则 java.nio.file.AccessDeniedException:
+# /app/data/master-data-db.mv.db）。与 rule-engine / encaps-tenant 同一口径（1001）。
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查 ----
+# /actuator/health 由 common-security SecurityConfig permitAll 放行（application.yml:35
+# 暴露 health），探针无需 JWT。
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8088
+    # JVM 服务冷启动含 Flyway/Bean 装配，留 30s 起步（与 rule-engine 同口径）
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 8088
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容（HPA）----
+# 字段名 hpa 对应 templates/hpa.yaml，条件渲染 values.hpa.enabled
+# 注意：H2 文件库场景下扩容前须先换成外部数据库（见 replicaCount 注释）
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  # CPU 利用率阈值（百分比），超过则扩容；留空则不生成 CPU 指标
+  targetCPUUtilizationPercentage: 80
+  # Memory 利用率阈值（百分比），超过则扩容；留空则不生成 Memory 指标
+  targetMemoryUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget（PDB）----
+# 字段名 pdb 对应 templates/pdb.yaml，条件渲染 values.pdb.enabled
+pdb:
+  enabled: false
+  # minAvailable 与 maxUnavailable 二选一；单副本场景建议配 maxUnavailable
+  minAvailable: 1
+  # maxUnavailable: 1  # 如需按比例不可用，可改用 maxUnavailable
+
+# ---- Ingress ----
+ingress:
+  enabled: false
+  className: apisix
+  annotations: {}
+  hosts:
+    - host: master-data.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---- 环境变量（写入 ConfigMap，模板 envFrom 注入）----
+env:
+  LOG_LEVEL: info
+  JAVA_OPTS: ""
+
+# ---- 应用数据目录（H2 文件库）----
+data:
+  # 默认开启：把 /app/data 挂成 emptyDir。readOnlyRootFilesystem: true 时镜像内
+  # /app/data 只读，H2 建库直接抛
+  #   FileSystemException: /app/data/master-data-db.trace.db: Read-only file system
+  # 注意 fsGroup 只对新挂载的卷生效，对镜像内既有目录无效，故必须挂出来（与 rule-engine 同根因）。
+  # 生产若需持久化，把 storageClassName 指向 PVC 即可复用同一挂载点。
+  enabled: true
+  storageClassName: ""
+  # PVC 容量（仅 storageClassName 非空时生效，渲染 templates/pvc.yaml）
+  storageSize: "10Gi"
+
+# ---- 临时目录 ----
+tmp:
+  # 默认开启：嵌入式 Tomcat 启动时要在 /tmp 建部署临时目录（tomcat.PORT.RANDOM），
+  # readOnlyRootFilesystem: true 时 /tmp 只读会导致
+  #   FileSystemException: /tmp/tomcat.8088: Read-only file system
+  #   -> ApplicationContextException: Unable to start web server
+  # 用 emptyDir 挂出 /tmp，在保留只读根加固的前提下满足这一必需的可写点。
+  enabled: true
+
+# ---- 应用日志目录 ----
+logs:
+  # 默认关闭：本服务无 RollingFileAppender（resources 下无 logback-spring.xml，
+  # 见 Dockerfile 注释），只需 stdout 日志采集；生产走日志采集/PVC。
+  enabled: false
+  mountPath: /app/logs
+
+# ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+# ⚠️ JWT_SECRET 是本服务的启动必填项（2026-11-06 实测，Dockerfile 头注）：
+#    本模块自带 security/SecurityConfig 的 securityFilterChain 直接注入 JwtAuthFilter
+#    bean，而该 bean 仅当 app.security.jwt.secret（=环境变量 JWT_SECRET，application.yml:53，
+#    无默认值）可解析且 ≥32 字节时才装配（JwtAuthFilterAutoConfiguration.JwtConfiguredCondition）。
+#    缺失 ⇒ UnsatisfiedDependencyException ⇒ 容器启动即退出。
+#    因此本 Chart 对 JWT_SECRET 采取**无条件** secretKeyRef 注入（templates/deployment.yaml）：
+#    Secret 缺失时 Pod 起不来（CreateContainerConfigError），把失败暴露在部署期而非运行期。
+auth:
+  # 指向集群内已存在的 Secret（平台约定：design/deploy/JWT鉴权配置指南.md 第 3 节，
+  # kubectl create secret generic shuqing-jwt-secret --from-literal=jwt-secret='<32+ 字节>'）。
+  # 该值必须与 JWT 签发端（catalog 签发 / encaps-layer 签发 / Keycloak）一致，否则接口全部 401。
+  # 本地/CI 可覆盖为 catalog chart 生成的 <release>-catalog-auth（key: jwt-signing-key）。
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
+
+# ---- 数据库位置覆盖（可选，不写入 ConfigMap，按需 -f 覆盖或 --set）----
+# 镜像已 ENV DB_URL="jdbc:h2:file:/app/data/master-data-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"，
+# 默认即可用；切 PostgreSQL 生产库时经 deployment.yaml 的 dbUrl 段覆盖该变量。
+dbUrl: ""
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config:
+  application.conf: |
+    # master-data 默认配置，完整配置请引用 design/deploy/values/env/<env>/master-data-values.yaml
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/env/<env>/master-data-values.yaml 覆盖
+# 渲染命令： helm template master-data design/deploy/charts/master-data
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

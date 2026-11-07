@@ -33,6 +33,9 @@
       "approve": "批准",
       "reject": "拒绝"
     },
+    "list": {
+      "loadFailed": "注册申请列表加载失败"
+    },
     "dialog": {
       "approveTitle": "批准注册",
       "rejectTitle": "拒绝注册",

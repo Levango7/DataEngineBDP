@@ -50,8 +50,14 @@
         </template>
       </Toolbar>
 
+      <!-- 列表加载失败：内页错误态（此前仅 toast，刷新后失败原因无迹可寻） -->
+      <div v-if="loadError" class="tenant-error" role="alert">
+        {{ loadError }}，
+        <a href="javascript:void(0)" @click="loadList">{{ t('common.retry') }}</a>
+      </div>
       <!-- 租户列表表格 -->
       <el-table
+        v-else
         v-loading="loading"
         :data="filteredTenants"
         stripe
@@ -364,6 +370,8 @@ const searchKeyword = ref('')
 const filterStatus = ref<string>('')
 const loading = ref(false)
 const submitting = ref(false)
+/** 列表加载失败信息（内页错误态；加载成功后清除） */
+const loadError = ref<string | null>(null)
 /** 行内操作（启停/删除）进行中：禁用整行操作按钮，避免重复提交 */
 const actionBusy = ref(false)
 
@@ -451,14 +459,18 @@ const filteredTenants = computed(() => {
 /** 加载租户 + 注册 + 邀请码缓存（邀请码按租户逐个拉取：平台超管无法无参查询全域） */
 async function loadList() {
   loading.value = true
+  loadError.value = null
   try {
     await admin.loadTenants()
     await Promise.all([
       admin.loadRegistrations(),
       admin.loadInvitesForTenants(admin.allTenants.map((tenant) => tenant.id))
     ])
-  } catch {
+  } catch (e) {
+    // 双通道：toast 即时反馈 + 内页错误态（刷新后仍可重试），
+    // 内页优先展示 store 抛出的可读文案，缺失时回退词条
     ElMessage.error(t('tenantManagement.table.loadFailed'))
+    loadError.value = errorText(e, 'tenantManagement.list.loadFailed')
   } finally {
     loading.value = false
   }
@@ -687,6 +699,12 @@ onMounted(() => loadList())
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 18px;
+}
+/* 列表加载失败内页错误态（沿用 Workspaces/Analyze 的错误分支写法，色值走 ds 令牌） */
+.tenant-error {
+  padding: var(--ds-spacing-6) var(--ds-spacing-4);
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-color-error-500);
 }
 .stat {
   padding: 16px 18px;

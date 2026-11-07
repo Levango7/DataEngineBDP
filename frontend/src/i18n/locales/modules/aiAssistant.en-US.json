@@ -26,6 +26,7 @@
       "dashboardFailed": "Failed to create dashboard",
       "chartSwitched": "Chart switched",
       "noData": "No data to plot",
+      "chatFailed": "Request failed, please retry",
       "daysAgo": "{days}d ago"
     },
     "chat": {
