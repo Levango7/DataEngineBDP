@@ -189,6 +189,24 @@ vulnerabilities:
     statement: "apt / libapt-pkg6.0t64 2.8.3 → 2.8.4ubuntu0.1，仅 maven:3.9-eclipse-temurin-17 的 AS builder 阶段（19 个 Dockerfile）；运行阶段是 temurin-alpine/distroless，apt 不随产物出货。同一 CVE 在 python:3.12-slim 那半已由基座自重建消解（现镜像 3.0.4，PR #769 复跑 0 命中实证），本条只覆盖 Ubuntu 线"
     expired_at: 2026-12-15
 
+# ==== 2026-11-06 复核注记（不改动上面任何条目，只更正「谁还在承重」的读法）====
+# 事实源：main `75a9010c`（PR #768 已合入，frontend 运行层基座由 nginx:alpine 换成 nginx:alpine-slim，
+#   见台账 #114；本仓另两处在 #115 里由 zcode 线走定向补包）。现查 git grep 计数：
+#   `FROM ... nginx:alpine` = 0 处；`FROM ... eclipse-temurin:17-jre-alpine` = 19 处（运行阶段），
+#   本机真容器实测该基座 libexpat 仍是 2.9.0-r0。
+# 逐条读法：
+#   CVE-2026-77214（libexpat 2.8.5-r0→2.9.0-r0）：原文写「两基座」，现只剩 **temurin 半边**可能还匹配
+#     （Alpine 仓已给到 2.10.0-r0，这条是否还被命中取决于 trivy 的区间口径，未现测 ⇒ 保留）。
+#   CVE-2026-88806（libx11，仅 nginx:alpine）与 CVE-2026-92392（curl，仅 nginx:alpine）：
+#     **nginx 半边随 #768 失去引用** ⇒ 变成「无引用条目」，到期未清按判据复核、不续期。
+#   CVE-2026-111497（brotli-libs，两基座）：同 77214，只剩 temurin 半边。
+#   CVE-2026-117610 / CVE-2026-118370（libexpat 2.9.0-r0→2.10.0-r0，两基座）：**temurin 半边继续承重**，
+#     删了会当场变红；nginx 半边失去引用。
+#   CVE-2026-113351（libexpat，登记时实测仅 nginx:alpine 命中）：**登记面已整体消失**，
+#     但本批仍不删——同一 Alpine 3.24.3、同一包版本 2.9.0-r0，trivy 为何只匹配 nginx 那格至今未查清（台账 #113），
+#     删除安全性要一次「去掉该条目的扫描」才能证；而未命中的豁免项不造成假绿，留着零风险、删错当场红。
+# 结论：本文件条目数不变（19 条），只更正读法；到期（12-01 / 12-15）逐条按 `docker run <base> apk info -v`
+#   这类可复核判据清，不靠挪日期。
   # ---- 2026-11-06：alpine:3.20 基座 musl 补丁水位漂移（PR #771 Security run 42297558888 实证）----
   # 现场：`Trivy Image Scan`（job 2026-11-06T21:33:10Z）报 1 个镜像 HIGH：
   #   docker.m.daocloud.io/library/alpine:3.20 (ai-assistant)——musl / musl-utils
