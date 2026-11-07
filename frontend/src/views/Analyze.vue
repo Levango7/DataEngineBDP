@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="rootEl">
     <PageHeader :title="t('analyze.title')" :subtitle="t('analyze.subtitle')" />
     <Toolbar
       :show-create="true"
@@ -342,12 +342,37 @@ watch(palette, () => {
   renderCharts()
 })
 
+/* ------------------------------ 画布尺寸自适应 ------------------------------ */
+
+const rootEl = ref<HTMLElement | null>(null)
+let resizeObserver: ResizeObserver | null = null
+
+/**
+ * 容器尺寸变化后重排 ECharts 画布。
+ *
+ * <p>ECharts 的 canvas 不随 CSS 容器自动伸缩：侧栏折叠 / 窗口缩放后
+ * 面板盒子变了而画布还是旧尺寸，出现图表被压扁或留白。这里显式 resize。</p>
+ */
+function handleResize(): void {
+  for (const inst of chartPool.values()) inst.resize()
+}
+
 onMounted(() => {
   void loadBoards()
   void loadMetrics()
+  // 布局变化（窗口缩放、侧栏折叠）同步画布尺寸：照 ChartView.vue 的
+  // ResizeObserver + window resize 双通道写法，卸载时成对移除。
+  if (rootEl.value && typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(() => handleResize())
+    resizeObserver.observe(rootEl.value)
+  }
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  resizeObserver?.disconnect()
+  resizeObserver = null
   chartPool.forEach((inst) => inst.dispose())
   chartPool.clear()
 })

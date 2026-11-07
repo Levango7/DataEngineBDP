@@ -41,8 +41,10 @@
       </el-icon>
       <span class="ai-fab-label">{{ t('app.aiFabShort') }}</span>
     </router-link>
-    <Toast />
   </div>
+  <!-- 全局 Toast：提到两个分支之外，公共页（/login、/register、/404）也能收到全局提示。
+       .toasts 为 position:fixed（styles/main.css），与挂在哪个父节点无关，视觉零变化。 -->
+  <Toast />
 </template>
 
 <script setup lang="ts">

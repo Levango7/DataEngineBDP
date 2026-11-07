@@ -143,13 +143,8 @@
         <el-input :model-value="current?.name" disabled />
         <label>{{ t('projects.settings.description') }}</label>
         <el-input type="textarea" :rows="3" :model-value="current?.description || ''" disabled />
-        <el-button
-          size="small"
-          style="margin-top: 10px"
-          @click="store.showToast(t('projects.settings.saveTodo'))"
-        >
-          {{ t('common.save') }}
-        </el-button>
+        <!-- 字段均为只读（后端未开放项目信息修改）：不提供保存按钮，
+             避免对不可修改的配置弹出「已保存（待接入）」的假交互 -->
       </div>
     </Drawer>
 

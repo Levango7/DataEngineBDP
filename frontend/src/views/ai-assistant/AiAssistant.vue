@@ -104,6 +104,11 @@
 
       <!-- 中部：聊天面板 -->
       <main class="ai-chat">
+        <!-- 链路失败内页错误态（此前仅 toast，刷新后失败原因无迹可寻） -->
+        <div v-if="error" class="ai-error" role="alert">
+          <span class="ai-error__msg">{{ error.message || t('aiAssistant.page.chatFailed') }}</span>
+          <a href="javascript:void(0)" @click="retryLast">{{ t('common.retry') }}</a>
+        </div>
         <ChatPanel
           :messages="messages"
           :loading="loading"
@@ -112,7 +117,7 @@
           :auto-execute="autoExecute"
           :auto-recommend-chart="autoRecommendChart"
           :auto-summarize="autoSummarize"
-          @send="sendMessage"
+          @send="onSend"
           @abort="abort"
           @example="onExample"
           @feedback="feedback"
@@ -334,8 +339,23 @@ async function onSessionCommand(cmd: string, id: string): Promise<void> {
 }
 
 /* ------------------------------ 示例 / 图表切换 ------------------------------ */
-function onExample(text: string): void {
+/** 最近一次发送的提问（内页错误态的「重试」用它重发） */
+let lastPrompt = ''
+
+function onSend(text: string): void {
+  lastPrompt = text
   void sendMessage(text)
+}
+
+function onExample(text: string): void {
+  lastPrompt = text
+  void sendMessage(text)
+}
+
+/** 重试最近一次提问（错误态中的重试链接） */
+function retryLast(): void {
+  if (!lastPrompt) return
+  void sendMessage(lastPrompt)
 }
 
 function onChartSelect(rec: ChartRecommendation): void {
@@ -360,12 +380,9 @@ async function onCreateDashboard(): Promise<void> {
   }
 }
 
-/* ------------------------------ 错误监听 ------------------------------ */
-watch(error, (err) => {
-  if (err) {
-    ElMessage.error(err.message)
-  }
-})
+/* ------------------------------ 错误展示 ------------------------------ */
+// 链路失败改为内页错误态（聊天列顶部横幅 + 重试），不再只弹 toast：
+// toast 刷新即消失，用户无法据此前排查/重试。
 
 /* ------------------------------ 工具 ------------------------------ */
 function formatDate(iso: string): string {
@@ -528,6 +545,22 @@ void buildChartConfig
 }
 .ai-chat :deep(.chat-panel) {
   height: 100%;
+}
+/* 链路失败内页错误态（色值走 ds 令牌，与其它页面错误分支一致） */
+.ai-error {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-2);
+  padding: var(--ds-spacing-3) var(--ds-spacing-4);
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-subtle);
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-color-error-500);
+}
+.ai-error__msg {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
 }
 
 /* 右侧分析面板 */
