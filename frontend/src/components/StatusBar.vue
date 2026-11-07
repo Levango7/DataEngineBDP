@@ -80,8 +80,7 @@ async function probeHealth() {
     // 防呆：偶发拿到 HTML（网关兜底页等）不算健康
     const ct = resp.headers.get('content-type') || ''
     const isJson = ct.includes('json')
-    const status: SvcStatus['status'] =
-      resp.ok && isJson ? (latency > 800 ? 'warn' : 'up') : 'down'
+    const status: SvcStatus['status'] = resp.ok && isJson ? (latency > 800 ? 'warn' : 'up') : 'down'
     // 单服务架构：三项同源，统一状态（多服务后逐项探活）
     services.value = services.value.map((x) => ({ ...x, status }))
   } catch {

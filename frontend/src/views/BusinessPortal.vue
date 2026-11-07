@@ -432,7 +432,9 @@
         </div>
         <div class="report-detail-row">
           <span class="k">{{ t('businessPortal.reportActions.detailDesc') }}</span>
-          <span class="v">{{ currentReport?.description || t('businessPortal.reportActions.detailEmpty') }}</span>
+          <span class="v">
+            {{ currentReport?.description || t('businessPortal.reportActions.detailEmpty') }}
+          </span>
         </div>
       </div>
     </Modal>

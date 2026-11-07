@@ -262,8 +262,7 @@ async function loadList() {
     // 双通道：toast 即时反馈 + 内页错误态（刷新后仍可重试），
     // 内页优先展示后端可读文案，缺失时回退词条
     ElMessage.error(t('approvals.messages.loadFailed'))
-    loadError.value =
-      e instanceof Error && e.message ? e.message : t('approvals.list.loadFailed')
+    loadError.value = e instanceof Error && e.message ? e.message : t('approvals.list.loadFailed')
   } finally {
     loading.value = false
   }

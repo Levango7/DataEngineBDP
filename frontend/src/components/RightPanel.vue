@@ -34,7 +34,12 @@
 
         <!-- 通知中心 -->
         <div v-if="activeTab === 'notice'" role="tabpanel" :aria-label="t('app.noticeList')">
-          <div v-for="n in noticesWithState" :key="n.id" class="rp-item" :class="{ unread: n.unread }">
+          <div
+            v-for="n in noticesWithState"
+            :key="n.id"
+            class="rp-item"
+            :class="{ unread: n.unread }"
+          >
             <span class="rp-dot" :class="n.level" aria-hidden="true"></span>
             <div class="rp-item-main">
               <div class="rp-item-title">{{ n.title }}</div>
