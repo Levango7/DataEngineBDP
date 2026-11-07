@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -91,6 +92,7 @@ import java.util.Set;
  *   <li>{@code GET    .../{environment}/{clusterId}/nodes}               - 节点列表</li>
  *   <li>{@code GET    .../{environment}/{clusterId}/components}           - 工作负载组件（Deployment/StatefulSet/DaemonSet）</li>
  *   <li>{@code GET    .../{environment}/{clusterId}/network/cnis}         - CNI 信息</li>
+ *   <li>{@code PUT    .../{environment}/{clusterId}/network}               - 更新网络配置 Profile（意图持久化，下次供应/重建生效）</li>
  *   <li>{@code GET    .../{environment}/{clusterId}/scale/events}         - 集群事件</li>
  *   <li>{@code GET    .../{environment}/{clusterId}/scale/summary}        - 扩缩容汇总</li>
  *   <li>{@code GET    .../{environment}/{clusterId}/network/policies}     - NetworkPolicy 列表</li>
@@ -400,6 +402,59 @@ public class ClusterController {
         cfg.put("serviceCount", services.size());
         cfg.put("ingressCount", ingresses.size());
         return ResponseEntity.ok(cfg);
+    }
+
+    /**
+     * 更新集群网络配置 Profile（PUT .../network）。
+     *
+     * <p>对齐前端 {@code updateNetworkConfig}（infra.ts:604-610）。<b>语义诚实化：</b>
+     * PodCIDR/ServiceCIDR/CNI/MTU 是集群<b>引导期输入</b>（kubeadm init 参数 + CNI
+     * manifest），不是 K8s 运行期可变属性——本端点经 {@link SupplyOrchestrator} 代理把
+     * Profile 持久化到 Provider 侧集群记录，由<b>下一次供应/重建</b>路径消费
+     * （baremetal provider：bootstrapK8s → InitControlPlane/InstallCNI）。
+     * 已运行集群的网络不会因此改变，前端提示与按钮文案同步标注「下次供应/重建时生效」。</p>
+     *
+     * <p>Provider 未实现该端点（cloud/private/xinchang 暂无）时透传 404/501 +
+     * 明确错误，<b>不伪造成功</b>；Provider 的 4xx 校验错误转为本类既有风格的 400 + error。</p>
+     *
+     * @param environment 环境类型
+     * @param clusterId   集群 ID
+     * @param body        前端提交的网络配置（原样转发给 Provider 校验）
+     * @return 200 + 更新后的网络 Profile；404/501 + 该环境 Provider 暂不支持的明确错误
+     */
+    @Operation(summary = "更新集群网络配置（持久化意图，下次供应/重建生效）")
+    @PutMapping("/{environment}/{clusterId}/network")
+    public ResponseEntity<Map<String, Object>> updateNetworkConfig(@PathVariable String environment,
+                                                                   @PathVariable String clusterId,
+                                                                   @RequestBody Map<String, Object> body) {
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("PUT /api/v1/clusters/{}/{}/network tenant={}", environment, clusterId, tenantId);
+        try {
+            Map<String, Object> profile = orchestrator.updateNetworkConfig(env, clusterId, body);
+            return ResponseEntity.ok(profile);
+        } catch (WebClientResponseException e) {
+            int code = e.getStatusCode().value();
+            log.warn("network profile update rejected by provider: env={} cluster={} status={} body={}",
+                    environment, clusterId, code, e.getResponseBodyAsString());
+            // Provider 无该端点（404）或未实现（501）：透传诚实错误，不造假成功
+            if (code == HttpStatus.NOT_FOUND.value() || code == HttpStatus.NOT_IMPLEMENTED.value()) {
+                return ResponseEntity.status(code).body(Map.of(
+                        "error", "该环境 provider 暂不支持网络配置持久化"
+                                + "（environment=" + environment
+                                + "，provider 返回 " + code + "）"));
+            }
+            // 其余 4xx（如 Provider 参数校验失败）：按本类既有 handle 风格 400 + 原因
+            if (code >= 400 && code < 500) {
+                throw new IllegalArgumentException("provider rejected network config: "
+                        + e.getResponseBodyAsString());
+            }
+            // 5xx：原样抛出，由全局错误处理返回 500（不粉饰为其它码）
+            throw e;
+        }
     }
 
     /**

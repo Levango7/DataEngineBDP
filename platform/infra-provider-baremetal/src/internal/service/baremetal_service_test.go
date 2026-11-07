@@ -464,3 +464,104 @@ func TestCreateCluster_ProvisionFailure_CleansProvisionMap(t *testing.T) {
 	got := loadCluster(t, svc, cluster.ID)
 	assert.Equal(t, model.ClusterStateFailed, got.State)
 }
+
+// newNetworkProfileTestCluster 落库一个 running 集群行（无节点）供网络 Profile 测试。
+//
+// 不复用 newScaleTestCluster：其节点计数参数在扩缩容测试语境外易触发 unparam
+// "always receives" 告警，且本组测试只关心集群行的持久化字段。
+func newNetworkProfileTestCluster(t *testing.T, svc *BareMetalService, id string) {
+	t.Helper()
+	require.NoError(t, svc.db.Create(&model.BareMetalCluster{
+		ID:            id,
+		Name:          id,
+		State:         model.ClusterStateRunning,
+		K8sVersion:    "v1.29.2",
+		PodCIDR:       "10.244.0.0/16",
+		ServiceCIDR:   "10.96.0.0/12",
+		APIServerPort: 6443,
+	}).Error)
+}
+
+// TestUpdateNetworkConfig_Success 验证网络 Profile 落库 + 返回值即持久化真相。
+func TestUpdateNetworkConfig_Success(t *testing.T) {
+	svc := newTestService(t)
+	const clusterID = "net-ok"
+	newNetworkProfileTestCluster(t, svc, clusterID)
+
+	profile := &model.NetworkProfile{
+		Cni:         "cilium",
+		PodCIDR:     "10.245.0.0/16",
+		ServiceCIDR: "10.97.0.0/12",
+		IPFamily:    "IPv4",
+		MTU:         9000,
+	}
+
+	got, err := svc.UpdateNetworkConfig(context.Background(), clusterID, profile)
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "cilium", got.Cni)
+	assert.Equal(t, "10.245.0.0/16", got.PodCIDR)
+	assert.Equal(t, "10.97.0.0/12", got.ServiceCIDR)
+	assert.Equal(t, 9000, got.MTU)
+
+	stored := loadCluster(t, svc, clusterID)
+	assert.Equal(t, "10.245.0.0/16", stored.PodCIDR)
+	assert.Equal(t, "10.97.0.0/12", stored.ServiceCIDR)
+	assert.Equal(t, "cilium", stored.NetworkPlugin)
+	assert.Equal(t, 9000, stored.MTU)
+}
+
+// TestUpdateNetworkConfig_NotFound 集群不存在 ⇒ 错误（handler 转 404）。
+func TestUpdateNetworkConfig_NotFound(t *testing.T) {
+	svc := newTestService(t)
+
+	_, err := svc.UpdateNetworkConfig(context.Background(), "ghost", &model.NetworkProfile{
+		Cni: "flannel", PodCIDR: "10.244.0.0/16", ServiceCIDR: "10.96.0.0/12", MTU: 1450,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "集群不存在")
+}
+
+// TestUpdateNetworkConfig_Validation 校验失败 ⇒ NetworkProfileValidationError（handler 转 400）。
+func TestUpdateNetworkConfig_Validation(t *testing.T) {
+	svc := newTestService(t)
+	const clusterID = "net-invalid"
+	newNetworkProfileTestCluster(t, svc, clusterID)
+
+	cases := []struct {
+		name    string
+		profile *model.NetworkProfile
+		wantSub string
+	}{
+		{
+			name:    "空PodCIDR",
+			profile: &model.NetworkProfile{Cni: "flannel", ServiceCIDR: "10.96.0.0/12", MTU: 1450},
+			wantSub: "PodCIDR不能为空",
+		},
+		{
+			name:    "非法CNI",
+			profile: &model.NetworkProfile{Cni: "kube-ovn", PodCIDR: "10.244.0.0/16", ServiceCIDR: "10.96.0.0/12", MTU: 1450},
+			wantSub: "不支持的CNI插件",
+		},
+		{
+			name:    "MTU越界",
+			profile: &model.NetworkProfile{Cni: "flannel", PodCIDR: "10.244.0.0/16", ServiceCIDR: "10.96.0.0/12", MTU: 9001},
+			wantSub: "MTU必须在1280-9000之间",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := svc.UpdateNetworkConfig(context.Background(), clusterID, tc.profile)
+			require.Error(t, err)
+			var vErr *NetworkProfileValidationError
+			assert.ErrorAs(t, err, &vErr)
+			assert.Contains(t, err.Error(), tc.wantSub)
+		})
+	}
+
+	// 校验失败不应改动持久化字段
+	stored := loadCluster(t, svc, clusterID)
+	assert.Equal(t, "10.244.0.0/16", stored.PodCIDR)
+	assert.Equal(t, "", stored.NetworkPlugin)
+	assert.Equal(t, 0, stored.MTU)
+}

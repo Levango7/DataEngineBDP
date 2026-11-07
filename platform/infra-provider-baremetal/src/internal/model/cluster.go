@@ -38,6 +38,8 @@ type K8sConfig struct {
 	CloudProvider string `json:"cloud_provider,omitempty"`
 	// NetworkPlugin CNI: calico / flannel / cilium
 	NetworkPlugin string `json:"network_plugin,omitempty"`
+	// MTU 集群网络 MTU(CNI 层参数，合理范围 1280-9000)
+	MTU int `json:"mtu,omitempty"`
 	// ExtraArgs kubeadm额外参数
 	ExtraArgs map[string]string `json:"extra_args,omitempty"`
 }
@@ -82,6 +84,8 @@ type BareMetalCluster struct {
 	ControlPlaneVIPInterface string `json:"control_plane_vip_iface,omitempty" gorm:"column:control_plane_vip_iface;size:64"`
 	// NetworkPlugin CNI
 	NetworkPlugin string `json:"network_plugin,omitempty" gorm:"column:network_plugin;size:32"`
+	// MTU 集群网络 MTU(持久化的网络 Profile 意图，下次供应/重建时由 CNI 安装路径消费)
+	MTU int `json:"mtu" gorm:"column:mtu"`
 	// CloudProvider 云提供商
 	CloudProvider string `json:"cloud_provider,omitempty" gorm:"column:cloud_provider;size:32"`
 	// NodeCount 节点总数(冗余字段，便于查询)
@@ -111,6 +115,23 @@ type BareMetalCluster struct {
 // TableName 指定GORM表名
 func (BareMetalCluster) TableName() string {
 	return "baremetal_clusters"
+}
+
+// NetworkProfile 集群网络配置 Profile（PUT /network 的请求体与响应体）。
+//
+// 字段名与前端契约 infra.ts NetworkConfig 对齐（cni/podCidr/serviceCidr/mtu）：
+// 编排层 façade 原样透传该形状，producer/consumer 两侧无字段名转换。
+type NetworkProfile struct {
+	// Cni CNI 插件: flannel / calico / cilium（其余值 provider 无法安装，拒绝）
+	Cni string `json:"cni"`
+	// PodCIDR Pod网络CIDR
+	PodCIDR string `json:"podCidr"`
+	// ServiceCIDR Service网络CIDR
+	ServiceCIDR string `json:"serviceCidr"`
+	// IPFamily IP协议族(仅透传记录，不影响供应流程)
+	IPFamily string `json:"ipFamily,omitempty"`
+	// MTU 集群网络MTU(合理范围 1280-9000)
+	MTU int `json:"mtu"`
 }
 
 // ClusterDetail 集群详情(查询响应)

@@ -46,6 +46,30 @@
 5. ⬜ storage-io/chunker README 依赖说明 + 从缺口清单除名（防后人再当缺口补）
 6. ⬜ #299/P0-4 尾部 6 前缀的 chart 补齐（master-data/data-standard/operations-api 的 Dockerfile 落地后自然可路由）
 7. ⬜ P1-8 Phase 0（E2E 断言内容化）
+8. ✅ `PUT /api/v1/clusters/{env}/{id}/network` 永久方案落地（2026-11-07，详见 §五.8）
+
+### 8. PUT /network 永久方案（manifest 自动化审计批 fix/audit-20261106-batch1）
+
+**背景**：前端 `updateNetworkConfig`（infra.ts:604-610）早已调用 `PUT {CLUSTER_BASE}/{env}/{clusterId}/network`，而 orchestrator 只有 GET（ClusterController.getNetworkConfig）、baremetal provider 无任何 PUT ⇒ **405 Not Allowed**（功能不存在，不是错误处理缺失）。
+
+**裁决策略（主理人 11-07：永久性解决，不是临时）——网络 Profile = 持久化意图 + 下次供应/重建生效**：
+
+- **事实依据**：PodCIDR/ServiceCIDR/CNI/MTU 是集群**引导期输入**（`kubeadm init --pod-network-cidr/--service-cidr` + CNI manifest，见 `k8s_bootstrap.go` `InitControlPlane`/`InstallCNI`），不是 K8s 运行期可变属性。因此本方案**不搞"在线热改集群网络"**（K8s 也无此 API），而是把 Profile 写入 Provider 侧持久化字段，由下一次供应/重建路径消费。这与"造一个假 200 回显"有本质区别：改动真实落库、真实生效、语义如实告知前端。
+
+**改动（三层）**：
+
+| 层 | 文件 | 做法 |
+|---|---|---|
+| provider (Go) | `platform/infra-provider-baremetal/src/internal/model/cluster.go` | `BareMetalCluster` 加 `MTU int` GORM 列（`AutoMigrate` 自动补列）；新增 `NetworkProfile`（cni/podCidr/serviceCidr/ipFamily/mtu，与前端 `NetworkConfig` 契约同名字段）；`K8sConfig` 加可选 `mtu` |
+| provider (Go) | `.../internal/service/baremetal_service.go` | `UpdateNetworkConfig`：不存在→404；`validateNetworkProfile`（CNI 限 flannel/calico/cilium——与 `InstallCNI` 真实能力对齐；CIDR 非空 + `net.ParseCIDR` 校验；MTU 1280–9000）⇒ GORM `Updates(map)` 参数绑定落库（无 SQL 拼接）⇒ **回读后返回**；`InitControlPlane` 增补集群级 pod/service CIDR 入参（空则回落引导器默认），使持久化意图真正进入 kubeadm init 参数 |
+| provider (Go) | `.../internal/handler/cluster_handler.go` + `main.go` 路由注册 | `rg.PUT("/clusters/baremetal/:id/network", ...)`；400 用 `NetworkProfileValidationError`（errors.As 区分校验错 vs 内部错），与既有 ScaleCluster 400 风格一致 |
+| orchestrator (Java) | `SupplyOrchestrator.updateNetworkConfig` | 既有 façade 范式（同 `scaleCluster`）：`descriptor.getClusterUrl(id) + "/network"` PUT 原样转发；拆 `APIResponse.data` 信封回传 Profile |
+| orchestrator (Java) | `ClusterController.updateNetworkConfig` | R13 三段式守卫（requireTenant + getClusterInfo + requireTenantOwnedCluster）；Provider 404/501 ⇒ **透传同码 + 「该环境 provider 暂不支持网络配置持久化」**（不造假成功）；Provider 4xx ⇒ 400 + provider 原因；5xx 原样抛出 |
+| frontend | `InfraNet.vue`（经 i18n 词条，调用链不变） | `infraNet.messages.configUpdated` zh/en 改为「已保存，Pod/Service CIDR 与 CNI 为引导期输入，下次供应/重建时生效」；按钮 save 同义改写。语义从"已更新"（暗示运行期生效）改为"已保存（下次供应/重建时生效）" |
+
+**验证**：`go build ./... && go test ./...`（baremetal 全绿，新增 PUT 200 落库/404/400×4/401 + service 层 4 例）；`mvn -o test` orchestrator ClusterController 46 例全绿（新增 6 例：200 转发 / 404 透传 / 501 / 400 / 租户拒绝 / 非法 env）；`vue-tsc` 存量 TS5101 外无新增。
+
+**未覆盖（如实记账）**：cloud/private/xinchang 三 Provider 无此端点 ⇒  façade 返回 404/501 诚实错误，不伪造；MTU 已持久化但当前 CNI 安装路径（flannel/calico 标准 manifest 的 `kubectl apply`）未按 MTU 参数化注入，如需按 MTU 生效需在 provider 侧 manifest 模板化后追加（下轮候选）。
 
 ## 六、验收判据
 

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * K8sClientService 一律 Mockito mock，standalone MockMvc（不带 Spring Security 过滤器链，
  * @PreAuthorize 在 standalone 模式下不生效，租户守卫由 TenantContext ThreadLocal 直接驱动），
  * 每请求前设置租户上下文模拟 JwtAuthFilter 行为。</p>
+ *
+ * <p>覆盖范围另含 {@code PUT .../network}（网络配置 Profile 持久化 façade：200 透传 /
+ * Provider 404/501 诚实透传 / 400 校验 / R13 租户拒绝）。</p>
  */
 class ClusterControllerSubResourceTest {
 
@@ -427,6 +431,98 @@ class ClusterControllerSubResourceTest {
             when(orchestrator.getClusterInfo(any(), any())).thenReturn(ownedCluster("tenant-other"));
 
             mockMvc.perform(get("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network/policies"))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT .../network（网络配置 Profile 持久化）")
+    class NetworkConfigUpdate {
+
+        private static final String NETWORK_BODY = "{\"cni\":\"calico\",\"podCidr\":\"10.245.0.0/16\","
+                + "\"serviceCidr\":\"10.97.0.0/12\",\"ipFamily\":\"IPv4\",\"mtu\":8951}";
+
+        @Test
+        @DisplayName("happy path：200 + Provider 返回的 Profile（façade 透传）")
+        void shouldForwardAndReturnProfile() throws Exception {
+            when(orchestrator.updateNetworkConfig(any(), any(), any())).thenReturn(Map.of(
+                    "cni", "calico",
+                    "podCidr", "10.245.0.0/16",
+                    "serviceCidr", "10.97.0.0/12",
+                    "mtu", 8951));
+
+            mockMvc.perform(put("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(NETWORK_BODY))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.cni").value("calico"))
+                    .andExpect(jsonPath("$.podCidr").value("10.245.0.0/16"))
+                    .andExpect(jsonPath("$.serviceCidr").value("10.97.0.0/12"))
+                    .andExpect(jsonPath("$.mtu").value(8951));
+        }
+
+        @Test
+        @DisplayName("Provider 无该端点（404）：404 + 该环境暂不支持（不造假成功）")
+        void shouldPassThroughProvider404() throws Exception {
+            when(orchestrator.updateNetworkConfig(any(), any(), any()))
+                    .thenThrow(new WebClientResponseException(404, "Not Found", null, null, null));
+
+            mockMvc.perform(put("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(NETWORK_BODY))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error")
+                            .value("该环境 provider 暂不支持网络配置持久化（environment="
+                                    + ENV + "，provider 返回 404）"));
+        }
+
+        @Test
+        @DisplayName("Provider 未实现（501）：501 + 该环境暂不支持")
+        void shouldPassThroughProvider501() throws Exception {
+            when(orchestrator.updateNetworkConfig(any(), any(), any()))
+                    .thenThrow(new WebClientResponseException(501, "Not Implemented", null, null, null));
+
+            mockMvc.perform(put("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(NETWORK_BODY))
+                    .andExpect(status().isNotImplemented());
+        }
+
+        @Test
+        @DisplayName("Provider 校验失败（400）：400 + provider rejected network config")
+        void shouldRejectOnProviderValidationError() throws Exception {
+            when(orchestrator.updateNetworkConfig(any(), any(), any()))
+                    .thenThrow(new WebClientResponseException(400, "Bad Request", null,
+                            "PodCIDR不能为空".getBytes(), null));
+
+            mockMvc.perform(put("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"cni\":\"flannel\",\"podCidr\":\"\","
+                                    + "\"serviceCidr\":\"10.96.0.0/12\",\"mtu\":1450}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error")
+                            .value(org.hamcrest.Matchers.containsString(
+                                    "provider rejected network config")));
+        }
+
+        @Test
+        @DisplayName("租户不属该集群：400 + cluster not found（R13 拒绝）")
+        void shouldRejectTenantMismatch() throws Exception {
+            when(orchestrator.getClusterInfo(any(), any())).thenReturn(ownedCluster("tenant-other"));
+
+            mockMvc.perform(put("/api/v1/clusters/" + ENV + "/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(NETWORK_BODY))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("cluster not found: " + CLUSTER));
+        }
+
+        @Test
+        @DisplayName("非法 environment：400")
+        void shouldRejectUnknownEnvironment() throws Exception {
+            mockMvc.perform(put("/api/v1/clusters/NOPE/" + CLUSTER + "/network")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(NETWORK_BODY))
                     .andExpect(status().isBadRequest());
         }
     }
