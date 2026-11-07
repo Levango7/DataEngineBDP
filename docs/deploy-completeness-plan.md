@@ -24,7 +24,7 @@
 | `platform/master-data` | 同上（MasterDataApplication.java） | **真缺口** | 同上 |
 | `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；**但实部署副本在 `design/deploy/services/operations/`**（k8s.yaml 引用，239 行独立副本= #117 的 operations-api 双实现问题） | **真缺口 + 双实现联动** | 补 Dockerfile 指向 platform 正版；双实现去留属产品裁决（已报主理人，未裁前不动 design 副本） |
 | `platform/flink-cdc` | Java 工程，有打包插件、无 Application 主类 | **待定** | 需产品裁「常驻服务 vs 作业提交器」形态后补（判据：是否常驻监听 vs `flink run` 提交） |
-| `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | 从「缺 Dockerfile」清单除名；补一条「被哪些服务依赖、以何形态交付（jar）」的说明进 README | 
+| `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | 从「缺 Dockerfile」清单除名；补一条「被哪些服务依赖、以何形态交付（jar）」的说明进 README |
 | `platform/chunker` | **纯 Python 包**（无 main/app；仓内无 APISIX 前缀；仅被 chunker/embedding 内部引用） | **误登记（不是缺口）** | 同上除名；确认消费方（nl2sql? llm-gateway?）的依赖声明方式（pip 依赖 vs vendor） |
 
 > 教训入账：#117 初版把「find 无 Dockerfile」直接等同「部署缺口」，未判存在形态。**库 vs 服务的判别先行**（有 Application/main 入口 + 打包插件 + 路由前缀三要素），否则会把「好好的库」补成假部署面——与审计中「mock 命中经核为误报」同类方法论。

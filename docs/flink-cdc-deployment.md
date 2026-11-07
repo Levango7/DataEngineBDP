@@ -28,13 +28,15 @@
 同一镜像同一 artifact，按需切换，不捏造第三种形态：
 
 1. **即时提交（ad-hoc）**——运维窗口人工触发：
-   ```bash
-   docker run --rm -e FLINK_JOBMANAGER=flink-jm:8081 \
-     -v ./cdc-mysql.yaml:/config/cdc.yaml \
-     <registry>/sq-flink-cdc-submitter:<ver> \
-     flink run -c com.levango7.dataenginebdp.flinkcdc.CdcFrameworkMain \
-       /opt/flink-cdc/flink-cdc.jar --config /config/cdc.yaml --async
-   ```
+
+```bash
+docker run --rm -e FLINK_JOBMANAGER=flink-jm:8081 \
+  -v ./cdc-mysql.yaml:/config/cdc.yaml \
+  <registry>/sq-flink-cdc-submitter:<ver> \
+  flink run -c com.levango7.dataenginebdp.flinkcdc.CdcFrameworkMain \
+  /opt/flink-cdc/flink-cdc.jar --config /config/cdc.yaml --async
+```
+
 2. **定时提交（scheduled）**——特定时点（低峰/批量追赶）以 K8s CronJob 调用同一镜像与同一 `flink run` 契语（CronJob manifest 属部署完整性专项 chart 批次交付；本说明锁定镜像与行为契约）。
 
 ## 四、本裁决的落地物
