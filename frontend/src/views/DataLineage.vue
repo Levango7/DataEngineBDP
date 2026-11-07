@@ -342,7 +342,10 @@ function renderChart(g: LineageGraph): void {
           target: l.target,
           expression: l.expression,
           lineStyle: {
-            color: l.relationType === 'TABLE_LINEAGE' ? palette.value.series.success : palette.value.lineageColumn,
+            color:
+              l.relationType === 'TABLE_LINEAGE'
+                ? palette.value.series.success
+                : palette.value.lineageColumn,
             width: l.relationType === 'TABLE_LINEAGE' ? 2 : 1.5,
             curveness: 0.1
           }
