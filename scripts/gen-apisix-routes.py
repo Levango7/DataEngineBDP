@@ -61,6 +61,13 @@ PREFIX_OWNER_OVERRIDES: dict[str, str] = {
     # 前端租户管理页同时使用 /api/v1/invites、/api/v1/registrations（仅 encaps-layer 提供），
     # 故生产网关把租户管理 API 统一指向 encaps-layer；encaps-tenant 仅供集群内直连。
     "/api/v1/tenants": "encaps-layer",
+    # 审计 #117 追加（2026-11-07）：/api/v1/standards 被 data-standard 与
+    # encaps-layer 同时声明（两模块各有 StandardController）。取证：前端
+    # standard.ts 只调 CRUD + /summary，而 /summary 与 /compliance **只有
+    # encaps-layer 侧实现**（其 :160/:213；data-standard 侧只有 CRUD）⇒
+    # 对外前缀归 encaps-layer（覆盖面完整）；data-standard 的
+    # standard-categories 前缀独立路由（:28 类级路径不冲突）。
+    "/api/v1/standards": "encaps-layer",
     # 审计 #117 P0-4（2026-11-06）：/api/v1/clusters 被 infra-orchestrator 与
     # karmada-api 同时声明。取证：前端 infra.ts 打的 /{env}/{id}、/{env}/{id}/scale、
     # /providers、/environments、/profiles、/network、/storage、/nodes 等**全部**
