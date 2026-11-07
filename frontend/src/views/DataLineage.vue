@@ -192,12 +192,10 @@ import {
 const { t } = useI18n()
 const store = useAppStore()
 
-// ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色常量
-const COLOR_TABLE_LINEAGE = '#047857' // 表级血缘边色（对应 --ds-color-success-700）
-const COLOR_COLUMN_LINEAGE = '#8b5cf6' // 字段级血缘边色（紫色，无对应 token）
-
-// 图谱文字 / 图例底色随主题切换：canvas 不解析 CSS 变量，必须喂真实色值，
-// 否则暗色档下节点名与图例走 ECharts 出厂默认 #333 / #ccc，在暗色画布上不可读。
+// ECharts 在 canvas 上绘制，不支持 CSS 变量；边色随主题切换由 palette 提供
+// （chartPalette.ts 内的 token 化色值——本文件零 hex，守 DESIGN.md §10 硬编码色棘轮）。
+// 表级边=palette 语义 success 色；字段级边=palette.lineageColumn 色（紫色系，
+// chartPalette.ts 定义、随主题走深/浅两档）。
 const palette = useChartPalette()
 
 // SQL 输入
@@ -344,7 +342,7 @@ function renderChart(g: LineageGraph): void {
           target: l.target,
           expression: l.expression,
           lineStyle: {
-            color: l.relationType === 'TABLE_LINEAGE' ? COLOR_TABLE_LINEAGE : COLOR_COLUMN_LINEAGE,
+            color: l.relationType === 'TABLE_LINEAGE' ? palette.value.series.success : palette.value.lineageColumn,
             width: l.relationType === 'TABLE_LINEAGE' ? 2 : 1.5,
             curveness: 0.1
           }

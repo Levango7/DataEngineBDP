@@ -275,9 +275,9 @@ jobs:
         # --ds-* 时解析到 0 组配对仍报 ALL PASS）。
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py" --self-test
-          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-contrast.py" --frontend-dir .
           python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py" --self-test
-          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py"
+          python3 "$GITHUB_WORKSPACE/scripts/check-design-sync.py" --frontend-dir .
           python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" --self-test
           python3 "$GITHUB_WORKSPACE/scripts/check-hardcoded-colors.py" \
             --frontend-dir . --baseline "$GITHUB_WORKSPACE/docs/design-hardcoded-color-baseline.json"
