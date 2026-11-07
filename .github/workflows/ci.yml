@@ -442,6 +442,12 @@ jobs:
       - name: 自测钉版外链可达性判据（check-pinned-downloads）
         run: bash scripts/check-pinned-downloads.sh --self-test
 
+      # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
+      # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
+      # 是 Linux，保留段检查按平台跳过（脚本 rc=0+说明），真正拦截在 Windows 本机。
+      - name: compose 端口保留段比对（#116）
+        run: python -I -B scripts/check-compose-port-conflicts.py
+
       - name: 检查 ske/ske.sh 语法
         run: |
           if [ -f "ske/ske.sh" ]; then
