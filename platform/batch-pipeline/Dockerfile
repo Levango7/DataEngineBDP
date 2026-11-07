@@ -28,9 +28,11 @@ WORKDIR /app
 # FROM 基座引用、看不见构建期升级，故出货镜像（runtime 段）必须自升修复版，基座引用那一面
 # 由 docs/trivy-image-ignore.yaml 限期豁免覆盖。--only-upgrade 只动已安装包，
 # 目标版本已在基座内时为无操作成功。builder 段不随出货镜像发布，故不重复此条。
+# 2026-11-08 追加 zlib1g（同族 CVE-2026-76844/85091，修复版在 trixie-security，基座含该源）。
 RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade \
     apt \
     libapt-pkg7.0 \
+    zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # 拷贝 builder 阶段安装的依赖

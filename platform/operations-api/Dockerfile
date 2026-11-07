@@ -26,6 +26,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg7.0 \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖（requirements.txt 实测三件：fastapi / pydantic / uvicorn）

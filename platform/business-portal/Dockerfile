@@ -8,9 +8,12 @@ FROM ${BASE_REGISTRY}/library/python:3.12-slim
 
 WORKDIR /app
 
-# 系统依赖（curl 用于健康检查）
+# 系统依赖（curl 用于健康检查）+ 定向补包（2026-11-08：基座 zlib1g 1:1.3.dfsg+really1.3.1-1+b1
+# 漂入 CVE-2026-76844/85091，修复版 1+deb13u1 在 trixie-security 仓；门禁扫 FROM 基座引用
+# 看不见构建期升级 ⇒ 出货镜像自升，基座引用那一面由 docs/trivy-image-ignore.yaml 限期豁免覆盖）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖

@@ -17,9 +17,14 @@ WORKDIR /app
 #    FROM 基座引用、看不见构建期升级，故出货镜像必须自升到修复版；基座引用那一面由
 #    docs/trivy-image-ignore.yaml 限期豁免覆盖（到期后未清自动重新判红）。
 #    --only-upgrade 只动已安装包：目标版本已在基座内时为无操作成功（真容器实测 rc=0）。
+# ③ zlib1g 同族定向升级（2026-11-08，CVE-2026-76844 / CVE-2026-85091，均 HIGH）：
+#    基座 dpkg 实测 zlib1g 1:1.3.dfsg+really1.3.1-1+b1，修复版 1+deb13u1 在 trixie-security
+#    仓（基座 /etc/apt/sources.list.d/debian.sources 含 trixie-security 行，layer 直读实证），
+#    main 仓无 ⇒ --only-upgrade zlib1g 可取到修复版；基座引用那一面由同一豁免账覆盖。
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg7.0 \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖

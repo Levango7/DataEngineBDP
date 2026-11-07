@@ -11,9 +11,11 @@ FROM ${BASE_REGISTRY}/library/python:3.12-slim AS base
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖（datasets 需要）
+# 安装系统依赖（datasets 需要）+ 定向补包（2026-11-08：基座 zlib1g CVE-2026-76844/85091，
+# 修复版在 trixie-security 仓；门禁扫 FROM 基座引用看不见构建期升级 ⇒ 出货镜像自升）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
 # 先复制依赖文件，利用 Docker 层缓存

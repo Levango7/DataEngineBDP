@@ -221,3 +221,36 @@ vulnerabilities:
   - id: CVE-2026-107891
     statement: "musl / musl-utils 1.2.5-r3 → 1.2.5-r4，alpine:3.20 基座引用（ai-assistant/catalog/dqctl/infra-provider-baremetal 四个 Dockerfile 的运行时层）；四文件构建期 apk upgrade 已补 musl musl-utils，出货镜像不在受影响区间"
     expired_at: 2026-12-15
+
+  # ---- 2026-11-07：python:3.12-slim 基座 zlib1g 补丁水位漂移（Security run 42413193574 实证）----
+  # 现场：main `02302658` 的 Trivy Image Scan（2026-11-07T21:01:57Z→21:02:01Z）报
+  #   「1 个镜像存在 HIGH/CRITICAL」：docker.m.daocloud.io/library/python:3.12-slim
+  #   （门禁按镜像引用去重，该引用首个 Dockerfile=asset-exchange）——两条均为 zlib1g：
+  #   Installed 1:1.3.dfsg+really1.3.1-1+b1，Fixed 1:1.3.dfsg+really1.3.1-1+deb13u1，均 HIGH。
+  # 根因取证（不起 docker，registry layer 直读 + 国内镜像站索引，全部本机实测）：
+  #   · 基座 manifest list digest sha256:05a994d2344e…；匿名 token 拉 amd64 首层 layer 直解
+  #     /etc/apt/sources.list.d/debian.sources：deb.debian.org + debian-security，
+  #     suites 含 trixie / trixie-updates / **trixie-security** main（快照 20261104T212339Z）。
+  #   · 同层 var/lib/dpkg/status 直读：zlib1g 现装 -1+b1（与 SARIF Installed 一致，不依赖
+  #     trivy 单方口径）；apt/libapt-pkg7.0 已是 3.0.4（11-06 #115 python 半边被基座自重建消解过的验证）。
+  #   · mirrors.aliyun.com/debian-security dists/trixie-security main Packages.xz 直读：
+  #     zlib1g 1:1.3.dfsg+really1.3.1-1+deb13u1 已发布；trixie main 仓仍是 -1+b1。
+  #     ⇒ 修复版只在 security 仓且基座含该源 ⇒ 定向补包真能取到修复版（不是无操作假修）。
+  # 处置=#98 C-1 同款定向补包：11 个 python:3.12-slim 出货 Dockerfile 运行时层加
+  #   `--only-upgrade zlib1g`：asset-exchange / operations-api 并入既有 apt/libapt 升级行；
+  #   batch-pipeline 并入 runtime 段；business-portal / industry-templates / nl2sql / llmops /
+  #   llm-gateway(evaluation) 追加在既有 install 行之后；knowledge-engine / ml-platform /
+  #   open-api-catalog 此前无 apt 段、新增整段。builder 段不随出货镜像发布、不重复。
+  #   基座引用那一面由本表两条覆盖（#87 结构：门禁扫 FROM 引用、看不见构建期升级）。
+  # 本轮实测否证的假设（省得下轮重走）：① 「基座自重建自消」——gh run rerun --failed 复跑
+  #   同一 job（21:17:49Z 起）仍 failure，基座未随安全更新重建（对比 11-06 python 半边确实自消过）；
+  #   ② 「同线换 tag 能清」——trixie main 就是旧版，security 增量不在 main，换 patch tag 无益。
+  # 解锁：上游 python:3.12-slim 基座重建带上 1+deb13u1 后删掉这两条。
+  # 判据：registry layer 直读 dpkg status 显示 zlib1g ≥1:1.3.dfsg+really1.3.1-1+deb13u1，
+  #   或 CI 该格复扫 0 命中。到期未清按判据复核、不续期。
+  - id: CVE-2026-76844
+    statement: "zlib1g 1:1.3.dfsg+really1.3.1-1+b1 → 1+deb13u1（HIGH），python:3.12-slim 基座引用（11 个出货 Dockerfile 共享该引用，门禁去重后单扫）；运行时层 --only-upgrade zlib1g 已补，出货镜像不在受影响区间"
+    expired_at: 2026-12-15
+  - id: CVE-2026-85091
+    statement: "同上（同一包同一水位、同一次扫描报出的第二条 CVE）：基座引用 -1+b1，出货镜像 --only-upgrade zlib1g 后为 1+deb13u1"
+    expired_at: 2026-12-15
