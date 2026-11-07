@@ -1,0 +1,22 @@
+###############################################################################
+# master-data Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "master-data.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 端口转发访问（本地调试）:
+   kubectl port-forward svc/{{ include "master-data.serviceName" . }} 8088:8088 -n {{ .Release.Namespace }}
+
+4. 查看日志:
+   kubectl logs -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+###############################################################################
+# 前置条件：命名空间内须存在 JWT 签名 Secret（默认 shuqing-jwt-secret，见 values.yaml auth 段
+# 与 design/deploy/JWT鉴权配置指南.md 第 3 节），否则 Pod 因 CreateContainerConfigError 起不来。
+###############################################################################
