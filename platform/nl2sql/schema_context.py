@@ -151,10 +151,21 @@ class SchemaContextBuilder:
 
     # ---- Mock 降级 ----
     def _mockTables(self, database: Optional[str] = None) -> list[TableSchema]:
-        """获取 Mock 表 schema."""
+        """获取 Mock 表 schema.
+
+        2026-11-06 K3s 链路1 失败定位（nightly 非 required 腿首次暴露）：
+        调用方带显式 database 名（如 k3s 集成测试的 `test_db`）时，Mock
+        表的 databaseName 全是 "default" ⇒ 严格按名过滤返回空表 ⇒
+        SchemaContext.isEmpty ⇒ `_buildSql` 落 `SELECT 1;` 兜底
+        （链接路用「查询订单总数」却拿回 `SELECT 1`，rows=0）。
+        Mock 的本意是「Catalog 不可达时保证服务可用」，把请求方库名
+        当过滤器清空与之矛盾。故：仅当请求方库名就是 "default" 时严格
+        过滤；其它显式库名返回全量 Mock 表（单测仍按 "default" 取严格
+        语义，无回归）。
+        """
         tables = [_mockTableSchema(d) for d in _MOCK_TABLES]
-        if database:
-            tables = [t for t in tables if t.databaseName == database]
+        if database and database != "default":
+            tables = [t for t in tables if t.databaseName == database] or tables
         return tables
 
     # ---- 公共 API ----

@@ -18,12 +18,25 @@ class TestSchemaContextBuilder:
     async def test_mock_tables_filter_database(self, schemaBuilder: SchemaContextBuilder) -> None:
         tables = await schemaBuilder.fetchTables(database="default", useMock=True)
         assert len(tables) == 3
+        # 2026-11-06 语义订正：非 default 显式库名不再过滤为空——Mock 的本意是
+        # 「Catalog 不可达/离线时保证服务可用」，把请求方库名当过滤器清空会
+        # 让 SchemaContext.isEmpty ⇒ 生成 `SELECT 1;` 兜底（K3s 链路1 实测
+        # 「查询订单总数」回 `SELECT 1`、rows=0）。default 严格语义保留。
         tables_other = await schemaBuilder.fetchTables(database="other", useMock=True)
-        assert len(tables_other) == 0
+        assert len(tables_other) == 3
 
     async def test_build_context_with_query_match(self, schemaBuilder: SchemaContextBuilder) -> None:
         # 查询含 orders 表名
         ctx = await schemaBuilder.buildContext(query="查询 orders 表的订单数量", useMock=True)
+        assert not ctx.isEmpty
+        assert any(t.tableName == "orders" for t in ctx.tables)
+
+    async def test_build_context_explicit_database_not_empty(self, schemaBuilder: SchemaContextBuilder) -> None:
+        # 2026-11-06 回归（K3s 链路1 暴露）：调用方带显式库名 test_db 时
+        # buildContext 不得落空（否则 NL2SQL 只能回 `SELECT 1;` 兜底）。
+        ctx = await schemaBuilder.buildContext(
+            query="查询订单总数", database="test_db", useMock=True
+        )
         assert not ctx.isEmpty
         assert any(t.tableName == "orders" for t in ctx.tables)
 
