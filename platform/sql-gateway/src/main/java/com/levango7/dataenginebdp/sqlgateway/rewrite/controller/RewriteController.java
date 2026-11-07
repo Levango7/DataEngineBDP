@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * 查询改写与物化视图自动路由 REST 控制器。
@@ -55,11 +56,18 @@ import java.util.Optional;
  *   <li>{@code DELETE /rules/{ruleName}}：删除改写规则。</li>
  * </ul>
  *
+ * <p><b>鉴权口径</b>：类级 {@code isAuthenticated()} 保证登录；写端点
+ * （POST/PUT/DELETE {@code /views}、{@code /rules} 及 {@code /views/{viewName}/refresh}）
+ * 额外要求 {@code SQL_GATEWAY_WRITER} 或 {@code SUPER_ADMIN} 角色，
+ * 与兄弟 {@link com.levango7.dataenginebdp.sqlgateway.controller.SqlGatewayController}
+ * 写端点（POST /api/v1/sql/routes）口径一致（2026-11-06 审计补齐）。</p>
+ *
  * @author shuqing-bigdata
  */
 @RestController
 @Tag(name = "SQL网关-查询改写", description = "SQL改写与物化视图路由")
 @RequestMapping("/api/v1/rewrite")
+@PreAuthorize("isAuthenticated()") // 2026-11-06 审计：原全类零鉴权注解（写端点仅靠默认链），与兄弟 SqlGatewayController 类级口径对齐
 public class RewriteController {
 
     private static final Logger log = LoggerFactory.getLogger(RewriteController.class);
@@ -182,6 +190,7 @@ public class RewriteController {
      */
     @Operation(summary = "新增物化视图定义")
     @PostMapping("/views")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addView(@RequestBody MaterializedViewDefinition view) {
         try {
             MaterializedViewDefinition saved = rewriteService.addView(view);
@@ -202,6 +211,7 @@ public class RewriteController {
      */
     @Operation(summary = "更新物化视图定义")
     @PutMapping("/views/{viewName}")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<MaterializedViewDefinition> updateView(
             @PathVariable String viewName,
             @RequestBody MaterializedViewDefinition view) {
@@ -218,6 +228,7 @@ public class RewriteController {
      */
     @Operation(summary = "删除物化视图定义")
     @DeleteMapping("/views/{viewName}")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteView(@PathVariable String viewName) {
         boolean deleted = rewriteService.deleteView(viewName);
         return deleted ? ResponseEntity.noContent().build()
@@ -232,6 +243,7 @@ public class RewriteController {
      */
     @Operation(summary = "刷新物化视图的最近刷新时间")
     @PostMapping("/views/{viewName}/refresh")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<MaterializedViewDefinition> refreshView(@PathVariable String viewName) {
         Optional<MaterializedViewDefinition> refreshed = rewriteService.refreshView(viewName);
         return refreshed.map(ResponseEntity::ok)
@@ -273,6 +285,7 @@ public class RewriteController {
      */
     @Operation(summary = "新增改写规则")
     @PostMapping("/rules")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> addRule(@RequestBody RewriteRule rule) {
         try {
             RewriteRule saved = rewriteService.addRule(rule);
@@ -292,6 +305,7 @@ public class RewriteController {
      */
     @Operation(summary = "删除改写规则")
     @DeleteMapping("/rules/{ruleName}")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteRule(@PathVariable String ruleName) {
         boolean deleted = rewriteService.deleteRule(ruleName);
         return deleted ? ResponseEntity.noContent().build()

@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,20 @@ import (
 
 	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
+
+// NetworkProfileValidationError 网络配置参数校验错误。
+//
+// handler 据此把请求判为 400（而非 500）：校验失败是调用方问题，
+// 与落库失败的内部错误严格区分。
+type NetworkProfileValidationError struct {
+	// Reason 中文错误原因（直接作为 400 响应 message）
+	Reason string
+}
+
+// Error 实现 error 接口
+func (e *NetworkProfileValidationError) Error() string {
+	return e.Reason
+}
 
 // provisionTask 正在进行的供应任务句柄
 type provisionTask struct {
@@ -99,6 +114,7 @@ func (s *BareMetalService) CreateCluster(ctx context.Context, req *model.CreateC
 		ControlPlaneVIP:          req.K8s.ControlPlaneVIP,
 		ControlPlaneVIPInterface: req.K8s.ControlPlaneVIPInterface,
 		NetworkPlugin:            req.K8s.NetworkPlugin,
+		MTU:                      req.K8s.MTU,
 		CloudProvider:            req.K8s.CloudProvider,
 		NodeCount:                len(req.Nodes),
 		ControlPlaneCount:        cpCount,
@@ -258,6 +274,95 @@ func (s *BareMetalService) ListClusters(ctx context.Context) ([]model.BareMetalC
 	return clusters, nil
 }
 
+// UpdateNetworkConfig 更新集群网络配置 Profile（PUT /network 的永久性实现）。
+//
+// 设计立场：PodCIDR/ServiceCIDR/CNI/MTU 是 K8s 集群**引导期输入**（kubeadm init
+// 参数 + CNI manifest），不是 K8s 运行期可变属性，没有"在线改网络"这回事。因此本方法
+// 做的是**意图持久化**：把网络 Profile 写入集群持久化字段，由下一次供应/重建路径
+// （bootstrapK8s → InitControlPlane 的 --pod-network-cidr/--service-cidr 与
+// InstallCNI 的插件选择）消费。当前已运行集群的网络配置不会因此改变，也不虚构成功。
+//
+// 入参经参数绑定（model 绑定后逐字段校验），落库用 GORM Updates map（列名白名单 +
+// 绑定参数，禁拼接 SQL）。
+func (s *BareMetalService) UpdateNetworkConfig(ctx context.Context, clusterID string, profile *model.NetworkProfile) (*model.NetworkProfile, error) {
+	var cluster model.BareMetalCluster
+	if err := s.db.First(&cluster, "id = ?", clusterID).Error; err != nil {
+		return nil, fmt.Errorf("集群不存在: %w", err)
+	}
+
+	if err := validateNetworkProfile(profile); err != nil {
+		return nil, err
+	}
+
+	updates := map[string]interface{}{
+		"pod_cidr":       strings.TrimSpace(profile.PodCIDR),
+		"service_cidr":   strings.TrimSpace(profile.ServiceCIDR),
+		"network_plugin": strings.ToLower(strings.TrimSpace(profile.Cni)),
+		"mtu":            profile.MTU,
+	}
+	if err := s.db.Model(&model.BareMetalCluster{}).Where("id = ?", clusterID).Updates(updates).Error; err != nil {
+		return nil, fmt.Errorf("更新网络配置失败: %w", err)
+	}
+
+	// 回读已落库的记录，保证返回值即持久化真相（而非请求回显）
+	if err := s.db.First(&cluster, "id = ?", clusterID).Error; err != nil {
+		return nil, fmt.Errorf("集群不存在: %w", err)
+	}
+
+	s.logger.WithFields(logrus.Fields{
+		"cluster_id": clusterID,
+		"cni":        cluster.NetworkPlugin,
+		"pod_cidr":   cluster.PodCIDR,
+		"mtu":        cluster.MTU,
+	}).Info("网络配置 Profile 已持久化，将在下次供应/重建时生效")
+
+	return &model.NetworkProfile{
+		Cni:         cluster.NetworkPlugin,
+		PodCIDR:     cluster.PodCIDR,
+		ServiceCIDR: cluster.ServiceCIDR,
+		IPFamily:    profile.IPFamily,
+		MTU:         cluster.MTU,
+	}, nil
+}
+
+// validateNetworkProfile 校验网络配置 Profile。
+//
+// 校验集与 provider 的真实能力对齐：CNI 仅限 InstallCNI 支持的
+// flannel/calico/cilium；CIDR 非空且为合法网段；MTU 在 1280-9000 合理区间
+// （下限 1280 为 IPv6 最小 MTU，高于 9000 巨页值在物理网络上不可达）。
+func validateNetworkProfile(profile *model.NetworkProfile) error {
+	cni := strings.ToLower(strings.TrimSpace(profile.Cni))
+	switch cni {
+	case "flannel", "calico", "cilium":
+	default:
+		return &NetworkProfileValidationError{
+			Reason: fmt.Sprintf("不支持的CNI插件: %s（仅支持 flannel/calico/cilium）", profile.Cni),
+		}
+	}
+	if strings.TrimSpace(profile.PodCIDR) == "" {
+		return &NetworkProfileValidationError{Reason: "PodCIDR不能为空"}
+	}
+	if _, _, err := net.ParseCIDR(strings.TrimSpace(profile.PodCIDR)); err != nil {
+		return &NetworkProfileValidationError{
+			Reason: fmt.Sprintf("PodCIDR格式不合法: %s", profile.PodCIDR),
+		}
+	}
+	if strings.TrimSpace(profile.ServiceCIDR) == "" {
+		return &NetworkProfileValidationError{Reason: "ServiceCIDR不能为空"}
+	}
+	if _, _, err := net.ParseCIDR(strings.TrimSpace(profile.ServiceCIDR)); err != nil {
+		return &NetworkProfileValidationError{
+			Reason: fmt.Sprintf("ServiceCIDR格式不合法: %s", profile.ServiceCIDR),
+		}
+	}
+	if profile.MTU < 1280 || profile.MTU > 9000 {
+		return &NetworkProfileValidationError{
+			Reason: fmt.Sprintf("MTU必须在1280-9000之间，当前: %d", profile.MTU),
+		}
+	}
+	return nil
+}
+
 // provisionCluster 异步供应流程
 func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, _ *model.CreateClusterRequest) {
 	defer func() {
@@ -410,7 +515,9 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 		s.logger.WithError(err).WithField("node", cp0.Hostname).Warn("保存节点状态为joining失败")
 	}
 
-	result, err := s.k8s.InitControlPlane(ctx, cp0, cluster.K8sVersion, cluster.ControlPlaneVIP)
+	// 网络参数（PodCIDR/ServiceCIDR/CNI）取集群持久化字段：PUT /network 写入的
+	// 意图由此进入 kubeadm init 参数与 CNI 安装选择（引导期消费，见 UpdateNetworkConfig 注释）
+	result, err := s.k8s.InitControlPlane(ctx, cp0, cluster.K8sVersion, cluster.ControlPlaneVIP, cluster.PodCIDR, cluster.ServiceCIDR)
 	if err != nil {
 		return fmt.Errorf("初始化控制平面失败: %w", err)
 	}

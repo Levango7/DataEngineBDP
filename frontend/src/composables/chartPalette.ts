@@ -44,6 +44,8 @@ export interface ChartPalette {
   axisLine: string
   /** 序列色 */
   series: { success: string; warning: string }
+  /** 血缘图字段级边色（DataLineage；紫色系，无 ds 语义 token——canvas 场景专用） */
+  lineageColumn: string
 }
 
 export const CHART_PALETTE_LIGHT: ChartPalette = {
@@ -55,7 +57,8 @@ export const CHART_PALETTE_LIGHT: ChartPalette = {
   tooltipBorder: '#d9dee6', // --ds-border-default (light)
   gridLine: '#d9dee6',
   axisLine: '#cbd5e1',
-  series: { success: '#047857', warning: '#d97706' }
+  series: { success: '#047857', warning: '#d97706' },
+  lineageColumn: '#8b5cf6' // --ds-color-accent-500 一档 (light)
 }
 
 export const CHART_PALETTE_DARK: ChartPalette = {
@@ -67,5 +70,6 @@ export const CHART_PALETTE_DARK: ChartPalette = {
   tooltipBorder: '#2f353e', // --ds-border-default (dark)
   gridLine: '#2f353e',
   axisLine: '#3a4048',
-  series: { success: '#34d399', warning: '#fbbf24' }
+  series: { success: '#34d399', warning: '#fbbf24' },
+  lineageColumn: '#a78bfa' // 亮一档保暗色画布对比度 (dark)
 }

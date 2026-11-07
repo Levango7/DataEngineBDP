@@ -236,16 +236,35 @@ class TestChain1EndToEnd:
             )
             exec_body = exec_resp.json() if exec_resp.status_code == 200 else {}
 
+            # 2026-11-06 审计 #117 P1-8（内容级断言）：原判据只验
+            # "SQL 非空 + queryId 存在" ⇒ 生成的 SQL 不通、网关返回空
+            # 结果集/错误信封都算过。补三层内容判据：
+            # ① 生成 SQL 必须像查询（含 SELECT，不是报错文本）；
+            # ② 响应必须带 columns/rows 结构（SqlGatewayController
+            #    成功响应契约 :324-325）；③ rows 为空时 rowCount 必须
+            #    为 0（结构与计数自洽，不接受"没有 rows 键"的整形失败）。
+            sql_is_query = "select" in generated_sql.lower()
+            has_result_shape = "rows" in exec_body and "columns" in exec_body
+            rows_consistent = (
+                exec_body.get("rowCount") == len(exec_body.get("rows") or [])
+                if has_result_shape
+                else False
+            )
+
             passed = (
                 gen_resp.status_code == 200
                 and bool(generated_sql)
+                and sql_is_query
                 and exec_resp.status_code == 200
                 and "queryId" in exec_body
+                and has_result_shape
+                and rows_consistent
             )
             detail = (
                 f"生成SQL={generated_sql[:80]}, "
                 f"网关执行status={exec_resp.status_code}, "
-                f"queryId={exec_body.get('queryId')}"
+                f"queryId={exec_body.get('queryId')}, "
+                f"rows={len(exec_body.get('rows') or [])}"
             )
         except Exception as e:
             passed = False

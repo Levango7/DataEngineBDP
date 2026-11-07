@@ -269,6 +269,44 @@ public class SupplyOrchestrator {
     }
 
     /**
+     * 更新集群网络配置 Profile（PUT .../{clusterId}/network 的下游代理）。
+     *
+     * <p>façade 立场：请求体原样转发（网络字段由 Provider 校验，编排层不做语义转换），
+     * Provider 的 {@code APIResponse} 信封拆包后返回 {@code data} 即网络 Profile
+     * （前端 infra.ts {@code NetworkConfig} 契约形状）。</p>
+     *
+     * <p>Provider 未实现该端点（cloud/private/xinchang 暂无）时 WebClient 抛
+     * {@link WebClientResponseException}（404/501），由调用方转为诚实错误——
+     * 不伪造成功。</p>
+     *
+     * @param environment 环境类型
+     * @param clusterId   集群 ID
+     * @param body        前端提交的网络配置（原样转发）
+     * @return Provider 返回的网络 Profile（拆信封后的 data）
+     * @throws WebClientResponseException Provider 返回 4xx/5xx 时（含端点不存在的 404/501）
+     */
+    public Map<String, Object> updateNetworkConfig(EnvironmentType environment, String clusterId,
+                                                   Map<String, Object> body) {
+        ProviderDescriptor descriptor = registry.lookup(environment);
+        log.info("updateNetworkConfig env={} clusterId={} provider={}",
+                environment, clusterId, descriptor.getName());
+
+        String url = descriptor.getClusterUrl(clusterId) + "/network";
+        JsonNode response = webClient.put()
+                .uri(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .block();
+
+        // 拆信封：Provider 统一响应 {code,message,data}，取 data 作为 Profile 回传；
+        // 异常形状（无 data 字段）时原样回传，避免把错误体当 profile 吞掉
+        JsonNode data = (response != null && response.has("data")) ? response.get("data") : response;
+        return objectMapper.convertValue(data, Map.class);
+    }
+
+    /**
      * 列出指定环境的全部集群。
      *
      * @param environment 环境类型

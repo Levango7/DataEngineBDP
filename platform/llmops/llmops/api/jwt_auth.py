@@ -136,3 +136,21 @@ def effectiveTenant(ctx: AuthContext, requestedTenantId: Optional[str]) -> str:
     if ctx.role == "admin" and requestedTenantId:
         return requestedTenantId
     return ctx.tenantId
+
+
+def startupAuthCheck() -> None:
+    """启动期鉴权配置校验（fail-fast）。
+
+    曾缺失：loadAuthSettings() 只被 getAuthContext 按请求调用，K8s 环境未显式
+    AUTH_MODE 时服务先正常起来、首个请求才抛 500——与「拒绝启动」语义不符
+    （2026-11-06 审计 P1）。本函数导入即执行一次，把校验提前到启动期：
+      · 非 K8s 环境（本地/测试/CI）：none 模式静默通过，无副作用；
+      · K8s 环境未显式 AUTH_MODE：启动即拒绝（防生产匿名 admin）；
+      · AUTH_MODE=jwt 缺 JWT_SECRET：启动即拒绝。
+    判据：import 本模块的进程启动时完成校验。
+    """
+    loadAuthSettings()
+
+
+# 导入即校验：所有入口均 import 本模块（直接或经 routers），等价于启动期 fail-fast。
+startupAuthCheck()

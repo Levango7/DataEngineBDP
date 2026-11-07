@@ -26,6 +26,7 @@
       "dashboardFailed": "仪表盘创建失败",
       "chartSwitched": "图表已切换",
       "noData": "暂无数据可绘图",
+      "chatFailed": "请求失败，请重试",
       "daysAgo": "{days} 天前"
     },
     "chat": {

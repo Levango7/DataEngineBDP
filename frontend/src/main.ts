@@ -29,7 +29,10 @@ setTokenGetter(() => useAuthStore().token)
 setErrorNotifier((msg) => useAppStore().showToast(msg))
 setUnauthorizedHandler(() => {
   useAuthStore().logout()
-  router.push('/account')
+  // 401 后应留在触发页的上下文中：跳 /account 会被守卫二次转成
+  // /login?redirect=/account，重新登录后落在 /account 而非原页面。
+  // 直接用当前路由 fullPath 作为登录后回跳目标（守卫只接受站内绝对路径）。
+  router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
 })
 // A2 错误国际化：后端 messageKey → 当前语种文案；词条缺失回退后端原文
 setI18nTranslator((key, fallback) => {

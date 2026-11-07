@@ -54,8 +54,7 @@
     },
     "settings": {
       "name": "项目名",
-      "description": "描述",
-      "saveTodo": "已保存（待接入）"
+      "description": "描述"
     },
     "createModal": {
       "title": "新建数据项目",

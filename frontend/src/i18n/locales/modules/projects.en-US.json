@@ -54,8 +54,7 @@
     },
     "settings": {
       "name": "Project Name",
-      "description": "Description",
-      "saveTodo": "Saved (integration pending)"
+      "description": "Description"
     },
     "createModal": {
       "title": "New Data Project",

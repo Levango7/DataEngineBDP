@@ -68,17 +68,26 @@ type BootstrapResult struct {
 //	  --apiserver-bind-port=<port> --pod-network-cidr=<podCIDR> \
 //	  --service-cidr=<serviceCIDR> --image-repository=<repo> \
 //	  --kubernetes-version=<ver> --upload-certs
-func (b *K8sBootstrapper) InitControlPlane(ctx context.Context, node *model.BareMetalNode, k8sVer, vip string) (*BootstrapResult, error) {
+//
+// podCIDR/serviceCIDR 取集群级持久化值（PUT /network 更新后的意图），
+// 为空时回落到引导器级默认（config.K8s.PodCIDR/ServiceCIDR）。
+func (b *K8sBootstrapper) InitControlPlane(ctx context.Context, node *model.BareMetalNode, k8sVer, vip, podCIDR, serviceCIDR string) (*BootstrapResult, error) {
 	advertiseAddr := node.ManagementIP
 	if vip != "" {
 		advertiseAddr = vip
+	}
+	if podCIDR == "" {
+		podCIDR = b.podCIDR
+	}
+	if serviceCIDR == "" {
+		serviceCIDR = b.serviceCIDR
 	}
 
 	cmd := fmt.Sprintf(
 		"kubeadm init --apiserver-advertise-address=%s --apiserver-bind-port=%d "+
 			"--pod-network-cidr=%s --service-cidr=%s --image-repository=%s "+
 			"--kubernetes-version=%s --upload-certs --skip-phases=addon/kube-proxy 2>&1",
-		advertiseAddr, b.apiServerPort, b.podCIDR, b.serviceCIDR, b.imageRepo, k8sVer,
+		advertiseAddr, b.apiServerPort, podCIDR, serviceCIDR, b.imageRepo, k8sVer,
 	)
 
 	stdout, stderr, code, err := b.executor.Execute(ctx, node.ManagementIP, cmd)

@@ -47,7 +47,10 @@ FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
 # libexpat 的豁免记的是 2.8.5-r0→2.9.0-r0，2026-11-02 新拉基座已随上游重建到
 # 2.9.0-r0，但 CI 可能复用旧层，故一并列入升级。docs/trivy-image-ignore.yaml 的
 # 豁免按 CVE 号全局生效，出货镜像仍须构建期自证修复（与已兜底的 8 个文件同口径）。
-RUN apk upgrade --no-cache libexpat brotli-libs
+# musl/musl-utils（2026-11-06 补）：CVE-2026-107891（HIGH，1.2.5-r3→1.2.5-r4），
+# alpine:3.20 基座引用被 Trivy Image Scan 命中；出货镜像构建期自升，基座引用那一面
+# 记限期豁免（同族口径）。
+RUN apk upgrade --no-cache libexpat brotli-libs musl musl-utils
 
 # 安装最小运行时依赖
 RUN apk add --no-cache ca-certificates tzdata curl && \

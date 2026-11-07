@@ -390,6 +390,31 @@ function computeLayers(g: DagGraphDto): Map<string, number> {
   return layers
 }
 
+/**
+ * SVG 画布宽度（按最宽层动态计算）。
+ *
+ * <p>此前这里写死 ref(900)：同层 6 个节点需 990px，居中公式算出
+ * startX = 40 + (900-80-990)/2 = -45，最左节点整体位于 SVG 视口左缘之外，
+ * 被裁切且点击不到。改为按最宽层动态计算，保证任何分层下 startX ≥ padding。</p>
+ *
+ * @returns 最宽层容纳全部节点所需宽度；层内节点少时保留下限，维持原有观感
+ */
+const MIN_SVG_WIDTH = 900
+
+const svgWidth = computed(() => {
+  const g = graph.value
+  if (!g) return MIN_SVG_WIDTH
+  const layers = computeLayers(g)
+  const countByLayer = new Map<number, number>()
+  for (const n of g.nodes) {
+    const l = layers.get(n.id) ?? 0
+    countByLayer.set(l, (countByLayer.get(l) ?? 0) + 1)
+  }
+  const widest = Math.max(0, ...countByLayer.values())
+  const widestLayerWidth = widest * nodeW + Math.max(0, widest - 1) * nodeGap
+  return Math.max(MIN_SVG_WIDTH, widestLayerWidth + padding * 2)
+})
+
 /** 计算布局 */
 const layout = computed<Layout>(() => {
   const g = graph.value
@@ -441,8 +466,7 @@ const layout = computed<Layout>(() => {
   return { nodes, edges }
 })
 
-/** SVG 画布尺寸 */
-const svgWidth = ref(900)
+/** SVG 画布尺寸：宽度见上方 svgWidth（按最宽层动态计算） */
 const svgHeight = computed(() => {
   if (!graph.value) return 400
   const layers = computeLayers(graph.value)
@@ -612,23 +636,23 @@ onBeforeUnmount(() => {
   color: var(--ds-text-tertiary);
 }
 .gs-running {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .gs-success {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .gs-failed {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .gs-stopped {
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
 }
 .gs-paused {
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
   color: var(--c-violet);
 }
 
@@ -809,16 +833,16 @@ onBeforeUnmount(() => {
   border-color: var(--c-slate-300);
 }
 .legend-dot.s-running {
-  border-color: var(--ds-color-warning-500);
-  background: var(--c-amber-50);
+  border-color: var(--ds-warning);
+  background: var(--ds-warning-soft);
 }
 .legend-dot.s-success {
-  border-color: var(--ds-color-success-500);
-  background: var(--c-green-50);
+  border-color: var(--ds-success);
+  background: var(--ds-success-soft);
 }
 .legend-dot.s-failed {
-  border-color: var(--ds-color-error-500);
-  background: var(--c-red-50);
+  border-color: var(--ds-danger);
+  background: var(--ds-danger-soft);
 }
 .legend-dot.s-skipped {
   border-color: var(--c-slate-300);
@@ -826,7 +850,7 @@ onBeforeUnmount(() => {
 }
 .legend-dot.s-waiting_human {
   border-color: var(--c-violet);
-  background: var(--c-indigo-50);
+  background: var(--ds-info-soft);
 }
 
 /* 详情面板 */

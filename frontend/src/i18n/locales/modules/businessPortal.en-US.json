@@ -70,7 +70,8 @@
         "approve": "Approve",
         "approveDone": "Approved",
         "reject": "Reject",
-        "rejectDone": "Rejected"
+        "rejectDone": "Rejected",
+        "notImplemented": "Approval not available yet (no backend endpoint); will enable once wired"
       },
       "tools": {
         "title": "Common Tools"
@@ -145,7 +146,12 @@
       "created": "Report created"
     },
     "reportActions": {
-      "viewToast": "Viewing report: {name} (redirecting to BI workbench)",
+      "detailTitle": "Report details",
+      "detailName": "Name",
+      "detailType": "Type",
+      "detailChart": "Chart",
+      "detailDesc": "Description",
+      "detailEmpty": "(none)",
       "deleted": "Report deleted"
     },
     "status": {

@@ -92,7 +92,7 @@
         },
         "actions": {
           "cancel": "Cancel",
-          "save": "Save"
+          "save": "Save (applies on next provisioning / rebuild)"
         }
       }
     },
@@ -103,7 +103,7 @@
       "selectorRequired": "Please enter Pod selector"
     },
     "messages": {
-      "configUpdated": "Network configuration updated",
+      "configUpdated": "Network config saved: Pod/Service CIDR and CNI are provisioning-time inputs and take effect on next provisioning / rebuild",
       "policyCreated": "Policy issued",
       "policyDeleted": "Policy deleted",
       "deleteConfirm": "Confirm deletion of policy \"{name}\"?",

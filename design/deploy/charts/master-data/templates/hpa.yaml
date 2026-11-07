@@ -1,0 +1,34 @@
+{{- if .Values.hpa.enabled -}}
+# HorizontalPodAutoscaler：条件渲染 values.hpa.enabled
+# 配置 minReplicas/maxReplicas 及 CPU/Memory 利用率指标，scaleTargetRef 指向本 Chart Deployment。
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "master-data.fullname" . }}
+  labels:
+    {{- include "master-data.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "master-data.fullname" . }}
+  minReplicas: {{ .Values.hpa.minReplicas | int }}
+  maxReplicas: {{ .Values.hpa.maxReplicas | int }}
+  metrics:
+    {{- if .Values.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage | int }}
+    {{- end }}
+    {{- if .Values.hpa.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.hpa.targetMemoryUtilizationPercentage | int }}
+    {{- end }}
+{{- end -}}

@@ -50,7 +50,13 @@
         </template>
       </Toolbar>
 
+      <!-- 列表加载失败：内页错误态（此前仅 toast，刷新后失败原因无迹可寻） -->
+      <div v-if="loadError" class="appr-error" role="alert">
+        {{ loadError }}，
+        <a href="javascript:void(0)" @click="loadList">{{ t('common.retry') }}</a>
+      </div>
       <el-table
+        v-else
         v-loading="loading"
         :data="filteredRegs"
         stripe
@@ -189,6 +195,8 @@ const admin = useTenantAdminStore()
 
 const loading = ref(false)
 const submitting = ref(false)
+/** 列表加载失败信息（内页错误态；加载成功后清除） */
+const loadError = ref<string | null>(null)
 const filterStatus = ref<'PENDING' | 'APPROVED' | 'REJECTED' | ''>('')
 const filterTenant = ref<number | null>(null)
 
@@ -247,10 +255,14 @@ function fmtTime(iso: string): string {
 /** 加载注册申请 + 租户缓存（租户用于列表/弹窗中的名称展示） */
 async function loadList() {
   loading.value = true
+  loadError.value = null
   try {
     await Promise.all([admin.loadRegistrations(), admin.loadTenants()])
-  } catch {
+  } catch (e) {
+    // 双通道：toast 即时反馈 + 内页错误态（刷新后仍可重试），
+    // 内页优先展示后端可读文案，缺失时回退词条
     ElMessage.error(t('approvals.messages.loadFailed'))
+    loadError.value = e instanceof Error && e.message ? e.message : t('approvals.list.loadFailed')
   } finally {
     loading.value = false
   }
@@ -302,6 +314,12 @@ onMounted(() => loadList())
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 18px;
+}
+/* 列表加载失败内页错误态（沿用 Workspaces/Analyze 的错误分支写法，色值走 ds 令牌） */
+.appr-error {
+  padding: var(--ds-spacing-6) var(--ds-spacing-4);
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-color-error-500);
 }
 .stat {
   padding: 16px 18px;

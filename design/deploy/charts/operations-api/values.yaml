@@ -1,0 +1,153 @@
+# ============================================================================
+# operations-api Helm Chart 默认 values
+# 关联：design/deploy/services/operations/（既有演示态 k8s.yaml，双实现并存待裁，见 README 第 8 节）
+# 说明：本文件为 Chart 骨架级默认值；完整生产配置请用 -f 引用环境 values 覆盖。
+# ============================================================================
+
+# ---- 镜像配置（自研：build.yml 推 ghcr.io，tag 只有 latest 与 40 位 sha；按环境钉 sha 请写 env values）----
+image:
+  repository: "ghcr.io/levango7/sq-operations-api"
+  tag: "latest"
+  pullPolicy: Always
+
+# ---- 副本数 ----
+# 默认 1：合同仓储目前为内存仓库（operations_api/repositories/__init__.py），
+# 多副本各自持有独立内存态 ⇒ 数据分裂；持久化属产品范围，落地前保持单副本。
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8081
+  # 容器端口（Dockerfile EXPOSE 8081 / CMD uvicorn --port 8081）
+  containerPort: 8081
+
+# ---- 资源配额（默认 standard 档，与同族 Python 服务 asset-exchange 对齐）----
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+# uid/gid 与镜像内 app 用户对齐：Dockerfile 用 groupadd/useradd --system 创建，
+# 实测 python:3.12-slim 基座分配 uid=gid=999（2026-11-07 docker run 验证）。
+# readOnlyRootFilesystem 默认 false，与同族 Python 服务 asset-exchange 同口径：
+# 本服务无 H2/日志等落盘目录（PYTHONDONTWRITEBYTECODE=1、仓储在内存），
+# 保留非 root + 能力全裁 + 禁提权，不追加只读根收益。
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查 ----
+# app.py:/healthz 存活（公开端点，不要求鉴权）；app.py:/readyz 就绪（公开）。
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8081
+    # Python/uvicorn 冷启动秒级（无 JVM 预热），初始延迟比 Java 服务短，加快发布反馈
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容（HPA）----
+# 字段名 hpa 对应 templates/hpa.yaml，条件渲染 values.hpa.enabled
+# 注意：内存仓储落地持久化前扩容无意义（见 replicaCount 注释）
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget（PDB）----
+# 字段名 pdb 对应 templates/pdb.yaml，条件渲染 values.pdb.enabled
+pdb:
+  enabled: false
+  # minAvailable 与 maxUnavailable 二选一；单副本场景建议配 maxUnavailable
+  minAvailable: 1
+  # maxUnavailable: 1  # 如需按比例不可用，可改用 maxUnavailable
+
+# ---- Ingress ----
+ingress:
+  enabled: false
+  className: apisix
+  annotations: {}
+  hosts:
+    - host: operations-api.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---- 环境变量（写入 ConfigMap，模板 envFrom 注入）----
+# JWT_SECRET **不在此处**（经 Secret 注入，见 auth 段）；AUTH_MODE 亦由模板注入。
+env:
+  # 业务日志级别（uvicorn 侧按需读取；未在代码中硬编码，留 info 便于排障）
+  LOG_LEVEL: info
+  # JWT 期望签发者（可选）：与签发端不一致时拒绝；留空表示不校验 issuer
+  JWT_EXPECTED_ISSUER: ""
+  # 监听地址（镜像 CMD 已固定 0.0.0.0，此处显式声明便于审计）
+  OPERATIONS_API_HOST: "0.0.0.0"
+
+# ---- JWT 鉴权（Secret 注入，勿写入上面的 env/ConfigMap）----
+# ⚠️ jwt_auth.py 导入即校验（台账 #117 P1）：K8s 环境（KUBERNETES_SERVICE_HOST 存在）
+#    未显式 AUTH_MODE，或 jwt 模式缺 JWT_SECRET（≥32 字节）⇒ 拒绝启动
+#    （"拒绝以匿名 admin 模式启动"）。故本 Chart 显式钉 AUTH_MODE=jwt 并经
+#    secretKeyRef 注入 JWT_SECRET；Secret 缺失时 Pod 停在 CreateContainerConfigError。
+auth:
+  # K8s 环境必须显式声明鉴权模式：jwt=生产强制鉴权；none=匿名放行（仅本地/测试，
+  # 且 K8s 环境下 jwt_auth 会直接拒绝以该模式启动）
+  authMode: jwt
+  # 指向集群内已存在的 Secret（平台约定：design/deploy/JWT鉴权配置指南.md 第 3 节，
+  # kubectl create secret generic shuqing-jwt-secret --from-literal=jwt-secret='<32+ 字节>'）。
+  # 必须与 JWT 签发端（catalog / encaps-layer / Keycloak）一致，否则接口全部 401。
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config:
+  application.conf: |
+    # operations-api 默认配置，完整配置请引用 design/deploy/values/env/<env>/operations-api-values.yaml
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/env/<env>/operations-api-values.yaml 覆盖
+# 渲染命令： helm template operations-api design/deploy/charts/operations-api
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

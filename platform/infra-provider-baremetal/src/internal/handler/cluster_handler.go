@@ -8,9 +8,11 @@
 //	GET    /api/v1/clusters/baremetal           - 列出集群
 //	GET    /api/v1/clusters/baremetal/{id}/nodes - 查询节点列表
 //	POST   /api/v1/clusters/baremetal/{id}/scale - 扩缩容
+//	PUT    /api/v1/clusters/baremetal/{id}/network - 更新集群网络配置 Profile（意图持久化）
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -40,6 +42,68 @@ func (h *ClusterHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.DELETE("/clusters/baremetal/:id", h.DeleteCluster)
 	rg.GET("/clusters/baremetal/:id/nodes", h.ListNodes)
 	rg.POST("/clusters/baremetal/:id/scale", h.ScaleCluster)
+	rg.PUT("/clusters/baremetal/:id/network", h.UpdateNetworkConfig)
+}
+
+// UpdateNetworkConfig 更新集群网络配置 Profile
+// PUT /api/v1/clusters/baremetal/{id}/network
+//
+// 语义：PodCIDR/ServiceCIDR/CNI/MTU 是集群引导期输入，本端点把 Profile 持久化到集群记录，
+// 由下一次供应/重建路径消费（bootstrapK8s → kubeadm init 参数 + InstallCNI）。
+// 当前已运行集群的网络不会因此改变——不做假成功。
+func (h *ClusterHandler) UpdateNetworkConfig(c *gin.Context) {
+	clusterID := c.Param("id")
+	if clusterID == "" {
+		c.JSON(http.StatusBadRequest, model.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "集群ID不能为空",
+		})
+		return
+	}
+
+	var req model.NetworkProfile
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, model.APIResponse{
+			Code:    http.StatusBadRequest,
+			Message: "请求体解析失败",
+			Data:    err.Error(),
+		})
+		return
+	}
+
+	profile, err := h.svc.UpdateNetworkConfig(c.Request.Context(), clusterID, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "集群不存在") {
+			c.JSON(http.StatusNotFound, model.APIResponse{
+				Code:    http.StatusNotFound,
+				Message: "集群不存在",
+			})
+			return
+		}
+		// 参数校验失败（CNI 不支持 / CIDR 空或非法 / MTU 越界）→ 400 + 中文原因，
+		// 与 ScaleCluster 的 400 风格一致
+		var validationErr *service.NetworkProfileValidationError
+		if errors.As(err, &validationErr) {
+			c.JSON(http.StatusBadRequest, model.APIResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
+			})
+			return
+		}
+		h.logger.WithError(err).Error("更新网络配置失败")
+		c.JSON(http.StatusInternalServerError, model.APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "更新网络配置失败",
+			Data:    err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, model.APIResponse{
+		Code:    http.StatusOK,
+		Message: "success",
+		Data:    profile,
+	})
 }
 
 // CreateCluster 创建裸金属集群

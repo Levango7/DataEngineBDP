@@ -225,6 +225,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ElMessage,
@@ -289,6 +290,7 @@ const {
   refresh,
   loadFacets
 } = useSearch({ initialPageSize: 20, initialPagingMode: 'page' })
+const route = useRoute()
 
 /* ------------------------------ 双向绑定模型 ------------------------------ */
 const filterModel = reactive<SearchFilterType>({
@@ -397,6 +399,12 @@ function openDetailUrl(): void {
 /* ------------------------------ 初始化 ------------------------------ */
 onMounted(() => {
   void loadFacets()
+  // 从顶栏全局搜索带过来的 q 预填（2026-11-06 审计：顶栏搜索原为死控件，
+  // Enter/⌘K 跳 /search?q=...；此处落地为输入框预填，用户回车即检索）
+  const q = route.query.q
+  if (typeof q === 'string' && q.trim()) {
+    setQueryText(q.trim())
+  }
 })
 </script>
 

@@ -206,16 +206,16 @@ onMounted(load)
   border-radius: var(--ds-radius-md-plus);
 }
 .call-status.st-success {
-  background: var(--c-green-50);
-  color: var(--ds-color-success-500);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
 }
 .call-status.st-failed {
-  background: var(--c-red-50);
-  color: var(--ds-color-error-500);
+  background: var(--ds-danger-soft);
+  color: var(--ds-danger);
 }
 .call-status.st-timeout {
-  background: var(--c-amber-50);
-  color: var(--ds-color-warning-500);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
 }
 .call-status.st-skipped {
   background: var(--c-surface-alt);
@@ -266,8 +266,8 @@ onMounted(load)
 }
 .err-msg {
   font-size: var(--ds-font-size-xs);
-  color: var(--ds-color-error-500);
-  background: var(--c-red-50);
+  color: var(--ds-danger);
+  background: var(--ds-danger-soft);
   padding: 6px 10px;
   border-radius: var(--ds-radius-md);
   word-break: break-all;

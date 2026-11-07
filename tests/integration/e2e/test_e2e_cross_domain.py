@@ -648,18 +648,26 @@ def test_asset_registration_to_exchange(
             asset_exchange_url + "/api/v1/trades",
             json={"assetId": asset_id, "buyer": "e2e-buyer", "price": 100.0},
         )
-        assert trade_resp.status_code in (200, 201, 404), f"交易发起失败: {trade_resp.text}"
+        # 2026-11-06 审计 #117 P1-8（E2E 断言语义化）：原写法把 404 当通过
+        # （assert 容忍 404 + 遇 404 直接 return）⇒ 交易端点未实现时本测试
+        # 恒绿、缺口被静默掩盖。改为：端点缺失显式 skip（报告可见、
+        # 不漏也不假绿）；返回业务错误（4xx/5xx）显式失败。
         if trade_resp.status_code == 404:
-            return  # 交易端点未实现，跳过后续验证
+            pytest.skip("交易端点 /api/v1/trades 未实现（后端缺口，见台账）")
+        assert trade_resp.status_code in (200, 201), f"交易发起失败: {trade_resp.text}"
         trade_body = _unwrap_response(trade_resp.json())
         trade_id = trade_body.get("id") or trade_body.get("tradeId")
+        assert trade_id, f"交易响应缺少 id/tradeId: {trade_body}"
 
-        # 4. 查询交易状态
-        if trade_id:
-            status_resp = e2e_api_client.get(
-                asset_exchange_url + f"/api/v1/trades/{trade_id}"
-            )
-            assert status_resp.status_code == 200, f"交易状态查询失败: {status_resp.text}"
+        # 4. 查询交易状态：必须查得到且内容与发起值一致（内容级断言，
+        # 不再只验 200）
+        status_resp = e2e_api_client.get(
+            asset_exchange_url + f"/api/v1/trades/{trade_id}"
+        )
+        assert status_resp.status_code == 200, f"交易状态查询失败: {status_resp.text}"
+        # 内容级断言：状态可查且与发起值一致（原写法只验 200）
+        status_body = _unwrap_response(status_resp.json())
+        assert status_body.get("assetId") == asset_id, f"交易状态与发起资产不一致: {status_body}"
     finally:
         e2e_api_client.delete(asset_exchange_url + f"/api/v1/assets/{asset_id}")
 
@@ -760,6 +768,17 @@ def test_open_api_subscription_to_billing(
                 finops_url + "/api/v1/finops/billing/tenant",
             )
             assert billing_resp.status_code == 200, f"计费查询失败: {billing_resp.text}"
+            # 2026-11-06 审计 #117 P1-8（内容级断言）：原写法只验 200 ⇒
+            # 空记录/错租户/未计量都算过。现在要求响应是结构正确的计费视图
+            # （list 或带 items/records 键；空 list 合法——刚订阅可能确无记录，
+            # 但形状必须对，且调用链上游 call_body 的 statusCode 已在上面验过）。
+            billing_body = _unwrap_response(billing_resp.json())
+            records = (
+                billing_body
+                if isinstance(billing_body, list)
+                else (billing_body.get("items") or billing_body.get("records") or [])
+            )
+            assert isinstance(records, list), f"计费响应形状异常: {billing_body}"
     finally:
         if sub_id:
             # 清理：吊销订阅（DELETE 根路由不存在，管理动作是 revoke）

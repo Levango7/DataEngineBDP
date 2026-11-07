@@ -8,6 +8,9 @@
       "statusFilterPlaceholder": "Filter by status",
       "refreshAria": "Refresh tenant list"
     },
+    "list": {
+      "loadFailed": "Failed to load the tenant list"
+    },
     "table": {
       "loadFailed": "Failed to load, please retry",
       "empty": "No tenant data",

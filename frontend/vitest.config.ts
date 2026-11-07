@@ -93,7 +93,6 @@ export default defineConfig({
         'src/views/Projects.vue',
         'src/views/Integrate.vue',
         'src/views/Develop.vue',
-        'src/views/Sql.vue',
         'src/views/SqlWorkbench.vue',
         'src/views/Govern.vue',
         'src/views/Quality.vue',

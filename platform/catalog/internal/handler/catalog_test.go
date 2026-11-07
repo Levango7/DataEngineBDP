@@ -252,6 +252,33 @@ func TestCreateDatabase_Success(t *testing.T) {
 	assert.False(t, created.CreatedAt.IsZero())
 }
 
+// TestCreateDatabase_ClientIDIgnored 客户端指定 ID 必须被忽略（2026-11-06 审计）：
+// ID 是全局主键，接受客户端值等于允许跨租户抢占与存在性探测。
+func TestCreateDatabase_ClientIDIgnored(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	body := map[string]string{
+		"id":          "client-chosen-id-12345",
+		"name":        "db_with_client_id",
+		"description": "客户端带了 ID",
+	}
+	jsonBody, _ := json.Marshal(body)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/catalog/databases", bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+
+	var created model.Database
+	err := json.Unmarshal(w.Body.Bytes(), &created)
+	require.NoError(t, err)
+	assert.NotEqual(t, "client-chosen-id-12345", created.ID)
+	assert.NotEmpty(t, created.ID)
+	assert.Equal(t, "db_with_client_id", created.Name)
+}
+
 // TestCreateDatabase_MissingName 测试创建数据库时缺少名称。
 func TestCreateDatabase_MissingName(t *testing.T) {
 	r, _ := setupTestRouterWithMock()
