@@ -46,7 +46,7 @@ RUN sed -i 's|/run/nginx.pid|/tmp/nginx.pid|g' /etc/nginx/nginx.conf \
              /var/cache/nginx/scgi_temp \
  && chown -R nginx:nginx /var/cache/nginx
 
-# 非 root 运行：nginx 用户监听 8080 端口（避免 privileged port 80）
+# 降权运行（上一条补正的目的正是让这一步可用）：nginx 用户监听 8080
 USER nginx
 
 # 健康检查：静态文件是否可访问
