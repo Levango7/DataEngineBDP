@@ -85,3 +85,44 @@ func TestLoadFromEnv_Default(t *testing.T) {
 	assert.Equal(t, "openai", cfg.Providers[0].Type)
 	assert.Equal(t, "qianwen", cfg.Providers[1].Type)
 }
+
+// TestMockSwitch_Off 验证开关关闭（默认）：真实 Provider 优先，不注入 Mock。
+func TestMockSwitch_Off(t *testing.T) {
+	t.Setenv("LLM_GATEWAY_MOCK_MODE", "false")
+	t.Setenv("LLM_GATEWAY_PROVIDERS", "openai,qianwen")
+	cfg := LoadFromEnv()
+	assert.False(t, cfg.MockMode)
+	require.Len(t, cfg.Providers, 2)
+	assert.Equal(t, "openai", cfg.Providers[0].Type)
+	assert.Equal(t, "qianwen", cfg.Providers[1].Type)
+
+	// YAML/JSON 路径：不写 mockMode 时同样保持真实 Provider。
+	cfg2, err := LoadFromJSON(`{"providers": [{"name": "openai", "type": "openai", "apiKey": "sk-xxx"}]}`)
+	require.NoError(t, err)
+	assert.False(t, cfg2.MockMode)
+	require.Len(t, cfg2.Providers, 1)
+	assert.Equal(t, "openai", cfg2.Providers[0].Type)
+}
+
+// TestMockSwitch_On 验证开关打开：仅注入 Mock Provider（env 与 YAML/JSON 同语义）。
+func TestMockSwitch_On(t *testing.T) {
+	t.Setenv("LLM_GATEWAY_MOCK_MODE", "true")
+	cfg := LoadFromEnv()
+	assert.True(t, cfg.MockMode)
+	require.Len(t, cfg.Providers, 1)
+	assert.Equal(t, "mock", cfg.Providers[0].Type)
+
+	// YAML/JSON 路径：mockMode=true 且无 providers 时兜底注入 Mock。
+	cfg2, err := LoadFromJSON(`{"mockMode": true}`)
+	require.NoError(t, err)
+	assert.True(t, cfg2.MockMode)
+	require.Len(t, cfg2.Providers, 1)
+	assert.Equal(t, "mock", cfg2.Providers[0].Type)
+
+	// mockMode=true 且写了 providers 时开关优先（与 env 强制 Mock 同语义）。
+	cfg3, err := LoadFromJSON(`{"mockMode": true, "providers": [{"name": "openai", "type": "openai", "apiKey": "sk-xxx"}]}`)
+	require.NoError(t, err)
+	assert.True(t, cfg3.MockMode)
+	require.Len(t, cfg3.Providers, 1)
+	assert.Equal(t, "mock", cfg3.Providers[0].Type)
+}

@@ -316,6 +316,7 @@ routes:
 audit:
   enabled: true
   sensitiveWords: ["password", "secret"]
+mockMode: false  # true 时忽略 providers 仅注入 Mock（与 LLM_GATEWAY_MOCK_MODE=true 同语义）
 ```
 
 ## 测试
