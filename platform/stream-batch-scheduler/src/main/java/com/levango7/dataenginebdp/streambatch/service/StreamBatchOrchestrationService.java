@@ -48,12 +48,29 @@ public class StreamBatchOrchestrationService {
      * @return 执行结果
      */
     public DagExecutionResult submitDag(StreamBatchDag dag) {
+        return submitDag(dag, DagRunType.MANUAL, "api");
+    }
+
+    /**
+     * 提交并执行流批 DAG（显式指定运行类型与触发来源）。
+     *
+     * <p>批 3（2026-11-09）新增：此前 runType 硬编码 MANUAL，使
+     * {@link DagRunType#SCHEDULED} 无生产者、调度运行的来源无法落历史；
+     * 本重载供 {@code JobService.runScheduled} 与调度触发器复用。</p>
+     *
+     * @param dag         流批 DAG
+     * @param runType     运行类型（MANUAL/SCHEDULED/...）
+     * @param triggeredBy 触发来源标识
+     * @return 执行结果
+     */
+    public DagExecutionResult submitDag(StreamBatchDag dag, DagRunType runType, String triggeredBy) {
         String tenantId = TenantContext.getTenantId();
-        log.info("提交流批 DAG: dagId={}, name={}, tenant={}", dag.getDagId(), dag.getName(), tenantId);
+        log.info("提交流批 DAG: dagId={}, name={}, tenant={}, runType={}",
+                dag.getDagId(), dag.getName(), tenantId, runType);
         DagExecutionResult result = orchestrator.orchestrate(dag);
         executionHistory.put(historyKey(tenantId, dag.getDagId()), result);
-        // 任务运维中心：执行完成落库（手动触发类型）
-        dagRunService.recordRun(dag, result, DagRunType.MANUAL, "api", null, null);
+        // 任务运维中心：执行完成落库（运行类型随触发来源）
+        dagRunService.recordRun(dag, result, runType, triggeredBy, null, null);
         return result;
     }
 

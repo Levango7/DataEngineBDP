@@ -4,6 +4,7 @@ import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.DagNode;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
 import com.levango7.dataenginebdp.streambatch.model.TaskType;
+import com.levango7.dataenginebdp.streambatch.run.DagRunType;
 import com.levango7.dataenginebdp.streambatch.service.StreamBatchOrchestrationService;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -105,10 +106,26 @@ public class JobService {
      */
     @Transactional
     public Optional<DagExecutionResult> run(Long id) {
+        return runInternal(id, DagRunType.MANUAL, "api");
+    }
+
+    /**
+     * 调度触发运行（由 {@link JobScheduleRunner} 调用；runType=SCHEDULED）。
+     *
+     * <p>与 {@link #run(Long)} 共用执行路径，仅运行类型/触发来源不同——
+     * 使任务运维中心的运行历史能区分「人工点」与「cron 到点自动跑」。</p>
+     */
+    @Transactional
+    public Optional<DagExecutionResult> runScheduled(Long id) {
+        return runInternal(id, DagRunType.SCHEDULED, "scheduler");
+    }
+
+    /** 运行公共路径（运行类型与触发来源参数化）。 */
+    private Optional<DagExecutionResult> runInternal(Long id, DagRunType runType, String triggeredBy) {
         String tenantId = requireTenant();
         return jobRepository.findByTenantIdAndId(tenantId, id).map(job -> {
             StreamBatchDag dag = buildDagFromJob(job);
-            DagExecutionResult result = orchestrationService.submitDag(dag);
+            DagExecutionResult result = orchestrationService.submitDag(dag, runType, triggeredBy);
             job.setStatus("active");
             if (result.getStatus() != null) {
                 job.setLastRunStatus(result.getStatus().name());

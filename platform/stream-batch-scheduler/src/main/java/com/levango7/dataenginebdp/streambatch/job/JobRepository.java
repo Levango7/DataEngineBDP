@@ -50,4 +50,14 @@ public interface JobRepository extends JpaRepository<JobEntity, Long> {
      * @return 是否存在
      */
     boolean existsByTenantIdAndId(String tenantId, Long id);
+
+    /**
+     * 查询所有配置了调度表达式的作业（跨租户；供 cron 调度器扫描）。
+     *
+     * <p>调度器是系统级组件（无请求租户上下文），需要跨租户取候选作业，
+     * 再逐个注入作业所属租户执行——与业务查询的租户隔离口径不同，故单列。</p>
+     *
+     * @return 带 schedule 的作业列表
+     */
+    java.util.List<JobEntity> findByScheduleIsNotNull();
 }
