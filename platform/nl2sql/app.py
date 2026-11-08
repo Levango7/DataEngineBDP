@@ -44,6 +44,7 @@ from models import (
 )
 from pydantic import BaseModel, Field
 from schema_context import SchemaContextBuilder
+from session_store import SqliteSessionStore
 from slot_filler import SlotFiller
 from sql_generator import (
     BaseSqlGenerator,
@@ -170,12 +171,29 @@ class ServiceRegistry:
         self.gatewayClient = GatewayClient(settings)
         # 会话存储（内存，生产可换 Redis）：键为 (tenantId, sessionId)，LRU+TTL 双限
         self._sessions: OrderedDict[tuple[str, str], tuple[DialogueState, float]] = OrderedDict()
+        # 可选 SQLite 持久层（sessionDbPath 空串＝不启用，行为同改造前）
+        self._sessionStore: Optional[SqliteSessionStore] = (
+            SqliteSessionStore(settings.sessionDbPath, settings.sessionTtlSeconds) if settings.sessionDbPath else None
+        )
+        if self._sessionStore is not None:
+            for tenantId, sessionId, stateJson in self._sessionStore.loadAll():
+                try:
+                    state = DialogueState.model_validate_json(stateJson)
+                except Exception:
+                    logger.warning("skip corrupted session row: tenant=%s session=%s", tenantId, sessionId)
+                    self._sessionStore.delete(tenantId, sessionId)
+                    continue
+                self._sessions[(tenantId, sessionId)] = (state, time.monotonic())
+            while len(self._sessions) > self.settings.maxSessions:
+                self._sessions.popitem(last=False)
 
     def _sweepExpiredSessions(self) -> None:
         now = time.monotonic()
         expired = [key for key, (_, ts) in self._sessions.items() if now - ts > self.settings.sessionTtlSeconds]
         for key in expired:
             del self._sessions[key]
+            if self._sessionStore is not None:
+                self._sessionStore.delete(key[0], key[1])
 
     def getSession(self, tenantId: str, sessionId: str) -> Optional[DialogueState]:
         self._sweepExpiredSessions()
@@ -186,6 +204,8 @@ class ServiceRegistry:
         state, _ = entry
         self._sessions[key] = (state, time.monotonic())
         self._sessions.move_to_end(key)
+        if self._sessionStore is not None:
+            self._sessionStore.touch(tenantId, sessionId)
         return state
 
     def saveSession(self, state: DialogueState, tenantId: str) -> None:
@@ -194,7 +214,11 @@ class ServiceRegistry:
         self._sessions[key] = (state, time.monotonic())
         self._sessions.move_to_end(key)
         while len(self._sessions) > self.settings.maxSessions:
-            self._sessions.popitem(last=False)
+            evicted = self._sessions.popitem(last=False)
+            if self._sessionStore is not None:
+                self._sessionStore.delete(evicted[0][0], evicted[0][1])
+        if self._sessionStore is not None:
+            self._sessionStore.save(tenantId, state.sessionId, state.model_dump_json())
 
 
 def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:

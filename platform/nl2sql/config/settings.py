@@ -47,6 +47,7 @@
     NL2SQL_TENANT_ID            默认租户 ID（默认 default）
     NL2SQL_MAX_SESSIONS         内存会话容量上限 LRU 驱逐（默认 500）
     NL2SQL_SESSION_TTL_SECONDS  会话空闲过期 TTL 秒（默认 1800）
+    NL2SQL_SESSION_DB_PATH      会话持久化 SQLite 文件路径（默认空串=不持久化）
 """
 
 from __future__ import annotations
@@ -197,6 +198,11 @@ class Settings(BaseSettings):
         ge=1.0,
         validation_alias=AliasChoices("NL2SQL_SESSION_TTL_SECONDS", "sessionTtlSeconds"),
         description="会话空闲过期 TTL（秒）",
+    )
+    sessionDbPath: str = Field(
+        default="",
+        validation_alias=AliasChoices("NL2SQL_SESSION_DB_PATH", "sessionDbPath"),
+        description="会话持久化 SQLite 文件路径（空串=不持久化，维持内存 LRU+TTL）",
     )
 
     @field_validator("logLevel")
