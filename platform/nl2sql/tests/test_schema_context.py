@@ -34,9 +34,7 @@ class TestSchemaContextBuilder:
     async def test_build_context_explicit_database_not_empty(self, schemaBuilder: SchemaContextBuilder) -> None:
         # 2026-11-06 回归（K3s 链路1 暴露）：调用方带显式库名 test_db 时
         # buildContext 不得落空（否则 NL2SQL 只能回 `SELECT 1;` 兜底）。
-        ctx = await schemaBuilder.buildContext(
-            query="查询订单总数", database="test_db", useMock=True
-        )
+        ctx = await schemaBuilder.buildContext(query="查询订单总数", database="test_db", useMock=True)
         assert not ctx.isEmpty
         assert any(t.tableName == "orders" for t in ctx.tables)
 
