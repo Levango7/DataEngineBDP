@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * SQL 执行响应 POJO。
@@ -65,4 +66,13 @@ public class SqlExecuteResponse {
      * <p>成功且未截断时为 null。</p>
      */
     private String message;
+
+    /**
+     * SQL 涉及表全名 → 数据源标识映射（问数可解释，契约 docs/SQL-EXECUTE-LINEAGE-CONTRACT.md）。
+     *
+     * <p>由网关本地 AST 提取 + catalog 前缀映射得到，不调用 lineage-analyzer。
+     * 取值规则：表名含 catalog 前缀 → 映射源；无前缀 → 默认源；无表 SQL → 空 map；
+     * 未注入解析器 / AST 解析失败 / 执行失败 → null（JSON 缺席）。best-effort，不影响查询主链路。</p>
+     */
+    private Map<String, String> tableToSource;
 }
