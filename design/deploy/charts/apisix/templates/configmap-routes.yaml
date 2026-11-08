@@ -468,7 +468,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "stream-batch-scheduler:8080": 1
+              "stream-batch-scheduler:18086": 1
             }
           }
         },
@@ -774,7 +774,7 @@ data:
           "upstream": {
             "type": "roundrobin",
             "nodes": {
-              "stream-batch-scheduler:8080": 1
+              "stream-batch-scheduler:18086": 1
             }
           }
         },
