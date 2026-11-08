@@ -24,6 +24,10 @@ type Config struct {
 	Routes    []RouteRule      `yaml:"routes" json:"routes"`
 	RateLimit RateLimitConfig  `yaml:"rateLimit" json:"rateLimit"`
 	Audit     AuditConfig      `yaml:"audit" json:"audit"`
+	// MockMode 显式声明网关以 Mock Provider 运行（演示/开发）。
+	// true 时忽略 Providers 列表仅注入 mock，与 LLM_GATEWAY_MOCK_MODE=true 同语义；
+	// 未配置任何 Provider 时 env 加载器的兜底也会置 true（启动有演示模式告警）。
+	MockMode bool `yaml:"mockMode" json:"mockMode"`
 }
 
 // ServerConfig HTTP 服务器配置。
@@ -124,6 +128,7 @@ func LoadFromEnv() *Config {
 
 	if strings.EqualFold(mockMode, "true") {
 		// 强制 Mock 模式
+		cfg.MockMode = true
 		cfg.Providers = append(cfg.Providers, ProviderConfig{
 			Name:   "mock",
 			Type:   "mock",
@@ -148,7 +153,8 @@ func LoadFromEnv() *Config {
 		cfg.Providers = append(cfg.Providers, pc)
 	}
 	if len(cfg.Providers) == 0 {
-		// 兜底
+		// 兜底：未配置任何 Provider 时降级 Mock（启动时 main.go 输出演示模式告警）
+		cfg.MockMode = true
 		cfg.Providers = append(cfg.Providers, ProviderConfig{Name: "mock", Type: "mock", Weight: 1})
 	}
 	return cfg
@@ -162,6 +168,10 @@ func (c *Config) applyDefaults() {
 	if c.Server.Version == "" {
 		// 修复：与 main.go defaultVersion 保持一致，避免 /health 返回版本与日志不匹配。
 		c.Server.Version = "0.2.0"
+	}
+	if c.MockMode {
+		// 开关打开：忽略 Providers 列表，仅注入 Mock（与 env 强制 Mock 同语义）。
+		c.Providers = []ProviderConfig{{Name: "mock", Type: "mock", Weight: 1}}
 	}
 	for i := range c.Providers {
 		if c.Providers[i].Weight <= 0 {
