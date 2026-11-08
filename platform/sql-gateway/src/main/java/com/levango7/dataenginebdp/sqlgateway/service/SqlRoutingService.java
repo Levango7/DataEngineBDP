@@ -1,9 +1,11 @@
 package com.levango7.dataenginebdp.sqlgateway.service;
 
 import com.levango7.dataenginebdp.sqlgateway.config.CacheConfig;
+import com.levango7.dataenginebdp.sqlgateway.crosssource.CatalogBasedSourceResolver;
 import com.levango7.dataenginebdp.sqlgateway.model.RouteRule;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteRequest;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteResponse;
+import com.levango7.dataenginebdp.sqlgateway.parser.SqlParserService;
 import com.levango7.dataenginebdp.sqlgateway.repository.RouteRuleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +15,9 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -91,6 +95,27 @@ public class SqlRoutingService {
         if (executeProperties != null) {
             this.executeProperties = executeProperties;
         }
+    }
+
+    /**
+     * 表→源映射解析器（catalog 前缀 → 源标识）。
+     * <p>可选注入：未注入时 {@code tableToSource} 恒为 null（契约规则 4「未启用」），查询主链路不受影响。</p>
+     */
+    private CatalogBasedSourceResolver sourceResolver;
+
+    /**
+     * SQL 解析器（本地提取 tableToSource 用；无状态，类内实例化与 Controller 约定一致）。
+     */
+    private final SqlParserService sqlParser = new SqlParserService();
+
+    /**
+     * 注入表→源解析器（Spring 自动装配；可选依赖）。
+     *
+     * @param sourceResolver catalog 前缀源解析器
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setSourceResolver(CatalogBasedSourceResolver sourceResolver) {
+        this.sourceResolver = sourceResolver;
     }
 
     public SqlRoutingService(BackendProxyService backendProxyService,
@@ -214,8 +239,52 @@ public class SqlRoutingService {
                 .rawInputBytes(src.getRawInputBytes())
                 .truncated(src.getTruncated())
                 .message(src.getMessage())
+                .tableToSource(src.getTableToSource())
                 .cached(cachedFlag)
                 .build();
+    }
+
+    /**
+     * best-effort 填充 tableToSource（契约 docs/SQL-EXECUTE-LINEAGE-CONTRACT.md）。
+     *
+     * <p>仅成功响应填充；解析器未注入或 AST 解析失败时保持 null，绝不影响查询主链路结果。</p>
+     */
+    private void attachTableToSource(SqlExecuteResponse response, String sql) {
+        if (sourceResolver == null || response == null || !"SUCCESS".equals(response.getStatus())) {
+            return;
+        }
+        Map<String, String> mapping = buildTableToSource(sql);
+        if (mapping != null) {
+            response.setTableToSource(mapping);
+        } else {
+            // 契约降级：AST 解析失败 → tableToSource=null + message 注记
+            String note = "（表源映射提取失败，tableToSource 未填充）";
+            response.setMessage(response.getMessage() == null
+                    ? note : response.getMessage() + note);
+        }
+    }
+
+    /**
+     * 本地提取表→源映射：AST 表名 + catalog 前缀映射，不调用 lineage-analyzer。
+     *
+     * @return 映射表（无表 SQL 为空 map）；AST 解析失败返回 null（契约规则 4）
+     */
+    private Map<String, String> buildTableToSource(String sql) {
+        List<String> tables;
+        try {
+            // 直接 parseAuto：SqlParserService.extractTables 会吞掉解析异常返回空列表，
+            // 无法区分「无表 SQL」（契约规则 3 空 map）与「解析失败」（规则 4 null）
+            tables = sqlParser.parseAuto(sql).extractTables();
+        } catch (Exception e) {
+            log.debug("tableToSource 提取失败（best-effort，响应置 null）: {}", e.getMessage());
+            return null;
+        }
+        Map<String, String> mapping = new LinkedHashMap<>();
+        for (String table : tables) {
+            String src = sourceResolver.resolveSource(table);
+            mapping.put(table, src == null ? "unknown" : src);
+        }
+        return mapping;
     }
 
     /** 构建缓存键（engine+sql+tenantId+limit 的 SHA-256，含租户与行数隔离；JDK 实现零依赖）。 */
@@ -281,6 +350,7 @@ public class SqlRoutingService {
             recordMetering(tenantId, targetEngine, sql, start,
                     System.currentTimeMillis() - start, queryId,
                     dorisRealBytes != null ? dorisRealBytes : response.getRawInputBytes());
+            attachTableToSource(response, sql);
             return response;
         } catch (IllegalStateException e) {
             // Mono.block 超时会抛 IllegalStateException("Timeout on blocking read...")
