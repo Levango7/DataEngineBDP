@@ -12,6 +12,8 @@ import zhCN from '@/i18n/locales/zh-CN.json'
 import enUS from '@/i18n/locales/en-US.json'
 import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
 import dashboardEn from '@/i18n/locales/modules/dashboard.en-US.json'
+import dataMapZh from '@/i18n/locales/modules/dataMap.zh-CN.json'
+import dataMapEn from '@/i18n/locales/modules/dataMap.en-US.json'
 import workspacesZh from '@/i18n/locales/modules/workspaces.zh-CN.json'
 import workspacesEn from '@/i18n/locales/modules/workspaces.en-US.json'
 import projectsZh from '@/i18n/locales/modules/projects.zh-CN.json'
@@ -110,7 +112,8 @@ describe('i18n locales structure', () => {
     // 55 → 56：新增 /exchange-overview（流通看板，收编 #84 后补回的图表能力）；
     // 56 → 61：收编多集群联邦 5 页（8 分组数未变，新页并入 infra）；
     // 61 → 63：收编开放 API 域 2 页（一键生成、订阅管理，并入 platform-mgmt）。
-    expect(navItems.length).toBe(63)
+    // 63 → 64：新增 /data-map（数据地图，治理组；元数据采集落库后的统一检索入口）。
+    expect(navItems.length).toBe(64)
     expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
@@ -153,6 +156,7 @@ describe('i18n locales structure', () => {
 describe('i18n 页面级模块词条（locales/modules）', () => {
   const modules: Array<[string, Record<string, unknown>, Record<string, unknown>]> = [
     ['dashboard', dashboardZh as Record<string, unknown>, dashboardEn as Record<string, unknown>],
+    ['dataMap', dataMapZh as Record<string, unknown>, dataMapEn as Record<string, unknown>],
     [
       'workspaces',
       workspacesZh as Record<string, unknown>,

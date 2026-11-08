@@ -30,6 +30,25 @@
       "publish": "Publish",
       "nameRequired": "Please enter a standard item",
       "published": "Standard published"
+    },
+    "compliance": {
+      "action": "Compliance Check",
+      "title": "Standards Compliance Check",
+      "running": "Checking…",
+      "rate": "Compliance Rate",
+      "checked": "Checked",
+      "violations": "Violations",
+      "compliantAll": "All compliant",
+      "violated": "{n} violated",
+      "cols": {
+        "standard": "Standard",
+        "type": "Type",
+        "checked": "Checked",
+        "result": "Result"
+      },
+      "samples": "Violation Samples",
+      "empty": "Nothing to check (no standards or assets)",
+      "failed": "Compliance check failed"
     }
   }
 }
