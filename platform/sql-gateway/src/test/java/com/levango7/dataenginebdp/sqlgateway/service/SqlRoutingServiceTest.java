@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.sqlgateway.service;
 
+import com.levango7.dataenginebdp.sqlgateway.crosssource.CatalogBasedSourceResolver;
 import com.levango7.dataenginebdp.sqlgateway.model.RouteRule;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteRequest;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteResponse;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -381,5 +383,161 @@ class SqlRoutingServiceTest {
         assertThat(rLarge.isCached()).isFalse();
         org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(2))
                 .proxyToTrino(anyString(), anyString(), any());
+    }
+
+    /* ==================== 任务 D12：tableToSource 表→源映射（契约 docs/SQL-EXECUTE-LINEAGE-CONTRACT.md） ==================== */
+
+    private SqlRoutingService withSourceResolver() {
+        SqlRoutingService svc = withRealCache();
+        CatalogBasedSourceResolver resolver = new CatalogBasedSourceResolver(backendProxyService);
+        // @Value 字段在单测上下文中为 null，反射注入默认源（与 application.yml 默认 trino 一致）
+        org.springframework.test.util.ReflectionTestUtils.setField(resolver, "defaultSource", "trino");
+        svc.setSourceResolver(resolver);
+        return svc;
+    }
+
+    @Test
+    @DisplayName("tableToSource — catalog 前缀表按映射解析（hive.orders→trino，doris.dw→doris）")
+    void tableToSource_catalogPrefix_mapped() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM hive.orders JOIN doris.dw");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getTableToSource()).isEqualTo(
+                Map.of("hive.orders", "trino", "doris.dw", "doris"));
+    }
+
+    @Test
+    @DisplayName("tableToSource — 无前缀表落到默认源（sql-gateway.default-source）")
+    void tableToSource_noPrefix_defaultSource() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM dim_user");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getTableToSource()).isEqualTo(Map.of("dim_user", "trino"));
+    }
+
+    @Test
+    @DisplayName("tableToSource — 未知 catalog 回退默认源（resolveSource 实际行为）")
+    void tableToSource_unknownCatalog_fallbackDefaultSource() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM nosuch.t");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getTableToSource()).isEqualTo(Map.of("nosuch.t", "trino"));
+    }
+
+    @Test
+    @DisplayName("tableToSource — 无表 SQL（如 SELECT 1）返回空 map 而非 null（规则 3）")
+    void tableToSource_noTables_emptyMap() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT 1");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getTableToSource()).isNotNull().isEmpty();
+    }
+
+    @Test
+    @DisplayName("tableToSource — AST 解析失败降为 null（规则 4），查询结果不受影响")
+    void tableToSource_parseFailure_nullButQuerySucceeds() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("FOO BAR");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getStatus()).isEqualTo("SUCCESS");
+        assertThat(resp.getTableToSource()).isNull();
+        // 契约降级：解析失败 → message 追加注记
+        assertThat(resp.getMessage()).contains("表源映射提取失败");
+    }
+
+    @Test
+    @DisplayName("tableToSource — 执行降级（DEGRADED）不填充（规则 4）")
+    void tableToSource_executeFailed_null() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM hive.orders");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.error(new IllegalStateException("backend down")));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getStatus()).isEqualTo("DEGRADED");
+        assertThat(resp.getTableToSource()).isNull();
+    }
+
+    @Test
+    @DisplayName("tableToSource — 解析器未注入（未启用）时恒为 null，主链路不受影响")
+    void tableToSource_notWired_null() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM dim_user");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getStatus()).isEqualTo("SUCCESS");
+        assertThat(resp.getTableToSource()).isNull();
+    }
+
+    @Test
+    @DisplayName("tableToSource — 缓存命中透传（copyResponse 不丢字段）")
+    void tableToSource_cacheHit_passthrough() {
+        SqlRoutingService svc = withSourceResolver();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM hive.orders");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse first = svc.execute(req);
+        SqlExecuteResponse second = svc.execute(req);
+
+        assertThat(first.getTableToSource()).isEqualTo(Map.of("hive.orders", "trino"));
+        assertThat(second.isCached()).isTrue();
+        assertThat(second.getTableToSource()).isEqualTo(first.getTableToSource());
     }
 }
