@@ -392,32 +392,6 @@ jobs:
           fi
 
   # ============================================================
-  # Python 语法检查：编译 design/deploy/services/operations/main.py
-  # ============================================================
-  python-check:
-    name: Python Syntax Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 安装 Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.11'
-
-      - name: 编译检查 main.py 语法
-        run: |
-          if [ -f "design/deploy/services/operations/main.py" ]; then
-            python -m py_compile design/deploy/services/operations/main.py
-            echo "main.py 语法检查通过"
-          else
-            echo "::error::design/deploy/services/operations/main.py 不存在"
-            exit 1
-          fi
-
-  # ============================================================
   # Bash 语法检查：bash -n 检查所有关键 shell 脚本
   # 检查范围：ske/ske.sh、ske/tuning/*.sh、platform/bootstrap.sh
   # ============================================================

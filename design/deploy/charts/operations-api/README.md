@@ -8,7 +8,7 @@
 
 - **Chart 版本**：`2.0.0`
 - **App 版本**：`2.0.0`
-- **默认命名空间**：`platform-ops`（与既有 `design/deploy/services/operations/k8s.yaml` 一致）
+- **默认命名空间**：`platform-ops`（沿用原演示副本 `design/deploy/services/operations/k8s.yaml` 的取值；该副本已按 2026-11-10 裁决删除，见第 8 节）
 - **组件形态**：端口 `8081`（uvicorn），健康端点 `/healthz`（存活，公开）、`/readyz`（就绪，公开）
 - **安装方式**：**独立 `helm install`**（未纳入 `dataenginebdp-umbrella`，见第 8 节）
 
@@ -142,7 +142,7 @@ helm rollback operations-api -n platform-ops
 
 ## 8. 双实现并存与 umbrella 关系
 
-- **双实现**（2026-11-06 审计 #117）：`design/deploy/services/operations/k8s.yaml` 引用的是内存演示态副本；本 Chart 部署的是 `platform/operations-api` 正版镜像的首个可构建产物，**不改变现有部署引用**。两版去留属产品裁决，未裁前并存。
+- **双实现**（2026-11-06 审计 #117）：~~`design/deploy/services/operations/k8s.yaml` 引用的是内存演示态副本；本 Chart 部署的是 `platform/operations-api` 正版镜像的首个可构建产物，**不改变现有部署引用**。两版去留属产品裁决，未裁前并存~~。**2026-11-10 主理人裁决：删演示副本**——`design/deploy/services/operations/` 整目录已删，本 Chart 为唯一部署面；umbrella 纳入维持未决（独立 `helm install` 使用不变）。裁决留痕见 board 2026-11-10 02:2x 行。
 - **umbrella**：本 Chart **未纳入** `charts/dataenginebdp-umbrella` 的 enabled 列表（未裁决前不入 umbrella）。请按第 3 节**独立 `helm install`** 使用。
 
 ## 9. 维护信息

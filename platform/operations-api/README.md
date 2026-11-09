@@ -2,15 +2,13 @@
 
 > P-04 合同交付实体（代码骨架）
 
-> **双实现并存（2026-11-06 审计标注）：本目录之外另有一份同域实现**
-> `design/deploy/services/operations/main.py`（239 行，FastAPI 单文件，路由
-> `/api/v1/admin/*`：租户/套餐/计量/账单/看板，内存态 TENANTS + 硬编码 PACKAGES），
-> 且被同目录 `k8s.yaml:32` 引用为部署镜像入口；本目录是合同 CRUD 正版骨架
-> （路由 `/api/v1/contracts/*`，带 app.py/api/jwt_auth/repositories 结构），
-> 但**无 Dockerfile、不被 compose/chart/k8s 引用**。两边路由不相交、各自演进，
-> 谁为正版、是否合并属产品裁决，见 `docs/KNOWN-FAILURES.md` #117 待裁项。
-> 在裁决前请勿只改一边而不同步另一边。反向标注见
-> `design/deploy/services/operations/README.md`。
+> **双实现已裁（2026-11-10 主理人裁决）：原内存演示态副本
+> `design/deploy/services/operations/`（FastAPI 单文件 main.py，路由
+> `/api/v1/admin/*`：租户/套餐/计量/账单/看板，内存态 TENANTS + 硬编码 PACKAGES，
+> 被其 k8s.yaml:32 引用为部署镜像入口）已整目录删除**。本目录为唯一实现面：
+> 合同 CRUD 骨架（路由 `/api/v1/contracts/*`，带 app.py/api/jwt_auth/repositories
+> 结构），Dockerfile 为其首个可构建产物，经 `charts/operations-api` 部署。
+> 裁决留痕见 `docs/KNOWN-FAILURES.md` #119⑥。
 
 ## 概述
 

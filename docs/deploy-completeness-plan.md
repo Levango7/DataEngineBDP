@@ -22,7 +22,7 @@
 |---|---|---|---|
 | `platform/data-standard` | 可执行 Spring Boot 服务（DataStandardApplication.java + spring-boot 打包插件 + H2/Flyway） | **真缺口** | 补 Dockerfile（Java 运行层模式，参照 `platform/catalog` 或同族 Java 服务 Dockerfile 的多段式/非 root/健康检查惯例） |
 | `platform/master-data` | 同上（MasterDataApplication.java） | **真缺口** | 同上 |
-| `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；**但实部署副本在 `design/deploy/services/operations/`**（k8s.yaml 引用，239 行独立副本= #117 的 operations-api 双实现问题） | **真缺口 + 双实现联动** | 补 Dockerfile 指向 platform 正版；双实现去留属产品裁决（已报主理人，未裁前不动 design 副本） |
+| `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；Dockerfile 已在位 | ~~真缺口 + 双实现联动~~ **已裁（2026-11-10）** | 2026-11-10 裁：删 design/deploy/services/operations/ 演示副本，platform 为唯一实现面，charts/operations-api 部署；#119⑥ 闭环 |
 | `platform/flink-cdc` | Java 工程，有打包插件、无 Application 主类 | **待定** | 需产品裁「常驻服务 vs 作业提交器」形态后补（判据：是否常驻监听 vs `flink run` 提交） |
 | `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | 从「缺 Dockerfile」清单除名；补一条「被哪些服务依赖、以何形态交付（jar）」的说明进 README |
 | `platform/chunker` | **纯 Python 包**（无 main/app；仓内无 APISIX 前缀；仅被 chunker/embedding 内部引用） | **误登记（不是缺口）** | 同上除名；确认消费方（nl2sql? llm-gateway?）的依赖声明方式（pip 依赖 vs vendor） |

@@ -54,7 +54,7 @@
 | SKE 发行版 | **v0.1** | `ske/` 目录，与 `ske/README.md` 一致 |
 | 详细设计文档 | **v0.1** | `design/详细设计/*_v0.1.md` |
 | 控制台原型 | **v0.3**（HTML）/ **v0.4**（Vue3，进行中） | `frontend/` |
-| 运营后台 | **v0.1** | `design/deploy/services/operations/` |
+| 运营后台 | **v0.1** | `platform/operations-api/`（原 design/deploy/services/operations/ 演示副本已按 2026-11-10 裁决删除） |
 
 - **禁止**：SKE v1.0（GA 未到）、产品文档 v0.4（内容已是 v0.5）。
 

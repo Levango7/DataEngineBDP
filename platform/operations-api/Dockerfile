@@ -3,10 +3,8 @@
 # P-04 合同交付实体。platform 正版（app.py:5 启动契约为 uvicorn operations_api.app:app
 # --host 0.0.0.0 --port 8081；健康端点 /healthz、/readyz）。
 #
-# ⚠️ 双实现并存（2026-11-06 审计 #117）：实部署副本在
-#    design/deploy/services/operations/（k8s.yaml:32 引用、内存演示态）——本镜像是
-#    platform 正版的首个可构建产物，**不改变现有部署引用**；双实现「去留」属产品
-#    裁决（#117 待裁项），未裁前两版并存、文档已双向标注。
+# 2026-11-10 裁决（#119⑥）：design/deploy/services/operations/ 演示副本已删除，
+#    本目录为唯一实现面，本镜像为 charts/operations-api 的部署产物。
 #
 # ⚠️ JWT_SECRET 启动依赖（jwt_auth 导入即校验，台账 #117 P1）：K8s 环境未显式
 #    AUTH_MODE 或 jwt 模式缺 JWT_SECRET（≥32 字节）⇒ 启动即拒；部署侧 secretRef 注入。

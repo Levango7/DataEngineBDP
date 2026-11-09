@@ -1,6 +1,6 @@
 # ============================================================================
 # operations-api Helm Chart 默认 values
-# 关联：design/deploy/services/operations/（既有演示态 k8s.yaml，双实现并存待裁，见 README 第 8 节）
+# 关联：platform/operations-api（正版源码；演示态副本 design/deploy/services/operations/ 已按 2026-11-10 主理人裁决删除，见 README 第 8 节）
 # 说明：本文件为 Chart 骨架级默认值；完整生产配置请用 -f 引用环境 values 覆盖。
 # ============================================================================
 

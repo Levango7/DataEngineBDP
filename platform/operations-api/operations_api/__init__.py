@@ -8,7 +8,7 @@ P-04 合同交付实体（代码骨架）
 - 服务层骨架（业务逻辑待实现）
 - 仓储层骨架（数据持久化待实现）
 
-关联设计：design/deploy/services/operations/main.py
+关联设计：原 design/deploy/services/operations/main.py 演示副本已按 2026-11-10 裁决删除（#119⑥）
 """
 
 __version__ = "0.1.0"

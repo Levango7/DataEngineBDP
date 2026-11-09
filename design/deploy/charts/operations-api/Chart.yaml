@@ -15,5 +15,5 @@ keywords:
   - shuqing-platform
   - platform
 # 部署目标 namespace（仅文档语义，实际由 helm -n 指定）；
-# 与既有 design/deploy/services/operations/k8s.yaml（platform-ops）保持一致
+# 命名空间 platform-ops 沿用原 design/deploy/services/operations/k8s.yaml（演示副本已按 2026-11-10 裁决删除）
 namespace: platform-ops

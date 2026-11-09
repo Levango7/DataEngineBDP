@@ -165,7 +165,7 @@ docker build -t shuqing/llmops:latest platform/llmops/
 | business-portal | `pip install -e platform/business-portal/` |
 | open-api-catalog | `pip install -e platform/open-api-catalog/` |
 | asset-exchange | `pip install -e platform/asset-exchange/` |
-| operations | `pip install -e design/deploy/services/operations/` |
+| operations | `pip install -e platform/operations-api/` |
 
 ### 前端
 

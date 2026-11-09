@@ -117,6 +117,6 @@ echo "    L2.1 统一存储   -> deploy/values-base.yaml + ske/profiles/$PROFILE
 echo "    L2.7 统一SQL    -> 统一SQL网关详细设计 v0.1"
 echo "    L3.* 治理中台   -> 治理中台/资产目录/安全脱敏 详细设计 v0.1"
 echo "    L4.5 智能数据层 -> 智能数据层详细设计 v0.1"
-echo "    L5   运营后台   -> 运营后台实现落地 v0.1 (deploy/services/operations)"
+echo "    L5   运营后台   -> 运营后台实现落地 v0.1 (platform/operations-api)"
 echo
 ok "平台运行时引导完成 (Profile=$PROFILE). 下一步: bash examples/run-demo.sh"
