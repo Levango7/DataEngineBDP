@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.streambatch.job;
 import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.ExecutionStatus;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
+import com.levango7.dataenginebdp.streambatch.run.DagRunType;
 import com.levango7.dataenginebdp.streambatch.service.StreamBatchOrchestrationService;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
@@ -91,7 +92,7 @@ class JobServiceTest {
         DagExecutionResult result = new DagExecutionResult();
         result.setDagId("job-5");
         result.setStatus(ExecutionStatus.RUNNING);
-        when(orchestrationService.submitDag(any())).thenReturn(result);
+        when(orchestrationService.submitDag(any(), any(), any())).thenReturn(result);
 
         var got = newService().run(5L);
         assertThat(got).isPresent();
@@ -99,7 +100,8 @@ class JobServiceTest {
 
         // 验证提交的是单节点 DAG，类型映射 spark → SPARK_BATCH
         ArgumentCaptor<StreamBatchDag> captor = ArgumentCaptor.forClass(StreamBatchDag.class);
-        verify(orchestrationService).submitDag(captor.capture());
+        // 批 3：run 走三参重载（人工触发语义 = MANUAL/api），钉住 runType
+        verify(orchestrationService).submitDag(captor.capture(), eq(DagRunType.MANUAL), eq("api"));
         StreamBatchDag dag = captor.getValue();
         assertThat(dag.getDagId()).isEqualTo("job-5");
         assertThat(dag.getNodes()).hasSize(1);
@@ -112,11 +114,11 @@ class JobServiceTest {
         job.setType("custom-unknown");
         when(jobRepository.findByTenantIdAndId(eq(TEST_TENANT), eq(6L)))
                 .thenReturn(java.util.Optional.of(job));
-        when(orchestrationService.submitDag(any())).thenReturn(new DagExecutionResult());
+        when(orchestrationService.submitDag(any(), any(), any())).thenReturn(new DagExecutionResult());
 
         newService().run(6L);
         ArgumentCaptor<StreamBatchDag> captor = ArgumentCaptor.forClass(StreamBatchDag.class);
-        verify(orchestrationService).submitDag(captor.capture());
+        verify(orchestrationService).submitDag(captor.capture(), any(), any());
         assertThat(captor.getValue().getNodes().get(0).getTaskType().getCode())
                 .isEqualTo("UNIFIED_STREAM_BATCH");
     }
