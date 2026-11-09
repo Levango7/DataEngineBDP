@@ -52,7 +52,7 @@ run_logged() {
 # ---------------------------------------------------------------
 # 1. Mock 生产卫生门禁（P0 回归拦截）
 # ---------------------------------------------------------------
-log "1/5 运行 Mock 生产卫生检查 ..."
+log "1/6 运行 Mock 生产卫生检查 ..."
 if bash scripts/check-prod-mock-hygiene.sh; then
   pass "Mock 卫生检查"
 else
@@ -60,9 +60,31 @@ else
 fi
 
 # ---------------------------------------------------------------
+# 2. compose 宿主端口 vs Windows 保留段（#119⑨ 列日常规；
+#    Linux 无保留段概念，脚本按平台提示并 rc=0，Windows 本机真实拦截）
+# ---------------------------------------------------------------
+log "2/6 compose 端口保留段比对 ..."
+if command -v python3 >/dev/null 2>&1; then
+  PYBIN=python3
+elif command -v python >/dev/null 2>&1; then
+  PYBIN=python
+else
+  PYBIN=""
+fi
+if [ -n "$PYBIN" ]; then
+  if run_logged "compose 端口保留段比对" "$ROOT" "$PYBIN" -I -B scripts/check-compose-port-conflicts.py; then
+    pass "compose 端口保留段比对"
+  else
+    fail "compose 端口保留段比对（见上方退出码与日志）"
+  fi
+else
+  log "SKIP: python/python3 未安装"
+fi
+
+# ---------------------------------------------------------------
 # 2. Go 编译 + 单测（catalog / vector-engine / observability）
 # ---------------------------------------------------------------
-log "2/5 Go 模块编译检查 ..."
+log "3/6 Go 模块编译检查 ..."
 if command -v go >/dev/null 2>&1; then
   # 仅对含 go.mod 的 Go 模块执行编译（observability 等纯配置目录自动跳过）
   for mod in platform/catalog platform/vector-engine platform/observability/query-api; do
@@ -83,7 +105,7 @@ fi
 # ---------------------------------------------------------------
 # 3. Java 治理模块编译（governance 三件套）
 # ---------------------------------------------------------------
-log "3/5 Java 治理模块编译 ..."
+log "4/6 Java 治理模块编译 ..."
 if command -v mvn >/dev/null 2>&1; then
   # 预构建：治理模块依赖内部 SNAPSHOT（父POM / common-security，lineage-analyzer←sql-gateway），
   # 全新环境（CI runner）本地仓库无缓存，须按依赖序先 install，否则依赖解析直接失败
@@ -115,13 +137,13 @@ fi
 # ---------------------------------------------------------------
 # 4. Doris 链路探测（可选，缺失不阻断）
 # ---------------------------------------------------------------
-log "4/5 Doris Lite 探测 ..."
+log "5/6 Doris Lite 探测 ..."
 bash scripts/doris-lite-verify.sh || log "WARN: Doris 未就绪（设计上可选，不阻断）"
 
 # ---------------------------------------------------------------
 # 5. 治理层健康端点契约抽查（源码层）
 # ---------------------------------------------------------------
-log "5/5 健康端点契约抽查 ..."
+log "6/6 健康端点契约抽查 ..."
 for hc in \
   platform/governance/real-time-pipeline/src/main/java/com/levango7/dataenginebdp/governance/realtime/controller/HealthController.java \
   platform/governance/metadata-collector/src/main/java/com/levango7/dataenginebdp/governance/collector/controller/HealthController.java \
