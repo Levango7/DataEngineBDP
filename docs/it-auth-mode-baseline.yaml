@@ -1,6 +1,8 @@
 # 集成测试栈 AUTH_MODE 棘轮基线（scripts/check-it-auth-mode.py）
 # 只减不增：清偿一项请删除其条目后重跑校验；新增项会使 CI 变红。
 # 生成：python3 scripts/check-it-auth-mode.py --write-baseline
+# 开发面豁免（2026-11-10 主理人裁）：在册 6 条＝豁免面，见 docs/it-auth-mode-exemption.md；
+# 翻 jwt 即删条清偿（注意 --write-baseline 会重写本文件头，指针以门禁 docstring 与台账为准）。
 known:
 - service: asset-exchange
   kind: "none"
