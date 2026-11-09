@@ -67,10 +67,13 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      # apache/kafka 镜像的可执行脚本在 /opt/kafka/bin 且带 .sh 后缀，
+      # 镜像默认 PATH 不含该目录，裸名调用 exit 127 判永远 unhealthy（2026-11-09 实证）
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
       interval: 10s
       timeout: 10s
       retries: 5
+      start_period: 30s
 
   # 交互查询引擎
   trino:

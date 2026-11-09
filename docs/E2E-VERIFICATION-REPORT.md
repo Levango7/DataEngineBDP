@@ -31,8 +31,8 @@
 | PostgreSQL | postgresql | 5432 | ✅ healthy | 12个数据库初始化完成 |
 | MinIO | minio | 9000/9001 | ✅ healthy | 对象存储可用 |
 | Trino | trino | 8080 | ✅ running | API 响应正常 |
-| Kafka | kafka | 9092 | ⚠️ unhealthy | 端口可用，健康检查超时 |
-| Redis | redis | 6379 | ❌ 端口冲突 | Windows 端口绑定失败，非核心依赖 |
+| Kafka | kafka | 9092 | ✅ healthy | 2026-11-10 复测转正（健康检查命令已修，见 §7） |
+| Redis | redis | 6379 | ✅ healthy | 2026-11-10 复测：redis-cli ping → PONG（见 §7） |
 
 ### 2.3 Trino 配置修复
 
@@ -101,7 +101,7 @@ Response: {"status":"SUCCESS","engine":"trino","durationMs":24,"queryId":"..."}
 
 - **Playwright 版本**：1.62.1
 - **浏览器**：Chromium（重新安装后 ICU 问题已修复）
-- **测试结果**：登录页 UI 选择器 `.tip` 不匹配（预存问题，非本次引入）
+- **测试结果**：2026-11-10 复测 auth.spec.ts 12/12 通过（登录页提示元素 class 已由 `.tip` 改名为 `.dev-tip`，用例断言同步更新，见 §7）
 - **E2E spec 总数**：47 个（含 Phase 2 新增 19 个）
 
 ## 5. 验证结论
@@ -122,9 +122,9 @@ Response: {"status":"SUCCESS","engine":"trino","durationMs":24,"queryId":"..."}
 
 | 限制项 | 原因 | 影响 |
 |--------|------|------|
-| Redis 未启动 | Windows 端口 6379 绑定冲突 | 非核心依赖，不影响 SQL 查询链路 |
-| Kafka unhealthy | 健康检查脚本超时 | 端口 9092 可用，不影响核心验证 |
-| Playwright 测试失败 | 登录页 `.tip` 选择器不匹配 | 预存 UI 问题，非本次引入 |
+| Redis 未启动 | Windows 端口 6379 绑定冲突 | 已于 2026-11-10 复测解决（见 §7） |
+| Kafka unhealthy | 健康检查脚本超时 | 已于 2026-11-10 复测解决（见 §7） |
+| Playwright 测试失败 | 登录页 `.tip` 选择器不匹配 | 已于 2026-11-10 复测解决（见 §7） |
 | Trino iceberg/kafka catalog | 需要 Hive Metastore 和 Kafka 配置更新 | 验证时临时禁用，已恢复 |
 | Go catalog 服务 | 依赖下载超时 | 非关键路径，不影响 SQL 查询链路 |
 
@@ -143,6 +143,18 @@ Response: {"status":"SUCCESS","engine":"trino","durationMs":24,"queryId":"..."}
 
 1. **Trino Kafka catalog**：更新 `kafka.properties` 使用 Trino 460 的 `kafka.nodes` 配置格式
 2. **Hive Metastore**：添加 Standalone Hive Metastore 服务以支持 Iceberg catalog
-3. **Redis 端口**：在 Windows 上使用 `netsh` 预留端口或改用非默认端口
-4. **Playwright 选择器**：修复登录页 `.tip` 元素选择器以匹配当前 UI
+3. **Redis 端口**：在 Windows 上使用 `netsh` 预留端口或改用非默认端口（已于 2026-11-10 解决，见 §7）
+4. **Playwright 选择器**：修复登录页 `.tip` 元素选择器以匹配当前 UI（已于 2026-11-10 解决，见 §7）
 5. **Go catalog**：预下载 Go 依赖或使用 vendor 模式加速构建
+
+## 7. 2026-11-10 烧-in 复测更正（E2E 三阻塞闭环）
+
+> 更正原则：§2.2 / §4.2 / §5.2 的 2026-09-15 原始记录保留，本节逐条给出复测证据并覆盖状态。
+
+| # | 原记录 | 复测结果 | 证据 |
+|---|--------|----------|------|
+| 1 | Kafka `⚠️ unhealthy`（健康检查超时） | ✅ healthy | `docker/docker-compose.core.yml` 健康检查改为 `/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092`（apache/kafka 镜像可执行脚本在 `/opt/kafka/bin` 且带 `.sh` 后缀，镜像默认 PATH 不含该目录，裸名调用 exit 127 判永远 unhealthy）；运行中容器 `.Config.Healthcheck` 与修复一致，`docker exec kafka` 该命令返回 broker 能力列表，容器状态 `Up (healthy)` |
+| 2 | Redis `❌ 端口冲突` 未启动 | ✅ healthy | `docker exec redis redis-cli ping` → PONG；容器状态 `Up (healthy)` |
+| 3 | Playwright 登录页 `.tip` 选择器不匹配 | ✅ 12/12 通过 | Login.vue 已将 class `tip` 改名为 `dev-tip`，auth.spec.ts 断言同步改为 `.dev-tip`；`npx playwright test auth.spec.ts` → 12 passed（2026-11-10，本地烧-in 环境：集成栈 20 服务 healthy，封装层本地降级登录经 28080 端口映射） |
+
+注：本次复测为本地烧-in 环境结论，不改变生产部署口径；minio 镜像拉取被所有镜像源拒绝属环境限制，不在三阻塞范围内。
