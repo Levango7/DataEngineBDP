@@ -328,11 +328,20 @@ jobs:
             echo "  Java Lint: $mod_name ($mod_dir)"
             echo "============================================"
             # Checkstyle 检查（阻断：检查失败则 CI 失败）
+            # 2026-11-09 分流（对齐 #116「环境/机制类不判代码类」）：本 job 不安装模块间
+            # 依赖的 SNAPSHOT（无 install 步骤），依赖公共模块（common-security 等）的
+            # 组件在 checkstyle 阶段会因 "Could not resolve dependencies" 直接失败——
+            # 这是 job 装配机制问题，不是被检查模块的代码问题（装配/编译问题由
+            # Java Build & Test 腿把关）。此类失败降为 ::warning:: 不计 fail_count；
+            # 真正的 checkstyle 违规仍阻断。
             CHECKSTYLE_CFG="design/v2.0/Phase1/启动前准备/config/checkstyle.xml"
-            if mvn -f "$pom" checkstyle:check -B -q \
-              -Dcheckstyle.config.location="$CHECKSTYLE_CFG" 2>&1; then
+            if out=$(mvn -f "$pom" checkstyle:check -B -q \
+              -Dcheckstyle.config.location="$CHECKSTYLE_CFG" 2>&1); then
               echo "✓ $mod_name Checkstyle 通过"
+            elif echo "$out" | grep -q "Could not resolve dependencies"; then
+              echo "::warning::$mod_name Checkstyle 跳过：依赖 SNAPSHOT 未装配（job 装配机制，非代码问题）"
             else
+              echo "$out" | tail -40
               echo "::error::$mod_name Checkstyle 检查失败（或插件未配置），已阻断 CI"
               fail_count=$((fail_count + 1))
             fi
