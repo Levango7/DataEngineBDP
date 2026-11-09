@@ -287,18 +287,15 @@ pytest docker/test_finops_dashboard.py -v
 | pytest 测试套件 | `tests/integration/docker/test_finops_dashboard.py` | ✅ |
 | Dockerfile 可构建 | `Dockerfile`（多阶段构建） | ✅ |
 
-## 10. 已知状态：invoice / payment 未实现脚手架、当前不可达（2026-11-06 审计）
+## 10. 已知状态：invoice / payment 未实现脚手架已删除（2026-11-10 主理人裁决）
 
-以下两个 Service 已在源码树中，但**没有任何 Controller / 路由引用**（全仓 grep 零注入点），
-因此**不可通过任何 HTTP 端点触达**，仅为编译期骨架：
-
-| 类 | 路径（service 包） | 状态 |
-|----|--------------------|------|
-| `InvoiceService` | `service/InvoiceService.java` | 未接线：PDF 生成/邮件模板/编号序列/税率配置化/持久化均 TODO，类头已标注 |
-| `PaymentService` | `service/PaymentService.java` | 未接线：持久化/回调/超时/对账均 TODO，类头已标注 |
-
-连同同族 `PaymentGateway` / `MockPaymentGateway` / `SplitNotificationService`，
+2026-11-06 审计时本节记为「未实现脚手架、当前不可达」：`InvoiceService` / `PaymentService`
+连同同族 `PaymentGateway` / `MockPaymentGateway` / `SplitNotificationService` 及模型
+`Invoice` / `PaymentRecord` 共六类，全仓零 Controller / 零前端消费、仅编译期骨架，
 该流程（P-03 出账支付分账后半段）共约 74 处 TODO 未实现。
 
-**处置口径**：不删代码、不造端点（端点本就不存在，造 501 反而是新攻击面）；
-接线 or 删除的产品裁决见 `docs/KNOWN-FAILURES.md` #117 待裁项。
+**处置（2026-11-10 主理人裁：删除）**：上述六类 7 个文件已自源码树整族删除。删除前
+复核实全仓零引用（类名 grep 仅命中本节，随本改写清零；小写 invoice/payment 领域词在
+行业模板 finance 子标出现，与本族无关），`mvn -pl platform/finops/dashboard -am compile`
+BUILD SUCCESS。删除不改变任何可达行为（端点本就不存在）；P-03 后半段的产品缺口仍在，
+按 `docs/KNOWN-FAILURES.md` #119⑤ 闭环，后续如需该能力属新需求，不与本次删除混同。
