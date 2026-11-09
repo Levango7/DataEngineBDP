@@ -32,7 +32,7 @@ class DorisMaterializedViewIntegrationTest {
     }
 
     @Test
-    void refresh_从表名解析库名并真实委托() throws Exception {
+    void refresh_resolvesDatabaseFromTableAndDelegates() throws Exception {
         DorisOlapClient client = mock(DorisOlapClient.class);
         when(client.refreshMaterializedView("orders_db", "orders_mv")).thenReturn(true);
 
@@ -44,7 +44,7 @@ class DorisMaterializedViewIntegrationTest {
     }
 
     @Test
-    void refresh_配置baseTable优先于入参表名() throws Exception {
+    void refresh_configBaseTableTakesPrecedence() throws Exception {
         DorisOlapClient client = mock(DorisOlapClient.class);
         ViewRouterConfig config = emptyConfig();
         ViewRouterConfig.MaterializedViewEntry entry = new ViewRouterConfig.MaterializedViewEntry();
@@ -62,7 +62,7 @@ class DorisMaterializedViewIntegrationTest {
     }
 
     @Test
-    void refresh_Doris不可达时如实返回false而非伪造成功() throws Exception {
+    void refresh_dorisUnreachable_returnsFalseNotFabricatedSuccess() throws Exception {
         DorisOlapClient client = mock(DorisOlapClient.class);
         when(client.refreshMaterializedView(anyString(), anyString()))
                 .thenThrow(new DorisOlapException("connection refused"));
@@ -75,7 +75,7 @@ class DorisMaterializedViewIntegrationTest {
     }
 
     @Test
-    void refresh_库名不可解析时不调用客户端且返回false() throws Exception {
+    void refresh_unresolvableDatabase_skipsClientReturnsFalse() throws Exception {
         DorisOlapClient client = mock(DorisOlapClient.class);
 
         boolean ok = integration(client, emptyConfig())
