@@ -53,6 +53,32 @@ const mockSummary = {
   applyRate: 50
 }
 
+const mockCompliance = {
+  standards: [
+    {
+      standardId: 'std1',
+      standardName: 'user_id',
+      type: 'primary_key' as const,
+      checked: 2,
+      violations: 1,
+      compliant: false,
+      violationSamples: [{ assetId: 'a1', assetName: '订单表', reason: '资产名不匹配命名标准' }]
+    },
+    {
+      standardId: 'std2',
+      standardName: 'order_status',
+      type: 'enum' as const,
+      checked: 2,
+      violations: 0,
+      compliant: true,
+      violationSamples: []
+    }
+  ],
+  totalChecked: 4,
+  totalViolations: 1,
+  complianceRate: 75
+}
+
 vi.mock('@/api/standard', () => ({
   listStandards: vi.fn(() => Promise.resolve(mockStandardList)),
   createStandard: vi.fn(() =>
@@ -61,7 +87,8 @@ vi.mock('@/api/standard', () => ({
   updateStandard: vi.fn(() => Promise.resolve({ id: 'std1', name: '更新标准' })),
   deleteStandard: vi.fn(() => Promise.resolve()),
   getStandard: vi.fn(() => Promise.resolve(mockStandardList.list[0])),
-  getSummary: vi.fn(() => Promise.resolve(mockSummary))
+  getSummary: vi.fn(() => Promise.resolve(mockSummary)),
+  getCompliance: vi.fn(() => Promise.resolve(mockCompliance))
 }))
 
 describe('Standard.vue', () => {
@@ -160,5 +187,41 @@ describe('Standard.vue', () => {
     const styleEl = wrapper.find('.state-loading')
     // 即使不在 loading 状态，样式类定义也应存在
     expect(styleEl.exists() || wrapper.find('.state-tip').exists() || true).toBe(true)
+  })
+
+  it('点击落标检查应调用 getCompliance 并展示符合率与违反样例', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const { getCompliance } = await import('@/api/standard')
+    await wrapper.find('[data-test="compliance-btn"]').trigger('click')
+    await flushPromises()
+    expect(getCompliance).toHaveBeenCalled()
+    // Modal 使用 Teleport to body
+    const body = document.body.textContent ?? ''
+    expect(body).toContain('标准符合性检查')
+    expect(body).toContain('75') // complianceRate
+    // el-table 在 jsdom 下不渲染行内容（与既有用例同口径：仅断言表格存在），
+    // 行数据改走组件状态断言
+    expect(document.body.querySelector('.el-table')).not.toBeNull()
+    const vm = wrapper.vm as any
+    expect(vm.compliance?.standards?.length).toBe(2)
+    expect(vm.compliance?.standards?.[0]?.violationSamples?.[0]?.assetName).toBe('订单表')
+    // 清理 teleport 残留
+    vm.complianceVisible = false
+    await flushPromises()
+  })
+
+  it('落标检查失败时应展示可读失败态（不抛错）', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const api = await import('@/api/standard')
+    const spy = vi.spyOn(api, 'getCompliance').mockRejectedValueOnce(new Error('boom'))
+    await wrapper.find('[data-test="compliance-btn"]').trigger('click')
+    await flushPromises()
+    expect(document.body.textContent ?? '').toContain('落标检查失败')
+    spy.mockRestore()
+    const vm = wrapper.vm as any
+    vm.complianceVisible = false
+    await flushPromises()
   })
 })

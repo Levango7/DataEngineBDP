@@ -98,6 +98,7 @@
       "eng-iotdb": "Time-Series (IoTDB)",
       "eng-mmg": "Multi-Model Engine",
       "govern-meta": "Metadata",
+      "data-map": "Data Map",
       "quality": "Data Quality",
       "lineage": "Data Lineage",
       "data-lineage": "Lineage Graph",

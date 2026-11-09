@@ -19,6 +19,8 @@ const Standard = () => import('@/views/Standard.vue')
 const Quality = () => import('@/views/Quality.vue')
 const Lineage = () => import('@/views/Lineage.vue')
 const DataLineage = () => import('@/views/DataLineage.vue')
+// 批 2（2026-11-09）：数据地图（元数据目录浏览/检索，接 Go catalog 服务）
+const DataMap = () => import('@/views/DataMap.vue')
 const Sec = () => import('@/views/Sec.vue')
 const Vector = () => import('@/views/Vector.vue')
 const Kb = () => import('@/views/Kb.vue')

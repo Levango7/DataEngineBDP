@@ -36,6 +36,14 @@
           <span class="pill b">
             {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
           </span>
+          <el-button
+            size="small"
+            :loading="complianceLoading"
+            data-test="compliance-btn"
+            @click="runCompliance"
+          >
+            {{ t('standard.compliance.action') }}
+          </el-button>
         </template>
       </Toolbar>
       <div class="card">
@@ -90,6 +98,84 @@
               submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
             }}
           </el-button>
+        </template>
+      </Modal>
+
+      <!-- 落标检查：标准 rule 真实作用于资产数据（后端 /standards/compliance） -->
+      <Modal
+        :visible="complianceVisible"
+        :title="t('standard.compliance.title')"
+        @close="complianceVisible = false"
+      >
+        <div v-if="complianceLoading" class="state-tip state-loading">
+          {{ t('standard.compliance.running') }}
+        </div>
+        <div v-else-if="complianceError" class="state-tip state-error">
+          {{ complianceError }}
+        </div>
+        <template v-else-if="compliance">
+          <div class="compliance-summary">
+            <span class="pill b">
+              {{ t('standard.compliance.rate') }}: {{ compliance.complianceRate }}%
+            </span>
+            <span class="pill">
+              {{ t('standard.compliance.checked') }}: {{ compliance.totalChecked }}
+            </span>
+            <span class="pill">
+              {{ t('standard.compliance.violations') }}: {{ compliance.totalViolations }}
+            </span>
+          </div>
+          <div v-if="!compliance.standards.length" class="state-tip">
+            {{ t('standard.compliance.empty') }}
+          </div>
+          <el-table
+            v-else
+            :data="compliance.standards"
+            stripe
+            border
+            size="small"
+            :aria-label="t('standard.compliance.title')"
+          >
+            <el-table-column
+              prop="standardName"
+              :label="t('standard.compliance.cols.standard')"
+              min-width="140"
+            />
+            <el-table-column :label="t('standard.compliance.cols.type')" width="90">
+              <template #default="{ row }">
+                {{ typeLabel(row.type) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="checked"
+              :label="t('standard.compliance.cols.checked')"
+              width="90"
+            />
+            <el-table-column :label="t('standard.compliance.cols.result')" min-width="180">
+              <template #default="{ row }">
+                <span v-if="row.compliant" class="compliance-ok">
+                  {{ t('standard.compliance.compliantAll') }}
+                </span>
+                <span v-else class="compliance-bad">
+                  {{ t('standard.compliance.violated', { n: row.violations }) }}
+                </span>
+                <ul
+                  v-if="!row.compliant && row.violationSamples && row.violationSamples.length"
+                  class="compliance-samples"
+                >
+                  <li
+                    v-for="s in row.violationSamples.slice(0, 3)"
+                    :key="`${s.assetId}-${s.reason}`"
+                  >
+                    {{ s.assetName }} — {{ s.reason }}
+                  </li>
+                </ul>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+        <template #footer>
+          <el-button @click="complianceVisible = false">{{ t('common.cancel') }}</el-button>
         </template>
       </Modal>
     </template>
@@ -197,6 +283,30 @@ async function handleSubmit() {
   }
 }
 
+/* ------------------------------ 落标检查 ------------------------------ */
+
+// 落标检查结果：标准 rule 真实作用于资产数据（后端按类型执行码值/正则/数值/日期校验）
+const complianceVisible = ref(false)
+const complianceLoading = ref(false)
+const complianceError = ref('')
+const compliance = ref<standardApi.ComplianceResult | null>(null)
+
+/** 打开对话框并执行落标检查 */
+async function runCompliance() {
+  complianceVisible.value = true
+  complianceLoading.value = true
+  complianceError.value = ''
+  compliance.value = null
+  try {
+    compliance.value = await standardApi.getCompliance()
+  } catch {
+    // 具体错误已由请求拦截器统一提示；对话框内给出可读的失败态
+    complianceError.value = t('standard.compliance.failed')
+  } finally {
+    complianceLoading.value = false
+  }
+}
+
 onMounted(() => {
   void loadStandards()
 })
@@ -221,6 +331,26 @@ onMounted(() => {
   text-decoration: underline;
   cursor: pointer;
   font: inherit;
+}
+
+/* 落标检查结果 */
+.compliance-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-3);
+}
+.compliance-ok {
+  color: var(--ds-color-success-600);
+}
+.compliance-bad {
+  color: var(--ds-color-error-500);
+}
+.compliance-samples {
+  margin: var(--ds-spacing-1) 0 0;
+  padding-left: var(--ds-spacing-4);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-font-size-sm);
 }
 
 /* 导航合并 tab：/standard 与 /quality 合并为同一页后的切换条 */
