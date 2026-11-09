@@ -424,10 +424,25 @@ jobs:
         with:
           version: v3.16.4
 
-      - name: 安装 kubeconform
+      - name: 安装 kubeconform（v0.6.7，与 env-profile-gate.yml 一致）
         run: |
-          curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar xz -C /usr/local/bin kubeconform
+          # 2026-11-09：对齐 env-profile-gate.yml 同款有界重试（GitHub releases CDN
+          # 间歇 504 实测非可达性问题）——3 次、10s 间隔，三连失败显式非零退出
+          # （不带病继续；裸 curl 单连失败会把根因埋进后续校验步骤）。
+          set -o pipefail
+          for i in 1 2 3; do
+            if curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+                 | tar xz -C /usr/local/bin kubeconform; then
+              break
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "kubeconform 下载失败（第 $i 次），10s 后重试..."
+              sleep 10
+            else
+              echo "::error::kubeconform 下载三连失败（GitHub releases CDN 抖动）"
+              exit 1
+            fi
+          done
           kubeconform -v
 
       - name: 渲染 + Schema 校验全部 chart（阻断）

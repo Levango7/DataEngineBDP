@@ -72,7 +72,7 @@ jobs:
           # 2026-11-09：GitHub releases CDN 间歇 504（本 PR 两连红实测，非可达性问题——
           # runner 在 Azure US）——加有界重试（3 次、10s 间隔）。仍三连失败则显式非零
           # 退出（不带病继续；原先失败后 audit 阶段会以 ANALYSIS-CRASH 兜底变红，根因
-          # 被埋在第二轮）。nightly-e2e.yml 同款裸 curl，重试改造列为待办对齐。
+          # 被埋在第二轮）。nightly-e2e.yml 同款安装已对齐本重试（2026-11-09 独立小 PR）。
           set -o pipefail
           for i in 1 2 3; do
             if curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
