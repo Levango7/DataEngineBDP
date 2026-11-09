@@ -11,6 +11,10 @@ dependencies:
     version: "2.0.0"
     repository: "file://../encaps-layer"
     condition: encaps-layer.enabled
+  - name: encaps-data
+    version: "2.0.0"
+    repository: "file://../encaps-data"
+    condition: encaps-data.enabled
   - name: sql-gateway
     version: "2.0.0"
     repository: "file://../sql-gateway"

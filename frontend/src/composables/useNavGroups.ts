@@ -86,6 +86,8 @@ export function useNavGroups() {
       title: t('nav.groups.governance'),
       items: [
         { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'Notebook' },
+        // 批 2（2026-11-09）：数据地图——元数据采集落库（catalog）后的统一检索入口
+        { path: '/data-map', label: t('nav.items.data-map'), icon: 'MapLocation' },
         // C-2 导航合并：quality 已合并至 standard（tab 切换），data-lineage 已合并至 lineage
         { path: '/lineage', label: t('nav.items.lineage'), icon: 'Guide' },
         { path: '/govern', label: t('nav.items.govern'), icon: 'Setting' },

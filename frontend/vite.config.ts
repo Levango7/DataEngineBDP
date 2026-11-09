@@ -35,6 +35,13 @@ export default defineConfig({
         target: process.env.VITE_METADATA_TARGET || 'http://127.0.0.1:8084',
         changeOrigin: true
       },
+      // 数据目录（Go catalog :8082；数据地图 /data-map 的库/表/中文分词检索端点。
+      // 2026-11-09 批 2 补：此前前端 0 调用该前缀，数据地图页首次引入
+      // /api/v1/catalog/search|tables|databases——缺本条目会落 /api 兜底打错后端（404））
+      '/api/v1/catalog': {
+        target: process.env.VITE_CATALOG_TARGET || 'http://127.0.0.1:8082',
+        changeOrigin: true
+      },
       // 标签引擎（tag-engine :8080）：标签/画像/受众——注意与 encaps-layer 同默认端口，
       // 本地同机双跑时需环境变量错开（VITE_TAG_ENGINE_TARGET / VITE_API_TARGET）
       '/api/v1/tags': {

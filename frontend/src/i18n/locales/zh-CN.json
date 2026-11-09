@@ -98,6 +98,7 @@
       "eng-iotdb": "时序引擎（IoTDB）",
       "eng-mmg": "多模型引擎",
       "govern-meta": "元数据管理",
+      "data-map": "数据地图",
       "quality": "数据质量",
       "lineage": "数据血缘",
       "data-lineage": "血缘可视化",

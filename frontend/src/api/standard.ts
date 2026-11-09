@@ -107,3 +107,40 @@ export function deleteStandard(id: string): Promise<void> {
 export function getSummary(): Promise<StandardSummary> {
   return get<StandardSummary>(`${BASE}/summary`)
 }
+
+/** 标准符合性检查：单条标准的检查明细 */
+export interface ComplianceItem {
+  /** 标准 ID */
+  standardId: string
+  /** 标准名 */
+  standardName: string
+  /** 标准类型 */
+  type: StandardType
+  /** 已检查资产数（字段缺失不适用者不计入） */
+  checked: number
+  /** 违反数 */
+  violations: number
+  /** 是否全部符合 */
+  compliant: boolean
+  /** 违反样例（服务端最多返回 20 条） */
+  violationSamples: Array<{ assetId: string; assetName: string; reason: string }>
+}
+
+/** 标准符合性检查结果（GET /standards/compliance，无参数） */
+export interface ComplianceResult {
+  standards: ComplianceItem[]
+  totalChecked: number
+  totalViolations: number
+  /** 符合率（百分比，一位小数） */
+  complianceRate: number
+}
+
+/**
+ * 标准符合性检查（标准落地校验）
+ *
+ * 后端按标准类型把 rule 真实作用于资产数据：
+ * enum/dict=码值集、string/primary_key=命名正则、amount=数值格式、date=ISO 日期。
+ */
+export function getCompliance(): Promise<ComplianceResult> {
+  return get<ComplianceResult>(`${BASE}/compliance`)
+}

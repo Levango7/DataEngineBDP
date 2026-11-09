@@ -47,6 +47,15 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "stream-batch-scheduler.configmapName" . }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.httpGet.path | quote }}
+              port: {{ .Values.probes.startup.httpGet.port | int }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold | int }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds | int }}
+          {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:

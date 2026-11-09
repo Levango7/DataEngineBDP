@@ -151,6 +151,14 @@ storage-io:
   enabled: false
 asset-catalog:
   enabled: false
+encaps-data:
+  # 2026-11-08：umbrella 默认已启用（chart 补入 requirements；生产网关
+  # /api/v1/datasources 与 /api/v1/search 指向它）。但 kind 冒烟核心子集
+  # 不构建/不 load 它的镜像（local-e2e.yml 的 build_load 白名单是 6 个服务），
+  # 随之部署会镜像拉取超时 ⇒ Progress deadline exceeded（11-08 19:11Z 实测红）。
+  # 故本场景显式关闭；「把 encaps-data 纳入 kind 子集」属部署完整性专项后续项
+  # （需先在 build_load 加构建与 load）。
+  enabled: false
 asset-exchange:
   enabled: false
 business-portal:
