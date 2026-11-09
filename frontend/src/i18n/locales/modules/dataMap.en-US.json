@@ -1,0 +1,34 @@
+{
+  "dataMap": {
+    "title": "Data Map",
+    "subtitle": "Browse and search database/table metadata — the search entry for collected catalog metadata.",
+    "searchPlaceholder": "Search table name / description (Chinese tokenization supported)",
+    "search": "Search",
+    "clear": "Back to Browse",
+    "databases": "Databases",
+    "tables": "Tables",
+    "allDatabases": "All databases",
+    "cols": {
+      "name": "Name",
+      "database": "Database",
+      "columns": "Columns",
+      "description": "Description",
+      "updatedAt": "Updated At",
+      "score": "Score"
+    },
+    "empty": "No metadata yet (create a collection source in Metadata and run a collection first)",
+    "searchEmpty": "No matching tables",
+    "detailTitle": "Table Schema",
+    "partitionKeys": "Partition Keys",
+    "properties": "Properties",
+    "colCols": {
+      "name": "Column",
+      "type": "Type",
+      "nullable": "Nullable",
+      "description": "Description"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "loadFailed": "Failed to load metadata"
+  }
+}

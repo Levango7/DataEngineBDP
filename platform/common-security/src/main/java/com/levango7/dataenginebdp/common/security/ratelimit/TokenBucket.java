@@ -1,7 +1,5 @@
 package com.levango7.dataenginebdp.common.security.ratelimit;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 /**
  * 单桶令牌桶（线程安全，无外部依赖）。
  *

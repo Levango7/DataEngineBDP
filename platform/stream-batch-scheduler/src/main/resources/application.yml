@@ -127,6 +127,15 @@ app:
       expiry: 3600
     cors:
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  # ---- 作业 cron 调度器（可售性补缺批 3，2026-11-09）----
+  # 把 sb_job.schedule 真正接上：JobScheduleRunner 周期扫描 active 且带 schedule 的
+  # 作业，到点以 DagRunType.SCHEDULED 触发（该枚举此前无生产者）。触发精度为分钟；
+  # 进程内去重（单副本形态，chart 默认 replicaCount=1）；重启不补跑。
+  job:
+    scheduler:
+      enabled: ${JOB_SCHEDULER_ENABLED:true}
+      poll-interval-ms: ${JOB_SCHEDULER_POLL_INTERVAL_MS:30000}
+      initial-delay-ms: ${JOB_SCHEDULER_INITIAL_DELAY_MS:15000}
 
 logging:
   level:

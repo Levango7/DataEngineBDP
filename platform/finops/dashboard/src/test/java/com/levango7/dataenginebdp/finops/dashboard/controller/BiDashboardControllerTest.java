@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardEntity;
 import com.levango7.dataenginebdp.finops.dashboard.repository.DashboardRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.finops.dashboard.collector.PrometheusQueryClient;
 import com.levango7.dataenginebdp.finops.dashboard.service.RealtimeMetricsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import java.time.Instant;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * BiDashboardController 单元测试（H2 + 真实 Repository）。
@@ -28,7 +30,10 @@ class BiDashboardControllerTest {
     private DashboardRepository repository;
 
     private ObjectMapper objectMapper = new ObjectMapper();
-    private RealtimeMetricsService realtimeMetricsService = new RealtimeMetricsService();
+    // 2026-11-09 批 3：RealtimeMetricsService 改为依赖 PrometheusQueryClient
+    // （随机数 → 真实查询）；本测试只覆盖看板 CRUD，不触达 realtime 端点，注入 mock 即可。
+    private RealtimeMetricsService realtimeMetricsService =
+            new RealtimeMetricsService(mock(PrometheusQueryClient.class));
 
     @BeforeEach
     void setUpTenant() {

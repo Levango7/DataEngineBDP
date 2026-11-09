@@ -1,7 +1,8 @@
 # ============================================================================
 # stream-batch-scheduler Helm Chart 默认 values
-# 关联：design/deploy/values/stream-batch-scheduler-values.yaml（深度调优配置）
-# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# 说明：本文件为 Chart 骨架级默认值（环境深度覆盖走 helm -f 传入自备 values 文件）。
+# 2026-11-08 订正：原注释引用的 design/deploy/values/stream-batch-scheduler-values.yaml
+# 在本仓并不存在（悬空引用），删除该引用以免误导部署者。
 # ============================================================================
 
 # ---- 镜像配置（国内镜像源）----
@@ -16,9 +17,11 @@ replicaCount: 1
 # ---- Service 配置 ----
 service:
   type: ClusterIP
-  port: 8080
+  # 2026-11-08 修配：应用实听 ${STREAM_BATCH_SCHEDULER_PORT:18086}（application.yml:2），
+  # 原 8080 使 Service 与 kubelet 探针全部打空 ⇒ chart 部署必失败。
+  port: 18086
   # 容器端口
-  containerPort: 8080
+  containerPort: 18086
 
 # ---- 资源配额（默认 standard 档）----
 resources:
@@ -44,20 +47,32 @@ securityContext:
       - ALL
 
 # ---- 健康检查 ----
+# 2026-11-08 修配：健康端点对齐 Spring Boot actuator（pom.xml 内 spring-boot-starter-actuator，
+# application.yml management.endpoints 暴露 health,info,prometheus,metrics）——原 /api/v1/health
+# 无对应路由，探针必失败。startup 探针开启：本服务 JPA/Hibernate 冷启动可达数十秒
+# （范式同 encaps-data chart：10s × 30 = 300s 启动上限，起来后交给 liveness/readiness）。
 probes:
+  startup:
+    enabled: true
+    httpGet:
+      path: /actuator/health
+      port: 18086
+    periodSeconds: 10
+    failureThreshold: 30
+    timeoutSeconds: 3
   liveness:
     enabled: true
     httpGet:
-      path: /api/v1/health
-      port: 8080
+      path: /actuator/health
+      port: 18086
     initialDelaySeconds: 30
     periodSeconds: 10
     failureThreshold: 3
   readiness:
     enabled: true
     httpGet:
-      path: /api/v1/health
-      port: 8080
+      path: /actuator/health
+      port: 18086
     initialDelaySeconds: 10
     periodSeconds: 5
     failureThreshold: 3
@@ -103,8 +118,9 @@ config:
     # stream-batch-scheduler 默认配置，完整配置请引用 design/deploy/values/stream-batch-scheduler-values.yaml
 
 # ---- 引用提示 ----
-# 完整配置请通过 -f design/deploy/values/stream-batch-scheduler-values.yaml 覆盖
-# 渲染命令： helm template stream-batch-scheduler design/deploy/charts/stream-batch-scheduler -f design/deploy/values/stream-batch-scheduler-values.yaml
+# 2026-11-08 订正：原引用的 design/deploy/values/stream-batch-scheduler-values.yaml 在本仓不存在（悬空引用），
+# 已删。环境覆盖请使用自备 values 文件，渲染命令：
+#   helm template stream-batch-scheduler design/deploy/charts/stream-batch-scheduler -f <your-values>.yaml
 
 # ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
 # 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站
@@ -114,7 +130,8 @@ networkPolicy:
 # ---- ServiceMonitor（Prometheus 指标采集）----
 serviceMonitor:
   enabled: false
-  path: /metrics
+  # 2026-11-08 修配：Micrometer 指标暴露在 actuator 的 /actuator/prometheus（application.yml management 段）
+  path: /actuator/prometheus
   interval: 30s
   scrapeTimeout: 10s
   additionalLabels: {}

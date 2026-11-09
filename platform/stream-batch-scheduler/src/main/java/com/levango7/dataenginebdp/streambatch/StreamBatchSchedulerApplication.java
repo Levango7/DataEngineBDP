@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.streambatch;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 数据引擎大数据平台 — T035 流批一体调度与统一入口 启动类。
@@ -17,6 +18,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 实现 Iceberg 表同时被 Spark 批读与 Flink 流读数据一致（snapshot 隔离）。
  */
 @SpringBootApplication
+// 批 3（2026-11-09）：启用 @Scheduled——JobScheduleRunner 依赖它把 sb_job.schedule 真正触发
+@EnableScheduling
 public class StreamBatchSchedulerApplication {
 
     public static void main(String[] args) {

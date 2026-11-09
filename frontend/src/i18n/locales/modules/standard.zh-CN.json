@@ -30,6 +30,25 @@
       "publish": "发布",
       "nameRequired": "请填写标准项",
       "published": "标准已发布"
+    },
+    "compliance": {
+      "action": "落标检查",
+      "title": "标准符合性检查",
+      "running": "检查中…",
+      "rate": "符合率",
+      "checked": "已检查",
+      "violations": "违反",
+      "compliantAll": "全部符合",
+      "violated": "违反 {n} 项",
+      "cols": {
+        "standard": "标准",
+        "type": "类型",
+        "checked": "已检查",
+        "result": "结果"
+      },
+      "samples": "违反样例",
+      "empty": "暂无可检查的标准或数据（标准或资产为空）",
+      "failed": "落标检查失败"
     }
   }
 }
