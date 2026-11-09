@@ -86,7 +86,7 @@ public final class CircuitBreaker {
             if (state.compareAndSet(State.OPEN, State.HALF_OPEN)) {
                 return true;   // 本次即试探调用
             }
-            return state.get() == State.HALF_OPEN ? false : tryAcquire();
+            return state.get() != State.HALF_OPEN && tryAcquire();
         }
         return true;  // CLOSED / HALF_OPEN 放行
     }
@@ -180,10 +180,8 @@ public final class CircuitBreaker {
             }
         }
         double failureRate = (double) failures / total;
-        if (failureRate >= failureRateThreshold) {
-            if (state.compareAndSet(State.CLOSED, State.OPEN)) {
-                openedAtNanos.set(clock.nowNanos());
-            }
+        if (failureRate >= failureRateThreshold && state.compareAndSet(State.CLOSED, State.OPEN)) {
+            openedAtNanos.set(clock.nowNanos());
         }
     }
 
