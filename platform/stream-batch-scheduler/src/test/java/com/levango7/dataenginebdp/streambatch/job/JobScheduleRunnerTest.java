@@ -63,20 +63,20 @@ class JobScheduleRunnerTest {
     // ---------- shouldFire：触发判据 ----------
 
     @Test
-    void 首见为空的lastFiredAt不触发() {
+    void firstSeenNullLastFiredAt_doesNotFire() {
         Instant now = Instant.parse("2026-11-09T10:00:30Z");
         assertFalse(JobScheduleRunner.shouldFire("* * * * *", "active", null, now));
     }
 
     @Test
-    void 同一分钟窗口内只触发一次() {
+    void sameMinuteWindow_firesOnlyOnce() {
         Instant now = Instant.parse("2026-11-09T10:00:30Z");
         Instant last = Instant.parse("2026-11-09T10:00:05Z"); // 同分钟已触发
         assertFalse(JobScheduleRunner.shouldFire("* * * * *", "active", last, now));
     }
 
     @Test
-    void 每分钟cron到点即触发_5段与6段等价() {
+    void everyMinuteCron_firesOnDue_5And6FieldEquivalent() {
         Instant last = Instant.parse("2026-11-09T10:00:00Z");
         Instant now = Instant.parse("2026-11-09T10:01:10Z");
         assertTrue(JobScheduleRunner.shouldFire("* * * * *", "active", last, now)); // 5 段
@@ -84,7 +84,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 每五分钟cron未到点不触发到点触发() {
+    void everyFiveMinutesCron_notBeforeDue_firesOnDue() {
         Instant last = Instant.parse("2026-11-09T10:00:00Z");
         // */5 * * * *：上次 10:00，now 10:04 ⇒ 下一触发 10:05 未到
         assertFalse(JobScheduleRunner.shouldFire(
@@ -98,7 +98,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 每小时零分cron语义() {
+    void hourlyAtZeroMinute_cronSemantics() {
         // 0 * * * *（5 段）= 每小时第 0 分：上次 10:00，now 10:30 ⇒ 下一触发 11:00 未到
         Instant last = Instant.parse("2026-11-09T10:00:00Z");
         assertFalse(JobScheduleRunner.shouldFire(
@@ -109,7 +109,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 前端占位符示例每日零点到点触发() {
+    void frontendPlaceholderDailyMidnight_firesOnDue() {
         // 「0 0 * * *」（每日 0 点，前端 jobmgmt cronPlaceholder 示例）：
         // 日级 cron 按服务器本地时区求值 —— 用本地时间构造「昨天 0 点 → 今天 0 点 30 分」
         ZoneId zone = ZoneId.systemDefault();
@@ -123,7 +123,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 非active状态不触发() {
+    void nonActiveStatus_doesNotFire() {
         Instant last = Instant.parse("2026-11-09T10:00:00Z");
         Instant now = Instant.parse("2026-11-09T10:05:10Z");
         assertFalse(JobScheduleRunner.shouldFire("* * * * *", "draft", last, now));
@@ -133,7 +133,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 非法cron与空schedule不触发() {
+    void invalidCronAndNullSchedule_doNotFire() {
         Instant last = Instant.parse("2026-11-09T10:00:00Z");
         Instant now = Instant.parse("2026-11-09T10:05:10Z");
         assertFalse(JobScheduleRunner.shouldFire("not-a-cron", "active", last, now));
@@ -145,7 +145,7 @@ class JobScheduleRunnerTest {
     // ---------- poll：调度行为 ----------
 
     @Test
-    void poll到点触发并注入租户上下文且执行后清理() {
+    void poll_firesWhenDueInjectsTenantAndClearsAfter() {
         JobRepository repo = mock(JobRepository.class);
         JobService service = mock(JobService.class);
         JobEntity due = job(1L, "* * * * *", "active", "tenant-a");
@@ -164,7 +164,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void poll同分钟第二轮不重复触发() {
+    void poll_sameMinuteSecondRound_doesNotRefire() {
         JobRepository repo = mock(JobRepository.class);
         JobService service = mock(JobService.class);
         JobEntity due = job(1L, "* * * * *", "active", "tenant-a");
@@ -179,7 +179,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void poll单作业失败不抛出且清理上下文() {
+    void poll_singleJobFailure_doesNotThrowAndClearsContext() {
         JobRepository repo = mock(JobRepository.class);
         JobService service = mock(JobService.class);
         JobEntity due = job(1L, "* * * * *", "active", "tenant-a");
@@ -193,7 +193,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void poll查询异常不抛出() {
+    void poll_queryException_doesNotThrow() {
         JobRepository repo = mock(JobRepository.class);
         JobService service = mock(JobService.class);
         when(repo.findByScheduleIsNotNull()).thenThrow(new RuntimeException("db down"));
@@ -204,7 +204,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void 首见仅登记基准不触发() {
+    void poll_firstSeenOnlyRegistersBaseline() {
         JobRepository repo = mock(JobRepository.class);
         JobService service = mock(JobService.class);
         JobEntity due = job(1L, "* * * * *", "active", "tenant-a");
@@ -218,7 +218,7 @@ class JobScheduleRunnerTest {
     }
 
     @Test
-    void isSchedulable判定() {
+    void isSchedulable_judgement() {
         assertTrue(JobScheduleRunner.isSchedulable(job(3L, "* * * * *", "active", "t")));
         assertFalse(JobScheduleRunner.isSchedulable(job(4L, "  ", "active", "t")));
         assertFalse(JobScheduleRunner.isSchedulable(job(5L, "* * * * *", "draft", "t")));

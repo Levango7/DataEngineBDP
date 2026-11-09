@@ -66,7 +66,7 @@ class RealtimeMetricsServiceTest {
     }
 
     @Test
-    void getRealtimeMetrics_prometheus不可达时返回空列表而非伪造数据() {
+    void getRealtimeMetrics_prometheusUnreachable_returnsEmptyNotFabricated() {
         PrometheusQueryClient client = mock(PrometheusQueryClient.class);
         when(client.instantQuery(anyString())).thenThrow(new RuntimeException("connection refused"));
 
@@ -74,7 +74,7 @@ class RealtimeMetricsServiceTest {
     }
 
     @Test
-    void getRealtimeMetrics_空结果集返回空列表() {
+    void getRealtimeMetrics_emptyResultSet_returnsEmptyList() {
         PrometheusQueryClient client = mock(PrometheusQueryClient.class);
         when(client.instantQuery(anyString()))
                 .thenReturn(Map.of("data", Map.of("result", List.of())));
@@ -83,7 +83,7 @@ class RealtimeMetricsServiceTest {
     }
 
     @Test
-    void getRealtimeMetrics_部分指标失败仅返回可用指标() {
+    void getRealtimeMetrics_partialFailure_returnsOnlyAvailableMetrics() {
         PrometheusQueryClient client = mock(PrometheusQueryClient.class);
         // 前两次成功、其后抛异常
         when(client.instantQuery(anyString()))
@@ -105,7 +105,7 @@ class RealtimeMetricsServiceTest {
     }
 
     @Test
-    void extractScalar边界() {
+    void extractScalar_boundaries() {
         assertThat(RealtimeMetricsService.extractScalar(null)).isNull();
         assertThat(RealtimeMetricsService.extractScalar(Map.of())).isNull();
         assertThat(RealtimeMetricsService.extractScalar(

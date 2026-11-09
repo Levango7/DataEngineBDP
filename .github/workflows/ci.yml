@@ -2341,9 +2341,25 @@ jobs:
 
       - name: 安装 golangci-lint
         run: |
-          # 直接下载二进制，避免 install.sh 校验和偶发失败和 go install 模块路径问题
-          curl -fSL --retry 3 --retry-delay 5 -o /tmp/golangci-lint.tar.gz \
-            https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz
+          # 直接下载二进制，避免 install.sh 校验和偶发失败和 go install 模块路径问题。
+          # 2026-11-09：GitHub releases CDN 间歇 504（runner 在 Azure US，curl 内层
+          # --retry 3 在 ~20s 内连吃 504 照样全灭）——加有界外层重试（3 次、10s 间隔），
+          # 与 env-profile-gate.yml 的 kubeconform 安装同款。三连失败显式非零退出，
+          # 不带病继续（lint 不跑 = 安全门禁空转）。
+          set -o pipefail
+          for i in 1 2 3; do
+            if curl -fSL --retry 3 --retry-delay 5 -o /tmp/golangci-lint.tar.gz \
+                 https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz; then
+              break
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "golangci-lint 下载失败（第 $i 次），10s 后重试..."
+              sleep 10
+            else
+              echo "::error::golangci-lint 下载三连失败（GitHub releases CDN 抖动）"
+              exit 1
+            fi
+          done
           mkdir -p /tmp/gci && tar -xzf /tmp/golangci-lint.tar.gz -C /tmp/gci
           sudo install /tmp/gci/*/golangci-lint /usr/local/bin/
           golangci-lint version
