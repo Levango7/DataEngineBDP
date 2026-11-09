@@ -37,7 +37,7 @@ docker run --rm -e FLINK_JOBMANAGER=flink-jm:8081 \
   /opt/flink-cdc/flink-cdc.jar --config /config/cdc.yaml --async
 ```
 
-2. **定时提交（scheduled）**——特定时点（低峰/批量追赶）以 K8s CronJob 调用同一镜像与同一 `flink run` 契语（CronJob manifest 属部署完整性专项 chart 批次交付；本说明锁定镜像与行为契约）。
+2. **定时提交（scheduled）**——特定时点（低峰/批量追赶）以 K8s CronJob 调用同一镜像与同一 `flink run` 契语（CronJob manifest 已于 2026-11-10 随 chart 批次交付：`design/deploy/charts/flink-cdc/templates/cronjob.yaml`，由 `scheduled.*` values 驱动、默认 `enabled=false` 不改现状；本说明锁定的镜像与行为契约不变）。
 
 ## 四、本裁决的落地物
 

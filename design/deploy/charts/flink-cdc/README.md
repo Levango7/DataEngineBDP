@@ -80,6 +80,13 @@ helm template flink-cdc design/deploy/charts/flink-cdc -n sq-engine
 | `nodeSelector` | 节点选择器 | `{}` |
 | `tolerations` | 污点容忍 | `[]` |
 | `affinity` | 亲和性 | `{}` |
+| `scheduled.enabled` | 定时提交 CronJob 开关（与即时提交 Deployment 并存） | `false` |
+| `scheduled.schedule` | Cron 表达式（UTC） | `0 2 * * *` |
+| `scheduled.concurrencyPolicy` | 并发策略 | `Forbid` |
+| `scheduled.restartPolicy` | Job 重启策略 | `OnFailure` |
+| `scheduled.backoffLimit` | Job 重试次数 | `2` |
+| `scheduled.successfulJobsHistoryLimit` | 成功 Job 保留数 | `3` |
+| `scheduled.failedJobsHistoryLimit` | 失败 Job 保留数 | `5` |
 
 ## 5. 示例 values.yaml
 

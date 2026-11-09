@@ -118,3 +118,17 @@ serviceMonitor:
   interval: 30s
   scrapeTimeout: 10s
   additionalLabels: {}
+
+# ---- 定时提交模式（K8s CronJob，#119②：低峰窗口/批量追赶）----
+# 与即时提交（Deployment）并存，契约见 docs/flink-cdc-deployment.md §三：
+# 同一镜像、同一 flink run 契约（容器不重写 command/args，走镜像 CMD）。
+# enabled=false 时不渲染 CronJob（默认保持现状）。
+scheduled:
+  enabled: false
+  # Cron 表达式（UTC；示例为每日 02:00 低峰窗口）
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  restartPolicy: OnFailure
+  backoffLimit: 2
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5

@@ -1,0 +1,65 @@
+{{- if .Values.scheduled.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "flink-cdc.fullname" . }}-scheduled
+  labels:
+    {{- include "flink-cdc.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.scheduled.schedule | quote }}
+  concurrencyPolicy: {{ .Values.scheduled.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.scheduled.successfulJobsHistoryLimit | int }}
+  failedJobsHistoryLimit: {{ .Values.scheduled.failedJobsHistoryLimit | int }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.scheduled.backoffLimit | int }}
+      template:
+        metadata:
+          labels:
+            {{- include "flink-cdc.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: {{ .Values.scheduled.restartPolicy }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.securityContext.enabled }}
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            fsGroup: {{ .Values.securityContext.fsGroup }}
+          {{- end }}
+          containers:
+            - name: {{ .Chart.Name }}-submit
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              # 同一 flink run 契约：不重写 command/args，走镜像 CMD
+              # （docs/flink-cdc-deployment.md §三；--async 用法由调用方按需覆盖）
+              envFrom:
+                - configMapRef:
+                    name: {{ include "flink-cdc.configmapName" . }}
+              resources:
+                {{- toYaml .Values.resources | nindent 14 }}
+              {{- if .Values.securityContext.enabled }}
+              securityContext:
+                runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+                runAsUser: {{ .Values.securityContext.runAsUser }}
+                runAsGroup: {{ .Values.securityContext.runAsGroup }}
+                allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+                readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+                capabilities:
+                  drop:
+                {{- range .Values.securityContext.capabilities.drop }}
+                    - {{ . }}
+                {{- end }}
+              {{- end }}
+{{- end }}
