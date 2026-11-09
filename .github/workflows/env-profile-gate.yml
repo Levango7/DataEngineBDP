@@ -69,8 +69,24 @@ jobs:
 
       - name: 安装 kubeconform（v0.6.7，与 nightly-e2e.yml 一致）
         run: |
-          curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar xz -C /usr/local/bin kubeconform
+          # 2026-11-09：GitHub releases CDN 间歇 504（本 PR 两连红实测，非可达性问题——
+          # runner 在 Azure US）——加有界重试（3 次、10s 间隔）。仍三连失败则显式非零
+          # 退出（不带病继续；原先失败后 audit 阶段会以 ANALYSIS-CRASH 兜底变红，根因
+          # 被埋在第二轮）。nightly-e2e.yml 同款裸 curl，重试改造列为待办对齐。
+          set -o pipefail
+          for i in 1 2 3; do
+            if curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+                 | tar xz -C /usr/local/bin kubeconform; then
+              break
+            fi
+            if [ "$i" -lt 3 ]; then
+              echo "kubeconform 下载失败（第 $i 次），10s 后重试..."
+              sleep 10
+            else
+              echo "::error::kubeconform 下载三连失败（GitHub releases CDN 抖动）"
+              exit 1
+            fi
+          done
           kubeconform -v
 
       - name: 安装 PyYAML
