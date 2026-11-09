@@ -14,15 +14,6 @@ data:
     {
       "routes": [
         {
-          "uri": "/api/materialized-views/**",
-          "upstream": {
-            "type": "roundrobin",
-            "nodes": {
-              "flink-cdc:8080": 1
-            }
-          }
-        },
-        {
           "uri": "/api/v1/account/**",
           "upstream": {
             "type": "roundrobin",

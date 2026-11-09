@@ -9,7 +9,7 @@
 `platform/flink-cdc` 是平台自研的 **Flink CDC 作业框架**（Debezium 系源 + 多 Sink + exactly-once 检查点）：
 
 - **形态证据**（均在仓内可核）：① `CdcFrameworkMain.java` 类头即「Flink CDC 管道命令行入口」，用法 `flink run -c ...CdcFrameworkMain flink-cdc.jar --config cdc-mysql.yaml`，参数含 `--async`（提交后立即返回）；② `pom.xml` 的 flink-streaming-java / flink-clients / flink-runtime 全部 **`provided` scope** ⇒ 它只携带作业逻辑，运行时由外部 Flink 集群提供；③ 运维脚本 `scripts/start-cdc-mysql.sh` 的用法是带 JobManager 主机名提交作业；④ `resources/` 下四个 YAML 模板（mysql/postgres/oracle/kafka）是**作业定义**而非服务配置。
-- **另含一个未完成面**：`materializedview/MaterializedViewController.java` 声明了 `/api/materialized-views` 六个 REST 路由，但**模块内无任何 `SpringApplication.run` / HTTP 服务器入口**——该 Controller 目前无运行宿主（APISIX 已生成的 `flink-cdc:8080` 路由指向一个不存在服务的端口，属「部署完整性专项」待办，不在本裁决范围内）。
+- **另含一个未完成面**：`materializedview/MaterializedViewController.java` 声明了 `/api/materialized-views` 六个 REST 路由，但**模块内无任何 `SpringApplication.run` / HTTP 服务器入口**——该 Controller 目前无运行宿主。**2026-11-10 主理人裁决（台账 #119①，摘路由）**：生产网关侧的悬空路由已从 APISIX 生成物摘除（`scripts/gen-apisix-routes.py` `EXCLUDED_PREFIXES` 增 `/api/materialized-views`，再生成 98→97 条、`--check` 绿）；Controller 源码保留为编译期声明，前端 `engine.ts` 的 `MV_BASE` 开发代理入口保留（删除会变静默 404，留着显式死目标更响）。若日后本模块补上 HTTP 服务入口，再走路由恢复流程（从 `EXCLUDED_PREFIXES` 移除该前缀并再生成）。
 
 ## 二、裁决：作业提交器，不常驻
 

@@ -139,6 +139,12 @@ def is_coarse_prefix(prefix: str) -> bool:
 EXCLUDED_PREFIXES: set[str] = {
     "/api/v1/health",   # 健康检查：由 K8s 探针与集群内监控直接访问
     "/actuator",        # Spring Boot 管理端点：仅集群内
+    # 2026-11-10 主理人裁决（#119①，摘路由）：flink-cdc 是 Flink 作业 CLI
+    # （CdcFrameworkMain，flink run 提交），无 Web 服务入口；
+    # MaterializedViewController 的 /api/materialized-views 是编译期声明、
+    # 运行时无监听，路由悬空故摘除。前端 engine.ts 的 MV_BASE 开发代理入口
+    # 保留（删除会变静默 404，留着显式死目标更响）。
+    "/api/materialized-views",
 }
 
 # 组件目录名 → chart 名（目录名与 chart 名不一致时列出）
