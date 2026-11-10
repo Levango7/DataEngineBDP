@@ -136,10 +136,10 @@ auth:
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |
-    # operations-api 默认配置，完整配置请引用 design/deploy/values/env/<env>/operations-api-values.yaml
+    # operations-api 默认配置，完整配置请引用 design/deploy/values/env/ 下对应环境的 operations-api values 文件
 
 # ---- 引用提示 ----
-# 完整配置请通过 -f design/deploy/values/env/<env>/operations-api-values.yaml 覆盖
+# 完整配置请通过 -f design/deploy/values/env/ 下对应环境的 operations-api values 文件覆盖
 # 渲染命令： helm template operations-api design/deploy/charts/operations-api
 
 # ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
