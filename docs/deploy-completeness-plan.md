@@ -47,6 +47,7 @@
 6. 🔄 #299/P0-4 尾部 6 前缀的 chart 补齐（operations-api 已于 2026-11-10 随 #119⑥ 裁决落地：chart 入 umbrella + `/api/v1/contracts` 路由可达；剩 master-data/data-standard）
 7. ⬜ P1-8 Phase 0（E2E 断言内容化）
 8. ✅ `PUT /api/v1/clusters/{env}/{id}/network` 永久方案落地（2026-11-07，详见 §五.8）
+9. ⬜ operations-api 纳入 kind 冒烟子集（2026-11-11 登记）：build_load 白名单加第 7 服务 + values-local-images 镜像覆盖 + 本地供密或 authMode 覆盖（chart 默认 AUTH_MODE=jwt 且 secretKeyRef 钉 shuqing-jwt-secret，本地/CI 无该 Secret ⇒ CreateContainerConfigError，CI kind-smoke 实证）+ 冒烟断言补 /healthz 与失败日志循环补名；本轮先按 encaps-data 同口径在 values-local-core 显式关闭（umbrella 默认启用不变）
 
 ### 8. PUT /network 永久方案（manifest 自动化审计批 fix/audit-20261106-batch1）
 
