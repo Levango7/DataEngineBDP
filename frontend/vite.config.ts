@@ -79,6 +79,13 @@ export default defineConfig({
         target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8081',
         changeOrigin: true
       },
+      // 批次与批次质量报告（batch-pipeline FastAPI :8080——charts/data-quality/values.yaml
+      // service.port；2026-11-10 批次质量报告视图接线。缺此条会落到 /api 兜底 encaps-layer
+      // :8080 → 错误后端 404，verify-vite-proxy.py 代理缺口护栏会拦）
+      '/api/v1/batches': {
+        target: process.env.VITE_BATCH_PIPELINE_TARGET || 'http://127.0.0.1:8080',
+        changeOrigin: true
+      },
       // 物化视图（flink-cdc MaterializedViewController）
       // 注意：前端 engine.ts 使用 baseURL:'/api' 调用 /materialized-views，故路径无 /v1
       // 端口待定：flink-cdc 为库形态（无独立进程），Controller 挂载宿主未定——
