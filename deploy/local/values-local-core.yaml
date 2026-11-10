@@ -410,9 +410,13 @@ rule-engine:
     jwtSecretKey: jwt-signing-key
 
 nl2sql:
-  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  # 2026-11-10 AUTH_MODE 核定（台账线索见板面 CLAIM 行）：本地经 existingSecretName 复用
+  # catalog chart 生成的 dataengine-catalog-auth（jwt-signing-key，冒烟值 35 字符 ≥32B），
+  # JWT_SECRET 已具备 ⇒ 与生产同态显式钉 jwt，不再回落匿名 admin（none 仅限确无密场景）。
+  # /api/v1/health 端点无 jwt_auth Depends，readinessProbe/Dockerfile HEALTHCHECK 不受影响；
+  # 业务路由（generate/convert/execute/dialogue/validate）均挂 Depends ⇒ jwt 下真校验。
   auth:
-    authMode: none
+    authMode: jwt
     existingSecretName: dataengine-catalog-auth
     jwtSecretKey: jwt-signing-key
   enabled: true
@@ -435,9 +439,12 @@ nl2sql:
     port: 8093
 
 open-api-catalog:
-  # 本地/CI 无 shuqing-jwt-secret（见 design/deploy/JWT鉴权配置指南.md 第4节），非生产用 authMode=none
+  # 2026-11-10 AUTH_MODE 核定：同 nl2sql，本地经 existingSecretName 复用 dataengine-catalog-auth
+  # （jwt-signing-key，冒烟值 35 字符 ≥32B）⇒ 与生产同态显式钉 jwt。/api/v1/health 由
+  # health.router 独立注册（无 prefix、无 dependencies）不受影响；8 个业务 router 均挂
+  # Depends(getAuthContext)，invoke router 自有 AK/SK 认证（缺凭证 401）＝设计内。
   auth:
-    authMode: none
+    authMode: jwt
     existingSecretName: dataengine-catalog-auth
     jwtSecretKey: jwt-signing-key
   enabled: true
