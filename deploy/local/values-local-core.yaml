@@ -159,6 +159,16 @@ encaps-data:
   # 故本场景显式关闭；「把 encaps-data 纳入 kind 子集」属部署完整性专项后续项
   # （需先在 build_load 加构建与 load）。
   enabled: false
+operations-api:
+  # 2026-11-11：umbrella 默认已启用（本批补入，APISIX 路由 /api/v1/contracts/**
+  # 已指向它，生产四 profile 渲染均含）。但 kind 冒烟核心子集的 build_load 白名单
+  # 写死 6 个服务、不构建/不 load operations-api 镜像；且本地/CI 无 shuqing-jwt-secret，
+  # chart 默认 AUTH_MODE=jwt + secretKeyRef 指向不存在的 Secret ⇒ Pod 卡在
+  # CreateContainerConfigError 至 Progress deadline exceeded（CI kind-smoke 复核轮
+  # 实证红）。同 encaps-data 口径：本场景显式关闭；「纳入 kind 冒烟子集」属部署
+  # 完整性专项后续项（build_load 加构建与 load + 本地供密或 authMode 覆盖 + 冒烟
+  # 断言），见 docs/deploy-completeness-plan.md。
+  enabled: false
 asset-exchange:
   enabled: false
 business-portal:

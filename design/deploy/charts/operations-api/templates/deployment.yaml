@@ -37,7 +37,7 @@ spec:
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
       # 关闭服务链接注入：与同族 Python 服务 asset-exchange 同口径（组件间寻址走
-      # Service DNS / 显式 URL，不依赖 k8s 注入的 <SVC>_PORT 链接变量）；
+      # Service DNS / 显式 URL，不依赖 k8s 注入的服务端口链接变量）；
       # 本服务无 env_prefix 配置不会与注入变量冲突，关闭属防御性加固。
       enableServiceLinks: false
       containers:
