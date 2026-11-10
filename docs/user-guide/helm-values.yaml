@@ -445,7 +445,12 @@ multiTenancy:
 
 # =============================================================================
 # 以下为 GA 阻塞项修复补全的 Chart 配置段
-# 覆盖全部 81 个 Chart，确保 helm-values.yaml 全覆盖
+# 2026-11-10 订正：原「覆盖全部 81 个 Chart，确保全覆盖」已失真——实测仓内
+# Chart 103 个，本文件 86 个顶层段中 78 个按 camelCase→kebab-case 归一化命中
+# Chart、8 个为非 Chart 配置段（argocd/global/iceberg/istio/monitoring/
+# multiTenancy/nebulagraph/security），25 个 Chart 无独立配置段（差额与名单
+# 如实登记于 docs/KNOWN-FAILURES.md 2026-11-10 变更日志）。「全覆盖」断言
+# 撤销。复算：find design/deploy/charts -name Chart.yaml | wc -l
 # =============================================================================
 
 # -----------------------------------------------------------------------------
