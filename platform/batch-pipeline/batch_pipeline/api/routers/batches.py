@@ -16,7 +16,10 @@ from ...tenant import TenantError, validate_tenant_id
 from ..deps import getTenantId
 from ..runner import BatchRunner, ConflictError
 
-router = APIRouter(tags=["batches"])
+# router 自带 prefix：URL 语义（/api/v1/batches）不变，但声明即真实——
+# gen-api-contract.py 的 PY_ROUTER_RE 依赖 router 级前缀做契约与 APISIX 路由
+# 生成；此前无 prefix 形态使 /batches 整族漏出契约与路由（生产面不可达）。
+router = APIRouter(prefix="/batches", tags=["batches"])
 
 # 请求体 config 覆盖项的剔除清单：租户与路径类字段由服务端按租户强制分区，
 # 请求体提供会构成路径逃逸面（如 run_dir 指向 ".." 穿透到其他租户目录）
@@ -67,7 +70,7 @@ def _loadManifest(batch_dir: str) -> Optional[dict[str, Any]]:
     return manifest if isinstance(manifest, dict) else None
 
 
-@router.post("/batches", status_code=202)
+@router.post("", status_code=202)
 def submitBatch(
     request: Request,
     body: Optional[dict[str, Any]] = None,
@@ -107,7 +110,7 @@ def submitBatch(
     }
 
 
-@router.get("/batches")
+@router.get("")
 def listBatches(request: Request, tenant_id: str = Depends(getTenantId)) -> dict[str, Any]:
     runner = _getRunner(request)
     items: list[dict[str, Any]] = []
@@ -145,7 +148,7 @@ def listBatches(request: Request, tenant_id: str = Depends(getTenantId)) -> dict
     return {"tenant_id": tenant_id, "batches": items}
 
 
-@router.get("/batches/{batch_id}")
+@router.get("/{batch_id}")
 def batchStatus(
     batch_id: str,
     request: Request,
@@ -187,7 +190,7 @@ def batchStatus(
     }
 
 
-@router.get("/batches/{batch_id}/quality")
+@router.get("/{batch_id}/quality")
 def batchQuality(
     batch_id: str,
     request: Request,

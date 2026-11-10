@@ -2,8 +2,8 @@
 
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
-- 前端入口：`frontend/src/api/*.ts`（共 40 个文件）
-- 后端前缀：Java 69 / Python 21 / Go 17（含显式注册表 9 项）
+- 前端入口：`frontend/src/api/*.ts`（共 41 个文件）
+- 后端前缀：Java 69 / Python 23 / Go 17（含显式注册表 9 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 
@@ -116,6 +116,13 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/assets/${encodeURIComponent(assetId)}/audit` （1 变量） | `/assets` | asset-exchange/asset_exchange | ✅ |
 | `/assets/${encodeURIComponent(assetId)}/publish` （1 变量） | `/assets` | asset-exchange/asset_exchange | ✅ |
 | `/assets/register`  | `/assets` | asset-exchange/asset_exchange | ✅ |
+
+## batches.ts
+
+| 前端调用 | 首段 | 后端模块 | 状态 |
+|---|---|---|---|
+| `/batches`  | `/batches` | batch-pipeline/batch_pipeline | ✅ |
+| `/batches/${batchId}/quality` （1 变量） | `/batches` | batch-pipeline/batch_pipeline | ✅ |
 
 ## businessPortal.ts
 
@@ -526,7 +533,7 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：293
+- 匹配：295
 - 未匹配：3
 
 > ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。

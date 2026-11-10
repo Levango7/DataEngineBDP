@@ -75,6 +75,36 @@ vi.mock('@/api/quality', () => ({
   getSummary: vi.fn(() => Promise.resolve(mockSummary))
 }))
 
+const mockBatches = [
+  {
+    batch_id: 'b-001',
+    status: 'success',
+    submitted_at: '2024-01-15 10:00',
+    finished_at: '2024-01-15 10:05'
+  },
+  { batch_id: 'b-002', status: 'failed', submitted_at: '2024-01-16 09:00', error: 'engine error' }
+]
+
+const mockBatchQuality = {
+  batch_id: 'b-001',
+  tenant_id: 'acme',
+  quality: {
+    dq_score: 0.9876,
+    rules_total: 4,
+    checks_total: 1200,
+    checks_passed: 1185,
+    checks_failed: 15,
+    quarantined_rows: { orders: 15 },
+    rules: [{ dataset: 'orders', rule: 'order_id_not_null', checked: 600, passed: 600 }],
+    mode: 'full'
+  }
+}
+
+vi.mock('@/api/batches', () => ({
+  listBatches: vi.fn(() => Promise.resolve({ batches: mockBatches })),
+  getBatchQuality: vi.fn(() => Promise.resolve(mockBatchQuality))
+}))
+
 describe('Quality.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -170,5 +200,37 @@ describe('Quality.vue', () => {
     expect(document.body.querySelector('.el-button')).not.toBeNull()
     vm.modalVisible = false
     await flushPromises()
+  })
+
+  it('挂载后应自动加载批次列表（批次质量报告区块）', async () => {
+    const { listBatches } = await import('@/api/batches')
+    const wrapper = mountComponent()
+    await flushPromises()
+    expect(listBatches).toHaveBeenCalled()
+    const vm = wrapper.vm as any
+    expect(vm.batches.length).toBe(2)
+    expect(vm.batches[0].batch_id).toBe('b-001')
+  })
+
+  it('loadBatchQuality 应填充质量摘要且 dqScorePct 换算为百分比', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    await vm.loadBatchQuality('b-001')
+    await flushPromises()
+    expect(vm.batchQuality).not.toBeNull()
+    expect(vm.batchQuality.checks_total).toBe(1200)
+    expect(vm.dqScorePct).toBe('99%')
+  })
+
+  it('loadBatchQuality 空参数不应发起请求', async () => {
+    const { getBatchQuality } = await import('@/api/batches')
+    vi.mocked(getBatchQuality).mockClear()
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    await vm.loadBatchQuality('')
+    expect(getBatchQuality).not.toHaveBeenCalled()
+    expect(vm.batchQuality).toBeNull()
   })
 })
