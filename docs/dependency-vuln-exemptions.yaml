@@ -131,43 +131,15 @@ vulnerabilities:
     severity: MEDIUM
     reason: >-
       修复版是 2.3.0.Alpha1，即从 1.9.7 跨过 2.0/2.1/2.2 三个**大版本**。本模块
-      platform/flink-cdc 直依赖 com.ververica:flink-connector-mysql-cdc:3.0.1，该连接器是
-      按 Debezium 1.9.x 的 API 编译的；本仓 Java 源码里 `import io.debezium` 现查 **0 处**
-      （debezium 只作为连接器的运行时依赖存在）。单方面把 debezium 抬到 2.3 会打穿连接器的二进制兼容，
-      而这不是一个依赖批次能验证的事。
-    followup: "解锁条件：先升 flink-cdc 到按 Debezium 2.x 编译的版本（或改用 Flink CDC 的对应发行线），再随之抬 debezium"
+      platform/flink-cdc 自 2026-10-24 已从 com.ververica 坐标迁到
+      org.apache.flink:flink-connector-mysql-cdc:3.6.0-1.20（com.ververica 止于 3.0.1 停更），
+      但上游 Flink CDC 3.x 全线仍按 Debezium 1.9.x 编译（3.6.0 传递依赖 1.9.8.Final，
+      见 pom.xml L93-97 注释与 PR #631 关闭说明）；本仓 Java 源码里 `import io.debezium`
+      现查 **0 处**（debezium 只作为连接器的运行时依赖存在）。单方面把 debezium 抬到 2.3
+      会打穿连接器的二进制兼容，而这不是一个依赖批次能验证的事。
+    followup: "解锁条件：等上游 Flink CDC 切到按 Debezium 2.x 编译的发行线（3.x 全线未切），再随之抬 debezium"
     expired_at: 2027-01-31
     source: "platform/flink-cdc/pom.xml；GitHub Security tab / Dependabot alerts"
-
-  - id: GHSA-q2hr-2g5m-vwhr
-    package: brace-expansion
-    installed: "5.0.9 / 2.1.7 / 1.1.21（三支）"
-    fixed: "5.0.12 / 2.1.7 / 1.1.21"
-    severity: MEDIUM
-    reason: >-
-      1.x 与 2.x 两支已随本次锁文件重解析落到修复版；**5.x 那一支（finops-dashboard 里
-      minimatch@10.2.6 自己的嵌套副本）仍是 5.0.9**。实测过用 npm `overrides`
-      把 `brace-expansion@^5.0.0` 强推到 ^5.0.12：`npm ci` 之后 finops 工作区的
-      `minimatch@10` 解析不到嵌套的 5.x、回落到根上的 2.1.7，直接报
-      `TypeError: (0, brace_expansion_1.expand) is not a function`，`eslint` 起不来。
-      ⇒ 强推会把 workspace 的 lint 打穿，回退。
-    followup: "等 minimatch 上游把 ^5.0.8 的依赖面抬到 ^5.0.12（或等 @typescript-eslint/eslint 换 minimatch 大版本）后自然消解"
-    expired_at: 2027-01-31
-    source: "frontend/package-lock.json；本地 npm ci + npm run lint --workspace finops-dashboard 实测"
-
-  - id: GHSA-rj75-hqrm-r3gf
-    package: postcss-selector-parser
-    installed: "6.1.5"
-    fixed: "7.1.6"
-    severity: MEDIUM
-    reason: >-
-      修复版在 7.x，而这条是 eslint-plugin-vue 的依赖。实测用 overrides 把 6.x 强推到 ^7.1.6 后，
-      finops 工作区的 eslint 直接报 `TypeError: Error while loading rule
-      'vue/comment-directive': context.getSourceCode is not a function` —— eslint-plugin-vue
-      对 6.x 的调用契约与 7.x 不兼容。⇒ 强推不可行。
-    followup: "等 eslint-plugin-vue 把 postcss-selector-parser 依赖面抬到 ^7 后自然消解"
-    expired_at: 2027-01-31
-    source: "frontend/package-lock.json；本地 npm run lint --workspace finops-dashboard 实测"
 
   - id: GHSA-w5hq-g745-h8pq
     package: uuid
@@ -197,4 +169,4 @@ vulnerabilities:
       受影响面全部是 lint / 构建期工具链，不进产物包。
     followup: "等 eslint / glob / @vue/language-core 各自把 minimatch 抬到 ^11 后随上游消解；单独一刀验全套 lint 亦可解锁"
     expired_at: 2027-01-31
-    source: "frontend/package-lock.json（packages 段逐条读 dependencies，2026-11-03 实测）；Dependabot alert #103"
+    source: "frontend/package-lock.json（packages 段逐条读 dependencies，2026-11-03 实测）；Dependabot alert #104（2026-11-11 复核订正：原记 #103 为误）"
