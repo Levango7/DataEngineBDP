@@ -198,6 +198,13 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     # cluster-overview 等页面的数据源（/api/v1/ops/**、/api/v1/cluster/** 后端）"；
     # KNOWN-FAILURES #65 亦裁 observability 门面 chart 的目标模块 chart 即 query-api。
     "observability/query-api": "query-api",
+    # operations-api：platform 正版 FastAPI 服务（#119⑥ 删 design 演示副本后唯一实现面）。
+    # module 名 operations-api/operations_api 为两级目录形式，同名 chart 回退取
+    # basename operations_api（下划线）匹配不到 chart operations-api（连字符），
+    # /api/v1/contracts 曾整体进 unmapped。charts/operations-api/values.yaml
+    # service.port 8081、镜像 sq-operations-api = platform/operations-api/Dockerfile
+    # 所在目录；后端 api/routers/contracts.py:35 显式声明 prefix=/api/v1/contracts。
+    "operations-api/operations_api": "operations-api",
 }
 
 # 前缀 → (截断后的 module 名, chart 名) 的直连裁决。

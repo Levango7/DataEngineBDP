@@ -221,6 +221,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/contracts/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "operations-api:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/cost/**",
           "upstream": {
             "type": "roundrobin",

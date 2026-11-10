@@ -1,7 +1,7 @@
 # 部署完整性专项（2026-11-07 主理人批准立项）
 
 > 归属：多平台多租户大数据平台 · 部署面
-> 状态：已立项，第一批执行中（认领：zcode 线，留言板 2026-11-07 00:5x 条目）
+> 状态：已立项；第一批队列 1–8 已清收（2026-11-10，认领：zcode 线）。剩余仅 §四 Phase 1/2 湖仓真实贯通，依赖 CI 时长与配额（台账 #102）
 > 关联：台账 #117（四轴审计 findings）、#106（values 骨架承诺）、#299（13 服务无 chart）、P1-7/P1-8（本专项两大题源）
 
 ## 一、专项要解决的三个缺口（源出 #117）
@@ -20,12 +20,12 @@
 
 | 模块 | 实况（本机核实） | 分级 | 第一批动作 |
 |---|---|---|---|
-| `platform/data-standard` | 可执行 Spring Boot 服务（DataStandardApplication.java + spring-boot 打包插件 + H2/Flyway） | **真缺口** | 补 Dockerfile（Java 运行层模式，参照 `platform/catalog` 或同族 Java 服务 Dockerfile 的多段式/非 root/健康检查惯例） |
-| `platform/master-data` | 同上（MasterDataApplication.java） | **真缺口** | 同上 |
+| `platform/data-standard` | 可执行 Spring Boot 服务（DataStandardApplication.java + spring-boot 打包插件 + H2/Flyway） | **真缺口** | ✅ 已补（`378a77323` 专项批 1；Java 运行层模式：mvn 构建产物 + 非 root + 健康检查） |
+| `platform/master-data` | 同上（MasterDataApplication.java） | **真缺口** | ✅ 已补（同批 `378a77323`） |
 | `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；Dockerfile 已在位 | ~~真缺口 + 双实现联动~~ **已裁（2026-11-10）** | 2026-11-10 裁：删 design/deploy/services/operations/ 演示副本，platform 为唯一实现面，charts/operations-api 部署；#119⑥ 闭环 |
-| `platform/flink-cdc` | Java 工程，有打包插件、无 Application 主类 | **待定** | 需产品裁「常驻服务 vs 作业提交器」形态后补（判据：是否常驻监听 vs `flink run` 提交） |
-| `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | 从「缺 Dockerfile」清单除名；补一条「被哪些服务依赖、以何形态交付（jar）」的说明进 README |
-| `platform/chunker` | **纯 Python 包**（无 main/app；仓内无 APISIX 前缀；仅被 chunker/embedding 内部引用） | **误登记（不是缺口）** | 同上除名；确认消费方（nl2sql? llm-gateway?）的依赖声明方式（pip 依赖 vs vendor） |
+| `platform/flink-cdc` | Java 工程，有打包插件、无 Application 主类 | **已裁（2026-11-10）：作业提交器** | 裁「作业提交器」（#119②）：chart 增 CronJob/Job manifest（`b67c1d28`），契约见 `docs/flink-cdc-deployment.md` §三 |
+| `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | ✅ 已除名（2026-11-10）：说明进 `platform/storage-io/README.md`（全仓零消费者已核实；交付形态 jar） |
+| `platform/chunker` | **纯 Python 包**（无 main/app；仓内无 APISIX 前缀；仅被 chunker/embedding 内部引用） | **误登记（不是缺口）** | ✅ 已除名（2026-11-10）：说明进 `platform/chunker/README.md`（全仓零消费者已核实；消费方按 pip 依赖或 vendor 接入） |
 
 > 教训入账：#117 初版把「find 无 Dockerfile」直接等同「部署缺口」，未判存在形态。**库 vs 服务的判别先行**（有 Application/main 入口 + 打包插件 + 路由前缀三要素），否则会把「好好的库」补成假部署面——与审计中「mock 命中经核为误报」同类方法论。
 
@@ -40,13 +40,15 @@
 ## 五、执行顺序（队列，认领：zcode）
 
 1. ✅ 六模块实况盘查（完成，本文档 §三）
-2. 🔄 data-standard + master-data Dockerfile（Java 运行层惯例；mvn 构建产物 + 非 root + 健康检查）
-3. ⬜ operations-api Dockerfile（platform 正版；与双实现裁决解耦——先补镜像不改部署引用）
-4. ⬜ flink-cdc 形态裁定（报主理人，二选一：常驻服务 or 作业提交器）
-5. ⬜ storage-io/chunker README 依赖说明 + 从缺口清单除名（防后人再当缺口补）
-6. ⬜ #299/P0-4 尾部 6 前缀的 chart 补齐（master-data/data-standard/operations-api 的 Dockerfile 落地后自然可路由）
-7. ⬜ P1-8 Phase 0（E2E 断言内容化）
+2. ✅ data-standard + master-data Dockerfile（`378a77323` 专项批 1；Java 运行层惯例：mvn 构建产物 + 非 root + 健康检查）
+3. ✅ operations-api Dockerfile（`3de0ba27` 专项批 2；platform 正版，与双实现裁决解耦——先补镜像不改部署引用）
+4. ✅ flink-cdc 形态裁定（2026-11-10 裁「作业提交器」；#119②，`b67c1d28` chart CronJob/Job manifest + `docs/flink-cdc-deployment.md` §三 契约）
+5. ✅ storage-io/chunker README 依赖说明 + 从缺口清单除名（2026-11-10：`platform/storage-io/README.md`、`platform/chunker/README.md`；两模块仓内零消费者已核实）
+6. ✅ #299/P0-4 尾部前缀路由销项（2026-11-10 复核：三模块 chart 在位、前缀全路由；`gen-apisix-routes.py` 98 条、`--check` 绿；operations-api `/api/v1/contracts` 因 module→chart 显式映射缺条未路由，已按脚本既有范式补 `MODULE_CHART_OVERRIDES`）。残留 2 前缀未映射，非本专项范围、如实记账：`/api/finops/v1/billing`（finops/billing 无 chart，#299 真缺口另立）、`/api/v1/audit`（common-security 库级声明）
+7. ✅ P1-8 Phase 0（E2E 断言内容化，`4eb6bad24` 断言语义化 batch1；台账 #119 已列「P1-8 Phase 0」已解决）
 8. ✅ `PUT /api/v1/clusters/{env}/{id}/network` 永久方案落地（2026-11-07，详见 §五.8）
+
+> 2026-11-10 清收注记：⑧ 中「湖仓栈真实贯通」仅余 Phase 1/2（§四），依赖 CI 时长与配额（台账 #102），本批不动。APISIX 另两前端未覆盖前缀为存量旧账：`/api/v1/materialized-views`（#119① 裁摘路由）、`/api/v1/registry`（#1/#2）。
 
 ### 8. PUT /network 永久方案（manifest 自动化审计批 fix/audit-20261106-batch1）
 
