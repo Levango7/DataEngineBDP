@@ -5,6 +5,9 @@ dependencies:
 - name: encaps-data
   repository: file://../encaps-data
   version: 2.0.0
+- name: operations-api
+  repository: file://../operations-api
+  version: 2.0.0
 - name: sql-gateway
   repository: file://../sql-gateway
   version: 2.0.0
@@ -254,5 +257,5 @@ dependencies:
 - name: keycloak
   repository: file://../keycloak
   version: 2.0.0
-digest: sha256:b292024f9f698763175fc1f3c75eb6a5711c7228974541adf38472a283034bd1
-generated: "2026-11-08T15:56:25.5735739+08:00"
+digest: sha256:ed9a1f3f4a89b0af6da06b29fee31f1afbf891077c2d67526d9087520981b843
+generated: "2026-11-10T21:41:28.9070814+08:00"

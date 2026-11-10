@@ -31,6 +31,10 @@ dependencies:
     version: "2.0.0"
     repository: "file://../encaps-data"
     condition: encaps-data.enabled
+  - name: operations-api
+    version: "2.0.0"
+    repository: "file://../operations-api"
+    condition: operations-api.enabled
   - name: sql-gateway
     version: "2.0.0"
     repository: "file://../sql-gateway"

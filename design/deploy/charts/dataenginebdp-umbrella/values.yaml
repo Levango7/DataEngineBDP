@@ -29,6 +29,14 @@ encaps-data:
   # 反而 404。数据源管理（前端 /datasources）与全文检索（前端 /search）两页因此不可用。
   enabled: true  # 封装层数据域 - 数据源CRUD/引擎监控/全文检索
   # 详细配置见 design/deploy/charts/encaps-data/values.yaml
+operations-api:
+  # 2026-11-10 补入 umbrella：chart 早已存在（v2.0.0），但不在 requirements/Chart.dependencies
+  # ⇒ 生产/默认渲染里没有该服务，而 APISIX 路由 /api/v1/contracts/** 已指向 operations-api:8081
+  # ⇒ 装了 umbrella 反而 404。合同管理 API（投标/演示可用，前端 /contracts 页面接线属后续批）
+  # 因此不可达。双实现裁决：chart 部署 platform/operations-api 正版镜像，演示态 design/deploy/
+  # services/operations/ 存档保留不删（KNOWN-FAILURES #119⑥ 销账）。
+  enabled: true  # 运营操作域 - 合同管理 API（FastAPI，in-memory 仓库 ⇒ 副本数钉 1）
+  # 详细配置见 design/deploy/charts/operations-api/values.yaml
 sql-gateway:
   enabled: true  # SQL网关 - 统一SQL接入与路由
   # 详细配置见 design/deploy/charts/sql-gateway/values.yaml

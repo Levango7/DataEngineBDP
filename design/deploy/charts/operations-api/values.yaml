@@ -1,6 +1,8 @@
 # ============================================================================
 # operations-api Helm Chart 默认 values
-# 关联：design/deploy/services/operations/（既有演示态 k8s.yaml，双实现并存待裁，见 README 第 8 节）
+# 关联：design/deploy/services/operations/（既有演示态 k8s.yaml，存档保留不删）——双实现已于
+# 2026-11-10 裁决（KNOWN-FAILURES #119⑥）：本 Chart 为 umbrella 唯一部署单元，部署
+# platform/operations-api 正版镜像；演示态目录仅 CI 编译其 main.py 用，见 chart README 第 8 节
 # 说明：本文件为 Chart 骨架级默认值；完整生产配置请用 -f 引用环境 values 覆盖。
 # ============================================================================
 
@@ -134,10 +136,10 @@ auth:
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |
-    # operations-api 默认配置，完整配置请引用 design/deploy/values/env/<env>/operations-api-values.yaml
+    # operations-api 默认配置，完整配置请引用 design/deploy/values/env/ 下对应环境的 operations-api values 文件
 
 # ---- 引用提示 ----
-# 完整配置请通过 -f design/deploy/values/env/<env>/operations-api-values.yaml 覆盖
+# 完整配置请通过 -f design/deploy/values/env/ 下对应环境的 operations-api values 文件覆盖
 # 渲染命令： helm template operations-api design/deploy/charts/operations-api
 
 # ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
