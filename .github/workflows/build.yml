@@ -249,31 +249,22 @@ jobs:
             echo "============================================"
             echo "  Docker build & push: $mod_name"
             echo "============================================"
-            # 部分 Dockerfile 以非模块目录作为 build context 书写，需特判：
-            # - encaps-layer / encaps-tenant / sql-gateway / rule-engine / tag-engine /
-            #   cost-model / dashboard / metadata-collector / real-time-pipeline /
-            #   infra-orchestrator / infra-provider-cloud / infra-provider-private /
-            #   infra-provider-xinchang / federated-query / lineage-analyzer /
-            #   encaps-data / encaps-gateway / stream-batch-scheduler / java(knative):
-            #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
-            #   注：本清单须与「全仓 Dockerfile 中使用根相对 COPY platform/ 的模块集合」保持一致；
-            #       漏项会使 buildx 因上下文错位而报 `"/platform/<mod>/src": not found`
-            #       （2026-09-24 起 encaps-tenant 漏项，导致 Build & Push Java Images 长期红；
-            #        2026-10-10 扩栈第二期给 encaps-data/encaps-gateway/stream-batch-scheduler
-            #        补 Dockerfile，按同一约定同步登记——ci.yml 的 Docker Build Verify 腿是按
-            #        `^COPY[[:space:]]+platform/` 自适应判上下文的，不受本清单影响）。
+            # build context 自适应判定（与 ci.yml「Docker Build Verify」腿同口径
+            # `^COPY[[:space:]]+platform/`）：Dockerfile 内出现根相对 COPY platform/
+            # ⇒ context 必须是项目根目录（.）并显式给 -f；否则 buildx 在模块目录里
+            # 找 `/platform/<mod>/src` 报 not found。
+            # 背景：此处原为手工维护的模块清单，已发生过两次清单与 Dockerfile 集合
+            # 漂移——2026-09-24 encaps-tenant 漏项、2026-11-06 data-standard /
+            # flink-cdc / master-data 漏项（main Build 红，日志
+            # `"/platform/flink-cdc/src": not found`）⇒ 改为按 Dockerfile 内容自适应
+            # 判定，漂移类根除；历史清单里的 java(knative) 死项（无对应 Dockerfile）
+            # 随本次一并移除。
             build_ctx="$mod_dir"
             dockerfile_arg=""
-            case "$mod_name" in
-              encaps-layer|encaps-tenant|sql-gateway|rule-engine|tag-engine|\
-              cost-model|dashboard|metadata-collector|real-time-pipeline|\
-              infra-orchestrator|infra-provider-cloud|infra-provider-private|\
-              infra-provider-xinchang|federated-query|lineage-analyzer|\
-              encaps-data|encaps-gateway|stream-batch-scheduler|java)
-                build_ctx="."
-                dockerfile_arg="-f $df"
-                ;;
-            esac
+            if grep -qE '^COPY[[:space:]]+platform/' "$df"; then
+              build_ctx="."
+              dockerfile_arg="-f $df"
+            fi
             bash scripts/build-retry.sh docker buildx build \
               --platform "$platforms" \
               --build-arg "BASE_REGISTRY=$BASE_REGISTRY" \
