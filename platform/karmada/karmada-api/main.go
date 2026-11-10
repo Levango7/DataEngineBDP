@@ -23,6 +23,9 @@ package main
 //
 // TODO: 待异地机房真实验证
 
+// TODO 汇总：本文件原有 3 处占位标记均属「联邦域骨架＋台账 #90 冻结范围（chart 齐但四环境装载体 0/4）」，不是在研任务；
+// 逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
+
 import (
 	"context"
 	"log"
