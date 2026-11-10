@@ -22,7 +22,7 @@
 |---|---|---|---|
 | `platform/data-standard` | 可执行 Spring Boot 服务（DataStandardApplication.java + spring-boot 打包插件 + H2/Flyway） | **真缺口** | 补 Dockerfile（Java 运行层模式，参照 `platform/catalog` 或同族 Java 服务 Dockerfile 的多段式/非 root/健康检查惯例） |
 | `platform/master-data` | 同上（MasterDataApplication.java） | **真缺口** | 同上 |
-| `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；**但实部署副本在 `design/deploy/services/operations/`**（k8s.yaml 引用，239 行独立副本= #117 的 operations-api 双实现问题） | **真缺口 + 双实现联动** | 补 Dockerfile 指向 platform 正版；双实现去留属产品裁决（已报主理人，未裁前不动 design 副本） |
+| `platform/operations-api` | 完整 FastAPI 服务（`operations_api/app.py` + `api/` + `jwt_auth.py` + tests），pyproject 名 `sq-operations-api`；Dockerfile 既存（#117 P1-7「无 Dockerfile」为失实陈述）；**双实现已于 2026-11-10 裁决（#119⑥）：`design/deploy/charts/operations-api/` 为 umbrella 唯一部署单元，演示态副本存档保留** | ~~真缺口 + 双实现联动~~ **已裁决落地** | ✅ 入 umbrella 五处同步 + `/api/v1/contracts` 路由随码重生成（2026-11-10 批）；代码不合并、路由不共享 |
 | `platform/flink-cdc` | Java 工程，有打包插件、无 Application 主类 | **待定** | 需产品裁「常驻服务 vs 作业提交器」形态后补（判据：是否常驻监听 vs `flink run` 提交） |
 | `platform/storage-io` | **纯 Java 库**（`storage/api/ObjectStore` 等接口，无 main、无打包插件；docker/ 内仅 compose 复制场景文件） | **误登记（不是缺口）** | 从「缺 Dockerfile」清单除名；补一条「被哪些服务依赖、以何形态交付（jar）」的说明进 README |
 | `platform/chunker` | **纯 Python 包**（无 main/app；仓内无 APISIX 前缀；仅被 chunker/embedding 内部引用） | **误登记（不是缺口）** | 同上除名；确认消费方（nl2sql? llm-gateway?）的依赖声明方式（pip 依赖 vs vendor） |
@@ -41,10 +41,10 @@
 
 1. ✅ 六模块实况盘查（完成，本文档 §三）
 2. 🔄 data-standard + master-data Dockerfile（Java 运行层惯例；mvn 构建产物 + 非 root + 健康检查）
-3. ⬜ operations-api Dockerfile（platform 正版；与双实现裁决解耦——先补镜像不改部署引用）
+3. ✅ operations-api Dockerfile 核（2026-11-10）：Dockerfile 既存（#117 P1-7 失实）；「与双实现裁决解耦」的假设被 #119⑥ 取代——裁 chart 为唯一部署单元并已入 umbrella
 4. ⬜ flink-cdc 形态裁定（报主理人，二选一：常驻服务 or 作业提交器）
 5. ⬜ storage-io/chunker README 依赖说明 + 从缺口清单除名（防后人再当缺口补）
-6. ⬜ #299/P0-4 尾部 6 前缀的 chart 补齐（master-data/data-standard/operations-api 的 Dockerfile 落地后自然可路由）
+6. 🔄 #299/P0-4 尾部 6 前缀的 chart 补齐（operations-api 已于 2026-11-10 随 #119⑥ 裁决落地：chart 入 umbrella + `/api/v1/contracts` 路由可达；剩 master-data/data-standard）
 7. ⬜ P1-8 Phase 0（E2E 断言内容化）
 8. ✅ `PUT /api/v1/clusters/{env}/{id}/network` 永久方案落地（2026-11-07，详见 §五.8）
 

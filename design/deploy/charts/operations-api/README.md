@@ -140,10 +140,10 @@ kubectl port-forward svc/operations-api 8081:8081 -n platform-ops
 helm rollback operations-api -n platform-ops
 ```
 
-## 8. 双实现并存与 umbrella 关系
+## 8. 双实现裁决与 umbrella 关系
 
-- **双实现**（2026-11-06 审计 #117）：`design/deploy/services/operations/k8s.yaml` 引用的是内存演示态副本；本 Chart 部署的是 `platform/operations-api` 正版镜像的首个可构建产物，**不改变现有部署引用**。两版去留属产品裁决，未裁前并存。
-- **umbrella**：本 Chart **未纳入** `charts/dataenginebdp-umbrella` 的 enabled 列表（未裁决前不入 umbrella）。请按第 3 节**独立 `helm install`** 使用。
+- **双实现**（2026-11-06 审计 #117 登记，**2026-11-10 裁决 #119⑥**）：`design/deploy/services/operations/k8s.yaml` 引用的是内存演示态副本；本 Chart 部署的是 `platform/operations-api` 正版镜像。**裁决结果：本 Chart 为 umbrella 唯一部署单元**；演示态目录存档保留不删（CI 仍编译其 `main.py`、`CONVENTIONS.md` 仍有引用）。两边代码未合并、路由不共享。
+- **umbrella**：本 Chart **已纳入** `charts/dataenginebdp-umbrella`（2026-11-10 批五处同步：requirements.yaml / Chart.yaml dependencies / values.yaml enabled / Chart.lock / vendored `charts/operations-api-2.0.0.tgz`），`enabled: true` 默认启用；`/api/v1/contracts/**` 路由已随 APISIX 路由生成物重生成（99 条）。如需独立使用，仍按第 3 节**独立 `helm install`**。
 
 ## 9. 维护信息
 

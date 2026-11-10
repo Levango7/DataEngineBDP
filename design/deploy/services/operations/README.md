@@ -1,19 +1,15 @@
 # 数擎运营后台 operations-api · 部署副本
 
-> **双实现并存（2026-11-06 审计标注）：本目录之外另有一份同域实现**
-> `platform/operations-api/`（FastAPI 结构化正版骨架：app.py / api / jwt_auth /
-> repositories，路由 `/api/v1/contracts/*` 合同 CRUD，附 tests 与 pyproject），
-> 但**无 Dockerfile、不被 compose/chart/k8s 引用**。
+> **SUPERSEDED（2026-11-10 裁决，KNOWN-FAILURES #119⑥）：本目录为存档副本，不再是部署单元。**
+> umbrella 的 operations-api 现由 `design/deploy/charts/operations-api/`（v2.0.0）承载，
+> 部署 `platform/operations-api` 正版镜像；APISIX 路由 `/api/v1/contracts/**` 已指向
+> `operations-api:8081`。本目录保留不删：CI 仍编译其 `main.py`、`CONVENTIONS.md` 仍有引用。
 >
-> 本目录是实际被部署的那一份：`k8s.yaml:32` 以 `${REGISTRY}/operations-api:${TAG}`
-> 引用本目录 `main.py` 构建的镜像，路由 `/api/v1/admin/*`（租户生命周期 / 套餐 /
-> 计量 / 账单 / 看板），当前为演示态（TENANTS 内存态 `# 生产用 DB`、PACKAGES 硬编码
-> `# 生产走 ConfigMap`，两处注释按裁决前处理口径保留不动）。
->
-> 两边路由不相交（`/api/v1/admin/*` vs `/api/v1/contracts/*`）、各自演进。
-> 哪份为正版、是否合并属**产品裁决**，见 `docs/KNOWN-FAILURES.md` #117 待裁项；
-> 在裁决前请勿只改一边而不同步另一边。反向标注见
-> `platform/operations-api/README.md`。
+> 本目录历史形态：`k8s.yaml:32` 以 `${REGISTRY}/operations-api:${TAG}` 引用本目录 `main.py`
+> 构建的镜像，路由 `/api/v1/admin/*`（租户生命周期 / 套餐 / 计量 / 账单 / 看板），演示态
+> （TENANTS 内存态 `# 生产用 DB`、PACKAGES 硬编码 `# 生产走 ConfigMap`，两处注释按裁决前
+> 处理口径保留不动）。两边路由不相交（`/api/v1/admin/*` vs `/api/v1/contracts/*`）、
+> 代码未合并、路由不共享。反向标注见 `platform/operations-api/README.md`。
 
 ## 本目录文件
 
