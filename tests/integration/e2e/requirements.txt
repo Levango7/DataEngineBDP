@@ -32,3 +32,5 @@ PyYAML>=6.0
 
 # JWT token 生成（E2E 测试需要携带 Bearer token 才能访问受保护端点）
 PyJWT>=2.8
+# 对象存储写→读字节级断言（P1-8 Phase 1 真实存储泳道 test_e2e_real_storage.py 消费）
+boto3>=1.34

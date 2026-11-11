@@ -1,0 +1,70 @@
+# P1-8 Phase 1（湖仓真实存储子集）override 文件。
+#
+# 用法（必须与 base 文件同时给出；单独用本文件会把 catalog 指向不存在的 postgres）：
+#   docker compose -f docker-compose.yml -f docker-compose.real-storage.yml up -d --wait
+#
+# 与 base 文件的关系：
+#   - 新增 postgresql / minio 两个真实存储服务（配置与 docker/docker-compose.core.yml 同款）；
+#   - 仅覆盖 catalog 的环境变量（CATALOG_DB 指向 PG）与 depends_on（等 PG healthy）；
+#   - 不带本文件时 base 文件行为零变化（catalog 仍走默认 SQLite 文件），
+#     PR 必检泳道（ci.yml Integration Test）不受影响——本泳道为 nightly/dispatch 专用
+#     （deploy-completeness-plan §四 Phase 1：CI 时长评估点 → 分 job/nightly 化，不塞 PR 必检）。
+#
+# 端口刻意与 core 栈（5432/9000/9001）错开，避免与本机并存的 core 栈冲突。
+
+services:
+  # 元数据存储（替代 catalog 默认的 SQLite 文件）
+  postgresql:
+    image: postgres:16
+    container_name: it-postgresql
+    environment:
+      POSTGRES_USER: it
+      POSTGRES_PASSWORD: it-test-password
+      POSTGRES_DB: catalog
+    ports:
+      - "15432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U it -d catalog"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    networks:
+      - it-net
+
+  # 对象存储（替代本地盘/目录式存储面；S3 兼容 API）
+  minio:
+    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+    container_name: it-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: itminio
+      MINIO_ROOT_PASSWORD: it-minio-password
+    ports:
+      - "19000:9000"
+      - "19001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - it-net
+
+  # 切换到真实 PG：catalog 的 CATALOG_DB 本就支持 postgres:// 前缀
+  # （platform/catalog/main.go 的 GORM postgres.Open 分支 + AutoMigrate 自建表）。
+  catalog:
+    environment:
+      - CATALOG_DB=postgres://it:it-test-password@postgresql:5432/catalog?sslmode=disable
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  minio_data:
