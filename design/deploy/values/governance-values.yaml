@@ -2,13 +2,11 @@
 # L3 治理中台定制 Helm values（P1-C8 新增）
 # 关联：部署清单 v0.1 §7 治理组件 / §10 可观测 / §9 资源配额
 # 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/governance-values.yaml
-# 说明：L3 治理中台 4 组件统一部署配置，全部基于 Java 技术栈（Spring Boot 3.x），
+# 说明：L3 治理中台 2 组件统一部署配置，全部基于 Java 技术栈（Spring Boot 3.x），
 #       PostgreSQL 元数据存储；与 L2 引擎通过 Iceberg Catalog 事件 / Hook 对接，
 #       与 L4 开发工具通过 OpenAPI 暴露资产检索 / 权限校验接口。
 # 组件清单：
 #   - sq-metadata  (L3.1 元数据管理：自研轻量 Catalog，订阅 L2 引擎元数据变更事件)
-#   - sq-standard  (L3.2 数据标准：指标/维度/口径统一管理)
-#   - sq-quality   (L3.3 数据质量：自研规则引擎，定时/实时校验)
 #   - sq-lineage   (L3.4 数据血缘：从 L2 引擎作业 Hook 采集，存 NebulaGraph)
 # ============================================================================
 
@@ -83,102 +81,6 @@ governance:
         endpoints: ["/api/v1/assets", "/api/v1/assets/search", "/api/v1/assets/apply"]
 
     # ---- 监控 ----
-    monitoring:
-      metrics: { enabled: true, port: 9091 }
-      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
-
-  # ============================================================================
-  # L3.2 数据标准（sq-standard）
-  # 职责：指标/维度/口径统一管理，向 L4 工具暴露标准检索 API，
-  #       与 sq-quality 联动（标准变更触发质量规则同步）。
-  # ============================================================================
-  standard:
-    enabled: true
-    image: "sq-standard:0.1.0"
-    version: "0.1.0"
-    replicas: 2
-
-    tierProfiles:
-      base:      { replicas: 1, memory: "1Gi" }
-      standard:  { replicas: 2, memory: "2Gi" }
-      flagship:  { replicas: 3, memory: "4Gi" }
-
-    resources:
-      requests: { cpu: "1",   memory: "2Gi" }
-      limits:   { cpu: "2",   memory: "3Gi" }
-    nodeSelector: { "sq.io/pool": "governance" }
-    config:
-      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-      database:
-        schema: "sq_standard"
-        user: "sq_standard"
-        passwordRef: "standard-db-password"
-      # 标准类型
-      standardTypes: ["metric", "dimension", "caliber", "naming"]
-      # 与 sq-quality 联动
-      qualityLinkage:
-        enabled: true
-        notifyEndpoint: "http://sq-quality:8080/api/v1/rules/sync"
-      openapi:
-        enabled: true
-        ingress: { enabled: true, host: "standard-api.<domain>" }
-
-    monitoring:
-      metrics: { enabled: true, port: 9091 }
-      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
-
-  # ============================================================================
-  # L3.3 数据质量（sq-quality）
-  # 职责：自研规则引擎（Java），支持定时/实时校验，
-  #       规则模板 + DSL 表达式，校验结果写入 PG + 推送告警。
-  # ============================================================================
-  quality:
-    enabled: true
-    image: "sq-quality:0.1.0"
-    version: "0.1.0"
-    replicas: 2
-
-    tierProfiles:
-      base:      { replicas: 1, memory: "1Gi",  workerReplicas: 1 }
-      standard:  { replicas: 2, memory: "2Gi",  workerReplicas: 2 }
-      flagship:  { replicas: 3, memory: "4Gi",  workerReplicas: 4 }
-
-    resources:
-      requests: { cpu: "1",   memory: "2Gi" }
-      limits:   { cpu: "2",   memory: "3Gi" }
-    nodeSelector: { "sq.io/pool": "governance" }
-    config:
-      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-      database:
-        schema: "sq_quality"
-        user: "sq_quality"
-        passwordRef: "quality-db-password"
-      # 规则引擎配置
-      ruleEngine:
-        # 规则模板（内置 + 自定义）
-        builtinTemplates: ["null_check", "unique_check", "range_check", "regex_check", "referential_integrity"]
-        # DSL 表达式引擎：SpEL（Spring Expression Language）
-        dslEngine: "spel"
-        # 校验模式
-        modes: ["scheduled", "realtime"]
-      # 校验任务 worker（独立 Pod，避免阻塞 API）
-      worker:
-        replicas: 2
-        resources:
-          requests: { cpu: "500m", memory: "1Gi" }
-          limits:   { cpu: "1",    memory: "2Gi" }
-        config:
-          maxConcurrentTasks: 20
-          taskTimeout: "30m"
-          retryMax: 3
-      # 告警通道（复用 DolphinScheduler alert）
-      alert:
-        channels: ["email", "dingtalk", "feishu"]
-        dsAlertEndpoint: "http://dolphinscheduler-alert:9093/api/v1/alert"
-      openapi:
-        enabled: true
-        ingress: { enabled: true, host: "quality-api.<domain>" }
-
     monitoring:
       metrics: { enabled: true, port: 9091 }
       prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
@@ -261,16 +163,6 @@ governance:
       base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }
       standard:  { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
       flagship:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
-    # 数据标准
-    standard:
-      base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }
-      standard:  { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
-      flagship:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
-    # 数据质量（含 worker）
-    quality:
-      base:      { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
-      standard:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
-      flagship:  { requests.cpu: "16", requests.memory: "32Gi", limits.cpu: "32", limits.memory: "48Gi" }
     # 数据血缘
     lineage:
       base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }

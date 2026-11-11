@@ -80,14 +80,6 @@ config:
     enabled: true
     image: sq-metadata-collector:0.1.0
     replicas: 2
-  standard:
-    enabled: true
-    image: sq-standard:0.1.0
-    replicas: 2
-  quality:
-    enabled: true
-    image: sq-quality:0.1.0
-    replicas: 2
   lineage:
     enabled: true
     image: sq-lineage-analyzer:0.1.0

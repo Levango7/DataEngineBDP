@@ -117,11 +117,21 @@ jobs:
           echo "共 ${#built[@]} 个镜像待导入"
           k3d image import "${built[@]}" -c "$K3D_CLUSTER"
 
-      - name: 部署 manifests
+      - name: 部署链路 manifests（链路聚焦）
+        # 2026-11-10 分诊（11-09 cron run 42604267249）：全集 apply 会把未构建镜像的
+        # 非链路组件（asset-exchange 等 14 个）拉进集群，Pod 全停 ImagePullBackOff，
+        # 诊断步被噪声淹没；本 job 设计意图本就不是全集部署（见文件头注释）。
         run: |
           set -euo pipefail
           kubectl apply -f deploy/k3s/manifests/namespace.yaml
-          kubectl apply -f deploy/k3s/manifests/ || true
+          for comp in $CHAIN_IMAGES; do
+            m="deploy/k3s/manifests/${comp}.yaml"
+            if [ -f "$m" ]; then
+              kubectl apply -f "$m"
+            else
+              echo "::warning::${comp} 的 manifest 缺失（$m），跳过"
+            fi
+          done
           echo "等待链路相关 Pod 就绪（最多 300s）"
           for comp in $CHAIN_IMAGES; do
             kubectl -n shuqing wait --for=condition=Ready pod \
