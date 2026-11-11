@@ -2,7 +2,7 @@
 
 > 最后更新: 2026-11-10 | 口径: 定义一体、执行分治、损耗先量化、按场景选档
 > 配套件: `docs/TENDER-CAPABILITY-MAP.md`（五轴能力总表）、`docs/STREAM-BATCH-DECISION-TABLE.md`（四层决策表，定义/执行/量化/选档）
-> 坐标基线: `origin/main` @ `beef5572`（PR #783 合入后：operations-api 入 umbrella + `/api/v1/contracts` 路由重生成 + #119⑥ 双实现裁决落库）。`.github/workflows/ci.yml` 在 `c9abcf2f → 5b3a44c3` 区间由 3064 行增至 3102 行（**行号 +38**）⇒ 本文所有 `ci.yml` 行坐标已在 `beef5572` 上重新复测（`c81dd6c5 → beef5572` 区间实测 100 files / 69+/26−，非 `.tgz` 文件 14 个 ⇒ **CI 工作流零改动**、`ci.yml` 仍 3102 行）；`quality-gate.yml`、`run_benchmark.py`、SLA 基线文档、perf 测试坐标经 OLD/NEW 对比**未变**。
+> 坐标基线: `origin/main` @ `47d8aed9`（PR #783 合入后再前移 3 笔；`beef5572 → 47d8aed9` 区间实测仅动 3 个文件 ⇒ **代码 / charts / CI 工作流 / compose 零改动**；operations-api 入 umbrella + `/api/v1/contracts` 路由重生成 + #119⑥ 双实现裁决落库）。`.github/workflows/ci.yml` 在 `c9abcf2f → 5b3a44c3` 区间由 3064 行增至 3102 行（**行号 +38**）⇒ 本文所有 `ci.yml` 行坐标已在 `47d8aed9` 上重新复测（`c81dd6c5 → beef5572` 区间实测 100 files / 69+/26−、非 `.tgz` 文件 14 个；`beef5572 → 47d8aed9` 区间实测 3 files / 14+/4−，仅 `docs/messageboard/board.md` +2、`deploy/local/values-local-core.yaml` +11/−4、`docs/deploy-completeness-plan.md` +1 ⇒ **CI 工作流零改动**、`ci.yml` 仍 **3102 行**（160347 bytes，与 `beef5572` 逐字节相同）、`quality-gate.yml` 仍 **289 行**、`codeql.yml` 仍 **138 行**）；`quality-gate.yml`、`run_benchmark.py`、SLA 基线文档、perf 测试坐标经 OLD/NEW 对比**未变**。
 
 ## 〇、口径声明（先读这一节，否则下面的数字会被误读）
 
@@ -88,7 +88,7 @@
 
 `docs/SLA-PERF-BASELINE-2026-09-01.md`：
 
-- 环境：**本地 Docker 集成栈（`tests/integration/docker-compose.yml`）**（`:3`）——⚠️ **该行自述「10 服务」与实测不符**：本机在 `origin/main @ beef5572` 上解析该 compose 的顶层 `services:` 段（缩进 2 的服务键）实测 **31 个服务**（`encaps-layer`…`jaeger`）。本文件**不静默改写 SLA 文档原貌**（原文行是他人已入库的实测记录），此处显式登记该差异 ⇒ **「10 服务」是过时自述**，引用环境规模时以 **31** 为准。
+- 环境：**本地 Docker 集成栈（`tests/integration/docker-compose.yml`）**（`:3`）——⚠️ **该行自述「10 服务」与实测不符**：本机在 `origin/main @ 47d8aed9` 上解析该 compose 的顶层 `services:` 段（缩进 2 的服务键、**且限定在 `services:` 段内**，避免把 `networks:` 段的 `it-net` 误计为服务）实测 **31 个服务**（`encaps-layer`…`jaeger`）。本文件**不静默改写 SLA 文档原貌**（原文行是他人已入库的实测记录），此处显式登记该差异 ⇒ **「10 服务」是过时自述**，引用环境规模时以 **31** 为准。
 - 结论：SLA **6/6 通过**（4 项合理 skip）、perf **15/15 通过（local 档）**（`:6`）
 - 4 项 skip 的原因：AI 推理（无真实模型）、微调（无 GPU）、**流处理延迟（无 Flink 集群）**、治理吞吐（无治理服务）（`:20`、`:21`）
 - 开放项：**cluster 档全量跑**（多副本集群 + 资源保障）待四环境演练时执行（`:58-61`）
@@ -148,7 +148,7 @@
 5. **招标需求原文未取得**：本轮未能访问招标网站原文（联网搜索能力因账户余额用尽不可用，详见交付说明）⇒ 本文的需求侧依据是**仓内决策文档 + 主理人口述的五轴**，不是招标原文。
 6. **多集群联邦已裁撤**：Karmada 控制面已退役 ⇒ L3 档的「多集群」当前**无实现**。
 7. **9 个行业模板未验证**：`platform/industry-templates/` 的模板未做端到端验证（见 `docs/TENDER-CAPABILITY-MAP.md` §4 盲区声明）。
-8. **SLA 基线文档的环境规模自述已过时**：`docs/SLA-PERF-BASELINE-2026-09-01.md:3` 自述「本地 Docker 集成栈，**10 服务**」，实测 compose 顶层 `services:` 段为 **31 个服务**（`origin/main @ beef5572`）⇒ 该文档记录的是**早期 10 服务栈**上的基线，而当前栈规模已扩至 31 ⇒ **SLA 6/6 + perf 15/15 的结论仍以该文档记录的当时栈为准，不自动等同于当前 31 服务栈的现状**；本文件不改写他人已入库的实测记录，只显式登记此差异。
+8. **SLA 基线文档的环境规模自述已过时**：`docs/SLA-PERF-BASELINE-2026-09-01.md:3` 自述「本地 Docker 集成栈，**10 服务**」，实测 compose 顶层 `services:` 段为 **31 个服务**（`origin/main @ 47d8aed9`）⇒ 该文档记录的是**早期 10 服务栈**上的基线，而当前栈规模已扩至 31 ⇒ **SLA 6/6 + perf 15/15 的结论仍以该文档记录的当时栈为准，不自动等同于当前 31 服务栈的现状**；本文件不改写他人已入库的实测记录，只显式登记此差异。
 
 ---
 
@@ -175,7 +175,7 @@ git show origin/main:"design/v2.0/V2.0_架构设计文档.md" | sed -n '1223p;12
 git show origin/main:docs/SLA-PERF-BASELINE-2026-09-01.md
 
 # 7. CI 性能 job 的真实语义（PR 不触发 + continue-on-error + 理论估计兜底）
-#    行坐标基线：origin/main @ beef5572（ci.yml 3102 行；旧基线 3064 行 ⇒ 旧坐标 +38）
+#    行坐标基线：origin/main @ 47d8aed9（ci.yml 3102 行；旧基线 3064 行 ⇒ 旧坐标 +38）
 git show origin/main:.github/workflows/ci.yml | sed -n '2727,2740p;2759p'
 git show origin/main:tests/performance/run_benchmark.py | sed -n '1,12p;38,43p'
 ```
