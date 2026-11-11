@@ -112,11 +112,7 @@ apisix:
       - { name: "sql-gateway",     host: "sql-gateway",       port: 8080, path: "/api/v1/sql/*",     plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
       # L3 治理中台
       - { name: "metadata-api",    host: "sq-metadata",       port: 8080, path: "/api/v1/metadata/*", plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
-      - { name: "standard-api",    host: "sq-standard",       port: 8080, path: "/api/v1/standard/*", plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
-      - { name: "quality-api",     host: "sq-quality",        port: 8080, path: "/api/v1/quality/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
       - { name: "lineage-api",     host: "sq-lineage",        port: 8080, path: "/api/v1/lineage/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
-      # L5.1 控制台 API
-      - { name: "console-api",     host: "sq-console-api",    port: 8080, path: "/api/v1/console/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
       # L4.2 DolphinScheduler API
       - { name: "ds-api",          host: "dolphinscheduler-api", port: 12345, path: "/api/v1/ds/*",   plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
       # L4.4 Superset（透传到 Superset 自身 OIDC）
