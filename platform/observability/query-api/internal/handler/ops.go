@@ -1,5 +1,8 @@
 package handler
 
+// TODO 汇总：本文件原有 3 处占位标记均属「运维台端点骨架（对接前端 ops.ts）」，不是在研任务；
+// 逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
+
 import (
 	"context"
 	"fmt"

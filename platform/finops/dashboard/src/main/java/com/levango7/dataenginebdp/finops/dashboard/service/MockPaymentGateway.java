@@ -11,6 +11,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
+// TODO 汇总：本文件原有 4 处占位标记均属「结算／支付域未接线骨架（归台账 #91/#94 的冻结裁决，不在出货构建内）」，不是在研任务；
+// 逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
+
 /**
  * Mock 支付网关实现。
  *

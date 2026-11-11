@@ -3,6 +3,9 @@
 P-04 合同交付实体 — 数据持久化抽象。
 
 当前为内存存储骨架，生产环境应替换为 PostgreSQL/MySQL 实现。
+
+TODO 汇总：本文件原有 11 处占位标记均属「合同管理域未接线骨架（内存存储，生产应替换 PostgreSQL／MySQL）」，不是在研任务；
+逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
 """
 
 from __future__ import annotations

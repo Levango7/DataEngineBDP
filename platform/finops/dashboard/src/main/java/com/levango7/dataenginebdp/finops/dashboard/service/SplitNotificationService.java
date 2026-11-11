@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+// TODO 汇总：本文件原有 26 处占位标记均属「结算／支付域未接线骨架（归台账 #91/#94 的冻结裁决，不在出货构建内）」，不是在研任务；
+// 逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
+
 /**
  * 分账通知服务（分账闭环通知）。
  *
