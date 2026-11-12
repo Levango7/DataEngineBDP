@@ -51,6 +51,84 @@
       </el-table>
     </div>
 
+    <!-- 批次质量报告：读取批次执行时 validate 阶段落盘的 quality_summary（/batches/{id}/quality） -->
+    <div class="card">
+      <div class="batch-head">
+        <span class="batch-title">{{ t('quality.batchReport.sectionTitle') }}</span>
+        <el-select
+          v-model="selectedBatchId"
+          :placeholder="t('quality.batchReport.selectPlaceholder')"
+          style="width: 280px"
+          :aria-label="t('quality.batchReport.selectPlaceholder')"
+          @change="loadBatchQuality"
+        >
+          <el-option
+            v-for="b in batches"
+            :key="b.batch_id"
+            :label="`${b.batch_id} · ${b.status}`"
+            :value="b.batch_id"
+          />
+        </el-select>
+        <el-button :aria-label="t('quality.batchReport.refresh')" @click="loadBatches">
+          {{ t('quality.batchReport.refresh') }}
+        </el-button>
+      </div>
+      <div v-if="batchLoading" class="state-tip state-loading">{{ t('common.loading') }}</div>
+      <div v-else-if="batchError" class="state-tip state-error">
+        {{ batchError.message }}，
+        <a href="javascript:void(0)" @click="loadBatches">{{ t('common.retry') }}</a>
+      </div>
+      <template v-else-if="batchQuality">
+        <div class="batch-summary">
+          <span class="pill g">{{ t('quality.batchReport.dqScore', { score: dqScorePct }) }}</span>
+          <span class="pill b">
+            {{
+              t('quality.batchReport.checks', {
+                passed: batchQuality.checks_passed,
+                total: batchQuality.checks_total
+              })
+            }}
+          </span>
+          <span class="pill r">
+            {{ t('quality.batchReport.failedCount', { failed: batchQuality.checks_failed }) }}
+          </span>
+          <span class="pill b">
+            {{ t('quality.batchReport.mode', { mode: batchQuality.mode || 'full' }) }}
+          </span>
+        </div>
+        <el-table
+          :data="batchQuality.rules"
+          stripe
+          border
+          role="table"
+          :aria-label="t('quality.batchReport.sectionTitle')"
+          :empty-text="t('quality.batchReport.empty')"
+        >
+          <el-table-column
+            prop="dataset"
+            :label="t('quality.batchReport.cols.dataset')"
+            min-width="140"
+          />
+          <el-table-column
+            prop="rule"
+            :label="t('quality.batchReport.cols.rule')"
+            min-width="160"
+          />
+          <el-table-column
+            prop="checked"
+            :label="t('quality.batchReport.cols.checked')"
+            width="110"
+          />
+          <el-table-column
+            prop="passed"
+            :label="t('quality.batchReport.cols.passed')"
+            width="110"
+          />
+        </el-table>
+      </template>
+      <div v-else class="state-tip state-loading">{{ t('quality.batchReport.empty') }}</div>
+    </div>
+
     <Modal
       :visible="modalVisible"
       :title="t('quality.createModal.title')"
@@ -102,6 +180,8 @@ import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as qualityApi from '@/api/quality'
 import type { QualityRule, QualitySummary, CheckType, ActionOnFail } from '@/api/quality'
+import * as batchesApi from '@/api/batches'
+import type { BatchRecord, BatchQualityReport } from '@/api/batches'
 import type { PagedResult } from '@/api/types'
 
 const { t } = useI18n()
@@ -177,6 +257,44 @@ const form = reactive<{
   actionOnFail: 'alert'
 })
 
+// ---- 批次质量报告：批次列表 + 选中批次的 quality_summary ----
+const batches = ref<BatchRecord[]>([])
+const selectedBatchId = ref('')
+const batchQuality = ref<BatchQualityReport | null>(null)
+const batchLoading = ref(false)
+const batchError = ref<Error | null>(null)
+
+/** dq_score（0-1）→ 百分比文案 */
+const dqScorePct = computed(() =>
+  batchQuality.value ? `${Math.round(batchQuality.value.dq_score * 100)}%` : '--'
+)
+
+/** 加载批次列表（失败静默：拦截器已统一提示，区块回落空态文案） */
+async function loadBatches() {
+  try {
+    const resp = await batchesApi.listBatches()
+    batches.value = resp.batches ?? []
+  } catch {
+    // 错误提示已由拦截器统一处理
+  }
+}
+
+/** 加载选中批次的质量报告 */
+async function loadBatchQuality(batchId: string) {
+  if (!batchId) return
+  batchLoading.value = true
+  batchError.value = null
+  batchQuality.value = null
+  try {
+    const resp = await batchesApi.getBatchQuality(batchId)
+    batchQuality.value = resp.quality
+  } catch (e) {
+    batchError.value = e instanceof Error ? e : new Error(String(e))
+  } finally {
+    batchLoading.value = false
+  }
+}
+
 /** 提交创建规则 */
 async function handleSubmit() {
   if (!form.targetTable.trim()) {
@@ -205,6 +323,7 @@ async function handleSubmit() {
 
 onMounted(() => {
   void loadRules()
+  void loadBatches()
 })
 </script>
 
@@ -218,5 +337,23 @@ onMounted(() => {
 }
 .state-error {
   color: var(--ds-color-error-500);
+}
+/* 批次质量报告区块：头部选择行 + 摘要 pill 行（一律 --ds-* token） */
+.batch-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-3);
+}
+.batch-title {
+  font-size: var(--ds-font-size-md);
+  font-weight: 600;
+  color: var(--ds-text-primary);
+}
+.batch-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-3);
 }
 </style>

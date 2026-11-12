@@ -44,6 +44,22 @@
       "creating": "Creating…",
       "tableRequired": "Please enter a target table",
       "created": "Rule created"
+    },
+    "batchReport": {
+      "sectionTitle": "Batch Quality Reports",
+      "selectPlaceholder": "Select a batch",
+      "refresh": "Refresh batches",
+      "empty": "No batch records",
+      "dqScore": "DQ Score {score}",
+      "checks": "Checks {passed}/{total}",
+      "failedCount": "Failed {failed}",
+      "mode": "Mode {mode}",
+      "cols": {
+        "dataset": "Dataset",
+        "rule": "Rule",
+        "checked": "Checked",
+        "passed": "Passed"
+      }
     }
   }
 }
