@@ -122,10 +122,14 @@ def collect_java_prefixes() -> dict[str, list[str]]:
 
 # ------------------------- Python FastAPI 后端 -------------------------
 
-# APIRouter(prefix="/xxx") 或 APIRouter()；router 变量名捕获
+# APIRouter(...) 任意参数形态；router 变量名捕获，prefix 从参数体抓字面量。
 # 允许行首空白：个别服务（如 registry）在工厂函数内定义 router（缩进），
-# 行首锚定 ^\w 会漏掉缩进行导致前缀不被扫描（Sprint 3.1 联调发现 /registry 未匹配）
-PY_ROUTER_RE = re.compile(r'^\s*(\w+)\s*=\s*APIRouter\(\s*(?:prefix\s*=\s*"([^"]*)")?\s*[,)]', re.MULTILINE)
+# 行首锚定 ^\w 会漏掉缩进行导致前缀不被扫描（Sprint 3.1 联调发现 /registry 未匹配）。
+# 2026-11-10 修复（板面 21:46 CLAIM）：旧正则 `APIRouter\(\s*(?:prefix=...)?\s*[,)]`
+# 要求 prefix 之后立刻闭合 ⇒ `APIRouter(tags=["batches"])` 等带其它参数的形态整条
+# 不匹配，batch-pipeline 的 /api/v1/batches 4 端点因此漏出契约与 APISIX 路由。
+PY_ROUTER_RE = re.compile(r'^\s*(\w+)\s*=\s*APIRouter\(([^)]*)\)', re.MULTILINE)
+PY_ROUTER_PREFIX_RE = re.compile(r'prefix\s*=\s*"([^"]*)"')
 PY_ROUTE_RE = re.compile(r'^\s*@(\w+)\.(get|post|put|delete|patch)\(\s*\n?\s*"([^"]*)"', re.MULTILINE)
 PY_INCLUDE_RE = re.compile(r'app\.include_router\(\s*([\w.]+)')
 # apiPrefix 默认值（settings.py 定义，两服务均为 /api/v1）
@@ -146,10 +150,12 @@ def collect_python_prefixes() -> dict[str, list[str]]:
             module = "/".join(rel.parts[:2]) if len(rel.parts) > 1 else rel.parts[0]
         except ValueError:
             continue
-        # 路由器定义：变量名 -> 前缀
+        # 路由器定义：变量名 -> 前缀（prefix 取参数体内的字面量；无/变量 prefix 均回落空串，
+        # 由下方「无 prefix ⇒ 补 PY_API_PREFIX」口径统一处理）
         routers: dict[str, str] = {}
         for m in PY_ROUTER_RE.finditer(text):
-            routers[m.group(1)] = m.group(2) or ""
+            pm = PY_ROUTER_PREFIX_RE.search(m.group(2) or "")
+            routers[m.group(1)] = pm.group(1) if pm else ""
         if not routers:
             continue
         # 每个路由器的完整业务前缀 = apiPrefix + router prefix

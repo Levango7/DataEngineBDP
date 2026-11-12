@@ -197,6 +197,13 @@ MODULE_CHART_OVERRIDES: dict[str, str] = {
     # 本显式映射，否则 /api/v1/contracts 整体进 unmapped（2026-11-10 审计基线：未映射 3
     # 条含 contracts）。chart 就位（v2.0.0、service.port 8081）后该前缀即生产可达。
     "operations-api/operations_api": "operations-api",  # .../operations-api/values.yaml service.port 8081；镜像 sq-operations-api = platform/operations-api/Dockerfile 目录名
+    # batch-pipeline 批处理 API（2026-11-10，板面 21:46 CLAIM）：platform/batch-pipeline/
+    # batch_pipeline/api/app.py 为 FastAPI 服务（「数据质量与批处理服务（data-quality 实体）」
+    # 自述），routers/batches.py router 自带 prefix="/batches"（同批精确化，4 端点：
+    # POST/GET /batches、GET /batches/{id}、GET /batches/{id}/quality）。
+    # 部署单元为 data-quality chart（app.py 自述 + charts/data-quality/values.yaml
+    # service.port 8080；镜像 sq-data-quality = platform/batch-pipeline/Dockerfile 目录名）。
+    "batch-pipeline/batch_pipeline": "data-quality",
 }
 
 # 前缀 → (截断后的 module 名, chart 名) 的直连裁决。
