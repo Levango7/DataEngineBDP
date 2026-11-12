@@ -1,0 +1,24 @@
+#!ipxe
+# iPXE 引导入口 —— PXE-over-HTTP（台账 #121 路径 ③：免 BMC 的自动化装机）
+#
+# 用法：
+#   1) 由 DHCP 把本机设成 next-server（或者在 BIOS/UEFI 里手填本脚本的 HTTP 地址）；
+#   2) 把 PXE 根目录放到 scripts/baremetal/pxe/ 下（见 serve-pxe.sh 的 --root 约定）；
+#   3) boot.ipxe 只做一件事：把控制权交给同目录下的 boot.ipxe.cfg。
+#
+# 说明：
+#   - 本脚本**不硬编码任何环境地址**：${next-server} 由 DHCP 下发，端口用 PXE_HTTP_PORT 覆盖。
+#   - 路径 ③ 只解决「可重复装机」，**不解决带外管理**（无 BMC 即无法远程开关机 / 读硬件状态）。
+#     带外验收另见 docs/CLOUD-NATIVE-BARE-METAL-ACCEPTANCE.md。
+
+set pxe-port ${PXE_HTTP_PORT:8080}
+set pxe-base http://${next-server}:${pxe-port}
+
+echo >>> iPXE: next-server=${next-server} base=${pxe-base}
+chain ${pxe-base}/boot.ipxe.cfg || goto failed
+exit 0
+
+:failed
+echo >>> iPXE: 引导失败（无法取到 ${pxe-base}/boot.ipxe.cfg）
+echo >>> 检查：1) HTTP 服务是否在跑 2) 根目录是否含 boot.ipxe.cfg 3) 防火墙是否放行 ${pxe-port}
+exit 1

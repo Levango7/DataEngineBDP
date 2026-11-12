@@ -1,0 +1,75 @@
+#cloud-config
+# cloud-init 模板 —— 台账 #121 路径 ③/④（免 BMC 的自动化装机）
+#
+# 【必须先渲染再投放】本文件是**模板**，仓内不含任何真实凭据。渲染动作见
+# scripts/baremetal/README.md 的「渲染」一节。serve-pxe.sh --check-only 会检查
+# 是否还残留未渲染的占位符（双下划线包裹的大写名），残留即判红（避免把字面量装机上去）。
+#
+# 占位符清单（渲染后本段会变成实际取值）：
+#   __NODE_HOSTNAME__   节点名
+#   __SSH_PUBKEY__      运维公钥（一行一公钥）
+#   __K3S_URL__         已就绪的 k3s server 地址（如 https://10.0.0.10:6443）
+#   __K3S_TOKEN__       k3s server 节点加入令牌（运行时注入，**不得**进版本库）
+#   __REGISTRY_MIRROR__ 镜像加速地址（默认沿用本仓 k3s 配置里的 daocloud 加速）
+#
+hostname: __NODE_HOSTNAME__
+manage_etc_hosts: true
+timezone: Asia/Shanghai
+
+users:
+  - name: bdpops
+    gecos: BareMetal Ops
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - "__SSH_PUBKEY__"
+
+write_files:
+  # 与本仓 k3s 配置保持一致的镜像加速（见 docs/CLOUD-NATIVE-PERF-LOSS-BASELINE.md §6.4 的 L0 档实测）
+  - path: /etc/rancher/k3s/registries.yaml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      mirrors:
+        "docker.io":
+          endpoint:
+            - "__REGISTRY_MIRROR__"
+        "registry-1.docker.io":
+          endpoint:
+            - "__REGISTRY_MIRROR__"
+
+  # 凭据单独放 0600 文件，不混在脚本里，避免被 world-readable 的脚本带出
+  - path: /etc/bdp-node/k3s.env
+    owner: root:root
+    permissions: "0600"
+    content: |
+      K3S_URL=__K3S_URL__
+      K3S_TOKEN=__K3S_TOKEN__
+
+  - path: /etc/bdp-node/bootstrap.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      # 由 cloud-init runcmd 调用：装 k3s agent 并加入既有 server。
+      set -euo pipefail
+      . /etc/bdp-node/k3s.env
+      export K3S_URL K3S_TOKEN
+      # 只装 agent：server 由既有集群提供（K3S_URL / K3S_TOKEN 指向它）
+      export INSTALL_K3S_EXEC="agent"
+      export INSTALL_K3S_SKIP_START=true
+      curl -sfL https://get.k3s.io | sh -
+      systemctl enable --now k3s-agent
+      # 证据留存：把版本与节点信息落到固定路径，便于验收取证
+      mkdir -p /var/log/bdp-node
+      {
+        echo "bootstrapped_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "uname_m=$(uname -m)"
+        echo "k3s_version=$(k3s --version 2>/dev/null | head -1)"
+      } > /var/log/bdp-node/bootstrap.log
+
+runcmd:
+  - [ bash, -lc, "/etc/bdp-node/bootstrap.sh" ]
+
+final_message: "bdp baremetal node __NODE_HOSTNAME__ bootstrapped after $UPTIME seconds"
