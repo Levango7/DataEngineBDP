@@ -51,6 +51,20 @@ rule-engine:
 governance:
   enabled: true  # 数据治理 - 统一治理框架
   # 详细配置见 design/deploy/charts/governance/values.yaml
+master-data:
+  # 2026-11-12 补入 umbrella：chart 早已存在（v2.0.0，namespace sq-governance），
+  # 但不在 requirements/Chart.dependencies ⇒ 生产/默认渲染里没有该服务，而 APISIX
+  # 路由 /api/v1/master-data/** 与 /api/v1/master-data/models/** 已指向
+  # master-data:8088 ⇒ 装了 umbrella 反而 404，主数据管理（L3.6）不可达。
+  # 属部署完整性专项 docs/deploy-completeness-plan.md §五.6 的余项之一。
+  enabled: true  # 主数据管理 - 主数据模型/记录 CRUD（L3.6）
+  # 详细配置见 design/deploy/charts/master-data/values.yaml
+data-standard:
+  # 2026-11-12 同批补入：chart 早已存在（v2.0.0，namespace sq-governance），而
+  # APISIX 路由（如 /api/v1/standard-categories/**）已指向 data-standard:8087
+  # ⇒ 不入 umbrella 则标准域前缀生产不可达。
+  enabled: true  # 数据标准 - 数据标准管理与落标检查
+  # 详细配置见 design/deploy/charts/data-standard/values.yaml
 metadata-collector:
   enabled: true  # 元数据采集 - 多源元数据抓取
   # 详细配置见 design/deploy/charts/metadata-collector/values.yaml
