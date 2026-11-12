@@ -238,11 +238,13 @@ class TestChain1EndToEnd:
 
             # 2026-11-06 审计 #117 P1-8（内容级断言）：原判据只验
             # "SQL 非空 + queryId 存在" ⇒ 生成的 SQL 不通、网关返回空
-            # 结果集/错误信封都算过。补三层内容判据：
+            # 结果集/错误信封都算过。补内容判据：
             # ① 生成 SQL 必须像查询（含 SELECT，不是报错文本）；
-            # ② 响应必须带 columns/rows 结构（SqlGatewayController
-            #    成功响应契约 :324-325）；③ rows 为空时 rowCount 必须
-            #    为 0（结构与计数自洽，不接受"没有 rows 键"的整形失败）。
+            # ② 响应必须带 columns/rows 结构（SqlExecuteResponse
+            #    契约）；③ rowCount 与 rows 计数自洽（台账 #123：
+            #    rowCount 此前不在 /execute 契约里，判据恒假）；
+            # ④ 网关 status 必须 SUCCESS（FAILED/DEGRADED 错误信封
+            #    同样带 columns/rows 空数组，只验结构会假绿）。
             sql_is_query = "select" in generated_sql.lower()
             has_result_shape = "rows" in exec_body and "columns" in exec_body
             rows_consistent = (
@@ -250,6 +252,7 @@ class TestChain1EndToEnd:
                 if has_result_shape
                 else False
             )
+            exec_status_ok = exec_body.get("status") == "SUCCESS"
 
             passed = (
                 gen_resp.status_code == 200
@@ -259,12 +262,15 @@ class TestChain1EndToEnd:
                 and "queryId" in exec_body
                 and has_result_shape
                 and rows_consistent
+                and exec_status_ok
             )
             detail = (
                 f"生成SQL={generated_sql[:80]}, "
-                f"网关执行status={exec_resp.status_code}, "
+                f"HTTP={exec_resp.status_code}, "
+                f"网关status={exec_body.get('status')}, "
                 f"queryId={exec_body.get('queryId')}, "
-                f"rows={len(exec_body.get('rows') or [])}"
+                f"rows={len(exec_body.get('rows') or [])}, "
+                f"message={exec_body.get('message')}"
             )
         except Exception as e:
             passed = False
