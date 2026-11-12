@@ -18,6 +18,9 @@ package karmadaclient
 // TODO: 添加 mTLS 双向认证支持
 // TODO: 添加 Karmada API 版本兼容性检查
 
+// TODO 汇总：本文件原有 15 处占位标记均属「联邦域骨架＋台账 #90 冻结范围（chart 齐但四环境装载体 0/4）」，不是在研任务；
+// 逐条清单与解锁条件见 docs/KNOWN-FAILURES.md 台账 #119（⑩ 段实测清单）。本文件不构成在研工作声明。
+
 import (
 	"context"
 	"encoding/json"
