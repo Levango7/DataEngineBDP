@@ -169,6 +169,18 @@ operations-api:
   # 完整性专项后续项（build_load 加构建与 load + 本地供密或 authMode 覆盖 + 冒烟
   # 断言），见 docs/deploy-completeness-plan.md。
   enabled: false
+master-data:
+  # 2026-11-12：umbrella 默认已启用（本批补入；APISIX 路由 /api/v1/master-data/**
+  # 已指向它，生产/默认渲染均含）。同 operations-api 口径：kind 冒烟核心子集的
+  # build_load 白名单不含 master-data 镜像，且本地/CI 无 shuqing-jwt-secret
+  # ⇒ 本场景显式关闭；「纳入 kind 冒烟子集」属部署完整性专项后续项，见
+  # docs/deploy-completeness-plan.md §五.9。
+  enabled: false
+data-standard:
+  # 2026-11-12：同批补入 umbrella（APISIX 路由已指向 data-standard:8087）。
+  # 关闭理由同 master-data（build_load 白名单不含其镜像 + 本地/CI 无
+  # shuqing-jwt-secret）。纳入 kind 子集同属 ⬜。
+  enabled: false
 asset-exchange:
   enabled: false
 business-portal:

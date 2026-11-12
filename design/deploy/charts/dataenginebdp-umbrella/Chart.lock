@@ -20,6 +20,12 @@ dependencies:
 - name: governance
   repository: file://../governance
   version: 2.0.0
+- name: master-data
+  repository: file://../master-data
+  version: 2.0.0
+- name: data-standard
+  repository: file://../data-standard
+  version: 2.0.0
 - name: metadata-collector
   repository: file://../metadata-collector
   version: 2.0.0
@@ -257,5 +263,5 @@ dependencies:
 - name: keycloak
   repository: file://../keycloak
   version: 2.0.0
-digest: sha256:ed9a1f3f4a89b0af6da06b29fee31f1afbf891077c2d67526d9087520981b843
-generated: "2026-11-10T21:41:28.9070814+08:00"
+digest: sha256:b992220af68947e6a139038b661bc48c4832002ba8c2f40df943274d47c65380
+generated: "2026-11-13T02:09:50.7714019+08:00"
