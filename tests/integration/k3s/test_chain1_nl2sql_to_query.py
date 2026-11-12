@@ -241,7 +241,7 @@ class TestChain1EndToEnd:
             # 结果集/错误信封都算过。补内容判据：
             # ① 生成 SQL 必须像查询（含 SELECT，不是报错文本）；
             # ② 响应必须带 columns/rows 结构（SqlExecuteResponse
-            #    契约）；③ rowCount 与 rows 计数自洽（台账 #123：
+            #    契约）；③ rowCount 与 rows 计数自洽（台账 #125：
             #    rowCount 此前不在 /execute 契约里，判据恒假）；
             # ④ 网关 status 必须 SUCCESS（FAILED/DEGRADED 错误信封
             #    同样带 columns/rows 空数组，只验结构会假绿）。
