@@ -44,6 +44,22 @@
       "creating": "创建中…",
       "tableRequired": "请填写对象表",
       "created": "规则已创建"
+    },
+    "batchReport": {
+      "sectionTitle": "批次质量报告",
+      "selectPlaceholder": "选择批次",
+      "refresh": "刷新批次",
+      "empty": "暂无批次记录",
+      "dqScore": "质量分 {score}",
+      "checks": "校验 {passed}/{total}",
+      "failedCount": "失败 {failed}",
+      "mode": "模式 {mode}",
+      "cols": {
+        "dataset": "数据集",
+        "rule": "规则",
+        "checked": "校验",
+        "passed": "通过"
+      }
     }
   }
 }
