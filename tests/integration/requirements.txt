@@ -35,3 +35,7 @@ pydantic>=2.0
 
 # pydantic-settings（asset-exchange 等应用使用 BaseSettings）
 pydantic-settings>=2.0
+
+# 对象存储写→读字节级断言（P1-8 Phase 1 真实存储泳道；仅 e2e/test_e2e_real_storage.py 消费，
+# REAL_STORAGE=1 才运行，PR 必检泳道不加载）
+boto3>=1.34
