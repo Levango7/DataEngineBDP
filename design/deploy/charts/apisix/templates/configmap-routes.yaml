@@ -131,6 +131,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/batches/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "data-quality:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/bill/export/**",
           "upstream": {
             "type": "roundrobin",
