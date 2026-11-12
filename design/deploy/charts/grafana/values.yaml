@@ -1,6 +1,7 @@
 # ============================================================================
 # grafana Helm Chart 默认 values
-# 关联：design/deploy/values/grafana-values.yaml（深度调优配置）
+# 关联：本文件即唯一默认来源（2026-11-13 订正：此前注释引用的 design/deploy/values/grafana-values.yaml
+# 在仓库中并不存在，属悬空引用，勿再引用；环境覆盖直接 -f 你的环境 values 文件）
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
@@ -100,11 +101,24 @@ env:
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |
-    # grafana 默认配置，完整配置请引用 design/deploy/values/grafana-values.yaml
+    # 占位键：当前 deployment 以 envFrom 消费本 ConfigMap（文件型配置走下方的卷挂载）
+
+# ---- Dashboards as Code（2026-11-13 新增；大盘 JSON 在 chart 的 dashboards/ 目录）----
+dashboards:
+  enabled: true
+  # 容器内大盘 JSON 挂载目录（provisioning provider 的 path）
+  path: /var/lib/grafana/dashboards
+datasource:
+  enabled: true
+  name: Prometheus
+  uid: prometheus
+  # 集群内 Prometheus 服务地址（按实际 release/namespace 覆盖）
+  url: "http://prometheus:9090"
+  isDefault: true
 
 # ---- 引用提示 ----
-# 完整配置请通过 -f design/deploy/values/grafana-values.yaml 覆盖
-# 渲染命令： helm template grafana design/deploy/charts/grafana -f design/deploy/values/grafana-values.yaml
+# 环境覆盖请用 -f <你的环境 values 文件>（仓库内无 grafana-values.yaml，见 README §10）
+# 渲染命令： helm template grafana design/deploy/charts/grafana
 
 # ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
 # 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站

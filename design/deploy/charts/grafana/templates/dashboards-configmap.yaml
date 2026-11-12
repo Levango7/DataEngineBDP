@@ -1,0 +1,34 @@
+{{- if .Values.dashboards.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-dashboards
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+{{- range $path, $_ := .Files.Glob "dashboards/*.json" }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-dashboard-provisioning
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+data:
+  provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: sq-dashboards
+        orgId: 1
+        folder: DataEngineBDP
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        allowUiUpdates: true
+        options:
+          path: {{ .Values.dashboards.path }}
+{{- end }}
