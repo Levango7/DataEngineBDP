@@ -42,14 +42,14 @@
 ## 五、执行顺序（队列，认领：zcode）
 
 1. ✅ 六模块实况盘查（完成，本文档 §三）
-2. 🔄 data-standard + master-data Dockerfile（Java 运行层惯例；mvn 构建产物 + 非 root + 健康检查）
+2. ✅ data-standard + master-data Dockerfile（Java 运行层惯例；mvn 构建产物 + 非 root + 健康检查）——2026-11-12 复核：两份 Dockerfile 均在仓（`platform/data-standard/Dockerfile` / `platform/master-data/Dockerfile`）
 3. ✅ operations-api Dockerfile 核（2026-11-10）：Dockerfile 既存（#117 P1-7 失实）；「与双实现裁决解耦」的假设被 #119⑥ 取代——裁 chart 为唯一部署单元并已入 umbrella
 4. ⬜ flink-cdc 形态裁定（报主理人，二选一：常驻服务 or 作业提交器）
 5. ⬜ storage-io/chunker README 依赖说明 + 从缺口清单除名（防后人再当缺口补）
-6. 🔄 #299/P0-4 尾部 6 前缀的 chart 补齐（operations-api 已于 2026-11-10 随 #119⑥ 裁决落地：chart 入 umbrella + `/api/v1/contracts` 路由可达；剩 master-data/data-standard）
+6. ✅ #299/P0-4 尾部 6 前缀的 chart 补齐：operations-api 已于 2026-11-10 随 #119⑥ 裁决落地（chart 入 umbrella + `/api/v1/contracts` 路由可达）；**master-data 与 data-standard 已于 2026-11-12 随 `chore/umbrella-master-data-data-standard` 入 umbrella 五处同步**（requirements.yaml / Chart.yaml.dependencies / values.yaml / Chart.lock / charts tgz；两份 chart 与 APISIX 路由 `/api/v1/master-data/**`、`/api/v1/standard-categories/**` 等系早已存在，缺的只是 umbrella 成员资格）
 7. ✅ P1-8 Phase 0（E2E 断言内容化，2026-11-06 随 #771 落地；核证：`test_e2e_cross_domain.py` 四处——:655-670 404→skip+内容断言、:758-760 invoke 内容断言、:770-781 计费形状断言、:239-261 chain1 三条内容判据）
 8. ✅ `PUT /api/v1/clusters/{env}/{id}/network` 永久方案落地（2026-11-07，详见 §五.8）
-9. ⬜ operations-api 纳入 kind 冒烟子集（2026-11-11 登记）：build_load 白名单加第 7 服务 + values-local-images 镜像覆盖 + 本地供密或 authMode 覆盖（chart 默认 AUTH_MODE=jwt 且 secretKeyRef 钉 shuqing-jwt-secret，本地/CI 无该 Secret ⇒ CreateContainerConfigError，CI kind-smoke 实证）+ 冒烟断言补 /healthz 与失败日志循环补名；本轮先按 encaps-data 同口径在 values-local-core 显式关闭（umbrella 默认启用不变）
+9. ⬜ operations-api 纳入 kind 冒烟子集（2026-11-11 登记）：build_load 白名单加第 7 服务 + values-local-images 镜像覆盖 + 本地供密或 authMode 覆盖（chart 默认 AUTH_MODE=jwt 且 secretKeyRef 钉 shuqing-jwt-secret，本地/CI 无该 Secret ⇒ CreateContainerConfigError，CI kind-smoke 实证）+ 冒烟断言补 /healthz 与失败日志循环补名；本轮先按 encaps-data 同口径在 values-local-core 显式关闭（umbrella 默认启用不变）；**2026-11-12 同批**：master-data 与 data-standard 亦入 umbrella 且同样在 values-local-core 显式关闭（理由同款：build_load 白名单不含其镜像 + 本地/CI 无 shuqing-jwt-secret），纳入 kind 子集同属 ⬜
 10. 🔄 AUTH_MODE=none 核定/清扫尾（2026-11-10 核定，分支 feat/auth-mode-local-jwt）：五面全景——①chart 生产默认 7 服务（含 operations-api）显式钉 jwt + secretKeyRef + fail-fast 留痕 ✔；②本地 values nl2sql + open-api-catalog 两处 `authMode: none` 但密已供（existingSecretName=dataengine-catalog-auth，冒烟值 35 字符 ≥32B）⇒ 翻 jwt 与生产同态 ✅ 本轮（health 端点无 Depends 不受影响，业务路由真鉴权）；③IT compose 棘轮基线 6 项（4 none + 2 undeclared）＝台账 #68 正主，失明危害实证（IT 测试 30 文件含 401/token 断言），清偿须 Docker 实跑验证 ⇒ 本机约束下登记缓做；④k3s 演示面 9 服务显式 none＝每文件留痕「生产请使用 helm charts」的演示豁免，且 `scripts/check-it-auth-mode.py` 棘轮仅覆盖 compose ⇒ **k3s 面为已知盲区，纳管（脚本扩展扫 k3s manifests）作后续候选**；⑤open-api-catalog invoke router 未挂全局 Depends 但自有 AK/SK 认证（X-API-Key+Secret，缺凭证 401）＝设计内。
 
 ### 8. PUT /network 永久方案（manifest 自动化审计批 fix/audit-20261106-batch1）

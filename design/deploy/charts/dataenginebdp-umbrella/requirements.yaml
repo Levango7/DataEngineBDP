@@ -36,6 +36,14 @@ dependencies:
     version: "2.0.0"
     repository: "file://../governance"
     condition: governance.enabled
+  - name: master-data
+    version: "2.0.0"
+    repository: "file://../master-data"
+    condition: master-data.enabled
+  - name: data-standard
+    version: "2.0.0"
+    repository: "file://../data-standard"
+    condition: data-standard.enabled
   - name: metadata-collector
     version: "2.0.0"
     repository: "file://../metadata-collector"
