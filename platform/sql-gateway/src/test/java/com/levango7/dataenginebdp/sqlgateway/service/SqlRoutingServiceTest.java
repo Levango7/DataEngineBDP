@@ -69,6 +69,33 @@ class SqlRoutingServiceTest {
     }
 
     @Test
+    @DisplayName("execute — rowCount 与 rows 计数自洽（成功路径 set、缓存命中 copy 保留）")
+    void execute_rowCount_matchesRowsSize_andSurvivesCacheCopy() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest request = new SqlExecuteRequest();
+        request.setSql("SELECT 1");
+        request.setEngine("trino");
+        request.setTenantId("t1");
+
+        SqlExecuteResponse mockResponse = SqlExecuteResponse.builder()
+                .queryId("q-rowcount")
+                .status("SUCCESS")
+                .columns(List.of("1"))
+                .rows(List.of(List.of(1), List.of(2)))
+                .durationMs(50L)
+                .engine("trino")
+                .build();
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any())).thenReturn(Mono.just(mockResponse));
+
+        SqlExecuteResponse first = svc.execute(request);
+        assertThat(first.getRowCount()).isEqualTo(2);
+
+        SqlExecuteResponse second = svc.execute(request);
+        assertThat(second.getRowCount()).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("execute — 指定doris引擎时路由到Doris后端")
     void execute_withDorisEngine_shouldProxyToDoris() {
         SqlExecuteRequest request = new SqlExecuteRequest();

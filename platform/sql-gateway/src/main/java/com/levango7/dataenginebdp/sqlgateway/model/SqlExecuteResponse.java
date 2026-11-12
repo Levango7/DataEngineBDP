@@ -36,6 +36,14 @@ public class SqlExecuteResponse {
     private List<List<Object>> rows;
 
     /**
+     * 结果行数（与 rows 保持一致，供调用方做结构与计数自洽校验）。
+     *
+     * <p>对齐 cross-source 契约（CrossSourceResponse.rowCount）：
+     * /execute 响应此前缺该字段，调用方无法校验返回行数与声明计数是否自洽。</p>
+     */
+    private int rowCount;
+
+    /**
      * 执行耗时（毫秒）。
      */
     private Long durationMs;
