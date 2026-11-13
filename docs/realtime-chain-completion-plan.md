@@ -1,7 +1,7 @@
 # 实时链路补齐专项（立项件，2026-11-13 提交待裁）
 
 > 归属：多平台多租户大数据平台 · 实时链路
-> 状态：**立项件已提交，待主理人裁**（2026-11-13；本件只做只读取证与方案设计，**未改任何代码**）
+> 状态：**执行中（第一批 A1a/B1/C1 已实施，2026-11-13；主理人「全按推荐」授权）**
 > 缘起：八域能力对照（`docs/TENDER-CAPABILITY-MAP.md` 与 2026-11-08 三路盘点 FINAL-MATRIX）判定的**唯一硬缺口**——实时计算链路「CDC→入湖→物化→查询」存在三处断链，「分钟级客流/分钟级看板」类标此前不可承诺。
 > 关联：台账 **#119①**（MV 管理面宿主待裁；本件汇证、不预设裁决）、**#141**（真实存储泳道：Phase 1 已落地；Phase 2 连接件矩阵与本专项同域）、`docs/STREAM-BATCH-DECISION-TABLE.md`（对外口径「定义一体、执行分治」）、`docs/realtime-pipeline-implementation-status.md`（**实时治理链**现状——与本件的**实时计算链**不是同一条链，勿混引）、`docs/flink-cdc-deployment.md`（CDC 作业提交器形态裁决）。
 
@@ -51,7 +51,7 @@ Iceberg / Doris 表 ──→ 物化（sql-gateway 重写真；Doris MV 刷新�
 
 ## 三、补齐方案（分阶段，逐阶段可独立裁）
 
-### Phase A：CDC→Iceberg 入湖接线（首选，改动面最小）
+### Phase A：CDC→Iceberg 入湖接线（首选，改动面最小）——**A1a 已实施（2026-11-13）；终段待泳道**
 
 - **A1（推荐）**：接线 `attachIcebergSink()` → `IcebergSinkConnector.createSink()`，并把反射桥从"返回 Stub"改为**真调用** `FlinkSink.forRowData(...).table(...).append()`（Iceberg 官方 Flink connector，运行时由 Flink 集群 lib 提供——连接器注释即按此设计）；WAL 保留为**崩溃缓冲**（现有语义不浪费）。
   - 改动面：`CdcFramework` 接线 + 反射桥真实化 + pom 增 `iceberg-flink-runtime`（provided 域）；连接器本体与既有单测基本"白捡"。
@@ -60,14 +60,14 @@ Iceberg / Doris 表 ──→ 物化（sql-gateway 重写真；Doris MV 刷新�
 
 验收判据：单测（接线 + 反射桥真实路径断言）；端到端 = CDC 灌一行 → Iceberg 表可查（含重启后读回）。
 
-### Phase B：CDC→Doris 入湖
+### Phase B：CDC→Doris 入湖——**B1 已实施（2026-11-13，含单测）**
 
 - **B1（推荐）**：Doris Stream Load（HTTP API）自研轻量 sink——Stream Load 是稳定 HTTP 面，与现网 `DorisAdapterImpl` 调用风格一致，依赖面最小；
 - **B2**：引入 Flink Doris Connector（重依赖，版本矩阵待评）。
 
 验收判据：CDC 一行 → Doris 表 SELECT 可见。
 
-### Phase C：物化视图管理面宿主（**＝ #119①，本件不预设裁决**）
+### Phase C：物化视图管理面宿主——**C1 已实施（2026-11-13，含安全链与单测）**
 
 三选项与代价：
 
@@ -103,6 +103,19 @@ Iceberg / Doris 表 ──→ 物化（sql-gateway 重写真；Doris MV 刷新�
 3. Phase B 路线：**B1** / B2（推荐 B1）；
 4. **#119① 三选项 C1 / C2 / C3**（本件汇证，裁决权归 #119①）；
 5. 排期：独立排期，或并入 #141 Phase 2 泳道。
+
+> **裁决结果（2026-11-13）：全按推荐。** 立项✅ / A1✅ / B1✅ / C1✅（C 段取 C1）/ 独立推进。
+> **第一批实施明细（同日）**：① A1a＝`CdcFramework.attachIcebergSink` 由 log.warn 占位改为真实接线
+> `IcebergSinkConnector.attachTo(stream)`（属性映射 14 键 + 必填 fail-fast；写入落点＝连接器 WAL 缓冲，
+> 不丢数据）；**A1 终段**（反射桥真调用 `FlinkSink/IcebergSink`、真实 Iceberg SDK 写入）需
+> iceberg-flink-runtime 进集群 lib ＋ 集群端到端，留待 nightly 泳道/真机。② B1＝新增
+> `DorisStreamLoadSink`（Doris Stream Load HTTP 批写、AT_LEAST_ONCE、失败抛异常交作业重试）
+> ＋ `attachDorisSink` 接线，含 HttpServer 模拟单测。③ C1＝新增
+> `MaterializedViewManagementApplication`（最小 Spring Boot 入口，只承载管理面；自定义安全过滤链：
+> 健康端点 `/api/v1/health`（common-security `JwtAuthFilter` 白名单口径）放行、`/api/**` 走 JWT；
+> `DorisHttpSqlExecutor` 提供刷新 SQL 执行通道）＋ chart `command/args` 透传支持（探针默认路径
+> 同步改 `/api/v1/health`），含上下文/安全面单测。
+> **未改共享模块**：common-security 因 `@ConditionalOnMissingBean(SecurityFilterChain)` 自动退让。
 
 ## 七、证据索引
 

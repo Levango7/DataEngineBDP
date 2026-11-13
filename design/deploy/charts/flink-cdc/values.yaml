@@ -10,6 +10,22 @@ image:
   tag: "2.0.0"
   pullPolicy: IfNotPresent
 
+# ---- 运行形态（Phase C1：物化视图管理面宿主）----
+# 默认（command/args 均为空）：走镜像 ENTRYPOINT/CMD —— flink CLI 提交 CDC 作业（提交器形态）。
+# 管理面模式示例（同一 jar 换主类，只承载 /api/materialized-views 与探针，不起 CDC 作业）：
+#   command: ["java"]
+#   args:
+#     - "-cp"
+#     - "/opt/flink-cdc/flink-cdc.jar"
+#     - "com.levango7.dataenginebdp.flinkcdc.materializedview.MaterializedViewManagementApplication"
+# 管理面鉴权：app.security.jwt.secret/issuer（健康端点 /api/v1/health 为平台白名单口径已放行，
+# 其余 /api/** 要求 JWT；生产密钥建议经 Secret 注入 —— 见 platform/flink-cdc/src/main/resources/application.yml）。
+# 台账 #119① 的 C1 选项以本模式承载；APISIX 既有路由 flink-cdc:8080 随之可达。
+# 注：探针默认路径已由 /healthz//readyz 改为 /api/v1/health（JwtAuthFilter 白名单口径；
+# 提交器形态本就无 HTTP 面，探针此前不可满足，本次随管理面口径统一）。
+command: []
+args: []
+
 # ---- 副本数 ----
 replicaCount: 1
 
@@ -48,7 +64,7 @@ probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
+      path: /api/v1/health
       port: 8080
     initialDelaySeconds: 30
     periodSeconds: 10
@@ -56,7 +72,7 @@ probes:
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
+      path: /api/v1/health
       port: 8080
     initialDelaySeconds: 10
     periodSeconds: 5
