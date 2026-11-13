@@ -25,16 +25,16 @@
 # 安装到默认命名空间
 helm install grafana design/deploy/charts/grafana -n sq-monitor --create-namespace
 
-# 使用自定义 values 覆盖
+# 使用自定义 values 覆盖（仓库内无 grafana-values.yaml；用你的环境 values 文件）
 helm install grafana design/deploy/charts/grafana -n sq-monitor \
-  -f design/deploy/values/grafana-values.yaml
+  -f <your-env-values>.yaml
 ```
 
 ### 3.2 升级
 
 ```bash
 helm upgrade grafana design/deploy/charts/grafana -n sq-monitor \
-  -f design/deploy/values/grafana-values.yaml
+  -f <your-env-values>.yaml
 ```
 
 ### 3.3 卸载
@@ -177,4 +177,30 @@ helm rollback grafana -n sq-monitor
 - **项目主页**：https://github.com/DataEngineBDP
 - **Chart 版本**：2.0.0
 - **App 版本**：2.0.0
-- **关联配置**：`design/deploy/values/grafana-values.yaml`
+- **关联配置**：本 chart 的 `values.yaml`（2026-11-13 订正：原引用的 `design/deploy/values/grafana-values.yaml` 在仓库中不存在，属悬空引用）
+
+## 10. Dashboards as Code（大盘即代码，2026-11-13 新增）
+
+**机制**：大盘以 JSON 文件随 chart 入库（`dashboards/*.json`），由 `templates/dashboards-configmap.yaml`
+打包为 ConfigMap（带 `grafana_dashboard: "1"` 标签）并生成 provisioning provider；`templates/datasources-configmap.yaml`
+提供 Prometheus 数据源 provisioning；Deployment 将三处卷挂载进容器：
+
+- 大盘目录 → `/var/lib/grafana/dashboards`（provider 的 `path`，见 `dashboards.path`）
+- provider 配置 → `/etc/grafana/provisioning/dashboards`
+- 数据源配置 → `/etc/grafana/provisioning/datasources`（`datasource.*`，默认 `http://prometheus:9090`）
+
+**随 chart 交付的大盘**：
+
+| 大盘 | uid | 内容 |
+| --- | --- | --- |
+| 平台 API 总览 | `sq-api-overview` | 在线目标（`up`）、JVM/Go 请求率、P95 延迟、5xx 占比、up 明细表 |
+| JVM 服务明细 | `sq-jvm-services` | 堆/非堆内存、进程 CPU、线程数、GC 暂停率、Go 在途请求 |
+
+**指标口径**：Java 服务取 Actuator/Prometheus 族（`http_server_requests_seconds_*`、`jvm_*`、`process_*`）；
+Go 服务（catalog 等）取 `http_requests_total` / `http_request_duration_seconds` / `http_in_flight_requests`。
+
+**操作**：加盘 = 往 `dashboards/` 丢 JSON 后 `helm upgrade`（ConfigMap checksum 触发滚动重启）；关盘 = `dashboards.enabled=false`。
+
+**验证**：`helm template grafana design/deploy/charts/grafana` 渲染含 3 个相关 ConfigMap 与 3 个挂载点；
+CI 的「全量 Chart 矩阵」腿（Profile Render Check）覆盖本 chart。**边界**：面板查询按通用指标名书写，
+各环境 `instance` 标签与 Prometheus scrape 配置相关；若面板 No data，先核对 Prometheus 抓取目标与 `datasource.url`。

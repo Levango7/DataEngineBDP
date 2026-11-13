@@ -292,16 +292,7 @@ pytest docker/test_finops_dashboard.py -v
 
 ## 10. 已知状态：invoice / payment 未实现脚手架、当前不可达（2026-11-06 审计）
 
-以下两个 Service 已在源码树中，但**没有任何 Controller / 路由引用**（全仓 grep 零注入点），
-因此**不可通过任何 HTTP 端点触达**，仅为编译期骨架：
-
-| 类 | 路径（service 包） | 状态 |
-|----|--------------------|------|
-| `InvoiceService` | `service/InvoiceService.java` | 未接线：PDF 生成/邮件模板/编号序列/税率配置化/持久化均 TODO，类头已标注 |
-| `PaymentService` | `service/PaymentService.java` | 未接线：持久化/回调/超时/对账均 TODO，类头已标注 |
-
-连同同族 `PaymentGateway` / `MockPaymentGateway` / `SplitNotificationService`，
-该流程（P-03 出账支付分账后半段）共约 74 处 TODO 未实现。
-
-**处置口径**：不删代码、不造端点（端点本就不存在，造 501 反而是新攻击面）；
-接线 or 删除的产品裁决见 `docs/KNOWN-FAILURES.md` #117 待裁项。
+→ 2026-11-12 处置收官：本节所述代码系未接线、TODO 未实现的死代码链（文件头自证），
+经全面零引用核定后由产品裁决删除（主理人原话「大数据平台为什么要接线这个支付能力」），
+代码链与本节清单式文档已同批移除（分支 chore/remove-invoice-payment-dead-chain），
+销账见 docs/KNOWN-FAILURES.md #119⑤（CLOSED）。本节仅留此收官说明；活功能见本文件其余各节。

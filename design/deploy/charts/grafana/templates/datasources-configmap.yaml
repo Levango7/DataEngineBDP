@@ -1,0 +1,19 @@
+{{- if and .Values.dashboards.enabled .Values.datasource.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-datasource-provisioning
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: {{ .Values.datasource.name }}
+        uid: {{ .Values.datasource.uid }}
+        type: prometheus
+        access: proxy
+        url: {{ .Values.datasource.url }}
+        isDefault: {{ .Values.datasource.isDefault }}
+        editable: false
+{{- end }}

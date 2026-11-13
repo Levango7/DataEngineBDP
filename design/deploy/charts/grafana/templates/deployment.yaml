@@ -67,6 +67,20 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+{{- if .Values.dashboards.enabled }}
+          volumeMounts:
+            - name: dashboards
+              mountPath: {{ .Values.dashboards.path | quote }}
+              readOnly: true
+            - name: dashboard-provisioning
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
+{{- if .Values.datasource.enabled }}
+            - name: datasource-provisioning
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
+{{- end }}
+{{- end }}
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
@@ -78,5 +92,19 @@ spec:
               drop:
 {{- range .Values.securityContext.capabilities.drop }}
                 - {{ . }}
+{{- end }}
+{{- end }}
+{{- if .Values.dashboards.enabled }}
+      volumes:
+        - name: dashboards
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboards
+        - name: dashboard-provisioning
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboard-provisioning
+{{- if .Values.datasource.enabled }}
+        - name: datasource-provisioning
+          configMap:
+            name: {{ include "grafana.fullname" . }}-datasource-provisioning
 {{- end }}
 {{- end }}
