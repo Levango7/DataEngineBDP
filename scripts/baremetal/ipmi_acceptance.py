@@ -50,6 +50,7 @@ import ssl
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 VERDICT_PASS = "PASS"
@@ -63,6 +64,18 @@ IPMI_READONLY_COMMANDS = (
     ("sensor_list", ["sensor", "list"]),
     ("lan_print", ["lan", "print"]),
 )
+
+# urllib 支持 file:// 等非 HTTP scheme；若不设白名单，一个拼错的地址就可能变成「读本地文件」的入口。
+# 取证器只该访问 BMC 的 Redfish 服务 ⇒ 只放行 http/https。
+ALLOWED_URL_SCHEMES = ("http", "https")
+
+
+def _url_scheme(url: str) -> str:
+    return urllib.parse.urlsplit(url).scheme.lower()
+
+
+def _scheme_allowed(url: str) -> bool:
+    return _url_scheme(url) in ALLOWED_URL_SCHEMES
 
 
 def _mask(text: str, secrets) -> str:
@@ -82,6 +95,11 @@ def _mask(text: str, secrets) -> str:
 def _redfish_get(base_url: str, path: str, user: str, password: str,
                   timeout: float, insecure: bool):
     """GET 一个 Redfish 端点，返回 {"status", "body", "error"}，不抛异常。"""
+    if not _scheme_allowed(base_url):
+        return {"status": None, "body": "",
+                "error": "不支持的 URL scheme: %r（只允许 %s）"
+                         % (_url_scheme(base_url), "/".join(ALLOWED_URL_SCHEMES)),
+                "url": base_url, "auth": bool(user)}
     url = base_url.rstrip("/") + path
     headers = {"Accept": "application/json"}
     if user:
@@ -94,6 +112,9 @@ def _redfish_get(base_url: str, path: str, user: str, password: str,
         ctx.verify_mode = ssl.CERT_NONE  # BMC 自签证书是常态，由 --insecure 显式开关
     req = urllib.request.Request(url, headers=headers, method="GET")
     try:
+        # 核实依据：已加固：_redfish_get 入口只放行 http/https（file:// 等 scheme 在发起请求前即被拒），
+        # 且 URL 来自运维显式传入的 --redfish（非终端用户输入）；剩余风险仅为误配地址打到非预期主机。
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
             body = resp.read(65536).decode("utf-8", errors="replace")
             return {"status": resp.status, "body": body, "error": None,
@@ -121,6 +142,10 @@ def probe_redfish(base_url, user, password, timeout, insecure, secrets):
     out = {"probed": False, "endpoints": {}, "reason": None}
     if not base_url:
         out["reason"] = "未提供 --redfish 地址"
+        return out
+    if not _scheme_allowed(base_url):
+        out["reason"] = "Redfish 地址 scheme 不支持：%r（只允许 %s）" % (
+            _url_scheme(base_url), "/".join(ALLOWED_URL_SCHEMES))
         return out
     out["probed"] = True
     root = _redfish_get(base_url, "/redfish/v1/", user, password, timeout, insecure)
@@ -465,9 +490,39 @@ def self_test():
     if by_id["C4"]["verdict"] != VERDICT_FAIL:
         failures.append("变异桩（传感器清零）：C4 应 FAIL，实为 %s" % by_id["C4"]["verdict"])
 
+    # URL scheme 白名单：urllib 支持 file:// 等 scheme，若放行则可能被当成本地文件读取入口
+    if not _scheme_allowed("https://bmc.example.com"):
+        failures.append("scheme 白名单：https 应放行")
+    for bad in ("file:///etc/passwd", "ftp://bmc.example.com", "gopher://bmc.example.com"):
+        if _scheme_allowed(bad):
+            failures.append("scheme 白名单：%s 应被拒" % bad)
+    rf_bad = probe_redfish("file:///etc/passwd", "u", "p", 1.0, False, [])
+    if rf_bad.get("probed"):
+        failures.append("scheme 白名单：file:// 地址不应进入探测态")
+    if "scheme" not in (rf_bad.get("reason") or ""):
+        failures.append("scheme 白名单：file:// 地址应给出 scheme 拒绝理由（实为 %r）" % rf_bad.get("reason"))
+    got = _redfish_get("file:///etc/passwd", "/redfish/v1/", "", "", 1.0, False)
+    if got.get("status") is not None or "scheme" not in (got.get("error") or ""):
+        failures.append("scheme 白名单：_redfish_get 对 file:// 必须拒绝且给出 scheme 理由（实为 %r）" % got)
+    # 变异校验：把 urlopen 换成记账桩，file:// 地址必须一次都不触发 urlopen（证明拒绝发生在发起请求之前）
+    calls = []
+    real_urlopen = urllib.request.urlopen
+
+    def _spy(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("urlopen 不应被调用")
+
+    urllib.request.urlopen = _spy
+    try:
+        _redfish_get("file:///etc/passwd", "/redfish/v1/", "", "", 1.0, False)
+    finally:
+        urllib.request.urlopen = real_urlopen
+    if calls:
+        failures.append("变异校验：file:// 地址不应触发 urlopen（实为 %d 次）" % len(calls))
+
     for f in failures:
         print("SELF-TEST FAIL: %s" % f)
-    print("self-test: %s（%d 项断言）" % ("OK" if not failures else "FAIL", 5 + 3 + 3 + 3 + 1))
+    print("self-test: %s（%d 项断言）" % ("OK" if not failures else "FAIL", 5 + 3 + 3 + 3 + 1 + 8))
     return 0 if not failures else 1
 
 
