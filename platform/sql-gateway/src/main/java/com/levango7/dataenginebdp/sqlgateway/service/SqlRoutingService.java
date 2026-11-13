@@ -234,6 +234,7 @@ public class SqlRoutingService {
                 .status(src.getStatus())
                 .columns(src.getColumns())
                 .rows(src.getRows())
+                .rowCount(src.getRowCount())
                 .durationMs(src.getDurationMs())
                 .engine(src.getEngine())
                 .rawInputBytes(src.getRawInputBytes())
@@ -343,6 +344,8 @@ public class SqlRoutingService {
 
             // 用网关生成的 queryId 覆盖后端响应中的 queryId，保证全局唯一可追踪
             response.setQueryId(queryId);
+            // 行数契约：rowCount 与 rows 严格自洽（调用方按此校验结构，缺该字段时判据恒假）
+            response.setRowCount(response.getRows() == null ? 0 : response.getRows().size());
             // Doris：优先按 SQL 指纹查审计日志真实扫描字节；未开启/未命中回退估算（Trino：沿用响应 rawInputBytes）
             Long dorisRealBytes = "doris".equalsIgnoreCase(targetEngine)
                     ? resolveDorisScanBytes(sql)
