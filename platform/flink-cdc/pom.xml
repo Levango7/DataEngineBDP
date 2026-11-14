@@ -230,6 +230,20 @@
             <version>${flink.version}</version>
             <scope>${flink.scope}</scope>
         </dependency>
+        <!-- iceberg sink 运行期类型系统（SortedMapTypeInfo 等）；WSL Linux 实测 NoClassDefFound 后补 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-runtime</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <!-- iceberg flink sink metrics 初始化所需（DropwizardHistogramWrapper）；缺则 writer 任务首轮失败重启 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-metrics-dropwizard</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
 
         <!-- ============ YAML 配置解析 ============ -->
         <dependency>
@@ -357,7 +371,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!-- 2026-11-15 A1 终段：iceberg sink 本地真写测试的 mini Flink 集群
+                         在 Java 17 上需完整模块放行集（WriteResult 经 Kryo 兜底序列化，
+                         深反射撞 java.nio/java.util 等模块墙）。生产集群由 Flink
+                         bin/config.sh 默认注入同一组 add opens 参数，测试 JVM 自行复刻。 -->
+                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.charset=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.zip=ALL-UNNAMED --add-opens java.base/java.util.regex=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.action=ALL-UNNAMED --add-opens java.base/sun.security.provider=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <!-- 生成可提交到 Flink 集群的 fat jar (含依赖) -->

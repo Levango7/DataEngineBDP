@@ -73,13 +73,20 @@ class RealIcebergWriteLocalTest {
         catalog.loadTable(identifier).updateSchema().setIdentifierFields("id").commit();
 
         // 3. 本地 mini Flink：三条 CDC 记录经 attachReal 真写（先插 id=2 再等值删除，快照应只剩 id=1）
+        // 有界 fromElements：endOfInput 流向 iceberg sink ⇒ 触发最终 checkpoint 提交。
+        // 记录的 before/after 必须是**可变 HashMap**：fromElements 的元素在 source task 内
+        // 经 Kryo 反序列化重建，Kryo MapSerializer 会对不可变 Map 调 put ⇒ UnsupportedOperationException
+        // （生产侧 Debezium 反序列化器产出的本来就是 HashMap，不受影响；此为测试构造口径）。
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         env.enableCheckpointing(300);
+        // 任何 task 失败立即 fail-fast：让根因异常冒出来，而不是被无限重启循环掩盖
+        // （曾实跑出 attempt #258+ 的 CANCELING 循环，真异常藏在每一轮的 task FAILED 里）
+        env.setRestartStrategy(org.apache.flink.api.common.restartstrategy.RestartStrategies.noRestart());
         DataStream<ChangeRecord> source = env.fromElements(
-                cdcRecord("c", Map.<String, Object>of("id", 1L, "name", "alpha", "amount", 9.5), null),
-                cdcRecord("c", Map.<String, Object>of("id", 2L, "name", "beta"), null),
-                cdcRecord("d", null, Map.<String, Object>of("id", 2L, "name", "beta")));
+                cdcRecord("c", new HashMap<>(Map.<String, Object>of("id", 1L, "name", "alpha", "amount", 9.5)), null),
+                cdcRecord("c", new HashMap<>(Map.<String, Object>of("id", 2L, "name", "beta")), null),
+                cdcRecord("d", null, new HashMap<>(Map.<String, Object>of("id", 2L, "name", "beta"))));
         connector.attachReal(source);
         env.execute("a1-final-real-write");
 
