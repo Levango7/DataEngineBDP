@@ -261,6 +261,8 @@ pytest -v --html=report.html --self-contained-html
 docker-compose down
 ```
 
+> Windows：本机 `docker-compose up` 前先跑 `python scripts/check-compose-port-conflicts.py` 静态比对宿主端口与 Hyper-V 保留段（#116 事故口径：Jaeger 宿主端口 14318 落在 netsh 实测保留段 14219–14318 内致 bind 失败，CI Linux 无保留段不暴露）。该检查已挂 CI 门禁（ci.yml「compose 端口保留段比对（#116）」步），非 Windows 平台脚本打印提示并按 0 退出。
+
 ### 端到端 PoC
 
 ```bash

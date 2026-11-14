@@ -291,7 +291,16 @@ services:
     environment:
       - LLM_GATEWAY_PORT=8084
       - LLM_GATEWAY_VERSION=0.2.0
-      - LLM_GATEWAY_MOCK_MODE=true
+      # Mock 替换（#129）：默认态与改前一致（MOCK_MODE=true 强制 mock 兜底）。
+      # 翻真实 Provider 走环境变量注入，凭据不进本文件：
+      #   LLM_GATEWAY_MOCK_MODE=false LLM_GATEWAY_PROVIDERS=qianwen DASHSCOPE_API_KEY=<百炼 key>
+      # 空 key 不伪造成功：上游鉴权失败由网关如实透传。
+      - LLM_GATEWAY_MOCK_MODE=${LLM_GATEWAY_MOCK_MODE:-true}
+      - LLM_GATEWAY_PROVIDERS=${LLM_GATEWAY_PROVIDERS:-}
+      # 变量名必须与 config.LoadFromEnv 的拼接规则一致：
+      # strings.ToUpper("qianwen") + "_API_KEY" = QIANWEN_API_KEY（无 Y）。
+      - QIANWEN_API_KEY=${DASHSCOPE_API_KEY:-}
+      - QIANWEN_ENDPOINT=${QIANWEN_ENDPOINT:-https://dashscope.aliyuncs.com/compatible-mode/v1}
       - JWT_DEV_MODE=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
