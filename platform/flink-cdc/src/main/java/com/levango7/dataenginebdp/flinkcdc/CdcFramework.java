@@ -262,8 +262,17 @@ public class CdcFramework {
     private void attachIcebergSink(org.apache.flink.streaming.api.datastream.DataStream<ChangeRecord> stream,
                                    SinkConfig config) {
         IcebergSinkConnector connector = buildIcebergConnector(config);
-        connector.attachTo(stream);
-        log.info("Iceberg Sink 已接线: name={}（连接器已进入生产路径，运行期状态见上游日志）", config.getName());
+        try {
+            connector.attachReal(stream);
+            log.info("Iceberg Sink 真实写入路径已接线: name={}（Iceberg runtime 在位）", config.getName());
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(
+                    "Iceberg 表加载失败（表不存在或 catalog 不可达）: " + e.getMessage(), e);
+        } catch (NoClassDefFoundError e) {
+            // 集群 lib 未放置 iceberg-flink-runtime（provided 口径）⇒ 回退 WAL 缓冲路径（不丢数据）
+            log.warn("Iceberg runtime 类缺失（{}），回退 WAL 缓冲路径", e.getMessage());
+            connector.attachTo(stream);
+        }
     }
 
     /**
