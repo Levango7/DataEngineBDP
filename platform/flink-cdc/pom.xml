@@ -37,6 +37,9 @@
         <kafka.clients.version>4.4.0</kafka.clients.version>
         <snakeyaml.version>2.7</snakeyaml.version>
         <flink.scope>provided</flink.scope>
+        <!-- A1 终段（2026-11-14）：本地仓已实证 iceberg-api 1.12.0 可解析（aliyun 家族在册） -->
+        <iceberg.version>1.12.0</iceberg.version>
+        <hadoop.version>3.4.0</hadoop.version>
     </properties>
 
     <!-- Flink CDC 3.6.0 的 oracle 连接器传递依赖 org.geotools:gt-main（空间类型支持），
@@ -192,6 +195,38 @@
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-connector-base</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+
+        <!-- ============ Iceberg Flink runtime（A1 终段：真实写入，Phase A） ============
+             运行时由 Flink 集群 lib 提供（与 flink 同 provided 口径，部署面在集群 lib
+             放置 iceberg-flink-runtime jar）；编译期直接引入以调用官方 API，
+             结束连接器「编译期不依赖 Iceberg SDK / 深反射」的旧设计。 -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-flink-runtime-1.20</artifactId>
+            <version>${iceberg.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <!-- CatalogLoader 工厂与 Configuration 编译面（集群 lib 提供 hadoop；本地测试用
+             hadoop-client-runtime 跑 HadoopCatalog 真写） -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client-api</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client-runtime</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- RowData/GenericRowData 转换面（ChangeRecord → RowData mapper），同 provided 口径 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-common</artifactId>
             <version>${flink.version}</version>
             <scope>${flink.scope}</scope>
         </dependency>

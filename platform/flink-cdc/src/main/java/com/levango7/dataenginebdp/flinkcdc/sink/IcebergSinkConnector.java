@@ -16,6 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import org.apache.iceberg.Schema;
+import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.flink.CatalogLoader;
+import org.apache.iceberg.flink.TableLoader;
+import org.apache.iceberg.flink.sink.FlinkSink;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -426,6 +431,79 @@ public final class IcebergSinkConnector implements Serializable {
     public void attachTo(DataStream<ChangeRecord> stream) {
         Objects.requireNonNull(stream, "stream 不能为 null");
         stream.sinkTo(createSink());
+    }
+
+    /**
+     * 真实 Iceberg 写入路径（A1 终段）：ChangeRecord → RowData（schema 内省转换）→
+     * 官方 {@code FlinkSink} 附加（取代 WAL 缓冲占位）。
+     *
+     * <p>表 schema 在**作业构建期**从 catalog 实际加载（表不存在即 fail-fast），
+     * 运行期 mapper 不再查 catalog。仅支持 REST catalog（平台推荐口径）；
+     * 其余 catalog 类型抛异常提示（HADOOP/HIVE/JDBC 需 hadoop-client 编译面，
+     * 属后续段）。集群 lib 需放置 iceberg-flink-runtime（provided 口径，
+     * 运行期缺失时由调用方回退 WAL 路径）。</p>
+     *
+     * @param stream 输入数据流
+     * @throws IllegalStateException 配置不合法、catalog 类型不支持或表加载失败
+     */
+    public void attachReal(DataStream<ChangeRecord> stream) throws java.io.IOException {
+        Objects.requireNonNull(stream, "stream 不能为 null");
+        validate();
+        java.util.Map<String, String> catalogProps = new java.util.HashMap<>();
+        catalogProperties.forEach((key, value) -> catalogProps.put(String.valueOf(key), String.valueOf(value)));
+        TableLoader loader = buildTableLoader(catalogProps);
+        boolean upsert = writeMode == WriteMode.UPSERT;
+
+        loader.open();
+        try {
+            Schema schema = loader.loadTable().schema();
+            if (upsert && schema.identifierFieldNames().isEmpty()) {
+                throw new IllegalStateException(
+                        "UPSERT 模式要求 catalog 中的表定义 identifier 字段（主键）: " + database + "." + table);
+            }
+            DataStream<org.apache.flink.table.data.RowData> rowStream =
+                    stream.map(new ChangeRecordRowDataMapper(schema, upsert));
+            FlinkSink.forRowData(rowStream)
+                    .tableLoader(loader)
+                    .upsert(upsert)
+                    .set("distribution-mode", distributionMode.code())
+                    .append();
+            log.info("Iceberg 真实写入路径已附加: catalog={}, 表={}.{}, upsert={}, distribution={}",
+                    catalogName, database, table, upsert, distributionMode.code());
+        } finally {
+            loader.close();
+        }
+    }
+
+    /**
+     * 构建 TableLoader（A1 终段）：REST（生产推荐）与 HADOOP（本地测试/无 REST 部署）两路；
+     * HIVE/JDBC 需额外依赖面，属后续段。
+     *
+     * @param catalogProps catalog 属性（Properties 转换后的 String Map）
+     * @return TableLoader（懒连接，open 时才真正访问 catalog）
+     * @throws IllegalStateException catalog 类型不支持或必填项缺失
+     */
+    TableLoader buildTableLoader(java.util.Map<String, String> catalogProps) {
+        if (catalogType == CatalogType.REST) {
+            if (catalogUri == null || catalogUri.isBlank()) {
+                throw new IllegalStateException("REST catalog 必须指定 catalogUri");
+            }
+            org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+            return TableLoader.fromCatalog(
+                    CatalogLoader.rest(catalogName, conf, catalogProps),
+                    TableIdentifier.of(database, table));
+        }
+        if (catalogType == CatalogType.HADOOP) {
+            if (warehouse == null || warehouse.isBlank()) {
+                throw new IllegalStateException("HADOOP catalog 必须指定 warehouse");
+            }
+            org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+            return TableLoader.fromCatalog(
+                    CatalogLoader.hadoop(catalogName, conf, catalogProps),
+                    TableIdentifier.of(database, table));
+        }
+        throw new IllegalStateException("A1 终段真实写入当前支持 REST/HADOOP catalog，当前: "
+                + catalogType.code() + "（HIVE/JDBC 属后续段）");
     }
 
     /**
