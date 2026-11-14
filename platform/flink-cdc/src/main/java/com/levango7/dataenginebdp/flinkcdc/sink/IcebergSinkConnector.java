@@ -489,6 +489,9 @@ public final class IcebergSinkConnector implements Serializable {
                 throw new IllegalStateException("REST catalog 必须指定 catalogUri");
             }
             org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+            // REST catalog 的 uri/warehouse 必须进 properties 袋（RESTCatalog.initialize 从这里读）
+            catalogProps.putIfAbsent("uri", catalogUri);
+            catalogProps.putIfAbsent("warehouse", warehouse);
             return TableLoader.fromCatalog(
                     CatalogLoader.rest(catalogName, conf, catalogProps),
                     TableIdentifier.of(database, table));
@@ -498,6 +501,8 @@ public final class IcebergSinkConnector implements Serializable {
                 throw new IllegalStateException("HADOOP catalog 必须指定 warehouse");
             }
             org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+            // HadoopCatalog.initialize 从 properties 的 warehouse 键读仓库路径（仅 Builder 字段不够）
+            catalogProps.putIfAbsent("warehouse", warehouse);
             return TableLoader.fromCatalog(
                     CatalogLoader.hadoop(catalogName, conf, catalogProps),
                     TableIdentifier.of(database, table));
