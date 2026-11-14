@@ -1279,21 +1279,22 @@ class IcebergSinkConnectorTest {
     class CreateSinkTest {
 
         @Test
-        @DisplayName("createIcebergSinkViaReflection — Iceberg 不可用时抛出 IllegalStateException")
+        @DisplayName("createIcebergSinkViaReflection — A1 终段后 runtime 类在测试期即在位，返回委托 Sink 不再抛")
         void icebergUnavailable() {
+            // A1 终段（2026-11-14）改为编译期 provided 依赖：iceberg 类在测试类路径必然在位，
+            // Class.forName 恒成功 ⇒ 委托 Sink 返回（不再抛「依赖不可用」）。
+            // 运行期（集群 lib 缺 jar）的 fail-fast 已上移：CdcFramework.attachIcebergSink
+            // 捕获 NoClassDefFoundError 后回退 WAL 缓冲路径。
             IcebergSinkConnector c = upsertConnector();
             Map<String, String> props = c.createIcebergProperties();
-            assertThatThrownBy(() -> c.createIcebergSinkViaReflection(props))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("Iceberg Flink Sink 依赖不可用");
+            assertThat(c.createIcebergSinkViaReflection(props)).isNotNull();
         }
 
         @Test
-        @DisplayName("createSink — Iceberg 不可用时抛出异常（先 validate 再反射）")
+        @DisplayName("createSink — runtime 在位时 validate 通过即返回委托 Sink（缺失回退见 attachIcebergSink）")
         void createSink_icebergUnavailable() {
             IcebergSinkConnector c = upsertConnector();
-            assertThatThrownBy(c::createSink)
-                    .isInstanceOf(IllegalStateException.class);
+            assertThat(c.createSink()).isNotNull();
         }
 
         @Test

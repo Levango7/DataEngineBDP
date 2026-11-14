@@ -37,6 +37,9 @@
         <kafka.clients.version>4.4.0</kafka.clients.version>
         <snakeyaml.version>2.7</snakeyaml.version>
         <flink.scope>provided</flink.scope>
+        <!-- A1 终段（2026-11-14）：本地仓已实证 iceberg-api 1.12.0 可解析（aliyun 家族在册） -->
+        <iceberg.version>1.12.0</iceberg.version>
+        <hadoop.version>3.4.0</hadoop.version>
     </properties>
 
     <!-- Flink CDC 3.6.0 的 oracle 连接器传递依赖 org.geotools:gt-main（空间类型支持），
@@ -196,6 +199,52 @@
             <scope>${flink.scope}</scope>
         </dependency>
 
+        <!-- ============ Iceberg Flink runtime（A1 终段：真实写入，Phase A） ============
+             运行时由 Flink 集群 lib 提供（与 flink 同 provided 口径，部署面在集群 lib
+             放置 iceberg-flink-runtime jar）；编译期直接引入以调用官方 API，
+             结束连接器「编译期不依赖 Iceberg SDK / 深反射」的旧设计。 -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-flink-runtime-1.20</artifactId>
+            <version>${iceberg.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <!-- CatalogLoader 工厂与 Configuration 编译面（集群 lib 提供 hadoop；本地测试用
+             hadoop-client-runtime 跑 HadoopCatalog 真写） -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client-api</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client-runtime</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- RowData/GenericRowData 转换面（ChangeRecord → RowData mapper），同 provided 口径 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-common</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <!-- iceberg sink 运行期类型系统（SortedMapTypeInfo 等）；WSL Linux 实测 NoClassDefFound 后补 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-runtime</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+        <!-- iceberg flink sink metrics 初始化所需（DropwizardHistogramWrapper）；缺则 writer 任务首轮失败重启 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-metrics-dropwizard</artifactId>
+            <version>${flink.version}</version>
+            <scope>${flink.scope}</scope>
+        </dependency>
+
         <!-- ============ YAML 配置解析 ============ -->
         <dependency>
             <groupId>org.yaml</groupId>
@@ -322,7 +371,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!-- 2026-11-15 A1 终段：iceberg sink 本地真写测试的 mini Flink 集群
+                         在 Java 17 上需完整模块放行集（WriteResult 经 Kryo 兜底序列化，
+                         深反射撞 java.nio/java.util 等模块墙）。生产集群由 Flink
+                         bin/config.sh 默认注入同一组 add opens 参数，测试 JVM 自行复刻。 -->
+                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.charset=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.zip=ALL-UNNAMED --add-opens java.base/java.util.regex=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.math=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.base/sun.security.action=ALL-UNNAMED --add-opens java.base/sun.security.provider=ALL-UNNAMED --add-opens java.base/sun.security.util=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <!-- 生成可提交到 Flink 集群的 fat jar (含依赖) -->
