@@ -1,6 +1,8 @@
 package com.levango7.dataenginebdp.flinkcdc;
 
 import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
+import com.levango7.dataenginebdp.flinkcdc.sink.DorisStreamLoadSink;
+import com.levango7.dataenginebdp.flinkcdc.sink.IcebergSinkConnector;
 import com.levango7.dataenginebdp.flinkcdc.sink.SinkConfig;
 import com.levango7.dataenginebdp.flinkcdc.source.MySqlSourceConnector;
 import com.levango7.dataenginebdp.flinkcdc.source.SourceConfig;
@@ -238,25 +240,128 @@ public class CdcFramework {
     }
 
     /**
-     * 附加 Iceberg Sink（占位实现，后续扩展）。
+     * 附加 Iceberg Sink（Phase A1：接线 {@link IcebergSinkConnector}，取代原占位告警）。
+     *
+     * <p>属性映射（{@link SinkConfig#getProperties()}，键名与 Iceberg Flink 规范对齐）：
+     * {@code catalog-name}（默认 rest）、{@code catalog-type}（默认 REST）、
+     * {@code catalog-uri}（REST/JDBC 必填）、{@code warehouse}（必填）、{@code database}（必填）、
+     * {@code table}（必填）、{@code primary-keys}（UPSERT/HASH 必填，逗号分隔）、
+     * {@code partition-keys}（可选，逗号分隔）、{@code format-version}（默认 2）、
+     * {@code write-mode}（默认 upsert）、{@code distribution-mode}（默认 hash）、
+     * {@code file-format}（默认 parquet）、{@code micro-batch-size}（默认 1000）、
+     * {@code schema-evolution}（默认 auto）、{@code compaction-trigger}（默认 by-file-count）。</p>
+     *
+     * <p><b>失败语义</b>：配置缺失（缺 warehouse/table 等）或运行期 Iceberg runtime 类不可用时
+     * 抛异常即作业构建失败（fail-fast），不再静默丢弃变更流。当前写入落点＝连接器的
+     * WAL 缓冲（不丢数据）；真实 Iceberg SDK 写入（iceberg-flink-runtime 进集群 lib +
+     * 集群端到端）属立项件 Phase A 的终段，见 docs/realtime-chain-completion-plan.md。</p>
      *
      * @param stream 数据流
      * @param config Iceberg Sink 配置
      */
     private void attachIcebergSink(org.apache.flink.streaming.api.datastream.DataStream<ChangeRecord> stream,
                                    SinkConfig config) {
-        log.warn("Iceberg Sink 尚未实现，配置 '{}' 将被忽略（流不接入 Sink）", config.getName());
+        IcebergSinkConnector connector = buildIcebergConnector(config);
+        connector.attachTo(stream);
+        log.info("Iceberg Sink 已接线: name={}（连接器已进入生产路径，运行期状态见上游日志）", config.getName());
     }
 
     /**
-     * 附加 Doris Sink（占位实现，后续扩展）。
+     * 由 SinkConfig 构建 IcebergSinkConnector（包内可见，便于单测断言映射）。
+     *
+     * @param config Sink 配置
+     * @return IcebergSinkConnector
+     * @throws IllegalStateException 配置不合法（缺必填项）
+     */
+    static IcebergSinkConnector buildIcebergConnector(SinkConfig config) {
+        Objects.requireNonNull(config, "config 不能为 null");
+        java.util.Map<String, String> p = config.getProperties();
+        IcebergSinkConnector.Builder builder = IcebergSinkConnector.builder()
+                .catalogName(p.getOrDefault("catalog-name", "rest"))
+                .catalogType(IcebergSinkConnector.CatalogType.fromCode(p.getOrDefault("catalog-type", "rest")))
+                .warehouse(requireIcebergProperty(p, "warehouse"))
+                .database(requireIcebergProperty(p, "database"))
+                .table(requireIcebergProperty(p, "table"))
+                .formatVersion(Integer.parseInt(p.getOrDefault("format-version", "2")))
+                .writeMode(IcebergSinkConnector.WriteMode.fromCode(p.getOrDefault("write-mode", "upsert")))
+                .distributionMode(IcebergSinkConnector.DistributionMode.fromCode(p.getOrDefault("distribution-mode", "hash")))
+                .fileFormat(p.getOrDefault("file-format", "parquet"))
+                .microBatchSize(Integer.parseInt(p.getOrDefault("micro-batch-size", "1000")))
+                .schemaEvolution(IcebergSinkConnector.SchemaEvolutionMode.fromCode(p.getOrDefault("schema-evolution", "auto")))
+                .compactionTrigger(IcebergSinkConnector.CompactionTrigger.fromCode(p.getOrDefault("compaction-trigger", "by-file-count")));
+        if (p.containsKey("catalog-uri")) {
+            builder.catalogUri(p.get("catalog-uri"));
+        }
+        if (p.containsKey("primary-keys")) {
+            builder.primaryKeys(p.get("primary-keys"));
+        }
+        if (p.containsKey("partition-keys")) {
+            builder.partitionKeys(p.get("partition-keys").split("\\s*,\\s*"));
+        }
+        return builder.build();
+    }
+
+    /**
+     * 读取 Iceberg 映射必填属性（缺失即 fail-fast，点名键名；替代 Builder 内部的 NPE）。
+     *
+     * @param properties SinkConfig.properties
+     * @param key        属性键名
+     * @return 非空属性值
+     * @throws IllegalStateException 属性缺失或为空白
+     */
+    private static String requireIcebergProperty(java.util.Map<String, String> properties, String key) {
+        String value = properties.get(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Iceberg Sink 缺少必填属性: " + key + "（请在 SinkConfig.properties 中提供）");
+        }
+        return value;
+    }
+
+    /**
+     * 附加 Doris Sink（Phase B1：Doris Stream Load 轻量 sink，取代原占位告警）。
+     *
+     * <p>属性映射：{@code database}（必填）与 {@code table}（缺省回落 SinkConfig.topic）、
+     * {@code batch-size}（默认 500）、{@code labels}（可选 label 前缀）；
+     * FE 地址取 {@link SinkConfig#getHost()}/{@link SinkConfig#getPort()}——
+     * <b>Doris 场景须显式设置这两项（HTTP 端口通常 8030），勿沿用 Kafka 默认端口</b>。</p>
+     *
+     * <p><b>失败语义</b>：批次写入失败即抛异常交由 Flink 重试（AT_LEAST_ONCE、不静默丢弃）。</p>
      *
      * @param stream 数据流
      * @param config Doris Sink 配置
      */
     private void attachDorisSink(org.apache.flink.streaming.api.datastream.DataStream<ChangeRecord> stream,
                                  SinkConfig config) {
-        log.warn("Doris Sink 尚未实现，配置 '{}' 将被忽略（流不接入 Sink）", config.getName());
+        stream.sinkTo(buildDorisSink(config));
+        log.info("Doris Stream Load Sink 已接线: name={}, target={}:{}/{}/{}",
+                config.getName(), config.getHost(), config.getPort(),
+                config.getProperties().get("database"), config.getProperties().getOrDefault("table", config.getTopic()));
+    }
+
+    /**
+     * 由 SinkConfig 构建 DorisStreamLoadSink（包内可见，便于单测断言映射）。
+     *
+     * @param config Sink 配置
+     * @return DorisStreamLoadSink
+     * @throws IllegalArgumentException 必填项缺失
+     */
+    static DorisStreamLoadSink buildDorisSink(SinkConfig config) {
+        Objects.requireNonNull(config, "config 不能为 null");
+        java.util.Map<String, String> p = config.getProperties();
+        DorisStreamLoadSink.Builder builder = DorisStreamLoadSink.builder()
+                .host(config.getHost())
+                .port(config.getPort())
+                .username(config.getUsername() != null ? config.getUsername() : "root")
+                .password(config.getPassword() != null ? config.getPassword() : "")
+                .database(p.get("database"))
+                .table(p.getOrDefault("table", config.getTopic()));
+        if (p.containsKey("batch-size")) {
+            builder.batchSize(Integer.parseInt(p.get("batch-size")));
+        }
+        if (p.containsKey("labels")) {
+            builder.labels(p.get("labels"));
+        }
+        return builder.build();
     }
 
     /**
