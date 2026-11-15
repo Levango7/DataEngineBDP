@@ -62,6 +62,8 @@ public class CdcYamlConfig {
     private String jobName = "flink-cdc-job";
     /** 作业并行度。 */
     private int parallelism = 1;
+    /** Checkpoint 间隔（毫秒）；Iceberg sink 的可见延迟随此间隔变化。 */
+    private long checkpointIntervalMs = 60000L;
     /** 数据源配置列表。 */
     private List<SourceConfig> sources = new ArrayList<>();
     /** 数据目标配置列表。 */
@@ -148,6 +150,11 @@ public class CdcYamlConfig {
         if (jobObj instanceof Map<?, ?> jobMap) {
             config.jobName = str(jobMap.get("name"), "flink-cdc-job");
             config.parallelism = intVal(jobMap.get("parallelism"), 1);
+            config.checkpointIntervalMs = longVal(jobMap.get("checkpointIntervalMs"), 60000L);
+            if (config.checkpointIntervalMs <= 0) {
+                throw new IllegalArgumentException(
+                        "job.checkpointIntervalMs 必须为正数: " + config.checkpointIntervalMs);
+            }
         }
 
         // 解析 sources 段
@@ -312,6 +319,17 @@ public class CdcYamlConfig {
 
     public void setParallelism(int parallelism) {
         this.parallelism = parallelism;
+    }
+
+    public long getCheckpointIntervalMs() {
+        return checkpointIntervalMs;
+    }
+
+    public void setCheckpointIntervalMs(long checkpointIntervalMs) {
+        if (checkpointIntervalMs <= 0) {
+            throw new IllegalArgumentException("checkpointIntervalMs 必须为正数: " + checkpointIntervalMs);
+        }
+        this.checkpointIntervalMs = checkpointIntervalMs;
     }
 
     public List<SourceConfig> getSources() {
