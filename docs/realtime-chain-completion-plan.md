@@ -145,3 +145,20 @@ Iceberg / Doris 表 ──→ 物化（sql-gateway 重写真；Doris MV 刷新�
 2. **timestamptz 解析墙**：`ChangeRecordRowDataMapper` 的 TIMESTAMP 分支用 `ISO_LOCAL_DATE_TIME`，撞 pgoutput 实际产出形态 `2026-11-14T23:35:48.719472Z` 的尾随 `Z`（`unparsed text found at index 26`，writer 侧重启循环、数据全部丢失）。修复＝带时区指示符走 `OffsetDateTime`（withZone 字段转 UTC epoch millis、无 zone 字段转墙上时间），epoch millis 优先路径不变。
 
 **泳道基建事实**（复跑配方）：作业进程须 systemd 托管（`systemd-run --unit=bdp-lane-job`，wsl.exe 会话销毁会带走 nohup/setsid 后台进程）；Debezium 自动建 `FOR ALL TABLES` publication 需 superuser 角色；classpath 需在 cp.txt 前置 kafka-clients 3.9.2（kafka-clients 4.x 移除了 Debezium 1.9 依赖的 `Sanitizer`）；Java 17 运行 JVM 需与 surefire 同款 add-opens 全集。脚本与配置在仓库外 `F:/tmp/bdp-tender/lane/`（setup/restart/poll/inject/burst/measure 六件）。
+
+### 泳道 CI 化收官（2026-11-15~16，PR #808/#811/#812）
+
+本机配方收编进仓（`tests/integration/realtime-lane/` 七件）并升格为 CI 泳道
+（`it-realtime-lane` workflow：postgres:16 service container，触发＝nightly
+22:30 UTC 与 dispatch，不进 PR 必检）。CI 首跑连红 6 轮，经「::error::
+annotation 与退出码编码」通道逐轮定位并拔除六墙：
+
+1. 冷 .m2 缺仓内私有模块 common-security ⇒ 聚合 reactor install（`-pl flink-cdc -am -DskipTests install`）后再单模块 build-classpath；
+2. service container 的 PG 默认 wal_level=replica ⇒ 启动参数补 `wal_level=logical`（Caused by 直接点名「logical decoding requires wal_level >= logical」）；
+3. burst 的 java classpath 缺当前目录 ⇒ `-cp "$DIR:$LANE_CP"`（Could not find main class LaneTools）；
+4. service container 的 command 不接受 flow 数组 ⇒ block 字符串形式（dispatch 422）；
+5. run 块默认 bash -e 吞掉失败后续诊断 ⇒ `|| RC=$?` 续行；
+6. 本机到 results-receiver 的日志下载 TLS 超时 ⇒ 失败信息经 `::error::` annotation（单行）与退出码编码（23=dump 报错 / 24=数据未至 / 25=行数不足）带回。
+
+**CI 泳道 run `43702634630` 全绿**（P95 ≤ 60s 硬断言通过）。诊断循环的教训
+（Actions runner 与开发环境的六处差异）已随配方固化在 workflow 与脚本内。
