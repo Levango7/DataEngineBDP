@@ -45,7 +45,7 @@ jobs:
         working-directory: platform/flink-cdc
         run: |
           mvn -B compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-lane.log 2>&1 \
-            || { tail -40 /tmp/mvn-lane.log | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 3000 > /tmp/mvn-err.txt; echo "::error::build-classpath failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
+            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)|Connection (reset|refused)|timed out' /tmp/mvn-lane.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::bc failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
           mvn -B -q dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.9.2
           mvn -B -q dependency:get -Dartifact=org.apache.iceberg:iceberg-api:1.12.0
           test -s /tmp/lane-cp.txt
