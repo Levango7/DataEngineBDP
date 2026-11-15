@@ -42,10 +42,13 @@ jobs:
           PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane -tAc "SELECT pubname FROM pg_publication"
 
       - name: Build classpath
-        working-directory: platform/flink-cdc
         run: |
-          mvn -B compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-lane.log 2>&1 \
-            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)|Connection (reset|refused)|timed out' /tmp/mvn-lane.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::bc failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
+          # flink-cdc 依赖仓内兄弟模块（common-security 等，私有 SNAPSHOT 不在 Central）：
+          # 先聚合 reactor install 兄弟模块进 .m2，再单模块 build-classpath
+          mvn -B -pl platform/flink-cdc -am -DskipTests install > /tmp/mvn-install.log 2>&1 \
+            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)' /tmp/mvn-install.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::install failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
+          mvn -B -f platform/flink-cdc/pom.xml dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-cp.log 2>&1 \
+            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)' /tmp/mvn-cp.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::bc failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
           mvn -B -q dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.9.2
           mvn -B -q dependency:get -Dartifact=org.apache.iceberg:iceberg-api:1.12.0
           test -s /tmp/lane-cp.txt
