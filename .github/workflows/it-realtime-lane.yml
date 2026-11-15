@@ -44,10 +44,14 @@ jobs:
       - name: Build classpath
         working-directory: platform/flink-cdc
         run: |
-          mvn -B -q compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt
+          mvn -B compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-lane.log 2>&1 \
+            || { tail -40 /tmp/mvn-lane.log | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 3000 > /tmp/mvn-err.txt; echo "::error::build-classpath failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
           mvn -B -q dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.9.2
+          mvn -B -q dependency:get -Dartifact=org.apache.iceberg:iceberg-api:1.12.0
+          test -s /tmp/lane-cp.txt
           KC="$HOME/.m2/repository/org/apache/kafka/kafka-clients/3.9.2/kafka-clients-3.9.2.jar"
           API="$HOME/.m2/repository/org/apache/iceberg/iceberg-api/1.12.0/iceberg-api-1.12.0.jar"
+          test -s "$KC" && test -s "$API"
           echo "LANE_CP=$KC:$(cat /tmp/lane-cp.txt):$API" >> "$GITHUB_ENV"
 
       - name: Compile lane tools
