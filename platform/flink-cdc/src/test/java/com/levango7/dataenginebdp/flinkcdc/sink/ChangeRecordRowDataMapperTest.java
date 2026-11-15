@@ -49,6 +49,27 @@ class ChangeRecordRowDataMapperTest {
     }
 
     @Test
+    @DisplayName("timestamptz 带时区指示符与变长微秒：withZone 字段转 UTC epoch millis，无 zone 字段转墙上时间")
+    void timestampWithZoneSuffixAndMicros() {
+        Schema tsSchema = new Schema(
+                Types.NestedField.required(1, "id", Types.LongType.get()),
+                Types.NestedField.optional(2, "ts_ltz", Types.TimestampType.withZone()),
+                Types.NestedField.optional(3, "ts_plain", Types.TimestampType.withoutZone()));
+        ChangeRecordRowDataMapper tsMapper = new ChangeRecordRowDataMapper(tsSchema, true);
+        tsMapper.open(new Configuration());
+        // pgoutput 实际产出形态（端到端泳道实证）：微秒 + Z 尾
+        String raw = "2026-11-14T23:35:48.719472Z";
+        RowData row = tsMapper.map(cdcRecord("c", Map.<String, Object>of(
+                "id", 1L, "ts_ltz", raw, "ts_plain", raw), null));
+        long expectedUtcMs = java.time.OffsetDateTime.parse(raw).toInstant().toEpochMilli();
+        assertEquals(expectedUtcMs, row.getTimestamp(1, 6).getMillisecond(),
+                "withZone 字段 = UTC epoch millis");
+        assertEquals(java.time.LocalDateTime.parse("2026-11-14T23:35:48.719472"),
+                row.getTimestamp(2, 6).toLocalDateTime(),
+                "无 zone 字段 = 墙上时间（UTC 视角）");
+    }
+
+    @Test
     @DisplayName("op=c → INSERT 行：四列按类型窄转换（LONG/STRING/DOUBLE/BOOLEAN）")
     void insertRowConversion() {
         RowData row = mapper.map(cdcRecord("c",
