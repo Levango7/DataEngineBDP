@@ -29,7 +29,13 @@
 3. https://archive.apache.org/dist/spark（兜底源）
 
 取数阶段有总预算 `ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420`：按「剩余预算 ÷ 剩余尝试数」
-切片给每个源，预算用尽即由 Dockerfile 自己判红（不被外层挂起预算 SIGKILL）。
+切片给每个源，**单次 curl 的墙钟上限 = 切片 ÷ (1 + curl 内部重试次数)**（取数段内部重试为 0，
+重试职责交给跨源冗余 ⇒ 本源实耗上限恒等于切片），预算用尽即由 Dockerfile 自己判红
+（不被外层挂起预算 SIGKILL）；并带停滞检测（低于 50 KB/s 持续 30s 即放弃该源）。
+2026-11-15 CI 实测（`Docker Build Verify` job 132689363767，failed）反证过旧写法的问题：
+取数段 curl 带 `--retry 2` 时 curl 的 `--max-time` 是**每次尝试**的上限，切片 140s 实际烧掉
+426.5s，把 420s 预算吃到 −6s，源 2/3 与回退版本全被跳过；该形态现由
+`scripts/test-spark-download-budget.sh` 做成回归测试（并挂进 CI 的 `Bash Syntax Check` 作业）。
 预检脚本 `scripts/check-pinned-downloads.sh` 会把本清单与 Dockerfile 的源清单逐项重建
 比对，任一侧改了而另一侧没改即判红（fail-closed）。
 
