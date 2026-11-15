@@ -102,7 +102,10 @@ jobs:
           echo "dump-err tail:"; tail -5 /tmp/lane/dump-err.log 2>/dev/null || echo none
           if ! test -s /tmp/lane/burst.csv; then
             echo "::error::no-burst-csv rc=${RC:-0} dumperr=$DEB inj=$INJ"
-            if [ "$DEB" -gt 0 ]; then exit 23; fi
+            if [ "$DEB" -gt 0 ]; then
+              echo "::error::dumperr-first=$(head -1 /tmp/lane/dump-err.log | head -c 320)"
+              exit 23
+            fi
             exit 24
           fi
           NROWS=$(wc -l < /tmp/lane/burst.csv)
