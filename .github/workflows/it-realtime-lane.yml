@@ -106,6 +106,9 @@ jobs:
               echo "::error::dumperr-first=$(head -1 /tmp/lane/dump-err.log | head -c 320)"
               exit 23
             fi
+            JOBALIVE=$(pgrep -f CdcFrameworkMain >/dev/null && echo 1 || echo 0)
+            JOBERR=$(grep -m1 -E 'ERROR|Exception|CANCELED' /tmp/lane/job.log 2>/dev/null | head -c 320)
+            echo "::error::no-rows inj=$INJ jobalive=$JOBALIVE joberr=$JOBERR"
             exit 24
           fi
           NROWS=$(wc -l < /tmp/lane/burst.csv)
