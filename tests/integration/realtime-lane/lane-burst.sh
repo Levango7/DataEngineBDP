@@ -24,7 +24,7 @@ declare -A SEEN
 END=$((START + N - 1))
 EXTRA=0
 while true; do
-  (cd "$DIR" && java -cp "$LANE_CP" LaneTools dump "$WH" "$DB" "$TBL" 2>>"$LOG/dump-err.log") \
+  java -cp "$DIR:$LANE_CP" LaneTools dump "$WH" "$DB" "$TBL" 2>>"$LOG/dump-err.log" \
     | awk -F, -v s="$START" -v e="$END" '$1+0>=s && $1+0<=e && $2+0>0 {print $1","$2","$3}' \
     > "$LOG/now.csv"
   while IFS=, read -r id src rd; do
