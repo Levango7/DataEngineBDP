@@ -1,0 +1,25 @@
+job:
+  name: lane-pg-iceberg
+  parallelism: 1
+  checkpointIntervalMs: 5000
+
+sources:
+  - name: lane-pg
+    type: POSTGRESQL
+    host: REPLACE_HOST
+    port: REPLACE_PORT
+    username: REPLACE_USER
+    password: REPLACE_PASSWORD
+    database: REPLACE_DATABASE
+    table: public.mv_sales_lane
+    startupMode: initial
+
+sinks:
+  - name: lane-iceberg
+    type: ICEBERG
+    properties:
+      catalog-type: hadoop
+      warehouse: REPLACE_WAREHOUSE
+      database: dw
+      table: mv_sales_lane
+      primary-keys: id
