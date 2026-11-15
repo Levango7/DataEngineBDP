@@ -1,0 +1,106 @@
+name: IT Realtime Lane (CDC to Iceberg E2E)
+
+# Phase D 端到端验收泳道（#141 范式：nightly + dispatch，不进 PR 必检）。
+# 判据：CDC 灌一行 -> Iceberg 表可查，P95 <= 60s（首现口径，measure2.py 硬断言）。
+# 配方与口径说明见 tests/integration/realtime-lane/README.md。
+
+on:
+  schedule:
+    - cron: '30 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  realtime-lane:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bdp_lane
+          POSTGRES_PASSWORD: bdp_lane
+          POSTGRES_DB: bdp_lane
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U bdp_lane"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Source table and publication
+        run: |
+          PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane -c "CREATE TABLE IF NOT EXISTS public.mv_sales_lane(id bigint primary key, name text, amount double precision, src_ts timestamptz default clock_timestamp());"
+          PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane -tAc "SELECT 'CREATE PUBLICATION mv_lane_pub FOR TABLE public.mv_sales_lane' WHERE NOT EXISTS (SELECT FROM pg_publication WHERE pubname = 'mv_lane_pub')" | PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane
+          PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane -tAc "SELECT pubname FROM pg_publication"
+
+      - name: Build classpath
+        working-directory: platform/flink-cdc
+        run: |
+          mvn -B -q compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt
+          mvn -B -q dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.9.2
+          KC="$HOME/.m2/repository/org/apache/kafka/kafka-clients/3.9.2/kafka-clients-3.9.2.jar"
+          API="$HOME/.m2/repository/org/apache/iceberg/iceberg-api/1.12.0/iceberg-api-1.12.0.jar"
+          echo "LANE_CP=$KC:$(cat /tmp/lane-cp.txt):$API" >> "$GITHUB_ENV"
+
+      - name: Compile lane tools
+        run: |
+          javac -d tests/integration/realtime-lane -cp "$LANE_CP" tests/integration/realtime-lane/LaneTools.java
+
+      - name: Write job config
+        run: |
+          mkdir -p /tmp/lane /tmp/lane-warehouse
+          sed -e 's|REPLACE_HOST|127.0.0.1|g' \
+              -e 's|REPLACE_PORT|5433|g' \
+              -e 's|REPLACE_USER|bdp_lane|g' \
+              -e 's|REPLACE_PASSWORD|bdp_lane|g' \
+              -e 's|REPLACE_DATABASE|bdp_lane|g' \
+              -e 's|REPLACE_WAREHOUSE|file:///tmp/lane-warehouse|g' \
+              tests/integration/realtime-lane/lane-postgres-iceberg-ci.yaml > /tmp/lane.yaml
+
+      - name: Create iceberg target table
+        run: |
+          cd tests/integration/realtime-lane
+          java -cp ".:$LANE_CP" LaneTools create file:///tmp/lane-warehouse dw mv_sales_lane | grep TABLE-READY
+
+      - name: Start CDC job
+        working-directory: platform/flink-cdc
+        run: |
+          OPENS="--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.nio.charset=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.zip=ALL-UNNAMED --add-opens=java.base/java.util.regex=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/java.math=ALL-UNNAMED --add-opens=java.base/java.time=ALL-UNNAMED --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.security.provider=ALL-UNNAMED --add-opens=java.base/sun.security.util=ALL-UNNAMED"
+          KC="$HOME/.m2/repository/org/apache/kafka/kafka-clients/3.9.2/kafka-clients-3.9.2.jar"
+          nohup java $OPENS -Xmx1536m -cp "$KC:target/classes:$LANE_CP" \
+            com.levango7.dataenginebdp.flinkcdc.CdcFrameworkMain \
+            --config /tmp/lane.yaml > /tmp/lane/job.log 2>&1 &
+          sleep 45
+          grep -E "Iceberg 真实写入路径已附加" /tmp/lane/job.log
+          pgrep -f CdcFrameworkMain > /dev/null
+
+      - name: Inject and track first-seen latency
+        env:
+          LANE_LOG: /tmp/lane
+        run: |
+          bash tests/integration/realtime-lane/lane-burst.sh 25 1.0 1 \
+            "postgresql://bdp_lane:bdp_lane@127.0.0.1:5433/bdp_lane" \
+            file:///tmp/lane-warehouse dw mv_sales_lane
+          test "$(wc -l < /tmp/lane/burst.csv)" -eq 25
+
+      - name: Assert P95
+        run: |
+          python3 tests/integration/realtime-lane/measure2.py /tmp/lane/burst.csv /tmp/lane/inject-log.txt 60
+
+      - name: Upload lane artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: realtime-lane-logs
+          path: |
+            /tmp/lane/
+            /tmp/lane.yaml
+          if-no-files-found: ignore
