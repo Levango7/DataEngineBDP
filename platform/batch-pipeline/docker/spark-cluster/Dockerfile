@@ -36,6 +36,29 @@ LABEL description="Spark Standalone cluster node (Master/Worker)"
 ARG SPARK_VERSION=4.2.1
 ARG HADOOP_AWS_VERSION=3.5.0
 ARG AWS_SDK_V2_BUNDLE_VERSION=2.35.4
+# Spark 取数镜像清单（与 BASE_REGISTRY 同构的旋钮）：逗号分隔的**源根**，按书写顺序尝试。
+# 前 SPARK_FAST_MIRRORS 个是快源（快源确定性 404 ⇒ 该发布线被快源挤出 ⇒ 预检判红），
+# 其余是兜底源（archive 官方归档，慢但稳定，只在快源全挂时兜底）。
+# 为什么用逗号而不是空格：Docker 的 ARG 默认值是**字面量**，带空格有被解析器截断的风险，
+# 而加引号又会把引号本身带进值里（ARG 不做 shell 级去引号）；逗号在 URL 里不可能出现，
+# 故逗号分隔是无歧义写法，取值时用 tr ',' ' ' 还原成列表。
+# 本文件是该清单的**单一事实源**：预检脚本 scripts/check-pinned-downloads.sh 只做一致性
+# 核对（清单 ↔ 本文件逐项重建比对），不另存一份副本，避免第二处漂移。
+ARG SPARK_MIRRORS=https://mirrors.tuna.tsinghua.edu.cn/apache/spark,https://mirrors.aliyun.com/apache/spark,https://archive.apache.org/dist/spark
+ARG SPARK_FAST_MIRRORS=2
+# 取数阶段的总预算（秒）。必须小于 scripts/build-retry.sh 的 per-attempt 挂起超时
+# （BASE_HANG_TIMEOUT，默认 600s）：预算用尽时由本文件**自己**失败并给出每源状态与耗时，
+# 而不是被外层 SIGKILL 成 `context canceled`（台账 #112 的实测形态：挂起 600s × 2 次
+# attempt，把 `Docker Build Verify` 顶到 job timeout，红在面板上却长得像编译失败）。
+# 取 420s（而非更大的值）：留 180s 给非取数段（基座拉取 / apt / 校验解包 / Maven）。
+# 本轮 PR #805 的 CI 实测（`Docker Build Verify` job 132626373067，head 9d76e1ee）：spark-cluster
+# 单镜像 **224s**，其中取数 RUN **58.30s**（下载 53.62s，源 1/3 = tuna 命中），非取数段 ≈ **166s**；
+# 44 个 Dockerfile 全量 **2163s（36m03s）**，全部「首次尝试，重试 0 次」。
+# ⇒ 取数预算 420s 远大于实测成功形态的 58.30s；且「预算耗尽 420s + 非取数段 166s」≈ 586s 仍低于
+# per-attempt 挂起超时 600s ⇒ 极端情况下由本文件自己判红，不会被外层 SIGKILL 成 `context canceled`。
+# （本行原先写的「非取数段约 275s」是按本文件旧记载与台账 #112 健康轮次**推算**的值，
+# 已被上述实测取代；推算值不作为依据。）
+ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420
 # ── 供应链校验和（钉扎官方值，版本与校验和必须同步变更） ────────
 # 来源：repo1.maven.org 官方 .sha1（获取日期与 URL 见 CHECKSUMS.md）
 # 若升级版本 ARG 而忘记更新校验和 ARG，构建会在校验步骤 fail-fast
@@ -75,53 +98,97 @@ RUN python3 --version | grep -q "Python 3\.12\." || { \
 # build-retry 按传输类重试后仍失败（不是代码问题，也不是可无限重跑的抖动）。
 # 抬版后回到快源：tuna 实测 529MB / 36 秒，sha512 与 downloads.apache.org 官方值逐字节一致。
 # 使用清华镜像加速，回退到 Apache 官方
+# 2026-11-15（台账 #112 第 ⑥ 项待裁加固，本轮落地）：取数改成「预算感知 + 源清单旋钮」。
+#   ① 源清单从写死的三个 URL 提到 ARG SPARK_MIRRORS（本文件是单一事实源），
+#      前 SPARK_FAST_MIRRORS 个是快源，其余是兜底源；预检脚本据此做一致性核对。
+#   ② 取数阶段加总预算 ARG SPARK_DOWNLOAD_BUDGET_SECONDS（缺省 420s），
+#      按「剩余预算 ÷ 剩余尝试数」切片给每个源；预算用尽 ⇒ 本文件自己失败并
+#      打印每源状态与耗时，而不是被外层 SIGKILL 成 `context canceled`。
+#   ③ 失败文案不回显 curl 的 stderr（理由见下方 try_version 的注释）。
 # 注意：ENV 引用 ARG 必须在 ARG 声明之后（已在 line 20 声明）
 ENV SPARK_VERSION_PRIMARY=${SPARK_VERSION}
 ENV SPARK_VERSION_FALLBACK=3.5.9
 
 RUN set -eux; \
-    SPARK_VER=${SPARK_VERSION_PRIMARY}; \
-    SPARK_TGZ="spark-${SPARK_VER}-bin-hadoop3.tgz"; \
+    # ── 取数预算（秒）：覆盖本 RUN 的全部取数尝试（主版本 + 回退版本） ──
+    TOTAL_BUDGET="${SPARK_DOWNLOAD_BUDGET_SECONDS}"; \
+    START_TS="$(date +%s)"; \
+    elapsed() { echo $(( $(date +%s) - START_TS )); }; \
+    budget_left() { echo $(( TOTAL_BUDGET - $(elapsed) )); }; \
     \
-    # 镜像列表（按优先级）
-    MIRROR_1="https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
-    MIRROR_2="https://mirrors.aliyun.com/apache/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
-    MIRROR_3="https://archive.apache.org/dist/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
+    # ── 源根清单来自 ARG SPARK_MIRRORS（逗号分隔；本文件是该清单的单一事实源） ──
+    ROOTS="$(printf '%s' "${SPARK_MIRRORS}" | tr ',' ' ')"; \
+    ROOTS_TOTAL=0; \
+    for r in ${ROOTS}; do ROOTS_TOTAL=$((ROOTS_TOTAL + 1)); done; \
+    if [ "${ROOTS_TOTAL}" -lt 2 ]; then \
+        echo ">>> [FATAL] SPARK_MIRRORS 只解析出 ${ROOTS_TOTAL} 个源根（至少需要 1 个快源 + 1 个兜底源）"; \
+        echo ">>> [FATAL] 原始值：${SPARK_MIRRORS}"; \
+        exit 1; \
+    fi; \
+    echo ">>> 取数源清单（${ROOTS_TOTAL} 个，前 ${SPARK_FAST_MIRRORS} 个为快源）：${ROOTS}"; \
+    echo ">>> 取数总预算 ${TOTAL_BUDGET}s（小于 build-retry 的 per-attempt 挂起超时 ⇒ 预算内失败由本文件自己报）"; \
     \
     DOWNLOADED=0; \
-    for URL in "${MIRROR_1}" "${MIRROR_2}" "${MIRROR_3}"; do \
-        echo ">>> 尝试下载 Spark ${SPARK_VER} from ${URL} ..."; \
-        if curl -fsSL --retry 2 --retry-delay 3 --max-time 600 -o /tmp/${SPARK_TGZ} "${URL}"; then \
-            DOWNLOADED=1; \
-            echo ">>> Spark ${SPARK_VER} 下载成功 (${URL})"; \
-            break; \
-        else \
-            echo ">>> 下载失败，尝试下一个源 ..."; \
-        fi; \
-    done; \
+    SPARK_VER=""; \
+    SPARK_TGZ=""; \
     \
-    # 如果主版本全部失败，回退到备选版本
-    if [ "${DOWNLOADED}" = "0" ]; then \
-        SPARK_VER=${SPARK_VERSION_FALLBACK}; \
-        SPARK_TGZ="spark-${SPARK_VER}-bin-hadoop3.tgz"; \
-        MIRROR_1="https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
-        MIRROR_2="https://mirrors.aliyun.com/apache/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
-        MIRROR_3="https://archive.apache.org/dist/spark/spark-${SPARK_VER}/${SPARK_TGZ}"; \
-        for URL in "${MIRROR_1}" "${MIRROR_2}" "${MIRROR_3}"; do \
-            echo ">>> 回退: 尝试下载 Spark ${SPARK_VER} from ${URL} ..."; \
-            if curl -fsSL --retry 2 --retry-delay 3 --max-time 600 -o /tmp/${SPARK_TGZ} "${URL}"; then \
-                DOWNLOADED=1; \
-                echo ">>> Spark ${SPARK_VER} 下载成功 (${URL})"; \
-                break; \
-            else \
-                echo ">>> 下载失败，尝试下一个源 ..."; \
+    # 单个版本的取数：按源清单顺序逐个尝试；每次尝试的上限 = 剩余预算 ÷ 剩余尝试数。 \
+    # curl 的 stderr **刻意不回显**：scripts/build-retry.sh 用 grep 扫整份构建日志， \
+    # 命中它的传输类签名就会换 BASE_REGISTRY 把整轮构建重跑一遍；而换 base 镜像源对 \
+    # Spark 压缩包的取数毫无帮助（换的是基座，拉的还是同一个镜像站），纯属白烧 600s。 \
+    # 这里改为只回显 curl 退出码 + 本地映射的短描述：诊断信息留得下， \
+    # 又不会在日志里误命中传输类签名。 \
+    try_version() { \
+        tv_ver="$1"; \
+        tv_tgz="spark-${tv_ver}-bin-hadoop3.tgz"; \
+        tv_sources_left="${ROOTS_TOTAL}"; \
+        tv_idx=0; \
+        for tv_root in ${ROOTS}; do \
+            tv_idx=$((tv_idx + 1)); \
+            tv_left="$(budget_left)"; \
+            if [ "${tv_left}" -le 5 ]; then \
+                echo ">>> [BUDGET] 剩余 ${tv_left}s 不足，跳过源${tv_idx}（${tv_root}）"; \
+                continue; \
             fi; \
+            tv_slice=$(( tv_left / tv_sources_left )); \
+            [ "${tv_slice}" -ge 5 ] || tv_slice=5; \
+            tv_url="${tv_root}/spark-${tv_ver}/${tv_tgz}"; \
+            echo ">>> [attempt] Spark ${tv_ver} 源${tv_idx}/${ROOTS_TOTAL}：${tv_url}（本次上限 ${tv_slice}s，预算余 ${tv_left}s）"; \
+            if curl -fsSL --retry 2 --retry-delay 3 --max-time "${tv_slice}" -o "/tmp/${tv_tgz}" "${tv_url}" 2>/dev/null; then \
+                DOWNLOADED=1; SPARK_VER="${tv_ver}"; SPARK_TGZ="${tv_tgz}"; \
+                echo ">>> [ok] Spark ${tv_ver} 取数成功（${tv_url}）"; \
+                return 0; \
+            else \
+                tv_rc=$?; \
+                case "${tv_rc}" in \
+                    6)  tv_why="域名解析失败" ;; \
+                    7)  tv_why="连接被拒" ;; \
+                    22) tv_why="HTTP 错误状态（4xx/5xx）" ;; \
+                    28) tv_why="超时（未在本次上限内取完）" ;; \
+                    35) tv_why="TLS 握手异常" ;; \
+                    52) tv_why="服务端未回内容" ;; \
+                    56) tv_why="接收中断" ;; \
+                    *)  tv_why="其它原因" ;; \
+                esac; \
+                echo ">>> [miss] 源${tv_idx} 取数失败（curl 退出码 ${tv_rc}：${tv_why}；累计已用 $(elapsed)s，预算余 $(budget_left)s）"; \
+            fi; \
+            tv_sources_left=$((tv_sources_left - 1)); \
         done; \
-    fi; \
+        return 1; \
+    }; \
     \
-    if [ "${DOWNLOADED}" = "0" ]; then \
-        echo ">>> [FATAL] 所有下载源均失败！"; \
-        exit 1; \
+    # 主版本优先；主版本全灭且预算还够，才试回退版本（预算不够就明说并早失败） \
+    if ! try_version "${SPARK_VERSION_PRIMARY}"; then \
+        echo ">>> 主版本 ${SPARK_VERSION_PRIMARY} 的 ${ROOTS_TOTAL} 个源均未取到（累计已用 $(elapsed)s，预算余 $(budget_left)s）"; \
+        if [ "$(budget_left)" -lt 30 ]; then \
+            echo ">>> [BUDGET] 预算余 $(budget_left)s 不足 30s，跳过回退版本 ${SPARK_VERSION_FALLBACK}（宁可早失败，也不半途被外层挂起预算杀掉）"; \
+            echo ">>> [FATAL] 取数阶段预算耗尽且未取到压缩包（判定：取数面不可用，不是构建内容坏了）"; \
+            exit 1; \
+        elif ! try_version "${SPARK_VERSION_FALLBACK}"; then \
+            echo ">>> [FATAL] 全部源 × 两个候选版本（${SPARK_VERSION_PRIMARY} / ${SPARK_VERSION_FALLBACK}）都未取到压缩包"; \
+            echo ">>> [FATAL] 判定：取数面不可用（不是构建内容坏了）⇒ 按台账 112 的处置指引处理，不要靠重跑解决"; \
+            exit 1; \
+        fi; \
     fi; \
     \
     # ── 供应链校验（任务79）：版本 → 官方钉扎 SHA512 ─────────────

@@ -22,10 +22,16 @@
 | spark-3.5.9-bin-hadoop3.tgz | 3.5.9 | `66097faf48b12f8673dc13256a44d731c27c86a5831cd8ca930c6fd9dd9bdf31d40593095e959461351d55da1a8e3ad5ed95e0b4b51bea87ca3989ab002ea8ce` | https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz.sha512 | 2026-11-03 起的回退版本（tuna / aliyun 均实测 200，383MB） |
 | spark-3.5.5-bin-hadoop3.tgz | 3.5.5 | `ec5ff678136b1ff981e396d1f7b5dfbf399439c5cb853917e8c954723194857607494a89b7e205fce988ec48b1590b5caeae3b18e1b5db1370c0522b256ff376` | https://archive.apache.org/dist/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz.sha512 | 历史回退版本（快源已挤出，现回退用 3.5.9） |
 
-下载源（Dockerfile 保持不变，按优先级）：
-1. https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-<版本>/<文件>
-2. https://mirrors.aliyun.com/apache/spark/spark-<版本>/<文件>
-3. https://archive.apache.org/dist/spark/spark-<版本>/<文件>
+下载源（2026-11-15 起由 Dockerfile 的 `ARG SPARK_MIRRORS` 承载：逗号分隔的**源根**，
+按书写顺序尝试；前 `ARG SPARK_FAST_MIRRORS=2` 个是快源，其余是兜底源）：
+1. https://mirrors.tuna.tsinghua.edu.cn/apache/spark（快源）
+2. https://mirrors.aliyun.com/apache/spark（快源）
+3. https://archive.apache.org/dist/spark（兜底源）
+
+取数阶段有总预算 `ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420`：按「剩余预算 ÷ 剩余尝试数」
+切片给每个源，预算用尽即由 Dockerfile 自己判红（不被外层挂起预算 SIGKILL）。
+预检脚本 `scripts/check-pinned-downloads.sh` 会把本清单与 Dockerfile 的源清单逐项重建
+比对，任一侧改了而另一侧没改即判红（fail-closed）。
 
 ## Maven Central JAR（SHA1，构建期 `sha1sum -c`）
 
