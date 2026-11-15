@@ -95,8 +95,10 @@ jobs:
         run: |
           bash tests/integration/realtime-lane/lane-burst.sh 25 1.0 1 \
             "postgresql://bdp_lane:bdp_lane@127.0.0.1:5433/bdp_lane" \
-            file:///tmp/lane-warehouse dw mv_sales_lane
-          test "$(wc -l < /tmp/lane/burst.csv)" -eq 25
+            file:///tmp/lane-warehouse dw mv_sales_lane \
+            || { echo "::error::burst failed. inject-log:"; tail -6 /tmp/lane/inject-log.txt 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 900; echo; echo "dump-err:"; tail -8 /tmp/lane/dump-err.log 2>/dev/null | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 1200; exit 1; }
+          test -s /tmp/lane/burst.csv
+          test "$(wc -l < /tmp/lane/burst.csv)" -eq 25 || { echo "::error::burst.csv rows=$(wc -l < /tmp/lane/burst.csv)"; exit 1; }
 
       - name: Assert P95
         run: |

@@ -24,7 +24,7 @@ declare -A SEEN
 END=$((START + N - 1))
 EXTRA=0
 while true; do
-  (cd "$DIR" && java -cp "$LANE_CP" LaneTools dump "$WH" "$DB" "$TBL" 2>/dev/null) \
+  (cd "$DIR" && java -cp "$LANE_CP" LaneTools dump "$WH" "$DB" "$TBL" 2>>"$LOG/dump-err.log") \
     | awk -F, -v s="$START" -v e="$END" '$1+0>=s && $1+0<=e && $2+0>0 {print $1","$2","$3}' \
     > "$LOG/now.csv"
   while IFS=, read -r id src rd; do
@@ -41,8 +41,9 @@ while true; do
   sleep 2
 done
 wait "$INJ" 2>/dev/null || true
+touch "$LOG/burst.csv"
 for id in $(seq "$START" "$END"); do
   rd=${SEEN[$id]:-}
   [ -n "$rd" ] && echo "$id,$rd" >> "$LOG/burst.csv"
 done
-echo "first-seen rows: $(wc -l < "$LOG/burst.csv") / $N"
+echo "first-seen rows: $(wc -l < "$LOG/burst.csv") / $N; dump-err: $(wc -c < "$LOG/dump-err.log" 2>/dev/null || echo 0) bytes"
