@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -117,13 +118,26 @@ public class ChangeRecordRowDataMapper extends RichMapFunction<ChangeRecord, Row
                     return value;
                 }
                 return Boolean.parseBoolean(String.valueOf(value));
-            case TIMESTAMP:
-                // 优先 epoch millis（Debezium ts 口径），兼容 ISO 字符串
+            case TIMESTAMP: {
+                // 优先 epoch millis（Debezium ts 口径）；ISO 字符串须兼容时区指示符
+                // 尾巴与变长小数位（pgoutput 的 timestamptz 形如
+                // 2026-11-14T23:35:48.719472Z，端到端泳道实证 ISO_LOCAL_DATE_TIME
+                // 解析撞「unparsed text」）；withZone 字段（TIMESTAMP_LTZ）的
+                // RowData 语义 = UTC epoch millis
+                Types.TimestampType tsType = (Types.TimestampType) field.type();
                 if (value instanceof Number) {
                     return TimestampData.fromEpochMillis(((Number) value).longValue());
                 }
+                String text = String.valueOf(value);
+                if (text.endsWith("Z") || text.matches(".*[+-]\\d{2}:?\\d{2}$")) {
+                    OffsetDateTime odt = OffsetDateTime.parse(text);
+                    return tsType.shouldAdjustToUTC()
+                            ? TimestampData.fromEpochMillis(odt.toInstant().toEpochMilli())
+                            : TimestampData.fromLocalDateTime(odt.toLocalDateTime());
+                }
                 return TimestampData.fromLocalDateTime(
-                        LocalDateTime.parse(String.valueOf(value), DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        LocalDateTime.parse(text, DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            }
             case DATE:
                 if (value instanceof Number) {
                     return (int) ((Number) value).longValue(); // epoch days
