@@ -4,10 +4,10 @@ import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
 import com.levango7.dataenginebdp.flinkcdc.sink.DorisStreamLoadSink;
 import com.levango7.dataenginebdp.flinkcdc.sink.IcebergSinkConnector;
 import com.levango7.dataenginebdp.flinkcdc.sink.SinkConfig;
-import com.levango7.dataenginebdp.flinkcdc.source.MySqlSourceConnector;
 import com.levango7.dataenginebdp.flinkcdc.source.SourceConfig;
-import org.apache.flink.cdc.connectors.mysql.source.MySqlSource;
+import com.levango7.dataenginebdp.flinkcdc.source.SourceConnectorFactory;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.connector.source.Source;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
@@ -38,8 +38,9 @@ import java.util.Objects;
  *
  * <p>当前支持的组合：</p>
  * <ul>
- *   <li>Source: MySQL (Binlog)，通过 {@link MySqlSourceConnector}</li>
- *   <li>Sink: Kafka (Debezium JSON)，通过 Flink KafkaSink</li>
+ *   <li>Source: MySQL (Binlog) / PostgreSQL (pgoutput) / Oracle，按配置类型经
+ *       {@link SourceConnectorFactory} 分派</li>
+ *   <li>Sink: Kafka (Debezium JSON) / Iceberg (真实 SDK 写入) / Doris (Stream Load)</li>
  * </ul>
  *
  * @author shuqing-bigdata
@@ -62,6 +63,9 @@ public class CdcFramework {
 
     /** 全局默认并行度。 */
     private int parallelism = 1;
+
+    /** Checkpoint 间隔（毫秒）；Iceberg sink 的可见延迟随此间隔变化。 */
+    private long checkpointIntervalMs = 60000L;
 
     /** 是否在 execute 后阻塞等待作业完成。 */
     private boolean blocking = true;
@@ -129,6 +133,23 @@ public class CdcFramework {
     }
 
     /**
+     * 设置 Checkpoint 间隔（毫秒）。
+     *
+     * <p>Iceberg sink 的提交（数据可见）随 checkpoint 走，间隔直接决定端到端
+     * 可见延迟量级；默认 60000（保持既有行为），端到端验收泳道用小间隔。</p>
+     *
+     * @param intervalMs 间隔毫秒数，必须为正
+     * @return 当前实例，支持链式调用
+     */
+    public CdcFramework checkpointIntervalMs(long intervalMs) {
+        if (intervalMs <= 0) {
+            throw new IllegalArgumentException("checkpointIntervalMs 必须为正数: " + intervalMs);
+        }
+        this.checkpointIntervalMs = intervalMs;
+        return this;
+    }
+
+    /**
      * 设置是否阻塞等待作业完成。
      *
      * @param blocking true 阻塞；false 非阻塞
@@ -190,15 +211,19 @@ public class CdcFramework {
     /**
      * 将单个 Source 加入 Flink 环境。
      *
+     * <p>按 {@link SourceConfig} 的类型经 {@link SourceConnectorFactory} 分派到
+     * 对应连接器（MySQL/PostgreSQL/Oracle）；此前此处硬编码 MySQL 连接器，
+     * PostgreSQL/Oracle 配置在主链不可达（端到端泳道实证缺口）。</p>
+     *
      * @param env       Flink 环境
      * @param config    Source 配置
      * @return 数据流
      */
     protected DataStreamSource<ChangeRecord> addSourceToEnv(StreamExecutionEnvironment env,
                                                             SourceConfig config) {
-        MySqlSource<ChangeRecord> source = MySqlSourceConnector.createSource(config);
+        Source<ChangeRecord, ?, ?> source = SourceConnectorFactory.createSource(config);
         return env.fromSource(source, WatermarkStrategy.noWatermarks(),
-                "mysql-cdc-" + config.getName());
+                "cdc-" + config.getType().name().toLowerCase() + "-" + config.getName());
     }
 
     /**
@@ -393,7 +418,7 @@ public class CdcFramework {
     protected StreamExecutionEnvironment createEnvironment() {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(flinkConfig);
         env.setParallelism(parallelism);
-        env.enableCheckpointing(60000L);
+        env.enableCheckpointing(checkpointIntervalMs);
         return env;
     }
 
@@ -442,6 +467,7 @@ public class CdcFramework {
         private final List<SourceConfig> sources = new ArrayList<>();
         private final List<SinkConfig> sinks = new ArrayList<>();
         private int parallelism = 1;
+        private long checkpointIntervalMs = 60000L;
         private boolean blocking = true;
 
         public Builder jobName(String jobName) {
@@ -476,9 +502,18 @@ public class CdcFramework {
             return this;
         }
 
+        public Builder checkpointIntervalMs(long intervalMs) {
+            if (intervalMs <= 0) {
+                throw new IllegalArgumentException("checkpointIntervalMs 必须为正数: " + intervalMs);
+            }
+            this.checkpointIntervalMs = intervalMs;
+            return this;
+        }
+
         public CdcFramework build() {
             CdcFramework framework = new CdcFramework(jobName, flinkConfig, sources, sinks);
             framework.parallelism = this.parallelism;
+            framework.checkpointIntervalMs = this.checkpointIntervalMs;
             framework.blocking = this.blocking;
             return framework;
         }

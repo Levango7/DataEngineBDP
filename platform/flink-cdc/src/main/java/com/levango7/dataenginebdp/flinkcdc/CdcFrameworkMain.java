@@ -64,6 +64,7 @@ public final class CdcFrameworkMain {
         CdcFramework framework = CdcFramework.builder()
                 .jobName(yamlConfig.getJobName())
                 .parallelism(yamlConfig.getParallelism())
+                .checkpointIntervalMs(yamlConfig.getCheckpointIntervalMs())
                 .blocking(!async)
                 .build();
 

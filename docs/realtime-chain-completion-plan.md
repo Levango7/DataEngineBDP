@@ -125,3 +125,23 @@ Iceberg / Doris 表 ──→ 物化（sql-gateway 重写真；Doris MV 刷新�
 - `design/deploy/charts/apisix/templates/configmap-routes.yaml:21`（`flink-cdc:8080` 悬空路由）
 - `platform/governance/real-time-pipeline/`（治理链，41 文件 + `VERIFICATION.md`）
 - `docs/realtime-pipeline-implementation-status.md`、`docs/STREAM-BATCH-DECISION-TABLE.md`、`docs/flink-cdc-deployment.md`、台账 #119① / #141 / #102
+
+## Phase A 端到端泳道实测（2026-11-15，本机 WSL 无 Docker 泳道）
+
+**环境形态**（不违反「本机不启 Docker」约束）：WSL Ubuntu-24.04 直装栈——PostgreSQL 16（apt，wal_level=logical，端口 5433）＋ flink-cdc 作业进程（`CdcFrameworkMain --config`，LocalStreamEnvironment，flink-connector-postgres-cdc:3.6.0-1.20 直连 pgoutput，不经 Kafka/Debezium Connect）＋ Iceberg HadoopCatalog（`file://` warehouse）。**无需 Kafka**：source 内反序列化器直接产 `ChangeRecord`（Debezium Struct）。
+
+**判据与口径**：Phase D「CDC 灌一行 → Iceberg 表可查，P95 ≤ 60s」；测量＝**首现口径**（每行 `clock_timestamp()` 注入时刻 → 该行在 iceberg 表中首次被读回的时刻；轮询 JVM 每 2 秒 dump 一次，采样分辨率约 2-3 秒）。
+
+**结果**（两轮，`mv_sales_lane` 表，checkpoint 间隔 5s）：
+
+- 第 1 轮 n=25 行（1s 间隔）：min=2.6s，p50=7.8s，**p95=11.3s**，max=13.3s。
+- 第 2 轮 n=50 行（0.5s 间隔，注入速率×2）：min=4.8s，p50=11.8s，**p95=20.1s**，max=21.8s。
+
+两轮 P95 均 ≤ 60s（余量 3-5 倍）；snapshot 全量 50 行 + 增量 125 行全部落表（账实相符）。**口径声明：本机为共享开发机，性能数据为下界；真实集群形态（standalone/REST catalog/泳道 workflow）由后续批次升级，Doris 腿按 RAM 余量分期。**
+
+**泳道抓出并修复的两个真缺陷**（修复随本批 PR）：
+
+1. **PostgreSQL/Oracle source 在 CdcFramework 主链不可达**：`addSourceToEnv` 硬编码 `MySqlSourceConnector.createSource`，PG/Oracle 配置实际落到 MySQL 连接器（`SourceConnectorFactory` 完备但未被调用——接线完整性审计形态）。修复＝改走工厂按类型分派。
+2. **timestamptz 解析墙**：`ChangeRecordRowDataMapper` 的 TIMESTAMP 分支用 `ISO_LOCAL_DATE_TIME`，撞 pgoutput 实际产出形态 `2026-11-14T23:35:48.719472Z` 的尾随 `Z`（`unparsed text found at index 26`，writer 侧重启循环、数据全部丢失）。修复＝带时区指示符走 `OffsetDateTime`（withZone 字段转 UTC epoch millis、无 zone 字段转墙上时间），epoch millis 优先路径不变。
+
+**泳道基建事实**（复跑配方）：作业进程须 systemd 托管（`systemd-run --unit=bdp-lane-job`，wsl.exe 会话销毁会带走 nohup/setsid 后台进程）；Debezium 自动建 `FOR ALL TABLES` publication 需 superuser 角色；classpath 需在 cp.txt 前置 kafka-clients 3.9.2（kafka-clients 4.x 移除了 Debezium 1.9 依赖的 `Sanitizer`）；Java 17 运行 JVM 需与 surefire 同款 add-opens 全集。脚本与配置在仓库外 `F:/tmp/bdp-tender/lane/`（setup/restart/poll/inject/burst/measure 六件）。
