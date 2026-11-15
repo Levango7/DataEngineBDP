@@ -58,6 +58,13 @@ ARG SPARK_FAST_MIRRORS=2
 # per-attempt 挂起超时 600s ⇒ 极端情况下由本文件自己判红，不会被外层 SIGKILL 成 `context canceled`。
 # （本行原先写的「非取数段约 275s」是按本文件旧记载与台账 #112 健康轮次**推算**的值，
 # 已被上述实测取代；推算值不作为依据。）
+# 2026-11-15 反例实测（PR #807 head e0a57673，`Docker Build Verify` job 132689363767，failed）：
+# 取数 RUN 实耗 **426.5s**、curl 退出码 28、预算余 **−6s** ⇒ 超出本预算 6.5s；根因是取数段
+# curl 带 `--retry 2`，而 **curl 的 `--max-time` 是每次传输尝试的墙钟上限**（带重试时整个进程
+# 最坏跑 (N+1)×max-time + N×delay），于是「剩余预算 ÷ 剩余尝试数」切出来的片**不是本源实耗
+# 上限**：首源独占 426s，源 2/3 与回退版本全被跳过 ⇒ 跨源冗余等于没生效（详见下方 try_version）。
+# ⇒ 取数段改为 curl 内部重试 0 次（重试职责交给跨源冗余），单次 curl 的墙钟上限 == 切片；
+#    并加停滞检测（低于 50 KB/s 持续 30s 即放弃该源），避免镜像站卡死时把整片预算耗光。
 ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420
 # ── 供应链校验和（钉扎官方值，版本与校验和必须同步变更） ────────
 # 来源：repo1.maven.org 官方 .sha1（获取日期与 URL 见 CHECKSUMS.md）
@@ -116,6 +123,16 @@ RUN set -eux; \
     elapsed() { echo $(( $(date +%s) - START_TS )); }; \
     budget_left() { echo $(( TOTAL_BUDGET - $(elapsed) )); }; \
     \
+    # ── curl 内部重试次数（取数记账的关键变量） ──
+    # curl 的 --max-time 是**每次传输尝试**的墙钟上限；带 --retry N 时整个 curl 进程最坏可跑
+    # (N+1)×max-time + N×retry-delay ⇒ 「按剩余预算切片」若不把重试次数摊进去，实际耗时会
+    # 超出切片数倍（2026-11-15 实测：切片 140s + --retry 2 ⇒ 单源实耗 426.5s = 3×140 + 2×3）。
+    # 这里把重试次数显式化，并让单次 curl 的墙钟上限 = 切片 ÷ (1+重试次数)（重试延迟一并摊薄），
+    # 于是「本源实耗上限 == 切片」恒成立，记账与实际不漂移；重试职责交给跨源冗余
+    # （3 个镜像源 × 2 个候选版本），不靠 curl 内部重试。
+    CURL_RETRIES=0; \
+    CURL_RETRY_DELAY=0; \
+    \
     # ── 源根清单来自 ARG SPARK_MIRRORS（逗号分隔；本文件是该清单的单一事实源） ──
     ROOTS="$(printf '%s' "${SPARK_MIRRORS}" | tr ',' ' ')"; \
     ROOTS_TOTAL=0; \
@@ -152,11 +169,18 @@ RUN set -eux; \
             fi; \
             tv_slice=$(( tv_left / tv_sources_left )); \
             [ "${tv_slice}" -ge 5 ] || tv_slice=5; \
+            # 单次 curl 进程的墙钟上限 = 切片 ÷ (1+内部重试次数)（重试延迟一并摊薄）；
+            # CURL_RETRIES=0 时即为切片本身 ⇒ 本源实耗上限 == 切片，预算记账恒等。
+            tv_curl_cap=$(( (tv_slice - CURL_RETRIES * CURL_RETRY_DELAY) / (1 + CURL_RETRIES) )); \
+            [ "${tv_curl_cap}" -ge 5 ] || tv_curl_cap=5; \
             tv_url="${tv_root}/spark-${tv_ver}/${tv_tgz}"; \
-            echo ">>> [attempt] Spark ${tv_ver} 源${tv_idx}/${ROOTS_TOTAL}：${tv_url}（本次上限 ${tv_slice}s，预算余 ${tv_left}s）"; \
-            if curl -fsSL --retry 2 --retry-delay 3 --max-time "${tv_slice}" -o "/tmp/${tv_tgz}" "${tv_url}" 2>/dev/null; then \
+            echo ">>> [attempt] Spark ${tv_ver} 源${tv_idx}/${ROOTS_TOTAL}：${tv_url}（本源上限 ${tv_slice}s，单次 curl 墙钟上限 ${tv_curl_cap}s，curl 内部重试 ${CURL_RETRIES} 次，预算余 ${tv_left}s）"; \
+            tv_start="$(elapsed)"; \
+            # --speed-limit/--speed-time：镜像站卡死（低于 50 KB/s 持续 30s）时**提前放弃该源**，
+            # 把预算留给后面的源，而不是耗满整片才换源（2026-11-15 反例的首源就是耗光预算的形态）。
+            if curl -fsSL --retry "${CURL_RETRIES}" --retry-delay "${CURL_RETRY_DELAY}" --speed-limit 51200 --speed-time 30 --max-time "${tv_curl_cap}" -o "/tmp/${tv_tgz}" "${tv_url}" 2>/dev/null; then \
                 DOWNLOADED=1; SPARK_VER="${tv_ver}"; SPARK_TGZ="${tv_tgz}"; \
-                echo ">>> [ok] Spark ${tv_ver} 取数成功（${tv_url}）"; \
+                echo ">>> [ok] Spark ${tv_ver} 取数成功（${tv_url}；本源实耗 $(( $(elapsed) - tv_start ))s，预算余 $(budget_left)s）"; \
                 return 0; \
             else \
                 tv_rc=$?; \
@@ -170,7 +194,7 @@ RUN set -eux; \
                     56) tv_why="接收中断" ;; \
                     *)  tv_why="其它原因" ;; \
                 esac; \
-                echo ">>> [miss] 源${tv_idx} 取数失败（curl 退出码 ${tv_rc}：${tv_why}；累计已用 $(elapsed)s，预算余 $(budget_left)s）"; \
+                echo ">>> [miss] 源${tv_idx} 取数失败（curl 退出码 ${tv_rc}：${tv_why}；本源实耗 $(( $(elapsed) - tv_start ))s（上限 ${tv_slice}s，单次 curl 墙钟上限 ${tv_curl_cap}s）；累计已用 $(elapsed)s，预算余 $(budget_left)s）"; \
             fi; \
             tv_sources_left=$((tv_sources_left - 1)); \
         done; \

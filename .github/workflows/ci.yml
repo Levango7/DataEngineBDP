@@ -454,6 +454,16 @@ jobs:
       - name: 自测钉版外链可达性判据（check-pinned-downloads）
         run: bash scripts/check-pinned-downloads.sh --self-test
 
+      # 台账 #112 续：Spark 取数「预算记账」回归测试。
+      # 2026-11-15 CI 实测暴露的缺陷：取数段 curl 带 --retry 2，而 curl 的 --max-time 是
+      # **每次传输尝试**的上限 ⇒ 「剩余预算 ÷ 剩余尝试数」切出来的片不是本源实耗上限
+      # （实测切片 140s ⇒ 单源实耗 426.5s，420s 预算被吃穿、源 2/3 与回退版本全被跳过）。
+      # 本测试用「虚拟时钟 + 忠实复刻 curl 重试语义的桩」在秒级复现该时间线，断言：
+      # 本源实耗上限 == 切片、各源实耗之和 ≤ 总预算、跨源冗余真的生效。
+      # 不碰网络、不调 docker，成本可忽略。
+      - name: 自测 Spark 取数预算记账（test-spark-download-budget）
+        run: bash scripts/test-spark-download-budget.sh
+
       # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
       # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
       # 是 Linux，保留段检查按平台跳过（脚本 rc=0+说明），真正拦截在 Windows 本机。
