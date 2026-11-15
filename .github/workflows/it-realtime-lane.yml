@@ -16,7 +16,8 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=10", "-c", "max_wal_senders=10"]
+        command: >-
+          postgres -c wal_level=logical -c max_replication_slots=10 -c max_wal_senders=10
         env:
           POSTGRES_USER: bdp_lane
           POSTGRES_PASSWORD: bdp_lane
