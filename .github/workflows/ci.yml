@@ -445,9 +445,12 @@ jobs:
           bash scripts/build-retry.sh --self-test
           bash scripts/compose-retry.sh --self-test
 
-      # 台账 #112：钉版外链预检的三态判据（OK / FAIL / INCONCLUSIVE）离线自测。
-      # 只跑自测不碰网——真检放在它保护的 Docker Build Verify 腿里（见 docker-build 作业），
-      # 避免每次 push 都去打外部镜像站。
+      # 台账 #112：钉版外链预检的判据离线自测。
+      # 2026-11-15 起是**四态**（OK / FAIL / DEGRADED / INCONCLUSIVE）且探测从 HEAD
+      # 改成限量 Range GET，另加「清单 ↔ Dockerfile 源清单」的 fail-closed 一致性自检。
+      # 只跑自测不碰网——真检跑在两处：Docker Build Verify 腿（保住「早失败、不烧 44 个
+      # Dockerfile」的原语义）与 Version Check 腿（该作业无 job 级 if ⇒ 覆盖全部触发面，
+      # 让 main 推送 / release / 定时巡检也能看到外链可达性）。
       - name: 自测钉版外链可达性判据（check-pinned-downloads）
         run: bash scripts/check-pinned-downloads.sh --self-test
 
@@ -2059,7 +2062,20 @@ jobs:
     runs-on: ubuntu-latest
     # 台账 #99①：46m29s 实测撞 45 分钟上限而失败（PR-only）；同为 45 的
     # Java Build & Test 实测最长 30m59s 仍有余量，故只抬这一条，不动它。
-    timeout-minutes: 60
+    # 2026-11-15（台账 #112 第 ⑥ 项待裁加固）：60 → 75。
+    # 依据①（稳态余量，实测）：抬到 60 之后实测的最长成功轮次 = 47m34s
+    # （job 125066500559，台账 #99），只占 60 分钟预算的 79% ⇒ 余量仅 13 分钟。
+    # 依据②（最坏形态，实测 + 推算，边界见下）：台账 #112 的失败轮里，
+    # spark-cluster 一轮取数段就烧 20m00s（日志含 2 条 BUILD_HANG_TIMEOUT，间隔恰 600s），
+    # build-retry 换源重试又起第二轮（09:09:31Z 起，10m21s 后被 job timeout 杀死）；
+    # 同轮其余 43 个 Dockerfile 约 29 分钟（08:20:11Z → 08:49:30Z）。
+    # ⇒ 若第二轮同样命中两条 600s 挂起（与第一轮同形态，**此为推算，非实测**），
+    # 最坏形态 ≈ 29 + 20 + 20 = 69 分钟 > 60 分钟上限。
+    # 本轮给 Dockerfile 加了内部取数预算（≤420s）⇒ 失败形态从「撞满 job timeout」
+    # 变成「本文件早失败并给出每源状态」，但**成功轮次的时长不变**（47m34s 仍实测下界），
+    # 所以稳态余量问题只能靠抬上限解决：75 分钟 ⇒ 47m34s 占 63%（约 1.58× 余量），
+    # 且容得下 ≈69 分钟的最坏形态（约 6 分钟余量）。
+    timeout-minutes: 75
     # 仅在 PR 到 main 时执行，push 时不执行以节省资源
     if: github.event_name == 'pull_request'
     steps:
@@ -2082,6 +2098,10 @@ jobs:
       # （job 125845945766 / 125877121473），真因是 Apache 快源把钉住的 spark 4.2.0 / 3.5.5
       # 挤出目录，构建退到 archive 大文件后被 scripts/build-retry.sh:43 的 600 秒挂起预算误杀。
       # 本步把同一个事实压到几十秒内说清楚，所以放在构建循环之前。
+      # 2026-11-15（第 ⑥ 项待裁加固，本轮落地）：探测从 HEAD 改成限量 Range GET
+      # （旧实现 `curl -sI` 只取响应头、不取 body ⇒ 探不出「源应答了但一个字节都不给」的
+      # body stall；PR #795 的实测形态正是预检绿、构建期 GET 仍挂起 600s）。
+      # 同时加了「清单 ↔ Dockerfile 源清单」的双源 fail-closed 一致性自检。
       - name: 钉版外链可达性预检（台账 112，快源挤出即早失败）
         run: bash scripts/check-pinned-downloads.sh
 
@@ -2157,13 +2177,30 @@ jobs:
   version-check:
     name: Version Check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 2026-11-15（台账 #112 第 ⑥ 项待裁加固）：10 → 15。
+    # 本作业没有 job 级 `if:` ⇒ push(main / release/** / tags v*)、pull_request、
+    # schedule(每日 02:00)、workflow_dispatch 这五个触发面**全覆盖**；
+    # 真检最坏耗时 ≈5 分钟（5 个坐标 × 最多 3 源 × 单源 20s 墙钟上限），
+    # 10 分钟太贴边，抬到 15 留出余量。
+    timeout-minutes: 15
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
       - name: 运行版本对账
         run: bash scripts/check-versions.sh
+
+      # 台账 #112：钉版外链可达性真检（限量 Range GET，与构建期同源同形态）。
+      # 为什么挂在这里而不是只挂 Docker Build Verify：那条腿是 PR-only
+      # （if: github.event_name == 'pull_request'），main 推送、release 分支、
+      # 定时巡检、手工触发都看不到外链可达性 ⇒ 钉住的坐标被镜像站挤出这件事
+      # 要等到下一次 PR 才暴露。本作业覆盖全部触发面，且**不引入 needs 依赖、
+      # 不与任何腿串行化**（不给 30–60 分钟的反馈周期再加延迟）。
+      # 代价：PR 事件上真检跑 2 次（version-check 一次 + docker-build 一次），
+      # 每次约 10–60 秒。docker-build 里的那份**保留**：它保住
+      # 「早失败、不烧 44 个 Dockerfile」的原语义。
+      - name: 钉版外链可达性真检（台账 112，全部触发面）
+        run: bash scripts/check-pinned-downloads.sh
 
   # ============================================================
   # 集成测试：依赖 java-build-test 和 go-build-test 通过
