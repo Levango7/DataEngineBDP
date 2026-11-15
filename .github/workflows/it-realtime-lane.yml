@@ -16,6 +16,8 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        command: >-
+          postgres -c wal_level=logical -c max_replication_slots=10 -c max_wal_senders=10
         env:
           POSTGRES_USER: bdp_lane
           POSTGRES_PASSWORD: bdp_lane
@@ -42,10 +44,13 @@ jobs:
           PGPASSWORD=bdp_lane psql -h 127.0.0.1 -p 5433 -U bdp_lane -d bdp_lane -tAc "SELECT pubname FROM pg_publication"
 
       - name: Build classpath
-        working-directory: platform/flink-cdc
         run: |
-          mvn -B compile dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-lane.log 2>&1 \
-            || { tail -40 /tmp/mvn-lane.log | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 3000 > /tmp/mvn-err.txt; echo "::error::build-classpath failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
+          # flink-cdc 依赖仓内兄弟模块（common-security 等，私有 SNAPSHOT 不在 Central）：
+          # 先聚合 reactor install 兄弟模块进 .m2，再单模块 build-classpath
+          mvn -B -pl platform/flink-cdc -am -DskipTests install > /tmp/mvn-install.log 2>&1 \
+            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)' /tmp/mvn-install.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::install failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
+          mvn -B -f platform/flink-cdc/pom.xml dependency:build-classpath -Dmdep.outputFile=/tmp/lane-cp.txt > /tmp/mvn-cp.log 2>&1 \
+            || { grep -E '^\[ERROR\]|BUILD FAILURE|Could not (resolve|transfer)' /tmp/mvn-cp.log | tail -12 | sed ':a;N;$!ba;s/\n/%0A/g' | head -c 2800 > /tmp/mvn-err.txt; echo "::error::bc failed: $(cat /tmp/mvn-err.txt)"; exit 1; }
           mvn -B -q dependency:get -Dartifact=org.apache.kafka:kafka-clients:3.9.2
           mvn -B -q dependency:get -Dartifact=org.apache.iceberg:iceberg-api:1.12.0
           test -s /tmp/lane-cp.txt
@@ -92,8 +97,24 @@ jobs:
         run: |
           bash tests/integration/realtime-lane/lane-burst.sh 25 1.0 1 \
             "postgresql://bdp_lane:bdp_lane@127.0.0.1:5433/bdp_lane" \
-            file:///tmp/lane-warehouse dw mv_sales_lane
-          test "$(wc -l < /tmp/lane/burst.csv)" -eq 25
+            file:///tmp/lane-warehouse dw mv_sales_lane || RC=$?
+          DEB=$(wc -c < /tmp/lane/dump-err.log 2>/dev/null || echo -1)
+          INJ=$(grep -c injected /tmp/lane/inject-log.txt 2>/dev/null || echo -1)
+          echo "burst rc=${RC:-0} dumperr=$DEB inj=$INJ"
+          echo "dump-err tail:"; tail -5 /tmp/lane/dump-err.log 2>/dev/null || echo none
+          if ! test -s /tmp/lane/burst.csv; then
+            echo "::error::no-burst-csv rc=${RC:-0} dumperr=$DEB inj=$INJ"
+            if [ "$DEB" -gt 0 ]; then
+              echo "::error::dumperr-first=$(head -1 /tmp/lane/dump-err.log | head -c 320)"
+              exit 23
+            fi
+            JOBALIVE=$(pgrep -f CdcFrameworkMain >/dev/null && echo 1 || echo 0)
+            JOBERR=$(grep -E 'Caused by' /tmp/lane/job.log 2>/dev/null | tail -1 | head -c 320)
+            echo "::error::no-rows inj=$INJ jobalive=$JOBALIVE causedby=$JOBERR"
+            exit 24
+          fi
+          NROWS=$(wc -l < /tmp/lane/burst.csv)
+          test "$NROWS" -eq 25 || { echo "::error::burst-rows=$NROWS rc=${RC:-0} inj=$INJ"; exit 25; }
 
       - name: Assert P95
         run: |
