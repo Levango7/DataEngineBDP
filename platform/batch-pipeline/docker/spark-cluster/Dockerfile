@@ -51,10 +51,13 @@ ARG SPARK_FAST_MIRRORS=2
 # 而不是被外层 SIGKILL 成 `context canceled`（台账 #112 的实测形态：挂起 600s × 2 次
 # attempt，把 `Docker Build Verify` 顶到 job timeout，红在面板上却长得像编译失败）。
 # 取 420s（而非更大的值）：留 180s 给非取数段（基座拉取 / apt / 校验解包 / Maven）。
-# 按本文件既有记载（tuna 实测 529MB / 36 秒）与台账 #112 的健康轮次（spark-cluster 单镜像
-# 5m11s = 311s）推算，非取数段约 275s —— 这是**推算值，未在本轮实测**；故极端情况下仍可能
-# 被 600s 打断，那时由 build-retry 的传输类兜底重试一次（job timeout 已抬到 75 分钟，
-# 装得下 2 次 attempt）。
+# 本轮 PR #805 的 CI 实测（`Docker Build Verify` job 132626373067，head 9d76e1ee）：spark-cluster
+# 单镜像 **224s**，其中取数 RUN **58.30s**（下载 53.62s，源 1/3 = tuna 命中），非取数段 ≈ **166s**；
+# 44 个 Dockerfile 全量 **2163s（36m03s）**，全部「首次尝试，重试 0 次」。
+# ⇒ 取数预算 420s 远大于实测成功形态的 58.30s；且「预算耗尽 420s + 非取数段 166s」≈ 586s 仍低于
+# per-attempt 挂起超时 600s ⇒ 极端情况下由本文件自己判红，不会被外层 SIGKILL 成 `context canceled`。
+# （本行原先写的「非取数段约 275s」是按本文件旧记载与台账 #112 健康轮次**推算**的值，
+# 已被上述实测取代；推算值不作为依据。）
 ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420
 # ── 供应链校验和（钉扎官方值，版本与校验和必须同步变更） ────────
 # 来源：repo1.maven.org 官方 .sha1（获取日期与 URL 见 CHECKSUMS.md）
