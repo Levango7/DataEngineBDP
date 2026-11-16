@@ -28,6 +28,10 @@ import java.util.Objects;
  * Basic 认证 + {@code format: json} + {@code strip_outer_array: true}（请求体为 JSON 数组）。
  * 依赖面仅 JDK {@link HttpClient} 与 Jackson，不引入 Doris 官方 Flink Connector（重依赖）。</p>
  *
+ * <p><b>行形态</b>：数组每行＝**打平后的业务列对象**（{@code c/r/u} 取 after、{@code d} 取
+ * before 并附 {@code __DORIS_DELETE_SIGN__=1}）——不是 ChangeRecord 的包裹序列化；
+ * 详见 {@code toRowJson}。</p>
+ *
  * <p><b>交付语义</b>：AT_LEAST_ONCE——写入失败即抛 {@link IllegalStateException}，
  * 由 Flink 作业按重启策略重试（数据不静默丢弃）；精确一次（Doris 事务 label 去重）
  * 属后续段，见 {@code docs/realtime-chain-completion-plan.md} Phase B 验收。</p>
@@ -264,13 +268,43 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         @Override
         public void write(ChangeRecord value, Context context) {
             Objects.requireNonNull(value, "ChangeRecord 不能为 null");
-            try {
-                buffer.add(JSON.writeValueAsString(value));
-            } catch (Exception e) {
-                throw new IllegalStateException("ChangeRecord 序列化失败: " + e.getMessage(), e);
-            }
+            buffer.add(toRowJson(value));
             if (buffer.size() >= options.batchSize()) {
                 flushBatch();
+            }
+        }
+
+        /**
+         * ChangeRecord → Doris 行 JSON（**打平业务列**，端到端泳道实证形态修正）。
+         *
+         * <p>此前直接序列化整个 {@link ChangeRecord}（{@code {op, before, after}} 包裹形态），
+         * Doris 按列名匹配时收不到 {@code after} 内的业务列（嵌套不打平）——Phase B
+         * 端到端验收抓出的真缺陷。打平语义：{@code c/r/u} 取 after、{@code d} 取 before，
+         * 并把顶层业务键平铺为行对象；{@code d} 额外输出
+         * {@code __DORIS_DELETE_SIGN__=1}（Doris UNIQUE KEY 表原生删除标记；无该列的
+         * 目标表将由 Doris 忽略该键或按表配置报错）。</p>
+         *
+         * @param value 变更记录
+         * @return 单行 JSON 对象（顶层即列）
+         */
+        static String toRowJson(ChangeRecord value) {
+            String op = value.getOp();
+            boolean isDelete = "d".equalsIgnoreCase(op);
+            java.util.Map<String, Object> src = isDelete
+                    ? (value.getBefore() != null ? value.getBefore() : value.getAfter())
+                    : (value.getAfter() != null ? value.getAfter() : value.getBefore());
+            if (src == null) {
+                throw new IllegalStateException(
+                        "变更记录缺少 before/after 数据（op=" + op + "），无法构造 Doris 行");
+            }
+            java.util.HashMap<String, Object> row = new java.util.HashMap<>(src);
+            if (isDelete) {
+                row.put("__DORIS_DELETE_SIGN__", 1);
+            }
+            try {
+                return JSON.writeValueAsString(row);
+            } catch (Exception e) {
+                throw new IllegalStateException("ChangeRecord 行序列化失败: " + e.getMessage(), e);
             }
         }
 

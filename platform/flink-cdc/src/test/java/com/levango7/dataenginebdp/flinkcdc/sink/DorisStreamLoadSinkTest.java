@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -66,6 +67,13 @@ class DorisStreamLoadSinkTest {
         return record;
     }
 
+    private ChangeRecord deleteRecord(String id) {
+        ChangeRecord record = new ChangeRecord();
+        record.setOp("d");
+        record.setBefore(Map.of("id", id));
+        return record;
+    }
+
     private DorisStreamLoadSink sink(int batchSize) {
         return DorisStreamLoadSink.builder()
                 .host("127.0.0.1")
@@ -95,6 +103,21 @@ class DorisStreamLoadSinkTest {
         assertEquals("root:pwd", decoded);
         assertTrue(lastBody.get().startsWith("["), "strip_outer_array 形态应为 JSON 数组");
         assertTrue(lastBody.get().contains("\"id\":\"2\""));
+        // 钉绑定形态：行＝打平列对象，不得回到 ChangeRecord 包裹序列化
+        // （端到端泳道抓出的真缺陷：嵌套 after 使 Doris 收不到业务列）
+        assertFalse(lastBody.get().contains("\"after\""), "行形态必须打平，不得含 after 包裹键");
+        assertFalse(lastBody.get().contains("\"op\""), "行形态必须打平，不得含 op 包裹键");
+        writer.close();
+    }
+
+    @Test
+    @DisplayName("op=d → before 打平 + __DORIS_DELETE_SIGN__=1（UNIQUE KEY 表原生删除语义）")
+    void deleteRowUsesDeleteSign() throws Exception {
+        var writer = sink(1).createWriter((InitContext) null);
+        writer.write(deleteRecord("7"), null);
+        assertTrue(lastBody.get().contains("\"id\":\"7\""), "d 取 before 列值");
+        assertTrue(lastBody.get().contains("\"__DORIS_DELETE_SIGN__\":1"), "删除须带 delete sign");
+        assertFalse(lastBody.get().contains("\"before\""), "行形态必须打平，不得含 before 包裹键");
         writer.close();
     }
 
