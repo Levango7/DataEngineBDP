@@ -636,10 +636,15 @@ jobs:
         run: python3 scripts/check-db-migration-coverage.py
 
       - name: 组件部署单元覆盖校验（有 Dockerfile 却无 Chart ⇒ 生产不可部署，只减不增）
-        # 缺口事实来源 docs/deployable-backlog.yaml（当前 13 个，含治理链的 real-time-pipeline：
+        # 缺口事实来源 docs/deployable-backlog.yaml（当前 0 个：uncovered 自 2026-10-11 起为空，
+        # 见该文件注释；历史上有 13 个，含治理链的 real-time-pipeline：
         # 跨进程血缘边已接好，但集群里没有任何东西承载它）。
         # 语义与建表迁移覆盖校验同构：允许既有欠债登记在案，但新增缺口 / 销账不及时的过期条目一律阻断。
-        run: python3 scripts/check-deployable-coverage.py
+        # 先跑离线自测，证明这条门禁在「git 取数失败 / 组件清单为空」时 fail-closed（rc=2），
+        # 而不是把「取不到组件」当成「没有缺口」判绿。
+        run: |
+          python3 scripts/check-deployable-coverage.py --self-test
+          python3 scripts/check-deployable-coverage.py
 
       - name: Spring 组件扫描覆盖校验（Bean 落在扫描根之外 ⇒ 运行期静默 404）
         # rule-engine 的编排包在 ...rule.engine.orchestrator，启动类却在 ...ruleengine，
