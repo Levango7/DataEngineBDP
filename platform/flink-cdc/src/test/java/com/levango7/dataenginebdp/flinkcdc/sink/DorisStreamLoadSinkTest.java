@@ -34,6 +34,8 @@ class DorisStreamLoadSinkTest {
     private final AtomicReference<String> lastPath = new AtomicReference<>();
     private final AtomicReference<String> lastAuth = new AtomicReference<>();
     private final AtomicReference<String> lastBody = new AtomicReference<>();
+    private final AtomicReference<String> lastExpect = new AtomicReference<>();
+    private final AtomicReference<String> locationHeader = new AtomicReference<>();
     private volatile int httpStatus = 200;
     private volatile String respBody = "{\"Status\":\"Success\",\"NumberLoadedRows\":2,\"Message\":\"\"}";
 
@@ -44,7 +46,11 @@ class DorisStreamLoadSinkTest {
             lastMethod.set(exchange.getRequestMethod());
             lastPath.set(exchange.getRequestURI().getPath());
             lastAuth.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            lastExpect.set(exchange.getRequestHeaders().getFirst("Expect"));
             lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            if (locationHeader.get() != null) {
+                exchange.getResponseHeaders().add("Location", locationHeader.get());
+            }
             byte[] bytes = respBody.getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(httpStatus, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
@@ -107,7 +113,34 @@ class DorisStreamLoadSinkTest {
         // （端到端泳道抓出的真缺陷：嵌套 after 使 Doris 收不到业务列）
         assertFalse(lastBody.get().contains("\"after\""), "行形态必须打平，不得含 after 包裹键");
         assertFalse(lastBody.get().contains("\"op\""), "行形态必须打平，不得含 op 包裹键");
+        assertTrue(lastExpect.get() != null && "100-continue".equalsIgnoreCase(lastExpect.get()),
+                "Doris 4.x FE 强制要求 Expect: 100-continue 头（JDK 发 100-Continue，值大小写不敏感）");
         writer.close();
+    }
+
+    @Test
+    @DisplayName("FE 返回 307（stream load 重定向到 BE）：跟随重定向并把数据送达目标（真缺陷回归防线）")
+    void follows307Redirect() throws Exception {
+        java.util.concurrent.atomic.AtomicReference<String> redirectedBody =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        server.createContext("/redirect-target", exchange -> {
+            redirectedBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] bytes = "{\"Status\":\"Success\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
+        locationHeader.set("http://127.0.0.1:" + port + "/redirect-target");
+        httpStatus = 307;
+        respBody = "";
+
+        var writer = sink(1).createWriter((InitContext) null);
+        writer.write(record("42"), null);
+        writer.close();
+
+        assertNotNull(redirectedBody.get(), "307 后的请求必须被送达重定向目标（默认 NEVER 会空转）");
+        assertTrue(redirectedBody.get().contains("\"id\":\"42\""), "重定向后 body 须保留");
     }
 
     @Test

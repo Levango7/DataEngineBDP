@@ -262,6 +262,9 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             this.options = options;
             this.http = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(options.connectTimeoutMs()))
+                    // Doris 4.x FE 对 /_stream_load 返回 307（重定向到 BE webserver）；
+                    // JDK HttpClient 默认 NEVER 不跟随 ⇒ 请求空转、数据不落（端到端泳道实证）
+                    .followRedirects(HttpClient.Redirect.NORMAL)
                     .build();
         }
 
@@ -351,6 +354,10 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
                     .header("Authorization", auth)
                     .header("format", "json")
                     .header("strip_outer_array", "true")
+                    // Doris 4.x FE 强制要求 100-continue（缺则直接判 FAILED「There is no
+                    // 100-continue header」）；Expect 是 JDK 受限头不可 .header() 直设，
+                    // 用内置 expectContinue(true) 走协商（端到端泳道实证）
+                    .expectContinue(true)
                     .header("Content-Type", "application/json");
             if (!options.labels().isEmpty()) {
                 builder.header("label", options.labels() + "-" + System.currentTimeMillis());
