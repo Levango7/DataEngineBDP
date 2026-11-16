@@ -192,7 +192,15 @@ n=25 / n=50 ⇒ p95=7.0s / 6.8s**（min 2.1s、p50≈4.7s、8 倍以上余量；
 实测）；curl 手工验证需 `-L --location-trusted`；BE mem_limit 压到 3G、FE 堆 2G，
 单节点峰值约 4-5G RAM。
 
-**边界如实**：本机为共享开发机（性能数据为下界）；delete 端到端（sign=1 行删除
-后 SELECT 消失）单测已钉、线上仅验 sign=0 无害，**sign=1 端到端未跑**；Doris
-2.1.x 的 100-continue/307 行为未测（本批以 4.1.5 实测为准）；CI 泳道暂只覆盖
-Iceberg 腿（Doris 腿的 CI 化属后续段）。
+**删除端到端（2026-11-17 补测，PASS）**：`MERGE + DELETE ON` 主键条件路径实测闭环——
+注入 10 行（首现 ≤2s 轮询）→ PG DELETE 5 行 → Doris SELECT 3 轮内归零。四轮实证链
+（每轮一个真因）：①4.x 普通导入忽略 `__DORIS_DELETE_SIGN__` 并整行 upsert 成 NULL
+版本；②`DELETE ON` 仅 `merge_type: MERGE` 支持（DELETE 类型直发报错）；③sink 旧拼接
+`String.valueOf(null)`="null" 使条件带 `='null'` 撞类型转换（too many filtered rows）；
+④pgoutput 的 DELETE before 非主键列为 null 且 src_ts 为 epoch 占位值（全列 AND 永不命中）
+⇒ **删除条件与 body 只用主键键集**（yaml `sink.primaryKey` 配置驱动；未配置 fail-fast
+指路，不静默丢删）。
+
+**边界如实**：本机为共享开发机（性能数据为下界）；Doris 2.1.x 的 100-continue/307/
+删除语义未测（本批以 4.1.5 实测为准）；CI 泳道暂只覆盖 Iceberg 腿（Doris 腿的 CI 化
+属后续段）。
