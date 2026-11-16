@@ -395,6 +395,11 @@ public class CdcFramework {
         if (p.containsKey("labels")) {
             builder.labels(p.get("labels"));
         }
+        // 删除语义主键：properties primary-keys 优先，回退 yaml 顶层 primaryKey
+        String pk = p.getOrDefault("primary-keys", config.getPrimaryKey());
+        if (pk != null && !pk.isBlank()) {
+            builder.primaryKeys(pk);
+        }
         return builder.build();
     }
 
