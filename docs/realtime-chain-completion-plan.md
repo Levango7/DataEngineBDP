@@ -162,3 +162,37 @@ annotation 与退出码编码」通道逐轮定位并拔除六墙：
 
 **CI 泳道 run `43702634630` 全绿**（P95 ≤ 60s 硬断言通过）。诊断循环的教训
 （Actions runner 与开发环境的六处差异）已随配方固化在 workflow 与脚本内。
+
+### Phase B 端到端泳道实测（2026-11-16，Doris 腿收官）
+
+**环境形态**（WSL 直装、不启 Docker）：Doris **4.1.5** 单节点（FE + BE，官方 OSS
+accelerate 直下 4.32GB 全量包）＋ Postgres 16 逻辑复制（既有泳道）＋
+`CdcFrameworkMain` 作业（postgres source → DorisStreamLoadSink）。
+
+**判据与结果**：Phase B「CDC 一行 → Doris 表 SELECT 可见」——**两轮
+n=25 / n=50 ⇒ p95=7.0s / 6.8s**（min 2.1s、p50≈4.7s、8 倍以上余量；口径＝
+注入时刻 → mysql SELECT 首现时刻）。snapshot 全量 175 行 + 增量 75 行账实相符。
+
+**本批抓出并修复的 sink 真缺陷（三处，端到端实测缺一不可）**：
+
+1. **行形态包裹式**：直接序列化整个 ChangeRecord（{op, before, after}），Doris 按
+   列名匹配收不到 after 内业务列（嵌套不打平）⇒ 修为打平（c/r/u 取 after、d 取
+   before 并附 `__DORIS_DELETE_SIGN__=1`）；
+2. **307 重定向**：Doris 4.x FE 对 /_stream_load 返回 307（转发到 BE webserver），
+   JDK HttpClient 默认不跟随 ⇒ 请求空转；且**自动跟随会按 authority（host:port）
+   剥离 Authorization** ⇒ BE 报 [NOT_AUTHORIZED]——最终实现为**手动重发并显式带
+   认证**（followRedirects=NEVER）；
+3. **100-continue 硬要求**：FE 对缺 `Expect: 100-continue` 的请求直接判 FAILED；
+   Expect 是 JDK 受限头不可 `.header()` 直设（IllegalArgumentException）⇒ 用
+   HttpRequest.Builder 内置 `expectContinue(true)`（线上实发 100-Continue）。
+
+**Doris 4.x 部署与协议坑（复跑配方）**：BE 强制 swap 关闭（`swapoff -a`，WSL
+运行时即可）＋ `vm.max_map_count=2000000` ＋ nofile 提升；**`__DORIS_DELETE_SIGN__`
+是 hidden column，禁显式建列**（建表带了会被拒），导入键本身被接受（0 值无害已
+实测）；curl 手工验证需 `-L --location-trusted`；BE mem_limit 压到 3G、FE 堆 2G，
+单节点峰值约 4-5G RAM。
+
+**边界如实**：本机为共享开发机（性能数据为下界）；delete 端到端（sign=1 行删除
+后 SELECT 消失）单测已钉、线上仅验 sign=0 无害，**sign=1 端到端未跑**；Doris
+2.1.x 的 100-continue/307 行为未测（本批以 4.1.5 实测为准）；CI 泳道暂只覆盖
+Iceberg 腿（Doris 腿的 CI 化属后续段）。
