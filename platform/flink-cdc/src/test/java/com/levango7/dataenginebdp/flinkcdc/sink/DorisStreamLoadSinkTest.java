@@ -119,12 +119,15 @@ class DorisStreamLoadSinkTest {
     }
 
     @Test
-    @DisplayName("FE 返回 307（stream load 重定向到 BE）：跟随重定向并把数据送达目标（真缺陷回归防线）")
+    @DisplayName("FE 返回 307（stream load 重定向到 BE）：手动重发并把数据与认证一并送达目标（真缺陷回归防线）")
     void follows307Redirect() throws Exception {
         java.util.concurrent.atomic.AtomicReference<String> redirectedBody =
                 new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<String> redirectedAuth =
+                new java.util.concurrent.atomic.AtomicReference<>();
         server.createContext("/redirect-target", exchange -> {
             redirectedBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            redirectedAuth.set(exchange.getRequestHeaders().getFirst("Authorization"));
             byte[] bytes = "{\"Status\":\"Success\"}".getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(200, bytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
@@ -141,6 +144,10 @@ class DorisStreamLoadSinkTest {
 
         assertNotNull(redirectedBody.get(), "307 后的请求必须被送达重定向目标（默认 NEVER 会空转）");
         assertTrue(redirectedBody.get().contains("\"id\":\"42\""), "重定向后 body 须保留");
+        // JDK 自动跟随会按 authority（host:port）剥离 Authorization ⇒ BE 报 NOT_AUTHORIZED；
+        // 手动重发必须显式携带认证（端到端泳道实证的绑定形态）
+        assertNotNull(redirectedAuth.get(), "重定向重发必须携带 Authorization（JDK 自动跟随会剥离）");
+        assertTrue(redirectedAuth.get().startsWith("Basic "), "重定向重发的认证须为 Basic 形态");
     }
 
     @Test

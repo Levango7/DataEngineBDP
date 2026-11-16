@@ -262,9 +262,9 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             this.options = options;
             this.http = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(options.connectTimeoutMs()))
-                    // Doris 4.x FE 对 /_stream_load 返回 307（重定向到 BE webserver）；
-                    // JDK HttpClient 默认 NEVER 不跟随 ⇒ 请求空转、数据不落（端到端泳道实证）
-                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    // 307（FE→BE 重定向）由 streamLoad() 手动处理：JDK 自动跟随会按
+                    // authority 剥离 Authorization，导致 BE 报 [NOT_AUTHORIZED]（端到端泳道实证）
+                    .followRedirects(HttpClient.Redirect.NEVER)
                     .build();
         }
 
@@ -349,27 +349,18 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
                     + "/api/" + options.database() + "/" + options.table() + "/_stream_load");
             String auth = "Basic " + Base64.getEncoder().encodeToString(
                     (options.username() + ":" + options.password()).getBytes(StandardCharsets.UTF_8));
-            HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
-                    .timeout(Duration.ofMillis(options.readTimeoutMs()))
-                    .header("Authorization", auth)
-                    .header("format", "json")
-                    .header("strip_outer_array", "true")
-                    // Doris 4.x FE 强制要求 100-continue（缺则直接判 FAILED「There is no
-                    // 100-continue header」）；Expect 是 JDK 受限头不可 .header() 直设，
-                    // 用内置 expectContinue(true) 走协商（端到端泳道实证）
-                    .expectContinue(true)
-                    .header("Content-Type", "application/json");
-            if (!options.labels().isEmpty()) {
-                builder.header("label", options.labels() + "-" + System.currentTimeMillis());
-            }
-            HttpRequest request = builder.PUT(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8)).build();
 
-            HttpResponse<String> response;
-            try {
-                response = http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException("Doris Stream Load 被中断: " + e.getMessage(), e);
+            HttpResponse<String> response = send(auth, uri, body);
+            if (response.statusCode() == 307 || response.statusCode() == 308) {
+                // Doris 4.x FE 将 stream load 重定向到 BE（host:port 变化）；JDK HttpClient
+                // 的自动跟随会按 authority 剥离 Authorization ⇒ BE 收无认证请求报
+                // [NOT_AUTHORIZED]（端到端泳道实证）。故禁自动跟随、手动重发并显式带认证。
+                String location = response.headers().firstValue("Location").orElse(null);
+                if (location == null) {
+                    throw new IOException("Doris Stream Load 重定向（HTTP " + response.statusCode()
+                            + "）缺少 Location 头");
+                }
+                response = send(auth, URI.create(location), body);
             }
 
             JsonNode resp;
@@ -386,6 +377,30 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             }
             log.info("Doris Stream Load 成功: {} 条 → {}.{}（NumberLoadedRows={}）",
                     rows, options.database(), options.table(), resp.path("NumberLoadedRows").asInt(rows));
+        }
+
+        /** 构造并发送单次 stream load 请求（含认证/格式头/100-continue；供 307 手动重发复用）。 */
+        private HttpResponse<String> send(String auth, URI uri, String body) throws IOException {
+            HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
+                    .timeout(Duration.ofMillis(options.readTimeoutMs()))
+                    .header("Authorization", auth)
+                    .header("format", "json")
+                    .header("strip_outer_array", "true")
+                    // Doris 4.x FE 强制要求 100-continue（缺则直接判 FAILED「There is no
+                    // 100-continue header」）；Expect 是 JDK 受限头不可 .header() 直设，
+                    // 用内置 expectContinue(true) 走协商（端到端泳道实证）
+                    .expectContinue(true)
+                    .header("Content-Type", "application/json");
+            if (!options.labels().isEmpty()) {
+                builder.header("label", options.labels() + "-" + System.currentTimeMillis());
+            }
+            HttpRequest request = builder.PUT(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8)).build();
+            try {
+                return http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Doris Stream Load 被中断: " + e.getMessage(), e);
+            }
         }
 
         private static String head(String s) {
