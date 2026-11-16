@@ -265,11 +265,25 @@ RUN set -eux; \
     DOWNLOADED=0; \
     for BASE_URL in "${MAVEN_MIRROR}" "${MAVEN_BASE}"; do \
         URL="${BASE_URL}/org/apache/hadoop/hadoop-aws/${HADOOP_AWS_VERSION}/${HADOOP_AWS_JAR}"; \
-        echo ">>> 尝试 ${URL} ..."; \
-        if curl -fsSL --retry 2 --retry-delay 3 --max-time 120 -o /tmp/${HADOOP_AWS_JAR} "${URL}"; then \
+        echo ">>> [attempt] hadoop-aws ${HADOOP_AWS_VERSION} ${URL}（本源墙钟上限 120s，curl 内部重试 0 次）"; \
+        hadoop_aws_start="$(date +%s)"; \
+        if curl -fsSL --retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time 120 -o /tmp/${HADOOP_AWS_JAR} "${URL}"; then \
             DOWNLOADED=1; \
-            echo ">>> hadoop-aws ${HADOOP_AWS_VERSION} 下载成功"; \
+            echo ">>> [ok] hadoop-aws ${HADOOP_AWS_VERSION} 取数成功（${URL}；本源实耗 $(( $(date +%s) - hadoop_aws_start ))s）"; \
             break; \
+        else \
+            hadoop_aws_rc=$?; \
+            case "${hadoop_aws_rc}" in \
+                6)  hadoop_aws_why="域名解析失败" ;; \
+                7)  hadoop_aws_why="连接被拒" ;; \
+                22) hadoop_aws_why="HTTP 错误状态（4xx/5xx）" ;; \
+                28) hadoop_aws_why="超时（未在本次上限内取完）" ;; \
+                35) hadoop_aws_why="TLS 握手异常" ;; \
+                52) hadoop_aws_why="服务端未回内容" ;; \
+                56) hadoop_aws_why="接收中断" ;; \
+                *)  hadoop_aws_why="其它原因" ;; \
+            esac; \
+            echo ">>> [miss] hadoop-aws ${HADOOP_AWS_VERSION} 取数失败（curl 退出码 ${hadoop_aws_rc}：${hadoop_aws_why}；本源实耗 $(( $(date +%s) - hadoop_aws_start ))s）"; \
         fi; \
     done; \
     if [ "${DOWNLOADED}" = "0" ]; then \
@@ -292,11 +306,25 @@ RUN set -eux; \
     DOWNLOADED=0; \
     for BASE_URL in "${MAVEN_MIRROR}" "${MAVEN_BASE}"; do \
         URL="${BASE_URL}/software/amazon/awssdk/bundle/${AWS_SDK_V2_BUNDLE_VERSION}/${AWS_SDK_JAR}"; \
-        echo ">>> 尝试 ${URL} ..."; \
-        if curl -fsSL --retry 2 --retry-delay 3 --max-time 600 -o /tmp/${AWS_SDK_JAR} "${URL}"; then \
+        echo ">>> [attempt] aws-sdk-v2-bundle ${AWS_SDK_V2_BUNDLE_VERSION} ${URL}（本源墙钟上限 600s，curl 内部重试 0 次）"; \
+        aws_sdk_v2_bundle_start="$(date +%s)"; \
+        if curl -fsSL --retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time 600 -o /tmp/${AWS_SDK_JAR} "${URL}"; then \
             DOWNLOADED=1; \
-            echo ">>> aws-sdk-v2-bundle ${AWS_SDK_V2_BUNDLE_VERSION} 下载成功"; \
+            echo ">>> [ok] aws-sdk-v2-bundle ${AWS_SDK_V2_BUNDLE_VERSION} 取数成功（${URL}；本源实耗 $(( $(date +%s) - aws_sdk_v2_bundle_start ))s）"; \
             break; \
+        else \
+            aws_sdk_v2_bundle_rc=$?; \
+            case "${aws_sdk_v2_bundle_rc}" in \
+                6)  aws_sdk_v2_bundle_why="域名解析失败" ;; \
+                7)  aws_sdk_v2_bundle_why="连接被拒" ;; \
+                22) aws_sdk_v2_bundle_why="HTTP 错误状态（4xx/5xx）" ;; \
+                28) aws_sdk_v2_bundle_why="超时（未在本次上限内取完）" ;; \
+                35) aws_sdk_v2_bundle_why="TLS 握手异常" ;; \
+                52) aws_sdk_v2_bundle_why="服务端未回内容" ;; \
+                56) aws_sdk_v2_bundle_why="接收中断" ;; \
+                *)  aws_sdk_v2_bundle_why="其它原因" ;; \
+            esac; \
+            echo ">>> [miss] aws-sdk-v2-bundle ${AWS_SDK_V2_BUNDLE_VERSION} 取数失败（curl 退出码 ${aws_sdk_v2_bundle_rc}：${aws_sdk_v2_bundle_why}；本源实耗 $(( $(date +%s) - aws_sdk_v2_bundle_start ))s）"; \
         fi; \
     done; \
     if [ "${DOWNLOADED}" = "0" ]; then \
@@ -323,11 +351,25 @@ RUN set -eux; \
     DOWNLOADED=0; \
     for BASE_URL in "${MAVEN_MIRROR}" "${MAVEN_BASE}"; do \
         URL="${BASE_URL}/software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/${ANALYTICS_ACCELERATOR_VERSION}/${JAR_NAME}"; \
-        echo ">>> 尝试 ${URL} ..."; \
-        if curl -fsSL --retry 2 --retry-delay 3 --max-time 60 -o /tmp/${JAR_NAME} "${URL}"; then \
+        echo ">>> [attempt] analyticsaccelerator-s3 ${URL}（本源墙钟上限 60s，curl 内部重试 0 次）"; \
+        analyticsaccelerator_s3_start="$(date +%s)"; \
+        if curl -fsSL --retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time 60 -o /tmp/${JAR_NAME} "${URL}"; then \
             DOWNLOADED=1; \
-            echo ">>> analyticsaccelerator-s3 下载成功"; \
+            echo ">>> [ok] analyticsaccelerator-s3 取数成功（${URL}；本源实耗 $(( $(date +%s) - analyticsaccelerator_s3_start ))s）"; \
             break; \
+        else \
+            analyticsaccelerator_s3_rc=$?; \
+            case "${analyticsaccelerator_s3_rc}" in \
+                6)  analyticsaccelerator_s3_why="域名解析失败" ;; \
+                7)  analyticsaccelerator_s3_why="连接被拒" ;; \
+                22) analyticsaccelerator_s3_why="HTTP 错误状态（4xx/5xx）" ;; \
+                28) analyticsaccelerator_s3_why="超时（未在本次上限内取完）" ;; \
+                35) analyticsaccelerator_s3_why="TLS 握手异常" ;; \
+                52) analyticsaccelerator_s3_why="服务端未回内容" ;; \
+                56) analyticsaccelerator_s3_why="接收中断" ;; \
+                *)  analyticsaccelerator_s3_why="其它原因" ;; \
+            esac; \
+            echo ">>> [miss] analyticsaccelerator-s3 取数失败（curl 退出码 ${analyticsaccelerator_s3_rc}：${analyticsaccelerator_s3_why}；本源实耗 $(( $(date +%s) - analyticsaccelerator_s3_start ))s）"; \
         fi; \
     done; \
     if [ "${DOWNLOADED}" = "0" ]; then \
@@ -387,11 +429,25 @@ RUN if [ "${ENABLE_ICEBERG}" = "true" ]; then \
         DOWNLOADED=0; \
         for BASE_URL in "${MAVEN_MIRROR}" "${MAVEN_BASE}"; do \
             URL="${BASE_URL}/org/apache/iceberg/iceberg-spark-runtime-${ICEBERG_SPARK_MAJOR}_${ICEBERG_SCALA_VERSION}/${ICEBERG_VERSION}/${ICEBERG_SPARK_JAR}"; \
-            echo ">>> 尝试 ${URL} ..."; \
-            if curl -fsSL --retry 2 --retry-delay 3 --max-time 120 -o /tmp/${ICEBERG_SPARK_JAR} "${URL}"; then \
+            echo ">>> [attempt] iceberg-spark-runtime ${URL}（本源墙钟上限 120s，curl 内部重试 0 次）"; \
+            iceberg_spark_runtime_start="$(date +%s)"; \
+            if curl -fsSL --retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time 120 -o /tmp/${ICEBERG_SPARK_JAR} "${URL}"; then \
                 DOWNLOADED=1; \
-                echo ">>> iceberg-spark-runtime 下载成功"; \
+                echo ">>> [ok] iceberg-spark-runtime 取数成功（${URL}；本源实耗 $(( $(date +%s) - iceberg_spark_runtime_start ))s）"; \
                 break; \
+            else \
+                iceberg_spark_runtime_rc=$?; \
+                case "${iceberg_spark_runtime_rc}" in \
+                    6)  iceberg_spark_runtime_why="域名解析失败" ;; \
+                    7)  iceberg_spark_runtime_why="连接被拒" ;; \
+                    22) iceberg_spark_runtime_why="HTTP 错误状态（4xx/5xx）" ;; \
+                    28) iceberg_spark_runtime_why="超时（未在本次上限内取完）" ;; \
+                    35) iceberg_spark_runtime_why="TLS 握手异常" ;; \
+                    52) iceberg_spark_runtime_why="服务端未回内容" ;; \
+                    56) iceberg_spark_runtime_why="接收中断" ;; \
+                    *)  iceberg_spark_runtime_why="其它原因" ;; \
+                esac; \
+                echo ">>> [miss] iceberg-spark-runtime 取数失败（curl 退出码 ${iceberg_spark_runtime_rc}：${iceberg_spark_runtime_why}；本源实耗 $(( $(date +%s) - iceberg_spark_runtime_start ))s）"; \
             fi; \
         done; \
         if [ "${DOWNLOADED}" = "0" ]; then \
@@ -414,11 +470,25 @@ RUN if [ "${ENABLE_ICEBERG}" = "true" ]; then \
         DOWNLOADED=0; \
         for BASE_URL in "${MAVEN_MIRROR}" "${MAVEN_BASE}"; do \
             URL="${BASE_URL}/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/${ICEBERG_AWS_JAR}"; \
-            echo ">>> 尝试 ${URL} ..."; \
-            if curl -fsSL --retry 2 --retry-delay 3 --max-time 120 -o /tmp/${ICEBERG_AWS_JAR} "${URL}"; then \
+            echo ">>> [attempt] iceberg-aws-bundle ${URL}（本源墙钟上限 120s，curl 内部重试 0 次）"; \
+            iceberg_aws_bundle_start="$(date +%s)"; \
+            if curl -fsSL --retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time 120 -o /tmp/${ICEBERG_AWS_JAR} "${URL}"; then \
                 DOWNLOADED=1; \
-                echo ">>> iceberg-aws-bundle 下载成功"; \
+                echo ">>> [ok] iceberg-aws-bundle 取数成功（${URL}；本源实耗 $(( $(date +%s) - iceberg_aws_bundle_start ))s）"; \
                 break; \
+            else \
+                iceberg_aws_bundle_rc=$?; \
+                case "${iceberg_aws_bundle_rc}" in \
+                    6)  iceberg_aws_bundle_why="域名解析失败" ;; \
+                    7)  iceberg_aws_bundle_why="连接被拒" ;; \
+                    22) iceberg_aws_bundle_why="HTTP 错误状态（4xx/5xx）" ;; \
+                    28) iceberg_aws_bundle_why="超时（未在本次上限内取完）" ;; \
+                    35) iceberg_aws_bundle_why="TLS 握手异常" ;; \
+                    52) iceberg_aws_bundle_why="服务端未回内容" ;; \
+                    56) iceberg_aws_bundle_why="接收中断" ;; \
+                    *)  iceberg_aws_bundle_why="其它原因" ;; \
+                esac; \
+                echo ">>> [miss] iceberg-aws-bundle 取数失败（curl 退出码 ${iceberg_aws_bundle_rc}：${iceberg_aws_bundle_why}；本源实耗 $(( $(date +%s) - iceberg_aws_bundle_start ))s）"; \
             fi; \
         done; \
         if [ "${DOWNLOADED}" = "0" ]; then \

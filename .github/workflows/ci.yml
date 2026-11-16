@@ -464,6 +464,24 @@ jobs:
       - name: 自测 Spark 取数预算记账（test-spark-download-budget）
         run: bash scripts/test-spark-download-budget.sh
 
+      # 台账 #112 续：Maven JAR 的 5 处取数同族缺陷（curl --retry 2 让 --max-time 变成
+      # 「每次尝试」的上限 ⇒ 单源最坏 3N+6 秒；aws-sdk 的 N=600 ⇒ 单源最坏 1806s，
+      # 远超外层 build-retry 的 per-attempt 600s 墙钟 ⇒ 取数段还没判红就被 SIGKILL，
+      # 面板上长得像编译失败）。本测试用「虚拟时钟 + 复刻 curl 重试语义的桩」逐条断言
+      # 5 处的记账不变量：--retry=0、--max-time 与改前完全一致（120/600/60/120/120）、
+      # 本源实耗独立计时（不累计）、跨源冗余真的生效、两源都失败时段自己判红。
+      # 不碰网络、不调 docker，成本可忽略。
+      - name: 自测 Maven JAR 取数预算记账（test-maven-download-budget）
+        run: bash scripts/test-maven-download-budget.sh
+
+      # 触发面收敛判据的离线自测。
+      # 该判据决定「本波要不要重建 44 个镜像」⇒ 判错的代价不对称（误判「不相关」会让
+      # 镜像验证静默消失）⇒ 必须有离线自测把判据钉死，且自测不碰网络不调 docker。
+      # 覆盖：构建面/非构建面路径判别、相似路径不误判、空清单 fail-closed、
+      # API 取数失败 fail-closed、$GITHUB_OUTPUT 输出协议。
+      - name: 自测镜像构建面相关性判据（check-docker-build-relevance）
+        run: bash scripts/check-docker-build-relevance.sh --self-test
+
       # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
       # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
       # 是 Linux，保留段检查按平台跳过（脚本 rc=0+说明），真正拦截在 Windows 本机。
