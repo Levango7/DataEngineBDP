@@ -16,6 +16,7 @@ import {
 } from './api/client'
 import { useAuthStore } from './stores/auth'
 import { useAppStore } from './stores/app'
+import { handleUnauthorized } from './router/unauthorized-redirect'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -28,11 +29,19 @@ app.use(i18n)
 setTokenGetter(() => useAuthStore().token)
 setErrorNotifier((msg) => useAppStore().showToast(msg))
 setUnauthorizedHandler(() => {
-  useAuthStore().logout()
   // 401 后应留在触发页的上下文中：跳 /account 会被守卫二次转成
   // /login?redirect=/account，重新登录后落在 /account 而非原页面。
-  // 直接用当前路由 fullPath 作为登录后回跳目标（守卫只接受站内绝对路径）。
-  router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+  // 判定与跳转规则见 router/unauthorized-redirect.ts：
+  //  - 首屏导航尚未落地时 currentRoute 仍是 START_LOCATION（fullPath 为 '/'），
+  //    此时**不跳**，否则会把目标页顶成根路径（台账 #69：auth.spec.ts:133 间歇红的根因）；
+  //    路由守卫会用正确的 to.fullPath 自己去跳。
+  //  - 已在登录页时**不跳**，登录页 URL 上的 redirect 参数已由守卫写入。
+  //  - 其余情况跳 /login?redirect=<当前路由 fullPath>（守卫只接受站内绝对路径）。
+  handleUnauthorized(
+    router.currentRoute.value,
+    () => useAuthStore().logout(),
+    (target) => router.push(target)
+  )
 })
 // A2 错误国际化：后端 messageKey → 当前语种文案；词条缺失回退后端原文
 setI18nTranslator((key, fallback) => {
