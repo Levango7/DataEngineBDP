@@ -524,17 +524,12 @@ jobs:
         run: |
           # 原来只扫 scripts/，导致 releases/v2.1.0-RC/upgrade-script.sh 的损坏
           # （变量被吞成 `\ `，line 53 语法错误）从未被任何门禁发现 —— 台账 #76。
-          # 例外只有 1 个已知坏件：released 的 RC 升级脚本需要发布负责人重新生成，
-          # 不在 CI 里猜它的原意。新增的例外必须同时写进台账，否则门禁重新失明。
-          KNOWN_BROKEN="releases/v2.1.0-RC/upgrade-script.sh"
+          # 曾有 1 个例外（该 RC 升级脚本），2026-11-17 按台账 #76 重建后语法通过，
+          # 例外已删除。当前无例外：新增例外必须同时写进台账，否则门禁重新失明。
           failed=0
           n=0
           while IFS= read -r script; do
             [ -n "$script" ] || continue
-            if [ "$script" = "$KNOWN_BROKEN" ]; then
-              echo "::warning::跳过已知损坏脚本（台账 #76）：$script"
-              continue
-            fi
             n=$((n + 1))
             if ! bash -n "$script"; then
               echo "::error::$script 语法错误"
