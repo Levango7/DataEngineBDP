@@ -53,6 +53,20 @@ JAR 下载源（Dockerfile 保持不变，按优先级）：
 1. https://maven.aliyun.com/repository/central/<路径>（内网加速）
 2. https://repo1.maven.org/maven2/<路径>（官方兜底）
 
+JAR 取数记账（2026-11-15 起，与上面的 Spark 取数段同一治理口径）：
+5 处取数的 curl 形态由 `--retry 2 --retry-delay 3 --max-time N` 改为
+`--retry 0 --retry-delay 0 --speed-limit 51200 --speed-time 30 --max-time N`，
+**`--max-time` 的 N 一律保持原值（120 / 600 / 60 / 120 / 120），传输容差未放宽**。
+改动的理由：curl 带 `--retry` 时 `--max-time` 是**每次传输尝试**的墙钟上限（计时器按次重置），
+于是单源最坏实耗 = 3N+6 秒；aws-sdk（N=600）单源最坏 1806 秒，**远超**外层
+`scripts/build-retry.sh` 的 per-attempt 600 秒总墙钟 ⇒ 取数段还没判红就被外层 SIGKILL 成
+`context canceled`，面板上长得像编译失败。改后**重试职责交给跨源冗余**（上面的两源依次试），
+单源最坏 = N 秒（标称上限不变），并带停滞检测（低于 50 KB/s 持续 30s 即放弃该源）；
+每源带 `[attempt]`/`[ok]`/`[miss]` 诊断（本源墙钟上限 / 本源实耗 / curl 退出码 + 释义），
+两源都失败时沿用既有的 `>>> [FATAL] ... 下载失败！` + exit 1。
+该形态由 `scripts/test-maven-download-budget.sh` 做成回归测试（并挂进 CI 的 `Bash Syntax Check` 作业）。
+**下载源与钉扎 SHA1 未变** ⇒ 本节表格与「JAR 下载源」清单不受本次改动影响。
+
 Iceberg 两个 JAR 仅在 `--build-arg ENABLE_ICEBERG=true` 时下载；
 钉扎 SHA1 对应缺省组合 `ICEBERG_VERSION=1.11.0` + `4.1_2.13`，
 覆盖这些 ARG 时必须同步更新 SHA1。

@@ -464,6 +464,24 @@ jobs:
       - name: 自测 Spark 取数预算记账（test-spark-download-budget）
         run: bash scripts/test-spark-download-budget.sh
 
+      # 台账 #112 续：Maven JAR 的 5 处取数同族缺陷（curl --retry 2 让 --max-time 变成
+      # 「每次尝试」的上限 ⇒ 单源最坏 3N+6 秒；aws-sdk 的 N=600 ⇒ 单源最坏 1806s，
+      # 远超外层 build-retry 的 per-attempt 600s 墙钟 ⇒ 取数段还没判红就被 SIGKILL，
+      # 面板上长得像编译失败）。本测试用「虚拟时钟 + 复刻 curl 重试语义的桩」逐条断言
+      # 5 处的记账不变量：--retry=0、--max-time 与改前完全一致（120/600/60/120/120）、
+      # 本源实耗独立计时（不累计）、跨源冗余真的生效、两源都失败时段自己判红。
+      # 不碰网络、不调 docker，成本可忽略。
+      - name: 自测 Maven JAR 取数预算记账（test-maven-download-budget）
+        run: bash scripts/test-maven-download-budget.sh
+
+      # 触发面收敛判据的离线自测。
+      # 该判据决定「本波要不要重建 44 个镜像」⇒ 判错的代价不对称（误判「不相关」会让
+      # 镜像验证静默消失）⇒ 必须有离线自测把判据钉死，且自测不碰网络不调 docker。
+      # 覆盖：构建面/非构建面路径判别、相似路径不误判、空清单 fail-closed、
+      # API 取数失败 fail-closed、$GITHUB_OUTPUT 输出协议。
+      - name: 自测镜像构建面相关性判据（check-docker-build-relevance）
+        run: bash scripts/check-docker-build-relevance.sh --self-test
+
       # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
       # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
       # 是 Linux，保留段检查按平台跳过（脚本 rc=0+说明），真正拦截在 Windows 本机。
@@ -618,10 +636,15 @@ jobs:
         run: python3 scripts/check-db-migration-coverage.py
 
       - name: 组件部署单元覆盖校验（有 Dockerfile 却无 Chart ⇒ 生产不可部署，只减不增）
-        # 缺口事实来源 docs/deployable-backlog.yaml（当前 13 个，含治理链的 real-time-pipeline：
+        # 缺口事实来源 docs/deployable-backlog.yaml（当前 0 个：uncovered 自 2026-10-11 起为空，
+        # 见该文件注释；历史上有 13 个，含治理链的 real-time-pipeline：
         # 跨进程血缘边已接好，但集群里没有任何东西承载它）。
         # 语义与建表迁移覆盖校验同构：允许既有欠债登记在案，但新增缺口 / 销账不及时的过期条目一律阻断。
-        run: python3 scripts/check-deployable-coverage.py
+        # 先跑离线自测，证明这条门禁在「git 取数失败 / 组件清单为空」时 fail-closed（rc=2），
+        # 而不是把「取不到组件」当成「没有缺口」判绿。
+        run: |
+          python3 scripts/check-deployable-coverage.py --self-test
+          python3 scripts/check-deployable-coverage.py
 
       - name: Spring 组件扫描覆盖校验（Bean 落在扫描根之外 ⇒ 运行期静默 404）
         # rule-engine 的编排包在 ...rule.engine.orchestrator，启动类却在 ...ruleengine，
@@ -2118,7 +2141,29 @@ jobs:
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 触发面收敛（台账 #100 / #112 续）：本仓 ci.yml 的 `on:` **没有 paths 过滤**
+      # ⇒ 连只改 2 行 docs 的 PR 也会全量重建 44 个镜像（实测 PR #807 仅改两行 docs，
+      # 仍触发 44 个 Dockerfile 全量重建；实测单波 47m34s）。
+      #
+      # **不做 workflow 级 paths 过滤**：分支保护把 9 条 required check 写死在名单里
+      # （strict=true）。若在 workflow 级用 paths 过滤，那些不该触发的作业**根本不会
+      # 产生 check-run** ⇒ required check 永远处于 "Expected — Waiting for status to be
+      # reported" ⇒ PR 永久阻塞。所以收敛必须发生在**作业内部**：作业照常跑、照常出结论，
+      # 只是把「与镜像构建无关」的 PR 判为「本波不做镜像重建」，并在日志里写明跳过原因。
+      #
+      # 判定脚本（scripts/check-docker-build-relevance.sh）取数失败一律 fail-closed
+      # （倒向「重建」）：两种误判代价不对称——误判「不相关」会让镜像构建**根本不再执行**
+      # （静默失去验证），误判「相关」只是多花一次构建时间。
+      - name: 判定改动是否触及镜像构建面（触发面收敛）
+        id: relevance
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/check-docker-build-relevance.sh --api
+
       - name: 发现并遍历所有含 Dockerfile 的组件
+        env:
+          DOCKER_RELEVANT: ${{ steps.relevance.outputs.docker_relevant }}
         run: |
           echo "============================================"
           echo "  扫描 platform/ 下所有含 Dockerfile 的子目录"
@@ -2129,7 +2174,11 @@ jobs:
             docker_dirs+=("$mod_dir")
             echo "发现 Dockerfile: $mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*")
-          if [ ${#docker_dirs[@]} -eq 0 ]; then
+          if [ "${DOCKER_RELEVANT:-true}" != "true" ]; then
+            echo "::notice::改动不触及镜像构建面 ⇒ 本波跳过 ${#docker_dirs[@]} 个镜像重建"
+            echo "::notice::这不是「验证通过」，而是「本波未验证镜像构建」；镜像面证据需回溯到最近一次真正执行过该构建的波次"
+            echo "docker_skip=true" >> $GITHUB_ENV
+          elif [ ${#docker_dirs[@]} -eq 0 ]; then
             echo "::warning::未发现任何含 Dockerfile 的组件，跳过 Docker 构建验证"
             echo "docker_skip=true" >> $GITHUB_ENV
           else
