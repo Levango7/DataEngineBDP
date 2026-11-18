@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -29,8 +30,12 @@ import java.util.Objects;
  * 依赖面仅 JDK {@link HttpClient} 与 Jackson，不引入 Doris 官方 Flink Connector（重依赖）。</p>
  *
  * <p><b>行形态</b>：数组每行＝**打平后的业务列对象**（{@code c/r/u} 取 after、{@code d} 取
- * before 并附 {@code __DORIS_DELETE_SIGN__=1}）——不是 ChangeRecord 的包裹序列化；
- * 详见 {@code toRowJson}。</p>
+ * before）——不是 ChangeRecord 的包裹序列化；详见 {@code toRowJson}。
+ * <b>删除语义</b>：{@code d} 行不随普通批（4.x 普通导入会忽略
+ * {@code __DORIS_DELETE_SIGN__} 并整行 upsert 成 NULL 版本——端到端实证），
+ * 而是独立成批发 {@code merge_type: MERGE} + {@code delete:} 条件
+ * （条件＝before 全键，pgoutput 的 before 只含主键列）；详见
+ * {@code buildDeleteCondition} / {@code flushDeletes}。</p>
  *
  * <p><b>交付语义</b>：AT_LEAST_ONCE——写入失败即抛 {@link IllegalStateException}，
  * 由 Flink 作业按重启策略重试（数据不静默丢弃）；精确一次（Doris 事务 label 去重）
@@ -83,9 +88,12 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         private final long connectTimeoutMs;
         private final long readTimeoutMs;
         private final String labels;
+        /** 主键列（删除语义必需：DELETE ON 条件与 body 只用主键键集）。 */
+        private final List<String> primaryKeys;
 
         Options(String host, int port, String database, String table, String username, String password,
-                int batchSize, long connectTimeoutMs, long readTimeoutMs, String labels) {
+                int batchSize, long connectTimeoutMs, long readTimeoutMs, String labels,
+                List<String> primaryKeys) {
             this.host = host;
             this.port = port;
             this.database = database;
@@ -96,6 +104,7 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             this.connectTimeoutMs = connectTimeoutMs;
             this.readTimeoutMs = readTimeoutMs;
             this.labels = labels;
+            this.primaryKeys = primaryKeys == null ? List.of() : List.copyOf(primaryKeys);
         }
 
         /** FE 主机。 */
@@ -147,6 +156,11 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         public String labels() {
             return labels;
         }
+
+        /** 主键列（删除语义必需；空列表时 d 事件将 fail-fast 指路配置）。 */
+        public List<String> primaryKeys() {
+            return primaryKeys;
+        }
     }
 
     /** Sink 构造器。 */
@@ -161,6 +175,7 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         private long connectTimeoutMs = 10_000L;
         private long readTimeoutMs = 60_000L;
         private String labels = "";
+        private List<String> primaryKeys = List.of();
 
         /** FE 主机（必需）。 */
         public Builder host(String host) {
@@ -223,6 +238,21 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         }
 
         /**
+         * 主键列（逗号分隔；删除语义必需——DELETE ON 条件与 body 只用主键键集，
+         * 因为 pgoutput 的 before 非主键列为 null/占位值）。未配置时 d 事件
+         * fail-fast 抛出指路异常（不静默丢删、不拼错条件）。
+         */
+        public Builder primaryKeys(String commaSeparated) {
+            if (commaSeparated == null || commaSeparated.isBlank()) {
+                this.primaryKeys = List.of();
+            } else {
+                this.primaryKeys = java.util.Arrays.stream(commaSeparated.split(","))
+                        .map(String::trim).filter(s -> !s.isEmpty()).toList();
+            }
+            return this;
+        }
+
+        /**
          * 构建 Sink。
          *
          * @return DorisStreamLoadSink
@@ -243,7 +273,7 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             }
             return new DorisStreamLoadSink(new Options(host, port, database, table, username, password,
                     batchSize, connectTimeoutMs, readTimeoutMs,
-                    labels == null ? "" : labels));
+                    labels == null ? "" : labels, primaryKeys));
         }
     }
 
@@ -255,6 +285,8 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         private final Options options;
         private final HttpClient http;
         private final List<String> buffer = new ArrayList<>();
+        /** delete 行缓冲：[bodyJson, deleteCondition] 对（d 行走 MERGE + DELETE ON 条件，见 flushBatch）。 */
+        private final List<String[]> deleteBuffer = new ArrayList<>();
         private long loadedRecords = 0;
         private long loadedBatches = 0;
 
@@ -271,10 +303,89 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         @Override
         public void write(ChangeRecord value, Context context) {
             Objects.requireNonNull(value, "ChangeRecord 不能为 null");
-            buffer.add(toRowJson(value));
-            if (buffer.size() >= options.batchSize()) {
+            String op = value.getOp();
+            if ("d".equalsIgnoreCase(op)) {
+                Map<String, Object> before = value.getBefore() != null ? value.getBefore() : value.getAfter();
+                Map<String, Object> keys = selectDeleteKeys(before, options.primaryKeys());
+                deleteBuffer.add(new String[]{rowJson(keys), buildDeleteCondition(keys)});
+            } else {
+                buffer.add(toRowJson(value));
+            }
+            if (buffer.size() + deleteBuffer.size() >= options.batchSize()) {
                 flushBatch();
             }
+        }
+
+        /**
+         * 删除键集选择：**只用主键列**（端到端实证——pgoutput 的 DELETE before
+         * 非主键列为 Java null，条件若带它们会被拼成字符串 'null' 撞类型转换
+         * 过滤（too many filtered rows），且 src_ts 等占位列永远不命中）。
+         * 主键必须显式配置（yaml sink.primaryKey / properties primary-keys）；
+         * 未配置或 before 缺主键列即 fail-fast（不静默丢删、不拼错条件）。
+         */
+        static Map<String, Object> selectDeleteKeys(Map<String, Object> before, List<String> primaryKeys) {
+            if (before == null || before.isEmpty()) {
+                throw new IllegalStateException("delete 行缺少 before 数据（op=d），无法构造删除键——不静默丢删");
+            }
+            if (primaryKeys == null || primaryKeys.isEmpty()) {
+                throw new IllegalStateException(
+                        "Doris 删除语义需要主键配置：请在 YAML sink 段配置 primaryKey（如 primaryKey: id）"
+                                + "或 properties.primary-keys；不静默丢删也不拼错条件");
+            }
+            java.util.LinkedHashMap<String, Object> keys = new java.util.LinkedHashMap<>();
+            for (String key : primaryKeys) {
+                if (!before.containsKey(key)) {
+                    throw new IllegalStateException(
+                            "delete before 缺主键列「" + key + "」——检查主键配置与源表 REPLICA IDENTITY");
+                }
+                Object v = before.get(key);
+                if (v == null) {
+                    throw new IllegalStateException("delete 主键列「" + key + "」值为 null——不静默丢删");
+                }
+                keys.put(key, v);
+            }
+            return keys;
+        }
+
+        /**
+         * before 键集 → Doris DELETE ON 条件（AND 连接）。
+         *
+         * <p>pgoutput 的 DELETE 事件 before 只含主键列（REPLICA IDENTITY 语义），
+         * 因此 before 全键即主键条件。值形态受限安全拼接：列名白名单
+         * （[A-Za-z_][A-Za-z0-9_]*）、Number 直拼（NaN/Infinity 拒绝）、
+         * Boolean 直拼、其余按字符串单引号包裹并转义；嵌套结构拒绝（fail-fast，
+         * 宁可不删不删错）。</p>
+         */
+        static String buildDeleteCondition(Map<String, Object> keys) {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, Object> e : keys.entrySet()) {
+                if (sb.length() > 0) {
+                    sb.append(" AND ");
+                }
+                sb.append(deletePredicate(e.getKey(), e.getValue()));
+            }
+            return sb.toString();
+        }
+
+        private static String deletePredicate(String column, Object value) {
+            if (column == null || !column.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+                throw new IllegalStateException("delete 条件列名不合法: " + column);
+            }
+            if (value instanceof Number num) {
+                double d = num.doubleValue();
+                if (Double.isNaN(d) || Double.isInfinite(d)) {
+                    throw new IllegalStateException("delete 条件数值非法（NaN/Infinity）: " + column);
+                }
+                return column + " = " + num;
+            }
+            if (value instanceof Boolean b) {
+                return column + " = " + b;
+            }
+            if (value != null && (value instanceof Iterable || value instanceof Map)) {
+                throw new IllegalStateException(
+                        "delete 条件不支持嵌套结构值: " + column + " -> " + value.getClass());
+            }
+            return column + " = '" + String.valueOf(value).replace("'", "\\'") + "'";
         }
 
         /**
@@ -283,9 +394,9 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
          * <p>此前直接序列化整个 {@link ChangeRecord}（{@code {op, before, after}} 包裹形态），
          * Doris 按列名匹配时收不到 {@code after} 内的业务列（嵌套不打平）——Phase B
          * 端到端验收抓出的真缺陷。打平语义：{@code c/r/u} 取 after、{@code d} 取 before，
-         * 并把顶层业务键平铺为行对象；{@code d} 额外输出
-         * {@code __DORIS_DELETE_SIGN__=1}（Doris UNIQUE KEY 表原生删除标记；无该列的
-         * 目标表将由 Doris 忽略该键或按表配置报错）。</p>
+         * 并把顶层业务键平铺为行对象。删除语义不走该行 JSON（4.x 普通导入会忽略
+         * {@code __DORIS_DELETE_SIGN__} 并整行 upsert 成 NULL 版本——端到端实证），
+         * 改由 {@code buildDeleteCondition} + MERGE/DELETE ON 请求承载。</p>
          *
          * @param value 变更记录
          * @return 单行 JSON 对象（顶层即列）
@@ -293,17 +404,18 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         static String toRowJson(ChangeRecord value) {
             String op = value.getOp();
             boolean isDelete = "d".equalsIgnoreCase(op);
-            java.util.Map<String, Object> src = isDelete
+            Map<String, Object> src = isDelete
                     ? (value.getBefore() != null ? value.getBefore() : value.getAfter())
                     : (value.getAfter() != null ? value.getAfter() : value.getBefore());
             if (src == null) {
                 throw new IllegalStateException(
                         "变更记录缺少 before/after 数据（op=" + op + "），无法构造 Doris 行");
             }
-            java.util.HashMap<String, Object> row = new java.util.HashMap<>(src);
-            if (isDelete) {
-                row.put("__DORIS_DELETE_SIGN__", 1);
-            }
+            return rowJson(new java.util.HashMap<>(src));
+        }
+
+        /** Map → 单行 JSON 对象。 */
+        private static String rowJson(Map<String, Object> row) {
             try {
                 return JSON.writeValueAsString(row);
             } catch (Exception e) {
@@ -327,30 +439,87 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
             return loadedRecords;
         }
 
+        /** delete 条件拼接长度上限（超限拆多请求，避免 header 过大被拒）。 */
+        private static final int DELETE_CONDITION_LIMIT = 4000;
+
         private void flushBatch() {
-            if (buffer.isEmpty()) {
-                return;
-            }
             List<String> batch = new ArrayList<>(buffer);
+            List<String[]> dels = new ArrayList<>(deleteBuffer);
             buffer.clear();
-            String body = "[" + String.join(",", batch) + "]";
-            try {
-                streamLoad(body, batch.size());
-                loadedRecords += batch.size();
-                loadedBatches++;
-            } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Doris Stream Load 失败（本批 " + batch.size() + " 条将随作业重试）: " + e.getMessage(), e);
+            deleteBuffer.clear();
+
+            if (!batch.isEmpty()) {
+                String body = "[" + String.join(",", batch) + "]";
+                try {
+                    streamLoad(body, batch.size(), null);
+                    loadedRecords += batch.size();
+                    loadedBatches++;
+                } catch (IOException e) {
+                    throw new IllegalStateException(
+                            "Doris Stream Load 失败（本批 " + batch.size() + " 条将随作业重试）: " + e.getMessage(), e);
+                }
+            }
+            if (!dels.isEmpty()) {
+                flushDeletes(dels);
             }
         }
 
-        private void streamLoad(String body, int rows) throws IOException {
+        /**
+         * 删除批：MERGE + DELETE ON 条件（4.x 正路——普通导入的 __DORIS_DELETE_SIGN__
+         * 会被忽略并整行 upsert 成 NULL 版本，端到端实证）。条件按行 OR 连接、
+         * 超长拆分多请求；body 为该组行（before 键集）逐行 JSON 数组。
+         */
+        private void flushDeletes(List<String[]> dels) {
+            List<String[]> group = new ArrayList<>();
+            int condLen = 0;
+            for (String[] pair : dels) {
+                int add = pair[1].length() + 4; // " OR " 或首项
+                if (!group.isEmpty() && condLen + add > DELETE_CONDITION_LIMIT) {
+                    sendDeleteGroup(group);
+                    group = new ArrayList<>();
+                    condLen = 0;
+                }
+                group.add(pair);
+                condLen += add;
+            }
+            if (!group.isEmpty()) {
+                sendDeleteGroup(group);
+            }
+        }
+
+        private void sendDeleteGroup(List<String[]> group) {
+            StringBuilder cond = new StringBuilder();
+            StringBuilder body = new StringBuilder("[");
+            for (String[] pair : group) {
+                if (cond.length() > 0) {
+                    cond.append(" OR ");
+                }
+                cond.append('(').append(pair[1]).append(')');
+                if (body.length() > 1) {
+                    body.append(',');
+                }
+                body.append(pair[0]);
+            }
+            body.append(']');
+            try {
+                streamLoad(body.toString(), group.size(), cond.toString());
+                loadedRecords += group.size();
+                loadedBatches++;
+            } catch (IOException e) {
+                throw new IllegalStateException(
+                        "Doris 删除批失败（本批 " + group.size() + " 条将随作业重试）: " + e.getMessage()
+                                + " | delete=" + head(cond.length() > 300 ? cond.substring(0, 300) : cond.toString())
+                                + " | body=" + head(body.length() > 300 ? body.substring(0, 300) : body.toString()), e);
+            }
+        }
+
+        private void streamLoad(String body, int rows, String deleteCondition) throws IOException {
             URI uri = URI.create("http://" + options.host() + ":" + options.port()
                     + "/api/" + options.database() + "/" + options.table() + "/_stream_load");
             String auth = "Basic " + Base64.getEncoder().encodeToString(
                     (options.username() + ":" + options.password()).getBytes(StandardCharsets.UTF_8));
 
-            HttpResponse<String> response = send(auth, uri, body);
+            HttpResponse<String> response = send(auth, uri, body, deleteCondition);
             if (response.statusCode() == 307 || response.statusCode() == 308) {
                 // Doris 4.x FE 将 stream load 重定向到 BE（host:port 变化）；JDK HttpClient
                 // 的自动跟随会按 authority 剥离 Authorization ⇒ BE 收无认证请求报
@@ -360,7 +529,7 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
                     throw new IOException("Doris Stream Load 重定向（HTTP " + response.statusCode()
                             + "）缺少 Location 头");
                 }
-                response = send(auth, URI.create(location), body);
+                response = send(auth, URI.create(location), body, deleteCondition);
             }
 
             JsonNode resp;
@@ -380,7 +549,8 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
         }
 
         /** 构造并发送单次 stream load 请求（含认证/格式头/100-continue；供 307 手动重发复用）。 */
-        private HttpResponse<String> send(String auth, URI uri, String body) throws IOException {
+        private HttpResponse<String> send(String auth, URI uri, String body, String deleteCondition)
+                throws IOException {
             HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofMillis(options.readTimeoutMs()))
                     .header("Authorization", auth)
@@ -391,6 +561,11 @@ public final class DorisStreamLoadSink implements Sink<ChangeRecord>, Serializab
                     // 用内置 expectContinue(true) 走协商（端到端泳道实证）
                     .expectContinue(true)
                     .header("Content-Type", "application/json");
+            if (deleteCondition != null) {
+                // DELETE ON 子句仅 MERGE 类型支持（DELETE 类型直发报
+                // 「Not support DELETE ON clause when merge type is not MERGE」——实测）
+                builder.header("merge_type", "MERGE").header("delete", deleteCondition);
+            }
             if (!options.labels().isEmpty()) {
                 builder.header("label", options.labels() + "-" + System.currentTimeMillis());
             }
