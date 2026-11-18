@@ -35,6 +35,9 @@ class DorisStreamLoadSinkTest {
     private final AtomicReference<String> lastAuth = new AtomicReference<>();
     private final AtomicReference<String> lastBody = new AtomicReference<>();
     private final AtomicReference<String> lastExpect = new AtomicReference<>();
+    private final AtomicReference<String> lastMergeType = new AtomicReference<>();
+    private final AtomicReference<String> lastDelete = new AtomicReference<>();
+    private final java.util.List<String> allDeleteHeaders = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final AtomicReference<String> locationHeader = new AtomicReference<>();
     private volatile int httpStatus = 200;
     private volatile String respBody = "{\"Status\":\"Success\",\"NumberLoadedRows\":2,\"Message\":\"\"}";
@@ -47,6 +50,9 @@ class DorisStreamLoadSinkTest {
             lastPath.set(exchange.getRequestURI().getPath());
             lastAuth.set(exchange.getRequestHeaders().getFirst("Authorization"));
             lastExpect.set(exchange.getRequestHeaders().getFirst("Expect"));
+            lastMergeType.set(exchange.getRequestHeaders().getFirst("merge_type"));
+            lastDelete.set(exchange.getRequestHeaders().getFirst("delete"));
+            allDeleteHeaders.add(String.valueOf(exchange.getRequestHeaders().getFirst("delete")));
             lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             if (locationHeader.get() != null) {
                 exchange.getResponseHeaders().add("Location", locationHeader.get());
@@ -73,10 +79,16 @@ class DorisStreamLoadSinkTest {
         return record;
     }
 
-    private ChangeRecord deleteRecord(String id) {
+    /** 复刻 pgoutput DELETE 的真实 before 形态：主键真值 + 非主键列 null + timestamp 占位值。 */
+    private ChangeRecord deleteRecord(long id) {
         ChangeRecord record = new ChangeRecord();
         record.setOp("d");
-        record.setBefore(Map.of("id", id));
+        Map<String, Object> before = new java.util.HashMap<>();
+        before.put("id", id);
+        before.put("name", null);
+        before.put("amount", null);
+        before.put("src_ts", "1970-01-01T00:00:00Z");
+        record.setBefore(before);
         return record;
     }
 
@@ -89,6 +101,7 @@ class DorisStreamLoadSinkTest {
                 .username("root")
                 .password("pwd")
                 .batchSize(batchSize)
+                .primaryKeys("id")
                 .build();
     }
 
@@ -151,13 +164,46 @@ class DorisStreamLoadSinkTest {
     }
 
     @Test
-    @DisplayName("op=d → before 打平 + __DORIS_DELETE_SIGN__=1（UNIQUE KEY 表原生删除语义）")
-    void deleteRowUsesDeleteSign() throws Exception {
+    @DisplayName("op=d → 独立 MERGE 批 + delete 条件（before 全键;4.x 普通导入忽略 sign 键的实证修复）")
+    void deleteRowUsesMergeDeleteCondition() throws Exception {
         var writer = sink(1).createWriter((InitContext) null);
-        writer.write(deleteRecord("7"), null);
-        assertTrue(lastBody.get().contains("\"id\":\"7\""), "d 取 before 列值");
-        assertTrue(lastBody.get().contains("\"__DORIS_DELETE_SIGN__\":1"), "删除须带 delete sign");
-        assertFalse(lastBody.get().contains("\"before\""), "行形态必须打平，不得含 before 包裹键");
+        writer.write(deleteRecord(7L), null);
+        assertEquals("MERGE", lastMergeType.get(), "删除批须走 merge_type: MERGE（DELETE ON 仅 MERGE 支持）");
+        assertEquals("(id = 7)", lastDelete.get(),
+                "delete 条件只含主键键集（非主键列在 pgoutput before 里是 null/占位值，带它们必撞 filtered）");
+        assertTrue(lastBody.get().contains("\"id\":7"), "body 只发主键键集");
+        assertFalse(lastBody.get().contains("name"), "body 不得含非主键列（null 值会污染且无意义）");
+        assertFalse(lastBody.get().contains("src_ts"), "body 不得含占位 timestamp 列");
+        assertFalse(lastBody.get().contains("__DORIS_DELETE_SIGN__"),
+                "行形态不得再带 sign 键（普通导入会忽略并整行 upsert 成 NULL 版本——端到端实证）");
+        writer.close();
+    }
+
+    @Test
+    @DisplayName("未配置主键的 d 事件：fail-fast 指路配置（不静默丢删、不拼错条件）")
+    void deleteWithoutPrimaryKeysFailsFast() {
+        DorisStreamLoadSink noPk = DorisStreamLoadSink.builder()
+                .host("127.0.0.1").port(port).database("report").table("mv_sales")
+                .username("root").password("pwd").build();
+        var writer = noPk.createWriter((InitContext) null);
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> writer.write(deleteRecord(9L), null));
+        assertTrue(ex.getMessage().contains("主键配置"), "异常须指路 primaryKey 配置: " + ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("混合批（c+d 同批）：拆两请求——普通批无 delete 头，删除批带 MERGE+条件")
+    void mixedBatchSplitsDeleteRequest() throws Exception {
+        var writer = sink(2).createWriter((InitContext) null);
+        writer.write(record("1"), null);
+        writer.write(deleteRecord(2L), null); // 触发 flushBatch
+
+        synchronized (allDeleteHeaders) {
+            assertEquals(2, allDeleteHeaders.size(), "c 与 d 应拆成两个请求");
+            assertEquals("null", allDeleteHeaders.get(0), "普通批不得带 delete 头");
+            assertEquals("(id = 2)", allDeleteHeaders.get(1), "删除批须带主键条件（数值直拼）");
+        }
+        assertTrue(lastBody.get().contains("\"id\":2"), "删除批 body 为主键键集（数值直发）");
         writer.close();
     }
 
