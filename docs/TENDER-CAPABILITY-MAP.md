@@ -1,8 +1,9 @@
 # 招标能力对照表（云原生底座 / 湖仓 / 流 / 批 / 数据分层）
 
-> 版本 v1.2 · 2026-11-14 · MCode（主理人本轮「迎合市场需求…核对 todo…都做完」令）
+> 版本 v1.3 · 2026-11-18 · MCode（主理人本轮「迎合市场需求…核对 todo…都做完」令）
+> **v1.3 增量（2026-11-18）**：本表**只新增 §0.4「需求侧依据」指针行与配套件条目**；**能力坐标、成熟度判定与缺口编号一字未改，事实源基线仍为 `0dc88743`**（当轮复核 `origin/main @ d850fc777dc40daf5d447841fc0e927dc6006622`：`design/deploy/charts/` 顶层 **103 个真实 chart 目录且 103 个含 `Chart.yaml`**（另有 4 个顶层条目是脚本文件、不是 chart 目录 —— 这正是「顶层 107」旧计数的成因），与本表 v1.2 所记 103/103 一致；`platform/` 一级模块 **41 个**；「数据分层」在 `platform/` + `frontend/` 仍为 **7 处 / 5 文件**）。招标原文摘录与逐条对照**另立一册** `docs/TENDER-REQUIREMENTS-EVIDENCE.md`。
 > **事实源（v1.2）**：`origin/main` @ `0dc8874308fb1c0978baaa248fafd4b6ae6279b4` —— **本轮全部坐标实测于该基线**（能力坐标取数口径见 §5；复测结论分五类：① 未漂移 ② 本表自身笔误 ③ 仓库漂移（他人 PR）④ 因新增文档必须订正的口径 ⑤ 事实已变 ⇒ 行按现状改写；逐条明细见 §3）。**再前移一次（2026-11-14，→ main `0dc88743`）**：该区间含 PR #796「master-data + data-standard 入 umbrella」+ #791「删除未接线的 invoice/payment 死代码链」+ #798「实时链路补齐第一批」+ #799「外部组件镜像 tag 上游核实表」+ #785「主问数链路真实 Provider 首刀」+ #800「台账 #126 登记」。逐条复测结果：① **未漂移** —— charts 顶层 **103/103**、各 chart 文件数、`platform/governance/real-time-pipeline` 41 / `stream-batch-scheduler` 79 / `batch-pipeline` 103 / `industry-templates` 288 / `encaps-layer` 200 / `sql-gateway` 207、`operations-api` 16、`karmada/karmada-api` 21、数据分层 **7 处 / 5 文件**、「性能损耗」在 `platform/` **零命中**；② **本表自身笔误** —— charts「顶层 107 个目录」（实测 8 个基线全为 103/103，`86a4aca8..0dc88743` chart 目录增删各 0；笔误成因＝旧计数命令把 charts 根下 4 个普通文件也算成目录，103 + 4 = 107）、`DataLayer` 行号（`:12` → `:13`，`:12` 是注释行）、「数据分层」逐处枚举漏列 `frontend/src/api/develop.ts:75`；③ **仓库漂移（他人 PR）** —— umbrella **91 → 93 文件 / 86 → 88 个 `.tgz`**（PR #796）、`platform/` 全树 **2664 → 2666**（PR #791 −7、PR #798 +9）、`platform/flink-cdc` **81 → 90 文件**（PR #798）、代码 TODO **166 处 / 19 文件 → 85 处 / 14 文件**（净 −69 处 / −5 文件；PR #790 +12 声明行、PR #791 −81 删除，来源逐笔见 §3「代码 TODO」行）；④ **因本轮新增文档而必须订正的口径** —— 「性能损耗」在 `docs/` 的命中面由 0 变为 **4 文件 / 24 处**，另加 `scripts/baremetal/README.md` **1 文件 / 1 处**，全仓合计 **9 文件 / 33 处**（`platform/` **仍零命中**）；⑤ **事实已变 ⇒ 行按现状改写** —— §2「并入 #119 ⑤」finops 行（5 个 service 类 + 2 model 共 7 文件已由 PR #791 删除，台账 #119⑤ 已 CLOSED）改为「已裁撤」；§2「并入 #119 ⑥」operations-api 行按主理人裁决口径**只写事实、标未核实、不给定性**（详见 §2.2 与 §4 第 6 条）。**基线等价性**：`d9a22452 → 0dc88743` 区间只动 2 个 docs 文件，能力坐标逐项实测零差异（详见 §4 第 9 条）。
-> 配套件：`docs/STREAM-BATCH-DECISION-TABLE.md`（流批四层决策表，另一条线产出）、`docs/CLOUD-NATIVE-PERF-LOSS-BASELINE.md`（本件配套的损耗实测基线）、`docs/CLOUD-NATIVE-BARE-METAL-ACCEPTANCE.md`（裸金属 / 带外验收清单，PR #795 配套）。
+> 配套件：`docs/STREAM-BATCH-DECISION-TABLE.md`（流批四层决策表，另一条线产出）、`docs/CLOUD-NATIVE-PERF-LOSS-BASELINE.md`（本件配套的损耗实测基线）、`docs/CLOUD-NATIVE-BARE-METAL-ACCEPTANCE.md`（裸金属 / 带外验收清单，PR #795 配套）、`docs/TENDER-REQUIREMENTS-EVIDENCE.md`（**需求侧**依据：公开招标公告原文摘录与逐条对照，v1.3 起配套）。
 > 缺口编号与 `docs/KNOWN-FAILURES.md` 第六节一一对应（**本轮只新增 #120–#122**；另两项与既有 #119 的 ⑤⑥ 重复，**不另立编号**、并入 #119，见 §2 与 §2.1）；**v1.2 复测未新增编号**，本轮变化登记见 §2.2。
 
 ## 0. 口径声明（先立规矩，避免对外承诺跑偏）
@@ -12,6 +13,7 @@
 | 0.1 | **流与批分开** | 招标需求是「湖仓 + **流数据处理** + **批数据处理** + 数据分层」四件独立的事。本平台**不把流与批合成一件事**；引擎侧分治（Spark 批 / Flink 流），只有**定义层、调度层、存储层、查询层**统一。依据见 `docs/STREAM-BATCH-DECISION-TABLE.md` §1–§3。 |
 | 0.2 | **云原生损耗先量化** | 云原生底座的性能损耗**不可避免但不是无条件接受**：按「可优化 / 结构性代价」分层归因，只对**实测主导项**付优化税。依据见本件配套的 `docs/CLOUD-NATIVE-PERF-LOSS-BASELINE.md`。 |
 | 0.3 | **成熟度只认实测** | 下表「成熟度」列只填**本机可复现的实测结论**；未实测的一律写「未实测」并进盲区清单，**不写成「已支持」**。 |
+| 0.4 | **需求侧口径与能力侧口径分册** | 本件只回答**能力侧**问题（我们有什么、缺什么）；**需求侧**（公开招标公告原文摘录与逐条对照）另立 `docs/TENDER-REQUIREMENTS-EVIDENCE.md`（v1.3 起配套）。两册不互相替代：需求侧原文**不得**被当成能力已具备的证据，能力侧成熟度也**不得**被当成招标条款已覆盖。 |
 
 ## 1. 五轴能力总表
 
