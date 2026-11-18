@@ -2460,6 +2460,16 @@ label {
   .app {
     grid-template-columns: 0 1fr auto !important;
   }
+  /* .side 转 fixed 后脱离 grid 流，in-flow 子项会按 auto-placement 落入第 1 列
+   * （0px 列），主内容被算成 0 宽 —— 整站塌陷。.main 显式钉回第 2 列；
+   * .side-overlay（抽屉遮罩，v-if 条件渲染在 .side 与 .main 之间）占第 1 列，
+   * 避免 .main 被它挤到第 3 列。 */
+  .app .main {
+    grid-column: 2;
+  }
+  .app .side-overlay {
+    grid-column: 1;
+  }
   .app .side {
     position: fixed;
     top: 0;
