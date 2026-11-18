@@ -46,7 +46,9 @@ describe('resolveUnauthorizedRedirect（401 跳登录目标判定，纯函数）
   })
 
   it('已在登录页 → 不跳转，保留守卫已写入的 redirect 参数', () => {
-    expect(resolveUnauthorizedRedirect(snapshot('/login', '/login?redirect=%2Fprojects'))).toBeNull()
+    expect(
+      resolveUnauthorizedRedirect(snapshot('/login', '/login?redirect=%2Fprojects'))
+    ).toBeNull()
   })
 })
 
