@@ -67,7 +67,7 @@ test.describe('i18n 语言切换回归', () => {
     // 注意 /quality 已在 C-2 导航合并中重定向到 /standard（router/index.ts），
     // 故质量不再有独立 h1；此处用 /standard 的 "Data Standards"
     const cases: Array<[string, RegExp]> = [
-      ['/dashboard', /Workspace/i],
+      ['/dashboard', /Dashboard/i],
       ['/projects', /Projects/i],
       ['/standard', /Data Standards/i],
       ['/govern', /Asset Catalog/i],
@@ -102,14 +102,17 @@ test.describe('i18n 语言切换回归', () => {
 
     for (const route of routes) {
       await page.goto(`/#${route}`, { waitUntil: 'domcontentloaded' })
-      // h1 若渲染 key 本身（如 "dashboard.title"），说明词条缺失
-      const h1 = await page.locator('h1').first().textContent().catch(() => '')
-      if (h1) {
-        expect(
-          h1.includes('.'),
-          `${route} h1 疑似渲染原始 key: "${h1}"`
-        ).toBe(false)
-      }
+      // 路由懒加载期间上一页 h1 可能仍在 DOM 中：有界轮询「不含原始 key」。
+      // 不用 networkidle（长连接会使 goto 超时），瞬时上一页文本不再误判。
+      await expect
+        .poll(
+          async () => {
+            const h1 = await page.locator('h1').first().textContent().catch(() => '')
+            return !h1 || !h1.includes('.')
+          },
+          { timeout: 10_000 }
+        )
+        .toBe(true)
     }
   })
 

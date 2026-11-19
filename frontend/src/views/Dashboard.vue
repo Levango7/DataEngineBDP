@@ -1,23 +1,8 @@
 <template>
   <div role="main" data-design-contract="v2" :aria-label="t('dashboard.title')">
     <h1>{{ t('dashboard.title') }}</h1>
-    <div
-      class="sub"
-      :aria-label="
-        t('dashboard.subtitle', {
-          tenant: store.workspace,
-          plan: store.plan,
-          usage: store.resourceUsage
-        })
-      "
-    >
-      {{
-        t('dashboard.subtitle', {
-          tenant: store.workspace,
-          plan: store.plan,
-          usage: store.resourceUsage
-        })
-      }}
+    <div class="sub" :aria-label="subtitle">
+      <span data-testid="dashboard-subtitle">{{ subtitle }}</span>
       <span class="pill b" :aria-label="t('dashboard.todo.title')">
         {{ t('dashboard.todoBadge', { count: store.todoCount }) }}
       </span>
@@ -257,6 +242,17 @@ import type { ClusterOverview } from '@/api/types'
 const { t } = useI18n()
 const router = useRouter()
 const store = useAppStore()
+
+// subtitle 各段只在有值时拼接，避免 plan/usage 为空仍留下「｜ ｜」与末尾分隔符。
+const subtitle = computed(() => {
+  const parts: string[] = []
+  if (store.workspace) parts.push(t('dashboard.tenant', { tenant: store.workspace }))
+  if (store.plan) parts.push(t('dashboard.plan', { plan: store.plan }))
+  if (store.resourceUsage) {
+    parts.push(t('dashboard.usage', { usage: store.resourceUsage }))
+  }
+  return parts.join(' ｜ ')
+})
 
 // 集群概览：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
