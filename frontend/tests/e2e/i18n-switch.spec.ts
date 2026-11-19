@@ -101,15 +101,18 @@ test.describe('i18n 语言切换回归', () => {
     ]
 
     for (const route of routes) {
-      await page.goto(`/#${route}`, { waitUntil: 'domcontentloaded' })
-      // h1 若渲染 key 本身（如 "dashboard.title"），说明词条缺失
-      const h1 = await page.locator('h1').first().textContent().catch(() => '')
-      if (h1) {
-        expect(
-          h1.includes('.'),
-          `${route} h1 疑似渲染原始 key: "${h1}"`
-        ).toBe(false)
-      }
+      await page.goto(`/#${route}`, { waitUntil: 'networkidle' })
+      // 路由懒加载期间上一页 h1 可能仍在 DOM 中：等待本页网络与词条加载稳定，
+      // 再有界轮询「不含原始 key」。瞬时上一页文本不再误判，持续缺词条仍会红。
+      await expect
+        .poll(
+          async () => {
+            const h1 = await page.locator('h1').first().textContent().catch(() => '')
+            return !h1 || !h1.includes('.')
+          },
+          { timeout: 10_000 }
+        )
+        .toBe(true)
     }
   })
 
