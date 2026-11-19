@@ -2,6 +2,9 @@
   "dashboard": {
     "title": "工作台",
     "subtitle": "租户：{tenant} ｜ 套餐：{plan} ｜ 本月资源消耗 {usage} ｜",
+    "tenant": "租户：{tenant}",
+    "plan": "套餐：{plan}",
+    "usage": "本月资源消耗：{usage}",
     "todoBadge": "{count} 待办",
     "kpi": {
       "loadingTitle": "加载中…",

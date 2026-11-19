@@ -1,7 +1,10 @@
 {
   "dashboard": {
-    "title": "Workspace",
+    "title": "Dashboard",
     "subtitle": "Tenant: {tenant} ｜ Plan: {plan} ｜ Resource usage this month: {usage} ｜",
+    "tenant": "Tenant: {tenant}",
+    "plan": "Plan: {plan}",
+    "usage": "Resource usage this month: {usage}",
     "todoBadge": "{count} todos",
     "kpi": {
       "loadingTitle": "Loading…",
