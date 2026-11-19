@@ -1,3 +1,6 @@
 fastapi>=0.110.0
 pydantic>=2.0.0
 uvicorn>=0.27.0
+# Starlette 1.10 起 TestClient 改用 httpx2；tests/test_app.py 在收集期直接依赖它。
+# 必须在本模块显式声明，不能靠其他服务后装包碰巧补齐。
+httpx2>=2.12.0,<3
