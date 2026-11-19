@@ -256,10 +256,10 @@ http.interceptors.response.use(
         return Promise.reject(new ApiError(msg, status, status))
       }
       handleUnauthorized()
-    } else if (error?.response?.data?.error) {
-      // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）——非 401/403 才展示
-      // 脱敏处理：防止后端 error 字段泄露 IP、连接串、密码等敏感信息
-      msg = sanitizeErrorMessage(String(error.response.data.error))
+    } else if (error?.response?.data?.message || error?.response?.data?.error) {
+      // error 是稳定机器码（如 CONFLICT），不能直接当用户文案；优先展示人读 message。
+      // 仅旧服务没有 message 时回退 error，并统一做敏感信息脱敏。
+      msg = sanitizeErrorMessage(String(error.response.data.message || error.response.data.error))
     } else if (status === 403) {
       msg = translateError('errors.http.forbidden', '无权限访问该资源')
     } else if (status === 500) {
@@ -274,8 +274,6 @@ http.interceptors.response.use(
       msg = translateError('errors.http.notFound', '请求的资源不存在')
     } else if (status === 0) {
       msg = translateError('errors.http.network', '网络异常，请检查网络连接')
-    } else if (error?.response?.data?.message) {
-      msg = error.response.data.message
     }
 
     errorNotifier?.(msg)

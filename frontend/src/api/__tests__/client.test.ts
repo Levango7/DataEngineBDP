@@ -219,6 +219,18 @@ describe('api/client.ts', () => {
       expect(notifier).toHaveBeenCalledWith('验证失败：名称重复')
     })
 
+    it('message 与机器 error 同时存在时应展示 message 而非机器码', async () => {
+      const { setErrorNotifier } = await getClient()
+      const notifier = vi.fn()
+      setErrorNotifier(notifier)
+      const error = {
+        response: { status: 409, data: { error: 'CONFLICT', message: '资产已存在：用户画像宽表' } }
+      }
+      await expect(responseInterceptorErrorFn!(error)).rejects.toThrow('资产已存在：用户画像宽表')
+      expect(notifier).toHaveBeenCalledWith('资产已存在：用户画像宽表')
+      expect(notifier).not.toHaveBeenCalledWith('CONFLICT')
+    })
+
     it('并发 3 个 401 应仅触发一次 unauthorizedHandler 和一次提示', async () => {
       vi.useFakeTimers()
       try {
