@@ -67,7 +67,7 @@ test.describe('i18n 语言切换回归', () => {
     // 注意 /quality 已在 C-2 导航合并中重定向到 /standard（router/index.ts），
     // 故质量不再有独立 h1；此处用 /standard 的 "Data Standards"
     const cases: Array<[string, RegExp]> = [
-      ['/dashboard', /Workspace/i],
+      ['/dashboard', /Dashboard/i],
       ['/projects', /Projects/i],
       ['/standard', /Data Standards/i],
       ['/govern', /Asset Catalog/i],
