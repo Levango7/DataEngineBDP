@@ -101,9 +101,9 @@ test.describe('i18n 语言切换回归', () => {
     ]
 
     for (const route of routes) {
-      await page.goto(`/#${route}`, { waitUntil: 'networkidle' })
-      // 路由懒加载期间上一页 h1 可能仍在 DOM 中：等待本页网络与词条加载稳定，
-      // 再有界轮询「不含原始 key」。瞬时上一页文本不再误判，持续缺词条仍会红。
+      await page.goto(`/#${route}`, { waitUntil: 'domcontentloaded' })
+      // 路由懒加载期间上一页 h1 可能仍在 DOM 中：有界轮询「不含原始 key」。
+      // 不用 networkidle（长连接会使 goto 超时），瞬时上一页文本不再误判。
       await expect
         .poll(
           async () => {
