@@ -87,7 +87,60 @@ class SqlGatewayControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.queryId").value("q-001"))
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.engine").value("trino"));
+                .andExpect(jsonPath("$.engine").value("trino"))
+                // 契约 docs/user-guide/api-reference.md §4.1 的响应示例含 rowCount
+                .andExpect(jsonPath("$.rowCount").value(1));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/sql/execute — 响应含 rowCount 且与 rows 结构自洽")
+    void executeSql_shouldCarryRowCountConsistentWithRows() throws Exception {
+        SqlExecuteRequest request = new SqlExecuteRequest();
+        request.setSql("SELECT customer_id, COUNT(*) FROM transaction GROUP BY customer_id");
+        request.setEngine("trino");
+
+        SqlExecuteResponse response = SqlExecuteResponse.builder()
+                .queryId("q-002")
+                .status("SUCCESS")
+                .columns(List.of("customer_id", "cnt"))
+                .rows(List.of(List.of("C001", 42), List.of("C002", 35)))
+                .durationMs(120L)
+                .engine("trino")
+                .build();
+
+        when(routingService.execute(any(SqlExecuteRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/sql/execute")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rowCount").value(2))
+                .andExpect(jsonPath("$.rows.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/sql/execute — 空结果集 ⇒ rowCount=0")
+    void executeSql_shouldCarryZeroRowCountForEmptyResult() throws Exception {
+        SqlExecuteRequest request = new SqlExecuteRequest();
+        request.setSql("SELECT 1 WHERE 1=0");
+        request.setEngine("trino");
+
+        SqlExecuteResponse response = SqlExecuteResponse.builder()
+                .queryId("q-003")
+                .status("SUCCESS")
+                .columns(List.of())
+                .rows(List.of())
+                .durationMs(12L)
+                .engine("trino")
+                .build();
+
+        when(routingService.execute(any(SqlExecuteRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/sql/execute")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rowCount").value(0));
     }
 
     @Test

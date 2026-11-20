@@ -75,4 +75,23 @@ public class SqlExecuteResponse {
      * 未注入解析器 / AST 解析失败 / 执行失败 → null（JSON 缺席）。best-effort，不影响查询主链路。</p>
      */
     private Map<String, String> tableToSource;
+
+    /**
+     * 结果行数：始终由 {@link #rows} 推导（rows 缺席或为空 ⇒ 0），不单独存储字段。
+     *
+     * <p>为什么这样实现：对外契约 {@code docs/user-guide/api-reference.md} §4.1
+     * 「POST /api/v1/sql/execute — 执行 SQL」的响应示例（200 OK）已声明 {@code "rowCount": 2}，
+     * 而本 DTO 原先没有该字段 ⇒ 实现与已发布契约不一致（台账 #125 登记的 chain1 判据③
+     * 恒假即源于此）。</p>
+     *
+     * <p>为什么用派生 getter 而不是新增可写字段：行数与行集合必须同源。若两处分别赋值，
+     * 任何一条构造路径漏设就会再次出现「rows 与 rowCount 漂移」；派生写法让全部
+     * {@code SqlExecuteResponse.builder()} 构造点（主代码 9 处：BackendProxyService 6 处 /
+     * SqlRoutingService 3 处）自动满足「rowCount == rows.size()」，且空行集合恒为 0。</p>
+     *
+     * <p>序列化：Jackson 走 getter ⇒ 该字段恒出现在 JSON 中（不会出现 null 或缺席）。</p>
+     */
+    public Integer getRowCount() {
+        return rows == null ? 0 : rows.size();
+    }
 }
