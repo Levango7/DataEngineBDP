@@ -1972,9 +1972,21 @@ jobs:
         shell: bash
         run: |
           set -eo pipefail
+          # --cov-branch 显式化（2026-11-20 CI 红归因实测）：
+          # pyproject.toml 的 [tool.coverage.run] branch=true 只在「读到该配置文件」的进程内生效。
+          # tests/test_tools_quality_collect.py 的 __main__ 冒烟用例会真实派生
+          # `python -m pytest --version` 子进程（cwd=tmp_path），该子进程读不到仓库内配置
+          # ⇒ 写出「无分支（arcs=False）」的并行数据文件；主进程 combine() 时把它与
+          # 「有分支（arcs=True）」的基线 .coverage 混合 ⇒
+          # DataError: Can't combine statement coverage data with branch data
+          # ⇒ pytest INTERNALERROR / exit code 3 ⇒ 本 job 红 ⇒ Quality Gate 红。
+          # 显式传 --cov-branch 后，pytest-cov 经 COV_CORE_BRANCH 把分支口径传给子进程，
+          # 主/子进程数据文件口径一致 ⇒ 不再触发上述 DataError。
+          # 该参数与仓内 branch=true 的既有意图一致，不改变覆盖率统计口径（不引入数值漂移）。
           python -m pytest tests/ -v \
             -k "not cluster" \
             --cov=batch_pipeline \
+            --cov-branch \
             --cov-report=term-missing \
             --tb=short \
             2>&1 | tee /tmp/pytest-batch-pipeline.log
