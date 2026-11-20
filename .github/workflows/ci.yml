@@ -474,6 +474,24 @@ jobs:
       - name: 自测 Maven JAR 取数预算记账（test-maven-download-budget）
         run: bash scripts/test-maven-download-budget.sh
 
+      # 台账 #112 续：pyspark 取数段的「墙钟上限」回归测试。
+      # 改前（两处）pyspark 从 PyPI 取数百 MB 且**无任何墙钟上限**：
+      #   ① platform/batch-pipeline/docker/spark-cluster/Dockerfile 的 pyspark 安装段
+      #      （CI 实测 pyspark-4.2.1.tar.gz 450.0MB，该段 28.0s / 30.4s）；
+      #   ② platform/batch-pipeline/Dockerfile builder 段的运行时依赖安装段
+      #      （requirements 含 pyspark>=4.0,<5.0 ⇒ CI 实测 pyspark-4.3.0.tar.gz 455.9MB
+      #        并本地构建 wheel，整步 32.45s / 32.61s）。
+      # 后果不是「慢」而是**红相被伪装**：外层 build-retry 的 per-attempt 600s 会把整条
+      # docker build SIGKILL 掉 ⇒ BuildKit 报 `context canceled` ⇒ 看着像编译失败，
+      # 实际是取数面速率问题（2026-11-20 当轮实测本机到 PyPI 仅 43–54 kB/s ⇒ 整包 ≈ 9300s）。
+      # 本测试用「虚拟时钟 + 复刻 GNU timeout 墙钟语义的桩」逐条断言：健康形态成功、
+      # 超上限时**段自己**判红（不是被外层 SIGKILL）、被调命令自身失败时不混判据、
+      # python3 -m pip → pip3 的老回退语义仍在、以及「上限 + 本段之前的耗时 + 余量 ≤
+      # 外层 per-attempt 预算」的算术（外层预算现场读自 scripts/build-retry.sh，不写死）。
+      # 不碰网络、不调 docker，成本可忽略。
+      - name: 自测 pyspark 取数段墙钟上限（test-pyspark-install-budget）
+        run: bash scripts/test-pyspark-install-budget.sh
+
       # 触发面收敛判据的离线自测。
       # 该判据决定「本波要不要重建 44 个镜像」⇒ 判错的代价不对称（误判「不相关」会让
       # 镜像验证静默消失）⇒ 必须有离线自测把判据钉死，且自测不碰网络不调 docker。
