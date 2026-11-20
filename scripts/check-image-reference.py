@@ -12,9 +12,12 @@
   ③ 无宿主且末段等于某个可构建模块名。
 自研引用必须同时满足：宿主 = `ghcr.io`、组织 = `levango7`、名字 = `sq-<可构建模块目录名>`、
 tag ∈ {`latest`, 40 位十六进制 sha}。第三方镜像（apache/kafka、goharbor/harbor-core…）一律跳过。
+值形态三种写法同权参与判定：`image: name:tag`（同行）、`repository:`+`tag:`（两行）、
+`*Image:` 一元键（camelCase 结尾 Image，如 sparkImage/flinkImage；2026-11-18 扩面，见台账 #48-D）。
 
 已知局限（诚实声明）：`global.imageRegistry` 参与的拼装发生在渲染期，静态判据只看写死了宿主或
-带 `sq-` 前缀的引用；裸名（无宿主）且末段不是模块名的，本门禁判不出来。
+带 `sq-` 前缀的引用；裸名（无宿主）且末段不是模块名的，本门禁判不出来。`*Image` 键的值若为
+无冒号的路径片段或含模板占位符（`$`/`{{`），按跳过处理，不参与判定。
 
 用法：
   python3 scripts/check-image-reference.py                  # 校验
@@ -52,6 +55,9 @@ TAG_RE = re.compile(r'^\s*tag:\s*"?([^"\n]+?)"?\s*$')
 # 裸 image: 形态，如 `image: "sq-encapsulation:0.1.0"` 或 `image: sq-encapsulation:0.1.0`
 # name 与 tag 同行，不用向下查找 tag 行。
 IMAGE_RE = re.compile(r'^(\s*)image:\s*"?([^"\n:]+?):([^"\n]+?)"?\s*$')
+# 一元键形态，如 `sparkImage: "sq-spark:3.5-0.1.0"`（键以 Image 结尾，name:tag 同行）。
+# 台账 #48-D：此前只认键名恰为 image，sparkImage/flinkImage 等整段逃逸出扫描面。
+IMAGE_KEY_RE = re.compile(r'^(\s*)([A-Za-z0-9_.-]*Image):\s*"?([^"\n:]+?):([^"\n]+?)"?\s*$')
 
 
 def buildable_modules(root=ROOT):
@@ -112,42 +118,39 @@ def _problems(repo, tag, modules):
     return probs
 
 
+def _add_ref(repo, tag, relpath, lineno, modules, findings):
+    if not repo or '$' in repo or '{{' in repo:
+        return
+    if not is_ours(repo, modules):
+        return
+    probs = _problems(repo, tag, modules)
+    if probs:
+        findings.append({'file': relpath, 'line': lineno, 'repository': repo,
+                         'tag': tag, 'reasons': probs})
+
+
 def _scan_file(p, relpath, modules, findings):
-    """扫描单个 YAML：repository:+tag 形态与裸 image:name:tag 形态都算。"""
+    """扫描单个 YAML：repository:+tag、裸 image:name:tag、*Image:name:tag 三种形态都算。"""
     lines = io.open(p, encoding='utf-8-sig', errors='replace').read().split('\n')
     for i, line in enumerate(lines):
         m = REPO_RE.match(line)
         if m:
             repo = m.group(2).strip()
-            if not repo or '$' in repo or '{{' in repo:
-                continue
             tag = '-'
             for j in range(i + 1, min(i + 4, len(lines))):
                 t = TAG_RE.match(lines[j])
                 if t:
                     tag = t.group(1).strip()
                     break
-            if not is_ours(repo, modules):
-                continue
-            probs = _problems(repo, tag, modules)
-            if probs:
-                findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
-                                 'tag': tag, 'reasons': probs})
+            _add_ref(repo, tag, relpath, i + 1, modules, findings)
             continue
-        # 裸 image: 形态，name 与 tag 同行（如 `image: "sq-encapsulation:0.1.0"`）
         m2 = IMAGE_RE.match(line)
-        if not m2:
+        if m2:
+            _add_ref(m2.group(2).strip(), m2.group(3).strip(), relpath, i + 1, modules, findings)
             continue
-        repo = m2.group(2).strip()
-        tag = m2.group(3).strip()
-        if not repo or '$' in repo or '{{' in repo:
-            continue
-        if not is_ours(repo, modules):
-            continue
-        probs = _problems(repo, tag, modules)
-        if probs:
-            findings.append({'file': relpath, 'line': i + 1, 'repository': repo,
-                             'tag': tag, 'reasons': probs})
+        m3 = IMAGE_KEY_RE.match(line)
+        if m3:
+            _add_ref(m3.group(3).strip(), m3.group(4).strip(), relpath, i + 1, modules, findings)
 
 
 def scan_files(root=ROOT):
@@ -248,6 +251,17 @@ def self_test():
             'image:\n  repository: "apache/kafka"\n  tag: "3.8.1"\n')
         io.open(os.path.join(env, 'wrongorg-values.yaml'), 'w', encoding='utf-8').write(
             'image:\n  repository: "ghcr.io/someone-else/sq-encaps-layer"\n  tag: "latest"\n')
+        # *Image 一元键形态（台账 #48-D 扩面）：坏/好/第三方/无 tag/裸名五种夹具
+        io.open(os.path.join(env, 'camelbad-values.yaml'), 'w', encoding='utf-8').write(
+            'sparkImage: "sq-spark:3.5.3-0.1.0"\n')
+        io.open(os.path.join(env, 'camelunq-values.yaml'), 'w', encoding='utf-8').write(
+            'baseImage: sq-encapsulation:0.1.0\n')
+        io.open(os.path.join(env, 'camelgood-values.yaml'), 'w', encoding='utf-8').write(
+            'flinkImage: "ghcr.io/levango7/sq-encaps-layer:latest"\n')
+        io.open(os.path.join(env, 'cameltpd-values.yaml'), 'w', encoding='utf-8').write(
+            'exporterImage: "ds-prometheus-exporter:0.1.0"\n')
+        io.open(os.path.join(env, 'camelnotag-values.yaml'), 'w', encoding='utf-8').write(
+            'baseImage: "docker.io/library"\n')
         mods = buildable_modules(tmp)
         if 'encaps-layer' not in mods:
             results.append(('可构建模块集合非空且含 encaps-layer', False))
@@ -265,6 +279,16 @@ def self_test():
             results.append(('一次命中 3 条理由', nreasons >= 3))
             wrongorg = any(k[0].endswith('wrongorg-values.yaml') for k in got)
             results.append(('GHCR 组织写错也判红（守 startswith 分支）', wrongorg))
+            results.append(('*Image 键坏引用被抓到（sq- 错模块名 + 错 tag）',
+                            any(k[0].endswith('camelbad-values.yaml') for k in got)))
+            results.append(('*Image 键裸名坏引用也被抓到（无引号形态）',
+                            any(k[0].endswith('camelunq-values.yaml') for k in got)))
+            results.append(('*Image 键好引用放行（ghcr + sq-<模块> + latest）',
+                            not any(k[0].endswith('camelgood-values.yaml') for k in got)))
+            results.append(('*Image 键第三方 name:tag 放行（ds-prometheus-exporter）',
+                            not any(k[0].endswith('cameltpd-values.yaml') for k in got)))
+            results.append(('*Image 键无 tag 值不误报不崩',
+                            not any(k[0].endswith('camelnotag-values.yaml') for k in got)))
             new, stale = verdict(f, [{'file': 'design/deploy/values/env/dev/ghost.yaml',
                                       'repository': 'ghcr.io/levango7/sq-x', 'tag': 'latest'}])
             results.append(('基线过期判红', bool(stale)))

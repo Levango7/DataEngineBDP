@@ -27,7 +27,7 @@
 
 ## 范围口径注
 
-- 原 8 名单漏 sq-flink 的根因：`scripts/check-image-reference.py` 静态判据只吃 `image:` 键与 `repository:+tag` 形态（IMAGE_RE 在 scripts/check-image-reference.py:54），`sparkImage:`/`flinkImage:` 键不在扫描面 ⇒ sq-spark/sq-flink 从门禁缺口清单逃逸，原名单遂漏 flink。此为门禁覆盖缺口登记项（另案；改判据须自带变异验证）。
+- 原 8 名单漏 sq-flink 的根因：`scripts/check-image-reference.py` 静态判据只吃 `image:` 键与 `repository:+tag` 形态（IMAGE_RE 在 scripts/check-image-reference.py:54），`sparkImage:`/`flinkImage:` 键不在扫描面 ⇒ sq-spark/sq-flink 从门禁缺口清单逃逸，原名单遂漏 flink。此为门禁覆盖缺口登记项（另案；改判据须自带变异验证）。**2026-11-18 已扩面落地**（候选 3，见下）。
 - 值漂移：values-base.yaml 与分服务 values 对 flink（1.18 vs 1.20.0）/ spark（3.5 vs 3.5.3）钉不一致；两系列上游均验真，但「钉哪一版」属钉版裁决（甲方案第二步），不在本表动作范围。
 - tabio/iceberg-rest:1.11.0 为上游直引；GitHub 双 404 ⇒ 建议按 #17 同型登记 KNOWN-FAILURES，或在可联网环境用 `docker manifest inspect` 实证（本机 Docker Hub 不可达，不猜 tag）。
 
@@ -38,8 +38,10 @@
 ## 后续候选（均待裁决，非本表动作）
 
 > 2026-11-15 裁决：候选 1（钉版）＝裁②——sq- 引擎坐标层降级为文档化遗留（台账 #127），不动坐标不钉版；候选 2 已由 PR #800 落地（台账 #126）；候选 3（``*Image`` 键门禁扩面）随下批（判据改动自带变异验证）；候选 4（flink/spark 值漂移统一）被 B 取证吸收——漂移＝三层消费者各取所需，非 prod 渲染断链。
+>
+> 2026-11-18 候选 3 已落地：判据并入 `*Image` 一元键（`IMAGE_KEY_RE`，与 `image:`/`repository:+tag` 同权），新增 6 条可见缺口入基线棘轮（`sq-flink`/`sq-spark`/`sq-governance-base` 各两处），旧判据 A/B 实测 0 命中 camel 键、新判据 27 条 = 21+6；自测 14/14、注入与棘轮两向变异均红。
 
 1. 钉版裁决（甲方案第二步：改 prod values 属部署面，须用户拍板）
 2. tabio/iceberg-rest 缺口登记 KNOWN-FAILURES（#17 同型）
-3. `*Image:` 键门禁覆盖面（判据改动，须变异验证）
+3. ~~`*Image:` 键门禁覆盖面~~（2026-11-18 已落地：判据扩面 + 基线棘轮 + 变异验证）
 4. values-base.yaml 与分服务 values 的 flink/spark 版本漂移统一
