@@ -216,6 +216,8 @@ async def audit_asset(
     ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
     """资产审核（合规/质量/分级检查）. 审核人身份一律取 JWT（auditorId 自报不再采信）."""
+    # 对象级授权：仅资产所属租户或 admin 可审核（跨租户审核他人资产曾为 P0 越权）
+    await require_asset_owner(registry, asset_id, ctx)
     try:
         result = await registry.assetService.audit(asset_id, req.result, ctx.userId, req.reason)
         # 审计留痕
@@ -717,7 +719,28 @@ async def submit_asset_audit(
 
     仅资产提供方或 admin 可提交。
     """
-    return await registry.assetService.submit_audit(asset_id)
+    # 对象级授权：仅资产所属租户或 admin 可提交审核（docstring 承诺与实现此前不一致）
+    asset = await require_asset_owner(registry, asset_id, ctx)
+    try:
+        result = await registry.assetService.submit_audit(asset_id)
+        # 审计留痕（此前 submit 是全程无痕的唯一状态迁移）
+        await registry.auditService.log(
+            action=AuditAction.SUBMIT_AUDIT,
+            actor_id=ctx.userId,
+            asset_id=asset_id,
+            tenant_id=asset.tenantId,
+            detail={"status": result.status.value},
+        )
+        return result
+    except AssetExchangeError as exc:
+        await registry.auditService.log(
+            action=AuditAction.SUBMIT_AUDIT,
+            actor_id=ctx.userId,
+            asset_id=asset_id,
+            result=AuditResult.FAILURE,
+            detail={"error": str(exc)},
+        )
+        raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
 
 @router.get(

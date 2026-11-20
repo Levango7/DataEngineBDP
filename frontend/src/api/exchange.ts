@@ -80,6 +80,7 @@ export interface AuditLog {
  */
 export const AUDIT_ACTIONS = [
   'register',
+  'submit_audit',
   'audit',
   'publish',
   'subscribe',
