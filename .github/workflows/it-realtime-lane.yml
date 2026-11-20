@@ -253,7 +253,6 @@ jobs:
               host: 127.0.0.1
               port: 8030
               username: root
-              password: ""
               primaryKey: id
               properties:
                 database: dw
