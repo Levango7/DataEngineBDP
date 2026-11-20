@@ -209,6 +209,40 @@ class SqlRoutingServiceTest {
     }
 
     @Test
+    @DisplayName("缓存 — 缓存命中 copy 路径 rowCount 保留（与 rows 计数自洽，台账 #125）")
+    void cache_hit_rowCount_matchesRowsSize() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT 1 AS id");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        // 两行结果：派生 getter 应得 rowCount == rows.size() == 2
+        SqlExecuteResponse twoRows = SqlExecuteResponse.builder()
+                .queryId("q-rowcount")
+                .status("SUCCESS")
+                .columns(List.of("id"))
+                .rows(List.of(List.of(1), List.of(2)))
+                .durationMs(50L)
+                .engine("trino")
+                .build();
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenAnswer(inv -> Mono.just(twoRows)); // 每次新实例
+
+        SqlExecuteResponse first = svc.execute(req);
+        assertThat(first.isCached()).isFalse();
+        assertThat(first.getRowCount()).isEqualTo(2);
+
+        SqlExecuteResponse second = svc.execute(req);
+        assertThat(second.isCached()).isTrue();
+        // 缓存命中路径经 copyResponse，rowCount 由 rows 派生 ⇒ 计数不丢
+        assertThat(second.getRowCount()).isEqualTo(2);
+        org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(1))
+                .proxyToTrino(anyString(), anyString(), any());
+    }
+
+    @Test
     @DisplayName("缓存 — 不同租户同 SQL 不互相命中（隔离）")
     void cache_differentTenant_isolated() {
         SqlRoutingService svc = withRealCache();
