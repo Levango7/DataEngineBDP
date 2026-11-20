@@ -17,7 +17,50 @@ FROM ${BASE_REGISTRY}/library/python:3.12-slim AS builder
 WORKDIR /build
 COPY requirements.txt .
 # 装到 /install（便于 runtime 阶段精确拷贝，不含 pip/setuptools 等工具）
-RUN pip install --no-cache-dir --target=/install -r requirements.txt
+#
+# 2026-11-20（台账 #112 的第 ② 项残余边界，本轮闭合）：给本段补**墙钟上限**。
+# 为什么要补：本段是仓内**第二处**「pyspark 从 PyPI 取数且无墙钟上限」的取数段
+# （第一处是 platform/batch-pipeline/docker/spark-cluster/Dockerfile 的 pyspark 安装段，
+# 同批已补上限）。本段的 requirements.txt 里 `pyspark>=4.0,<5.0` ⇒ 实际会从 PyPI 拉
+# 455.9 MB 的 sdist（CI 日志实测：`Downloading pyspark-4.3.0.tar.gz (455.9 MB)`，
+# PR #810 第四波 job 132775309149 / 第二波 job 132734732611），并**从 sdist 本地构建
+# wheel**（同日志：Building wheel 10.31s → 23.29s）⇒ 这一段同时吃网络带宽与 CPU。
+# 实测（2026-11-20 当轮）：本机到 PyPI 连续 3 轮 16MB Range GET 实测 43–54 kB/s
+# ⇒ 按该速率 pyspark 单包就需 ≈ 9300s；而 scripts/build-retry.sh 的 per-attempt
+# 挂起超时（BASE_HANG_TIMEOUT，缺省 600s）会把整条 docker build SIGKILL 掉 ⇒
+# BuildKit 报 `failed to solve: Canceled: context canceled` ⇒ 面板上长得像编译失败，
+# 实际是取数面速率问题（与台账 #112 的原始事故同族，只是这次落在 pip 段）。
+# 处置：本段自己设墙钟上限，预算用尽时**自己**判红并说清是「取数面速率不足」。
+# 上限取 300s 的两条依据（都不外推）：
+#   ① 与本仓已有的取数容差同量级：Spark tarball 预算 420s 对应 529MB（≈1.26 MB/s
+#      的容差），本段 300s 对应 pyspark 单包 455.9MB（≈1.52 MB/s）⇒ 同一档容差，
+#      不比仓内现状更严；CI 实测本段整步 32.45s / 32.61s ⇒ 对健康形态有 9 倍余量。
+#   ② 与外层 attempt 预算不打架：本段之前的耗时只有基座拉取与层准备，远小于
+#      spark-cluster 的 135s ⇒ 300s 与外层 600s 之间留有充足余量。
+#      该算术由 scripts/test-pyspark-install-budget.sh 断言钉死（上限调大即转红）。
+# 上限可用 --build-arg PY_DEPS_INSTALL_TIMEOUT_SECONDS=... 覆盖。
+ARG PY_DEPS_INSTALL_TIMEOUT_SECONDS=300
+RUN set -eux; \
+    echo ">>> 安装 batch-pipeline 运行时依赖（墙钟上限 ${PY_DEPS_INSTALL_TIMEOUT_SECONDS}s）"; \
+    if command -v timeout >/dev/null 2>&1; then \
+        PY_DEPS_TIMEOUT_CMD="timeout ${PY_DEPS_INSTALL_TIMEOUT_SECONDS}"; \
+    else \
+        PY_DEPS_TIMEOUT_CMD=""; \
+        echo ">>> [warn] 基座无 timeout 命令 ⇒ 本段不设墙钟上限（退化执行）"; \
+    fi; \
+    PY_DEPS_START_TS="$(date +%s)"; \
+    ${PY_DEPS_TIMEOUT_CMD:+${PY_DEPS_TIMEOUT_CMD}} pip install --no-cache-dir --target=/install -r requirements.txt || { \
+        rc=$?; \
+        elapsed=$(( $(date +%s) - PY_DEPS_START_TS )); \
+        if [ "${rc}" -eq 124 ] || [ "${rc}" -eq 137 ]; then \
+            echo ">>> [FATAL] 运行时依赖安装超出墙钟上限 ${PY_DEPS_INSTALL_TIMEOUT_SECONDS}s（实耗 ${elapsed}s，退出码 ${rc}）"; \
+            echo ">>> [FATAL] 判定：取数面速率不足（requirements 含 pyspark sdist 约 456MB），不是构建内容坏了 ⇒ 调高 PY_DEPS_INSTALL_TIMEOUT_SECONDS 或改用快源重试"; \
+        else \
+            echo ">>> [FATAL] 运行时依赖安装失败（退出码 ${rc}，实耗 ${elapsed}s）"; \
+        fi; \
+        exit 1; \
+    }; \
+    echo ">>> 运行时依赖安装完成（实耗 $(( $(date +%s) - PY_DEPS_START_TS ))s，墙钟上限 ${PY_DEPS_INSTALL_TIMEOUT_SECONDS}s）"
 
 # ── Stage 2: runtime ────────────────────────────────────────────
 FROM ${BASE_REGISTRY}/library/python:3.12-slim AS runtime
