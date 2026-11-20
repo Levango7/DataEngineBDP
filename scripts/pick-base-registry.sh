@@ -63,7 +63,11 @@ probe() {
     code="$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' "$url" 2>/dev/null || true)"
   fi
   case "$code" in
-    200|401) return 0 ;;
+    200|401)
+      # 成功路径也要留痕（台账 #88）：此前只有失败分支打印，于是 CI 日志里
+      # 「选了哪个源」之外什么也看不到——既不知道探了哪些候选，也不知道回的是哪个码。
+      log "候选 $host 探活通过（$url 回 HTTP $code）"
+      return 0 ;;
     *) log "候选 $host 不可用（$url 回 HTTP ${code:-空}）"; return 1 ;;
   esac
 }
@@ -87,6 +91,7 @@ tag_probe_url() {
 probe_tag() {
   local host="$1" url code
   if [ -z "$TAG_PROBE" ]; then
+    log "候选 $host 跳过 tag 级探测（BASE_REGISTRY_TAG_PROBE 置空）"
     return 0
   fi
   url="$(tag_probe_url "$host" "$TAG_PROBE")"
@@ -98,7 +103,9 @@ probe_tag() {
       "$url" 2>/dev/null || true)"
   fi
   case " $TAG_PROBE_OK_CODES " in
-    *" $code "*) return 0 ;;
+    *" $code "*)
+      log "候选 $host 的 tag 探测通过（$url 回 HTTP $code，代表镜像 $TAG_PROBE）"
+      return 0 ;;
     *) log "候选 $host 的 /v2/ 通，但 tag 探测不可用（$url 回 HTTP ${code:-空}）⇒ 不选它"
        return 1 ;;
   esac
@@ -195,7 +202,45 @@ TAGSTUB
     "$(tag_probe_url docker.io library/alpine:3.20)"
   check "tag URL 按加速器原名（daocloud）" "https://docker.m.daocloud.io/v2/library/python/manifests/3.11-slim" \
     "$(tag_probe_url docker.m.daocloud.io library/python:3.11-slim)"
+
+  # 可见性自证（台账 #88）：CI 日志里读得到逐候选明细才算数。
+  # 此前 probe / probe_tag 只在失败分支打印，成功路径只有一行「选定 base 镜像源：…」
+  # ⇒ 日志里既看不到探了哪些候选，也看不到各回了什么码、有没有过 tag 级探测。
+  capture_stderr() {  # 可见性就在 stderr 这一层（log() 写的正是 stderr）
+    BASE_REGISTRY_PROBE_CMD="$tmp/stub.sh" BASE_REGISTRY_TAG_PROBE_CMD="$tmp/tagstub.sh" \
+      BASE_REGISTRY_CANDIDATES="host-a host-b" bash "$0" 2>&1 >/dev/null
+  }
+  assert_contains() {  # $1=名称 $2=实际输出 $3=期望子串
+    local name="$1" out="$2" want="$3"
+    case "$out" in
+      *"$want"*) echo "  [PASS] $name" ;;
+      *) echo "  [FAIL] $name：输出里找不到「$want」"; rc=1 ;;
+    esac
+  }
+  echo "SELFTEST（CI 日志可见性：成功路径也必须逐候选留痕，台账 #88）"
+  ok_out="$(CODE_HOST_A=200 CODE_HOST_B=200 capture_stderr)"
+  assert_contains "成功路径打印逐候选探活明细" "$ok_out" "host-a 探活通过"
+  assert_contains "成功路径打印 tag 级探测明细" "$ok_out" "tag 探测通过"
+  assert_contains "成功路径打印本轮探测个数" "$ok_out" "本轮探测 1 个候选"
+  assert_contains "选定行保留既有口径（既有 grep 不失效）" "$ok_out" "选定 base 镜像源：host-a"
+  bad_out="$(CODE_HOST_A=502 CODE_HOST_B=500 capture_stderr)"
+  assert_contains "失败候选逐个打印不可用原因（首候选）" "$bad_out" "host-a 不可用"
+  assert_contains "失败候选逐个打印不可用原因（次候选）" "$bad_out" "host-b 不可用"
+  assert_contains "回落时打印本轮探测个数" "$bad_out" "本轮探测 2 个候选"
   return "$rc"
+}
+
+# 把本轮探测结论写进 CI 的 step summary：job 日志之外再多一处可核对的留痕，
+# 免得「选了哪个源」只能靠翻几百 MB 日志反推（台账 #88 的可见性诉求）。
+write_summary() {  # $1=选定源 $2=探测个数 $3=一句话结论
+  [ -n "${GITHUB_STEP_SUMMARY:-}" ] || return 0
+  {
+    echo "### base 镜像源探测"
+    echo ""
+    echo "- 结论：$3"
+    echo "- 选定源：$1"
+    echo "- 本轮探测候选数：$2"
+  } >>"$GITHUB_STEP_SUMMARY"
 }
 
 main() {
@@ -208,23 +253,30 @@ main() {
     printf '%s\n' "$BASE_REGISTRY"
     exit 0
   fi
-  local h
+  local h tried=0
   while IFS= read -r h; do
     [ -z "$h" ] && continue
+    tried=$((tried + 1))
     if probe "$h" && probe_tag "$h"; then
       log "选定 base 镜像源：$h"
+      log "本轮探测 $tried 个候选，选中 $h（前 $((tried - 1)) 个被判不可用）"
       if [ -n "${GITHUB_OUTPUT:-}" ]; then
         echo "base_registry=$h" >>"$GITHUB_OUTPUT"
       fi
+      write_summary "$h" "$tried" "候选第 $tried 个通过 /v2/ 探活与 tag 级 manifest 探测"
       printf '%s\n' "$h"
       exit 0
     fi
   done < <(candidates)
   log "警告：所有候选都不可用，落到上游 $FALLBACK——构建期可能变慢或撞 Docker Hub 限流，但不吊死在坏掉的加速器上"
+  log "本轮探测 $tried 个候选，全部不可用 ⇒ 落到 $FALLBACK"
   if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "base_registry=$FALLBACK" >>"$GITHUB_OUTPUT"
+  fi
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     echo "::warning::base 镜像源全部不可达，已回落 $FALLBACK（台账 #72）" >>"$GITHUB_STEP_SUMMARY"
   fi
+  write_summary "$FALLBACK" "$tried" "全部候选不可用，已回落到上游 $FALLBACK"
   printf '%s\n' "$FALLBACK"
 }
 
