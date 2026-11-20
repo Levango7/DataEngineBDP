@@ -204,10 +204,10 @@ jobs:
           $D/fe/bin/start_fe.sh --daemon
           M="mysql -h127.0.0.1 -P9030 -uroot --ssl-mode=DISABLED"
           for i in $(seq 1 90); do
-            $M -e "SELECT 1;" >/dev/null 2>&1 && { echo "FE-MYSQL-UP after $((i*2))s"; break; }
+            $M -e "SHOW FRONTENDS;" >/dev/null 2>&1 && { echo "FE-MYSQL-UP after $((i*2))s"; break; }
             sleep 2
           done
-          $M -e "SELECT 1;" >/dev/null 2>&1 || { echo "::error::FE 9030 not ready after 180s"; tail -40 "$D/fe/log/fe.log" 2>/dev/null; exit 1; }
+          $M -e "SHOW FRONTENDS;" >/dev/null 2>&1 || { echo "::error::FE 9030 not ready after 180s"; tail -40 "$D/fe/log/fe.log" 2>/dev/null; exit 1; }
           $D/be/bin/start_be.sh --daemon
           sleep 5
           $M -e "ALTER SYSTEM ADD BACKEND '127.0.0.1:9050';" || true
