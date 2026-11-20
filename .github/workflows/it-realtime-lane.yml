@@ -196,24 +196,29 @@ jobs:
       - name: Start Doris FE and BE
         run: |
           D=/tmp/doris/apache-doris-4.1.5-bin-x64
-          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-          ulimit -n 655350 || ulimit -n 10240 || true
-          $D/fe/bin/start_fe.sh --daemon || true
-          for i in $(seq 1 60); do
-            curl -s --max-time 3 "http://127.0.0.1:8030/api/bootstrap" >/dev/null 2>&1 && break
+          export JAVA_HOME="${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+          echo "JAVA_HOME=$JAVA_HOME"
+          test -x "$JAVA_HOME/bin/java" || { echo "::error::JAVA_HOME invalid (no bin/java): $JAVA_HOME"; exit 1; }
+          ulimit -n 655350 2>/dev/null || ulimit -n 65536 2>/dev/null || ulimit -n 60001 2>/dev/null || true
+          echo "nofile-soft=$(ulimit -Sn) nofile-hard=$(ulimit -Hn)"
+          $D/fe/bin/start_fe.sh --daemon
+          M="mysql -h127.0.0.1 -P9030 -uroot --ssl-mode=DISABLED"
+          for i in $(seq 1 90); do
+            $M -e "SELECT 1;" >/dev/null 2>&1 && { echo "FE-MYSQL-UP after $((i*2))s"; break; }
             sleep 2
           done
-          curl -s --max-time 5 "http://127.0.0.1:8030/api/bootstrap" && echo " FE-HTTP-UP"
-          $D/be/bin/start_be.sh --daemon || true
+          $M -e "SELECT 1;" >/dev/null 2>&1 || { echo "::error::FE 9030 not ready after 180s"; tail -40 "$D/fe/log/fe.log" 2>/dev/null; exit 1; }
+          $D/be/bin/start_be.sh --daemon
           sleep 5
-          M="mysql -h127.0.0.1 -P9030 -uroot --ssl-mode=DISABLED"
           $M -e "ALTER SYSTEM ADD BACKEND '127.0.0.1:9050';" || true
-          for i in $(seq 1 25); do
+          for i in $(seq 1 30); do
             A=$($M -N -e "SHOW BACKENDS;" 2>/dev/null | awk -F'\t' '$10=="true"{c++} END{print c+0}')
             echo "backend-poll$i alive=$A"
             [ "$A" -ge 1 ] && break
             sleep 3
           done
+          A=$($M -N -e "SHOW BACKENDS;" 2>/dev/null | awk -F'\t' '$10=="true"{c++} END{print c+0}')
+          [ "$A" -ge 1 ] || { echo "::error::BE not alive"; tail -30 "$D/be/log/be.log" 2>/dev/null; exit 1; }
 
       - name: Create Doris target table
         run: |
