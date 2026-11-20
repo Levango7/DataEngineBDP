@@ -243,6 +243,20 @@ class TestChain1EndToEnd:
             # ② 响应必须带 columns/rows 结构（SqlGatewayController
             #    成功响应契约 :324-325）；③ rows 为空时 rowCount 必须
             #    为 0（结构与计数自洽，不接受"没有 rows 键"的整形失败）。
+            # 2026-11-20 台账 #125：补判据④ 状态判据（拒绝失败信封）
+            # 依据：契约 docs/user-guide/api-reference.md §4.1 声明 status=FAILED
+            #  表示被网关门禁拒绝或后端执行失败（:340）；此前全篇无状态判据，
+            #  网关返回 FAILED 信封同样能过判据①②③。
+            # 取值为何不是字面 "SUCCESS"：it-k3s 集群内无查询后端——workflow 的
+            #  CHAIN_IMAGES 只含 7 个组件（无 trino/doris），deploy/k3s 全目录 0 命中
+            #  trino/doris；网关在引擎为 trino 且后端缺位时按实现置 DEGRADED
+            #  （BackendProxyService:640-644 errorResponse /
+            #   SqlRoutingService:478-493 fallbackResponse），HTTP 仍为 200。
+            #  故判据取「非失败信封」白名单：SUCCESS（真执行成功）或 DEGRADED
+            #  （后端缺位时的正确降级）；FAILED / 字段缺失 / 未知值一律判红。
+            #  现场佐证：2026-11-16 main run 43850109660 / job 133240157421 中
+            #  chain1 明细为「网关执行status=200, rows=0」，同文件
+            #  test_gateway_execute_trino / _doris 在同环境通过（1 failed, 50 passed）。
             sql_is_query = "select" in generated_sql.lower()
             has_result_shape = "rows" in exec_body and "columns" in exec_body
             rows_consistent = (
@@ -250,6 +264,7 @@ class TestChain1EndToEnd:
                 if has_result_shape
                 else False
             )
+            exec_status_ok = exec_body.get("status") in ("SUCCESS", "DEGRADED")
 
             passed = (
                 gen_resp.status_code == 200
@@ -259,12 +274,16 @@ class TestChain1EndToEnd:
                 and "queryId" in exec_body
                 and has_result_shape
                 and rows_consistent
+                and exec_status_ok
             )
             detail = (
                 f"生成SQL={generated_sql[:80]}, "
                 f"网关执行status={exec_resp.status_code}, "
                 f"queryId={exec_body.get('queryId')}, "
-                f"rows={len(exec_body.get('rows') or [])}"
+                f"rows={len(exec_body.get('rows') or [])}, "
+                f"rowCount={exec_body.get('rowCount')}, "
+                f"execStatus={exec_body.get('status')}, "
+                f"execMessage={exec_body.get('message')}"
             )
         except Exception as e:
             passed = False
