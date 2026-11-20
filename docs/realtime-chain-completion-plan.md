@@ -201,6 +201,35 @@ n=25 / n=50 ⇒ p95=7.0s / 6.8s**（min 2.1s、p50≈4.7s、8 倍以上余量；
 ⇒ **删除条件与 body 只用主键键集**（yaml `sink.primaryKey` 配置驱动；未配置 fail-fast
 指路，不静默丢删）。
 
-**边界如实**：本机为共享开发机（性能数据为下界）；Doris 2.1.x 的 100-continue/307/
-删除语义未测（本批以 4.1.5 实测为准）；CI 泳道暂只覆盖 Iceberg 腿（Doris 腿的 CI 化
-属后续段）。
+**边界如实**：本机为共享开发机（性能数据为下界）；Doris 2.1.x 协议三面
+（100-continue/307/MERGE 删除）已于 2026-11-19/20 实测与 4.1.5 一致；Doris 腿 CI 化
+已落地并实测全绿（见下节）。
+
+### Doris 腿 CI 化与 2.1.x 兼容验证（2026-11-20，PR #826 + fix/doris-lane-mysql）
+
+**Doris 腿 CI 化落地**：`it-realtime-lane.yml` 新增与 Iceberg 腿并列的 `doris-lane` job
+（postgres:16 service + Doris 4.1.5 单节点 FE/BE + 建表 + 源表 publication + 聚合
+reactor install + `CdcFrameworkMain` sink=DORIS + `doris-burst.sh` 首现追踪 + P95≤60s
+硬断言），nightly 22:30 UTC + dispatch，不进 PR 必检。PR #826 合入 main（merge
+`3cf11fc1`），并消除新增 workflow 的 CodeQL「Empty password」告警（删 heredoc 空
+password 行，`buildDorisSink` 已 null 安全）。
+
+**CI 实测全绿（run 44719094188）**：doris-lane **n=25 min=2.2s p50=4.6s p95=6.4s
+max=7.5s（P95≤60s，9.4 倍余量）PASS**；同 run Iceberg 腿 n=25 p95=7.8s PASS。
+FE-MYSQL-UP after 10s、backend-poll5 alive=1。
+
+**CI 化三轮环境根因（本地 WSL 手动跑通 ≠ CI 自动化跑通，逐轮实证）**：
+
+1. **mysql client 安装**：ubuntu-latest 已升 26.04，MySQL 8.0 包换 8.4 ⇒
+   `mysql-client-core-8.0` 无候选 ⇒ 预装检测优先（runner 预装 mysql 8.4.13，
+   兼容 `--ssl-mode=DISABLED`），未装则 apt+universe 重试；
+2. **FE/BE 启动**：硬编码 `JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64` 在 26.04
+   不存在（setup-java 装 Temurin 于 hostedtoolcache）⇒ FE 启动失败；ulimit
+   fallback 10240<60000 ⇒ BE nofile 不过 ⇒ 复用 setup-java JAVA_HOME + test -x
+   验证、ulimit 65536；
+3. **FE 就绪门**：`SELECT 1` 在 Doris 4.x Nereids 下常量查询也下发 BE（No backend
+   available）⇒ 改 `SHOW FRONTENDS`（FE-only，不需 BE），FE-MYSQL-UP after 10s。
+
+**Doris 2.1.x 协议兼容验证（2026-11-19/20）**：2.1.10 与 4.1.5 协议三面一致——
+缺 `Expect` 报「There is no 100-continue header」；带 `Expect` 返回 307（FE 转发 BE
+8040）；`merge_type: MERGE + delete: id=...` 删除成功；带 `-L` upsert HTTP 200 落表。
