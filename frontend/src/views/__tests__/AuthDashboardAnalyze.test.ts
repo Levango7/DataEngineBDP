@@ -11,6 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores/app'
 import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
 import dashboardEn from '@/i18n/locales/modules/dashboard.en-US.json'
 import Dashboard from '../Dashboard.vue'
@@ -222,5 +223,42 @@ describe('Dashboard.vue — 组件挂载', () => {
     await flushPromises()
     const chips = wrapper.findAll('.chip')
     expect(chips.length).toBeGreaterThan(0)
+  })
+
+  it('英文标题应为 Dashboard，且不与 Workspaces 混淆', async () => {
+    i18n.global.locale.value = 'en-US'
+    try {
+      const wrapper = mountComponent()
+      await flushPromises()
+      expect(wrapper.find('h1').text()).toBe('Dashboard')
+      wrapper.unmount()
+    } finally {
+      i18n.global.locale.value = 'zh-CN'
+    }
+  })
+
+  it('subtitle 按有值片段拼接，不出现空值洞或悬挂分隔符', async () => {
+    const store = useAppStore()
+    store.workspace = 'Default Workspace'
+    store.plan = 'Enterprise'
+    store.resourceUsage = '65%'
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const subtitleText = () => wrapper.find('[data-testid="dashboard-subtitle"]').text()
+    expect(subtitleText()).toBe('租户：Default Workspace ｜ 套餐：Enterprise ｜ 本月资源消耗：65%')
+    expect(wrapper.find('.sub').attributes('aria-label')).toBe(subtitleText())
+
+    store.plan = ''
+    store.resourceUsage = ''
+    await wrapper.vm.$nextTick()
+    expect(subtitleText()).toBe('租户：Default Workspace')
+    expect(subtitleText().endsWith('｜')).toBe(false)
+
+    store.workspace = ''
+    await wrapper.vm.$nextTick()
+    expect(subtitleText()).toBe('')
+    expect(wrapper.find('.sub').attributes('aria-label')).toBe('')
+    wrapper.unmount()
   })
 })
