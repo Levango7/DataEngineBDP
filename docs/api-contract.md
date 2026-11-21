@@ -170,9 +170,9 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 | `/models`  | `/models` | llmops/llmops, ml-platform/ml_platform | ✅ |
 | `/models/${encodeURIComponent(name)}/versions` （1 变量） | `/models` | llmops/llmops, ml-platform/ml_platform | ✅ |
 | `/models/${id}` （1 变量） | `/models` | llmops/llmops, ml-platform/ml_platform | ✅ |
-| `/registry/deployments`  | `/registry` | - | ❌ |
-| `/registry/deployments/${id}` （1 变量） | `/registry` | - | ❌ |
-| `/registry/deployments/${id}/scale` （1 变量） | `/registry` | - | ❌ |
+| `/llmops/inference-services`  | `/llmops` | llmops/llmops | ✅ |
+| `/llmops/inference-services/${id}` （1 变量） | `/llmops` | llmops/llmops | ✅ |
+| `/llmops/inference-services/${id}/scale` （1 变量） | `/llmops` | llmops/llmops | ✅ |
 
 ## dev-sched.ts
 
@@ -533,7 +533,5 @@ python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --tok
 
 ## 汇总
 
-- 匹配：295
-- 未匹配：3
-
-> ❌ 项为真实待收敛缺口（后端无此前缀的任何路由）。Sprint 2.2 已消除多语言误报，剩余项需按 Sprint 计划补建。
+- 匹配：298
+- 未匹配：0
