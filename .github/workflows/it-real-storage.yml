@@ -1,4 +1,4 @@
-# 独立工作流：P1-8 Phase 1 真实存储泳道（catalog×PostgreSQL + MinIO 写→读内容级断言）。
+# 独立工作流：P1-8 Phase 1 真实存储泳道（catalog×PostgreSQL + S3 兼容对象存储写→读内容级断言）。
 #
 # 为什么独立成 nightly/dispatch 泳道（不塞进 ci.yml 的 PR 必检）：
 #   1) deploy-completeness-plan §四 Phase 1 明文口径：CI 时长评估点 → 分 job 或
@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   real-storage:
-    name: 真实存储写→读（catalog×PG + MinIO）
+    name: 真实存储写→读（catalog×PG + S3 兼容对象存储）
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -46,7 +46,7 @@ jobs:
 
       - name: 启动真实存储最小栈（base + real-storage override）
         working-directory: tests/integration
-        # 最小栈：只起 catalog + postgresql + minio（compose 自动带上依赖），
+        # 最小栈：只起 catalog + postgresql + rustfs（compose 自动带上依赖），
         # 不拉满 32 服务全栈——本泳道验证的是存储面真实贯通，省下的时长如实记入台账。
         # R9：compose up 必须走 compose-retry.sh（换源重试一次，真失败仍按原语义阻断）。
         run: |
@@ -55,13 +55,13 @@ jobs:
           export BASE_REGISTRY
           if ! bash "$GITHUB_WORKSPACE/scripts/compose-retry.sh" \
               docker compose -f docker-compose.yml -f docker-compose.real-storage.yml \
-              up -d --wait --wait-timeout 600 catalog postgresql minio; then
+              up -d --wait --wait-timeout 600 catalog postgresql rustfs; then
             echo "::error::真实存储栈启动失败或健康检查超时，阻断"
             docker compose -f docker-compose.yml -f docker-compose.real-storage.yml ps -a || true
             docker compose -f docker-compose.yml -f docker-compose.real-storage.yml logs --tail=100 || true
             exit 1
           fi
-          echo "✓ catalog + postgresql + minio 已就绪"
+          echo "✓ catalog + postgresql + rustfs 已就绪"
 
       - name: 真实存储写→读内容级断言（含 restart 跨进程持久性实证）
         working-directory: tests/integration
