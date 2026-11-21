@@ -12,6 +12,9 @@ encaps-layer 可退化为转发。
 - GET `/llmops/finetune/{taskId}`              → 前端 FinetuneResult
 - POST `/llmops/human-eval`                    → 前端 HumanEvalResult
 - GET `/llmops/inference-services`             → 前端 InferenceService（`status` 可选过滤）
+- POST `/llmops/inference-services`            → 部署推理服务（#133，契约级状态机）
+- DELETE `/llmops/inference-services/{id}`     → 停止推理服务（#133）
+- POST `/llmops/inference-services/{id}/scale` → 扩缩容（#133）
 
 模型注册表复用 `registry.modelService`；评估指标/微调视图/推理服务存于
 `FrontendContractStore`（见 llmops/services/frontend_store.py）。
@@ -228,3 +231,42 @@ async def frontend_list_inference_services(
     ctx: AuthContext = Depends(getAuthContext),
 ) -> list:
     return _store(request).list_inference(ctx.tenantId, status)
+
+
+@router.post("/inference-services", status_code=201)
+async def frontend_deploy_inference_service(
+    request: Request,
+    payload: dict,
+    ctx: AuthContext = Depends(getAuthContext),
+) -> dict:
+    if not (payload.get("modelName") or "").strip():
+        raise HTTPException(status_code=422, detail="modelName required")
+    return _store(request).deploy_inference(ctx.tenantId, payload)
+
+
+@router.delete("/inference-services/{service_id}")
+async def frontend_stop_inference_service(
+    request: Request,
+    service_id: str,
+    ctx: AuthContext = Depends(getAuthContext),
+) -> dict:
+    svc = _store(request).stop_inference(ctx.tenantId, service_id)
+    if svc is None:
+        raise HTTPException(status_code=404, detail="inference service not found")
+    return svc
+
+
+@router.post("/inference-services/{service_id}/scale")
+async def frontend_scale_inference_service(
+    request: Request,
+    service_id: str,
+    payload: dict,
+    ctx: AuthContext = Depends(getAuthContext),
+) -> dict:
+    replicas = payload.get("replicas")
+    if not isinstance(replicas, int) or replicas < 0:
+        raise HTTPException(status_code=422, detail="replicas must be a non-negative integer")
+    svc = _store(request).scale_inference(ctx.tenantId, service_id, replicas)
+    if svc is None:
+        raise HTTPException(status_code=404, detail="inference service not found")
+    return svc
