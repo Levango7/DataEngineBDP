@@ -33,6 +33,30 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      # 一次性事实探针（不参与泳道判定）：核验 minio/mc 客户端镜像仓在 Docker Hub 上
+      # 是否仍可拉取。仓内 5 处建桶路径依赖 minio/mc（platform/bootstrap.sh:98-99、
+      # design/deploy/scripts/local-up.sh:39-41、platform/minio-incluster.yaml:72、
+      # platform/storage-io/docker/docker-compose.replication.yml:44、
+      # platform/batch-pipeline/docker/iceberg/docker-compose.yml:55），
+      # 而本机到 Docker Hub 全域不可达 ⇒ 唯一权威环境是 GitHub Actions runner。
+      # 对照组：amazon/aws-cli（证明 runner 能拉任意 Docker Hub 仓）、
+      # rustfs/rustfs:1.0.6（已知可拉）、minio/minio:latest（已知已死）。
+      - name: 探针：minio/mc 镜像仓可达性（一次性事实核验）
+        continue-on-error: true
+        run: |
+          for ref in "amazon/aws-cli:2.17.23" "rustfs/rustfs:1.0.6" \
+                     "minio/mc:latest" "minio/mc:RELEASE.2024-08-29T01-40-52Z" \
+                     "minio/minio:latest"; do
+            echo "PROBE_PULL_START ${ref}"
+            if docker pull "$ref" >/tmp/probe_out.txt 2>/tmp/probe_err.txt; then
+              echo "PROBE_PULL_RESULT ${ref} PULL_OK"
+            else
+              echo "PROBE_PULL_RESULT ${ref} PULL_FAILED"
+              echo "PROBE_PULL_ERR ${ref} :: $(tr '\n' ' ' < /tmp/probe_err.txt | cut -c1-400)"
+            fi
+          done
+          echo "PROBE_PULL_DONE"
+
       - name: 安装 Python 3.11 与集成测试依赖
         uses: actions/setup-python@v7
         with:
