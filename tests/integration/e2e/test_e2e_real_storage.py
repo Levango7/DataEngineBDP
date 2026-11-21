@@ -1,4 +1,4 @@
-"""P1-8 Phase 1 真实存储泳道：catalog×PostgreSQL 与 MinIO 的「写→读」内容级断言。
+"""P1-8 Phase 1 真实存储泳道：catalog×PostgreSQL 与 S3 兼容对象存储的「写→读」内容级断言。
 
 运行前提：本栈带 real-storage override 拉起（REAL_STORAGE=1）：
 
@@ -12,7 +12,7 @@ nightly/dispatch 专用泳道见 .github/workflows/it-real-storage.yml
 断言口径（内容级，拒绝「200 即过」）：
 - catalog 经 API 建库 → 按 id 读回 → 名称/描述逐字一致；
 - 上述记录在 catalog 容器进程重启后仍可读回（数据真实落在 PG，不是进程内存）；
-- MinIO 经 S3 API put 对象 → get 回字节级一致 + list 命中。
+- 对象存储经 S3 API put 对象 → get 回字节级一致 + list 命中（实现为 RustFS，见 override 文件）。
 """
 
 from __future__ import annotations
@@ -97,17 +97,18 @@ def test_catalog_row_survives_process_restart(e2e_api_client, catalog_url):
     assert got.json()["name"] == name, "容器重启后记录不可读回 ⇒ 数据未真实落库"
 
 
-def test_minio_object_write_read_byte_level():
-    """MinIO 经 S3 API 写对象 → 读回字节级一致 + list 命中（对象存储真实可用）。"""
+def test_s3_object_write_read_byte_level():
+    """S3 兼容对象存储写对象 → 读回字节级一致 + list 命中（对象存储真实可用）。"""
     import boto3
     from botocore.config import Config
 
-    endpoint = os.environ.get("MINIO_ENDPOINT", "http://localhost:19000")
+    # 凭据与 override 文件（docker-compose.real-storage.yml）的 rustfs 服务逐字一致。
+    endpoint = os.environ.get("S3_ENDPOINT", "http://localhost:19000")
     client = boto3.client(
         "s3",
         endpoint_url=endpoint,
-        aws_access_key_id="itminio",
-        aws_secret_access_key="it-minio-password",
+        aws_access_key_id="itrustfs",
+        aws_secret_access_key="it-rustfs-password",
         region_name="us-east-1",
         config=Config(s3={"addressing_style": "path"}, retries={"max_attempts": 3}),
     )
