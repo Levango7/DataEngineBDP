@@ -90,3 +90,43 @@ class FrontendContractStore:
         if status:
             items = [s for s in items if str(s.get("status", "")).upper() == status.upper()]
         return [dict(s) for s in items]
+
+    # ---------- 推理服务 CRUD（#133：llmops 承接推理域权威，契约级状态机，无真编排） ----------
+    def deploy_inference(self, tenant: str, payload: dict[str, Any]) -> dict[str, Any]:
+        model_name = (payload.get("modelName") or "").strip()
+        replicas = payload.get("replicas") or 1
+        svc_id = str(uuid.uuid4())
+        svc: dict[str, Any] = {
+            "id": svc_id,
+            "serviceName": (payload.get("serviceName") or model_name).strip() or model_name,
+            "modelName": model_name,
+            "modelVersion": payload.get("version") or payload.get("modelVersion") or "1",
+            "status": "RUNNING",  # 契约级：创建即运行（无真编排，见台账 #133）
+            "replicas": int(replicas),
+            "desiredReplicas": int(replicas),
+            "endpoint": f"/llmops/inference-services/{svc_id}/invoke",
+            "deployedAt": _now(),
+        }
+        with self._lock:
+            self._inference.setdefault(tenant, []).append(svc)
+        return dict(svc)
+
+    def stop_inference(self, tenant: str, service_id: str) -> Optional[dict[str, Any]]:
+        with self._lock:
+            for svc in self._inference.get(tenant, []):
+                if svc.get("id") == service_id:
+                    svc["status"] = "STOPPED"
+                    svc["replicas"] = 0
+                    svc["desiredReplicas"] = 0
+                    return dict(svc)
+        return None
+
+    def scale_inference(self, tenant: str, service_id: str, replicas: int) -> Optional[dict[str, Any]]:
+        with self._lock:
+            for svc in self._inference.get(tenant, []):
+                if svc.get("id") == service_id:
+                    svc["replicas"] = replicas
+                    svc["desiredReplicas"] = replicas
+                    svc["status"] = "STOPPED" if replicas == 0 else "RUNNING"
+                    return dict(svc)
+        return None
