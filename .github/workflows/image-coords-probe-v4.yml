@@ -1,0 +1,196 @@
+# 一次性事实探针 v4：修正 v3 的 F1 夹具缺陷 + 补三组决定性对照
+#
+# v3 = run 45012322841 / job 137177126896。v3 取得的净结论：
+#   - F1 工具链 **无效**（夹具缺陷：`sed "s/^/PROBE_TOOLS ${img} /"` 的分隔符 `/`
+#     与镜像坐标里的 `/` 冲突 ⇒ sed 报 `unknown option to 's'` ⇒ 该 step 直接退出 1）
+#     ⇒ iceberg-rest 镜像内有无 curl / wget 仍未知
+#   - F2 象限 1：默认 CATALOG_URI=jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory
+#     建表 200；/tmp 下是 **真实 sqlite 文件**（20480 bytes，文件头 "SQLite format 3"），
+#     属主 iceberg:iceberg ⇒ 不是内存库，但落在容器 /tmp ⇒ 容器重启即丢
+#   - F2 象限 2：显式 CATALOG_URI=jdbc:sqlite:file:/data/catalog.db + named volume
+#     ⇒ 容器启动失败 SQLITE_CANTOPEN（unable to open database file）
+#   - F3：RUSTFS_ROOT_USER/RUSTFS_ROOT_PASSWORD 组 entrypoint 两条告警都出
+#     （ACCESS/SECRET 均未设置）且 rootuser/rootpass 认证失败
+#     ⇒ RUSTFS_ROOT_* 不是有效凭据源（与 entrypoint 告警文案相反）
+#   - F3：RUSTFS_ACCESS_KEY 组只有 SECRET_KEY 一条告警（ACCESS_KEY 被识别）
+#     但 accuser/accpass（secret 6 字符）认证失败
+#     ⇒ 两种解释未排除：(a) secret 最小长度约束 (b) secret env 名不被读取
+#
+# v4 用三组对照把上面三件事一次钉死：
+#   F1 工具链（改用 while read 加前缀，不用 sed）⇒ 决定 compose healthcheck 命令
+#   F2 挂卷权限三象限（默认权限 / chmod 777 / --user 0）⇒ 区分「权限」与「路径」，
+#      并决定 chart 是否需要 fsGroup
+#   F3 secret 长度三档（11 / 8 / 6 字符）+ RUSTFS_ROOT_* 复对照 ⇒ 定长度阈值
+#
+# 本 workflow 只做事实核验，所有 step 均 continue-on-error，
+# 不改仓内任何交付文件；文件只存在于 probe 分支，不进默认分支。
+name: Image Coords Probe v4
+
+on:
+  push:
+    branches:
+      - "probe/image-coords-20261122"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-coords-probe-v4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: 对象存储与 iceberg-rest 运行契约一次性核验 v4
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ---------- F1：镜像内工具链（修 v3 的 sed 分隔符缺陷） ----------
+      - name: "F1 镜像内工具链盘点"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull tabulario/iceberg-rest:1.6.0 || echo "PROBE_PULL_FAILED iceberg-rest"
+          docker pull rustfs/rustfs:1.0.6 || echo "PROBE_PULL_FAILED rustfs"
+          for img in "tabulario/iceberg-rest:1.6.0" "rustfs/rustfs:1.0.6"; do
+            echo "PROBE_TOOLS_BEGIN ${img}"
+            docker run --rm --entrypoint sh "${img}" -c '
+              for b in curl wget bash sh nc grep python3 java id; do
+                if command -v "$b" >/dev/null 2>&1; then
+                  echo "TOOL ${b}=$(command -v $b)"
+                else
+                  echo "TOOL ${b}=MISSING"
+                fi
+              done
+              echo "WHOAMI=$(id 2>/dev/null || echo NO_ID)"
+              echo "OS :: $(cat /etc/os-release 2>/dev/null | head -2 | tr "\n" " ")"
+            ' 2>&1 | while IFS= read -r line; do
+              echo "PROBE_TOOLS ${img} ${line}"
+            done
+            echo "PROBE_TOOLS_END ${img}"
+          done
+          echo "PROBE_IMAGE_USER iceberg=$(docker image inspect --format '{{.Config.User}}' tabulario/iceberg-rest:1.6.0 2>/dev/null || echo UNKNOWN)"
+          echo "PROBE_IMAGE_USER rustfs=$(docker image inspect --format '{{.Config.User}}' rustfs/rustfs:1.0.6 2>/dev/null || echo UNKNOWN)"
+          echo "PROBE_F1_END"
+
+      # ---------- F2：iceberg-rest 元数据挂卷的三象限权限对照 ----------
+      - name: "F2 挂卷权限三象限（默认权限 / chmod 777 / root 用户）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker rm -f probe-rustfs-persist probe-iceberg-persist >/dev/null 2>&1 || true
+          docker network create probe-net >/dev/null 2>&1 || true
+          docker run -d --name probe-rustfs-persist --network probe-net --network-alias rustfs \
+            -p 19000:9000 \
+            -e RUSTFS_ACCESS_KEY=probeuser -e RUSTFS_SECRET_KEY=probesecret \
+            -e RUSTFS_VOLUMES=/data \
+            rustfs/rustfs:1.0.6 >/dev/null
+          sleep 12
+          echo "PROBE_F2_RUSTFS_HEALTH=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/minio/health/live)"
+
+          docker volume rm -f probe-iceberg-data >/dev/null 2>&1 || true
+          docker volume create probe-iceberg-data >/dev/null 2>&1 || true
+          echo "PROBE_F2_VOLUME_PERM_DEFAULT=$(docker run --rm -v probe-iceberg-data:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'ls -ldn /data' 2>&1 | tr "\n" " ")"
+
+          # 象限 1：默认权限（named volume 属 root:root 755）+ 默认用户
+          docker run -d --name probe-iceberg-persist --network probe-net \
+            -p 18221:8181 \
+            -v probe-iceberg-data:/data \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            -e CATALOG_URI=jdbc:sqlite:file:/data/catalog.db \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          sleep 20
+          echo "PROBE_F2_Q1_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18221/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_F2_Q1_LOG=$(docker logs probe-iceberg-persist 2>&1 | grep -E 'Creating catalog with properties|SQLITE_CANTOPEN|Exception' | head -3 | tr "\n" " | ")"
+          echo "PROBE_F2_Q1_FILE=$(docker exec probe-iceberg-persist sh -c 'ls -la /data 2>&1' | tr "\n" " | ")"
+          docker rm -f probe-iceberg-persist >/dev/null 2>&1 || true
+
+          # 象限 2：把卷目录 chmod 777（等价于 K8s fsGroup 补齐组写权限）
+          docker run --rm -v probe-iceberg-data:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'chmod 0777 /data && ls -ldn /data' >/dev/null 2>&1 || true
+          echo "PROBE_F2_VOLUME_PERM_777=$(docker run --rm -v probe-iceberg-data:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'ls -ldn /data' 2>&1 | tr "\n" " ")"
+          docker run -d --name probe-iceberg-persist --network probe-net \
+            -p 18222:8181 \
+            -v probe-iceberg-data:/data \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            -e CATALOG_URI=jdbc:sqlite:file:/data/catalog.db \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          sleep 20
+          echo "PROBE_F2_Q2_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18222/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_F2_Q2_TABLE=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18222/v1/namespaces/default/tables' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"name":"t2","schema":{"type":"struct","fields":[{"id":1,"name":"id","required":false,"type":"long"}]}}')"
+          echo "PROBE_F2_Q2_FILE=$(docker exec probe-iceberg-persist sh -c 'ls -la /data 2>&1' | tr "\n" " | ")"
+          echo "PROBE_F2_Q2_LOG=$(docker logs probe-iceberg-persist 2>&1 | grep -E 'Creating catalog with properties|SQLITE_CANTOPEN|Exception' | head -3 | tr "\n" " | ")"
+          docker rm -f probe-iceberg-persist >/dev/null 2>&1 || true
+
+          # 象限 3：全新卷 + 以 root 运行 ⇒ 区分「权限」与「路径不支持」
+          docker volume rm -f probe-iceberg-data2 >/dev/null 2>&1 || true
+          docker volume create probe-iceberg-data2 >/dev/null 2>&1 || true
+          docker run -d --name probe-iceberg-persist --network probe-net \
+            -p 18223:8181 \
+            --user 0:0 \
+            -v probe-iceberg-data2:/data \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            -e CATALOG_URI=jdbc:sqlite:file:/data/catalog.db \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          sleep 20
+          echo "PROBE_F2_Q3_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18223/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_F2_Q3_FILE=$(docker exec probe-iceberg-persist sh -c 'ls -la /data 2>&1' | tr "\n" " | ")"
+          echo "PROBE_F2_Q3_LOG=$(docker logs probe-iceberg-persist 2>&1 | grep -E 'Creating catalog with properties|SQLITE_CANTOPEN|Exception' | head -3 | tr "\n" " | ")"
+          docker rm -f probe-iceberg-persist >/dev/null 2>&1 || true
+          echo "PROBE_F2_END"
+
+      # ---------- F3：RustFS secret 长度三档 + RUSTFS_ROOT_* 复对照 ----------
+      - name: "F3 RustFS 凭据 env 长度阈值与 ROOT_* 复对照"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull amazon/aws-cli:2.17.23 || echo "PROBE_PULL_FAILED aws-cli"
+          docker network create probe-net >/dev/null 2>&1 || true
+          i=0
+          for spec in "len11:RUSTFS_ACCESS_KEY:u11:RUSTFS_SECRET_KEY:s11secret11" \
+                      "len08:RUSTFS_ACCESS_KEY:u08:RUSTFS_SECRET_KEY:s08secret" \
+                      "len06:RUSTFS_ACCESS_KEY:u06:RUSTFS_SECRET_KEY:s06sec" \
+                      "rootenv:RUSTFS_ROOT_USER:rusr:RUSTFS_ROOT_PASSWORD:rpw8chars"; do
+            i=$((i+1))
+            port=$((19040+i))
+            name="${spec%%:*}"; rest="${spec#*:}"
+            akey="${rest%%:*}"; rest="${rest#*:}"
+            aval="${rest%%:*}"; rest="${rest#*:}"
+            skey="${rest%%:*}"; sval="${rest#*:}"
+            echo "PROBE_F3_SPEC ${name} akey=${akey} aval=${aval} skey=${skey} sval_len=${#sval} port=${port}"
+            docker rm -f "probe-rustfs-${name}" >/dev/null 2>&1 || true
+            docker run -d --name "probe-rustfs-${name}" --network probe-net \
+              -p "${port}:9000" \
+              -e "${akey}=${aval}" -e "${skey}=${sval}" \
+              -e RUSTFS_VOLUMES=/data \
+              rustfs/rustfs:1.0.6 >/dev/null
+            sleep 12
+            echo "PROBE_F3_HEALTH ${name} $(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${port}/minio/health/live")"
+            echo "PROBE_F3_MATCH_BEGIN ${name}"
+            docker run --rm --network host --entrypoint sh \
+              -e AWS_ACCESS_KEY_ID="${aval}" -e AWS_SECRET_ACCESS_KEY="${sval}" \
+              -e AWS_DEFAULT_REGION=us-east-1 \
+              amazon/aws-cli:2.17.23 -c \
+              "aws s3api list-buckets --endpoint-url http://localhost:${port} 2>&1 | tail -5" \
+              | while IFS= read -r line; do echo "PROBE_F3_MATCH ${name} ${line}"; done
+            echo "PROBE_F3_MATCH_END ${name}"
+            echo "PROBE_F3_LOG_BEGIN ${name}"
+            docker logs "probe-rustfs-${name}" 2>&1 | head -14 | while IFS= read -r line; do echo "PROBE_F3_LOG ${name} ${line}"; done
+            echo "PROBE_F3_LOG_END ${name}"
+            docker rm -f "probe-rustfs-${name}" >/dev/null 2>&1 || true
+          done
+          echo "PROBE_F3_END"
