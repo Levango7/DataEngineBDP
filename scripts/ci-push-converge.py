@@ -68,6 +68,8 @@ class GitHubApi:
             headers["Authorization"] = "Bearer " + self.token
         req = urllib.request.Request(url, headers=headers)
         try:
+            # 核实依据：url = "https://api.github.com/" + path.lstrip("/")，scheme 与 host 均为字面量常量，path 由仓内固定 API 路径 + sha/event 取值拼成，非终端用户输入 ⇒ 无法被改成 file:// 等自定义 scheme。
+            # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
