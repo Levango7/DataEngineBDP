@@ -19,10 +19,12 @@ on:
   workflow_dispatch:
 
 # 权限：需要 security-events: write 以上传 SARIF 结果到 GitHub Security
+# pull-requests: read —— 台账 #102②：收敛闸要读 commits/{sha}/pulls（该 commit 是否为已合并 PR 的产物）
 permissions:
   security-events: write
   actions: read
   contents: read
+  pull-requests: read
 
 # 同一分支的并发分析只保留最新一次
 concurrency:
@@ -53,11 +55,27 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci-push-converge.py --workflow "CodeQL Security Analysis"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       # ============================================================
       # 初始化 CodeQL：根据 matrix.language 自动配置分析环境
       # 使用 codeql-action/init@v4，queries 使用默认 + security-extended 套件
       # ============================================================
       - name: 初始化 CodeQL
+        if: steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
@@ -72,7 +90,7 @@ jobs:
       # autobuild 无法可靠检测多模块 Maven 布局，故改用自定义构建
       # ============================================================
       - name: 安装 JDK 17 + Maven 3.9（Java 专用）
-        if: matrix.language == 'java'
+        if: steps.converge.outputs.converge != 'true' && matrix.language == 'java'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -89,7 +107,7 @@ jobs:
       # ...:encaps-shared-model:jar:0.1.0-SNAPSHOT"。根 pom 本就是 26 模块聚合器，
       # 反应堆 install 由 Maven 自解拓扑，mvn 退码非零即步骤红（不吞、不需人工计数）。
       - name: 自定义构建（Java Maven 反应堆）
-        if: matrix.language == 'java'
+        if: steps.converge.outputs.converge != 'true' && matrix.language == 'java'
         run: |
           if ! find platform -name pom.xml -not -path "*/target/*" 2>/dev/null | grep -q .; then
             echo "::warning::未发现任何 Java 组件（pom.xml），跳过构建"
@@ -109,7 +127,7 @@ jobs:
       # Java 已由上述自定义步骤处理，此处跳过
       # ============================================================
       - name: 自动构建（CodeQL autobuild，非 Java）
-        if: matrix.language != 'java'
+        if: steps.converge.outputs.converge != 'true' && matrix.language != 'java'
         uses: github/codeql-action/autobuild@v4
         # 对非关键语言构建失败时继续执行，避免单语言失败阻塞整体分析
         continue-on-error: ${{ matrix.language == 'javascript' || matrix.language == 'python' }}
@@ -118,6 +136,7 @@ jobs:
       # 执行 CodeQL 分析：分析构建产物，生成 SARIF 结果
       # ============================================================
       - name: 执行 CodeQL 分析
+        if: steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'
@@ -130,6 +149,7 @@ jobs:
       # 上传 SARIF 结果为 artifact（备份，便于离线分析）
       # ============================================================
       - name: 上传 SARIF 结果 artifact
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: codeql-sarif-${{ matrix.language }}
