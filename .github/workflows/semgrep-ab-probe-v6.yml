@@ -1,0 +1,112 @@
+# 一次性事实探针 v6：Semgrep 红因 A/B 判别（main 树 vs PR #855 树）
+#
+# 事实前提：
+#   - PR #855 的 Security 工作流两轮都红：round1 head=706f98b4、round2 head=3f9f8f5b，
+#     失败作业 = Semgrep SAST Scan 的「Semgrep 扫描（生成 SARIF）」step。
+#   - main 的 Security 工作流连续 12 次全绿（最近 309e8a89 @ 2026-11-22T03:55Z）。
+#   - 扫描命令（security.yml 原样）：semgrep/semgrep:latest（**未钉 tag**）
+#     + --config p/security-audit p/java p/python p/javascript p/golang + --error
+#     ⇒ 规则集是**远端实时拉取**，会随上游变。
+#
+# 本探针只做事实判别，不改仓内任何交付文件；文件只存在于 probe 分支。
+name: Semgrep AB Probe v6
+
+on:
+  push:
+    branches:
+      - "probe/image-coords-20261122"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-ab-probe-v6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ab:
+    name: Semgrep 红因 A/B 判别（main 树 vs PR 树）
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 检出 main 树
+        uses: actions/checkout@v4
+        with:
+          ref: "309e8a89664654ce9869cdef8237b0dc12aa179f"
+          path: main-tree
+
+      - name: 检出 PR 树
+        uses: actions/checkout@v4
+        with:
+          ref: "3f9f8f5bf61450da172e41fed970f990bb32cbdb"
+          path: pr-tree
+
+      - name: 记录 semgrep 镜像版本
+        id: imgver
+        run: |
+          set -u
+          docker pull semgrep/semgrep:latest
+          docker run --rm semgrep/semgrep semgrep --version
+          docker image inspect semgrep/semgrep:latest \
+            --format 'PROBE_SEMGREP_IMAGE_ID={{.Id}} CREATED={{.Created}}'
+
+      - name: 扫 main 树
+        id: scanmain
+        run: |
+          set -u
+          cd main-tree
+          mkdir -p reports/semgrep
+          docker run --rm -v "${PWD}:/src" semgrep/semgrep:latest \
+            semgrep --config p/security-audit --config p/java \
+              --config p/python --config p/javascript --config p/golang \
+              --sarif --output /src/reports/semgrep/semgrep.sarif
+          echo "PROBE_MAIN_SEMGREP_RC=$?"
+          ls -l reports/semgrep/semgrep.sarif || true
+
+      - name: 扫 PR 树
+        id: scanpr
+        run: |
+          set -u
+          cd pr-tree
+          mkdir -p reports/semgrep
+          docker run --rm -v "${PWD}:/src" semgrep/semgrep:latest \
+            semgrep --config p/security-audit --config p/java \
+              --config p/python --config p/javascript --config p/golang \
+              --sarif --output /src/reports/semgrep/semgrep.sarif
+          echo "PROBE_PR_SEMGREP_RC=$?"
+          ls -l reports/semgrep/semgrep.sarif || true
+
+      - name: 列出两侧 findings（逐条：规则 id + 文件 + 行）
+        run: |
+          set -u
+          for side in main pr; do
+            f="${side}-tree/reports/semgrep/semgrep.sarif"
+            echo "===== PROBE_SEMGREP_${side} ====="
+            if [ ! -s "$f" ]; then
+              echo "PROBE_SEMGREP_${side}_NO_SARIF"
+              continue
+            fi
+            n=$(jq '[.runs[].results[]?] | length' "$f" 2>/dev/null || echo -1)
+            echo "PROBE_SEMGREP_${side}_COUNT=$n"
+            jq -r '.runs[].results[]? | "FINDING rule=\(.ruleId) sev=\(.level) file=\(.locations[0].physicalLocation.artifactLocation.uri) line=\(.locations[0].physicalLocation.region.startLine)"' "$f" 2>/dev/null | head -200 || true
+          done
+
+      - name: 差集（PR 独有 / main 独有）
+        run: |
+          set -u
+          for side in main pr; do
+            f="${side}-tree/reports/semgrep/semgrep.sarif"
+            if [ -s "$f" ]; then
+              jq -r '.runs[].results[]? | "\(.ruleId)|\(.locations[0].physicalLocation.artifactLocation.uri)|\(.locations[0].physicalLocation.region.startLine)"' "$f" 2>/dev/null | sort > "/tmp/$side.txt" || true
+            else
+              : > "/tmp/$side.txt"
+            fi
+          done
+          echo "PROBE_SEMGREP_DIFF_ONLY_IN_PR:"
+          comm -13 /tmp/main.txt /tmp/pr.txt | head -100 || true
+          echo "PROBE_SEMGREP_DIFF_ONLY_IN_MAIN:"
+          comm -23 /tmp/main.txt /tmp/pr.txt | head -100 || true
+          echo "PROBE_SEMGREP_DIFF_MAIN_LINES=$(wc -l < /tmp/main.txt)"
+          echo "PROBE_SEMGREP_DIFF_PR_LINES=$(wc -l < /tmp/pr.txt)"
+          echo "PROBE_V6_END"
