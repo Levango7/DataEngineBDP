@@ -18,10 +18,12 @@ on:
   workflow_dispatch:
 
 # 权限：security-events: write 上传 SARIF；contents: read 读取代码
+# actions: read —— 台账 #102②：收敛闸要读 actions/runs（PR 侧是否已验证同一内容）
 permissions:
   contents: read
   security-events: write
   pull-requests: write
+  actions: read
 
 concurrency:
   group: security-${{ github.ref }}
@@ -45,8 +47,24 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "Security"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       # 与 ci.yml 的 trivy-scan 对齐：预热 ~/.m2，防止 Trivy 解析 pom 时被 Maven Central 429 限流
       - name: 安装 Maven 并预热本地缓存
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -54,6 +72,7 @@ jobs:
           cache: 'maven'
 
       - name: 预解析所有 Maven 依赖
+        if: steps.converge.outputs.converge != 'true'
         run: |
           # 与 ci.yml java-build-test 相同的依赖链顺序：父 POM → common-security →
           # encaps-layer → encaps-data → sql-gateway（encaps-gateway 依赖 encaps-data，
@@ -79,6 +98,7 @@ jobs:
           done < <(find platform -name pom.xml -not -path "*/target/*")
 
       - name: 安装 Trivy
+        if: steps.converge.outputs.converge != 'true'
         run: |
           # 官方 action 的 find/download 对 GitHub 附件裸跑经常超时（社区已多次反馈），改为脚本着重试 3 次
           curl -fSL --retry 3 --retry-delay 5 -o /tmp/trivy.tar.gz \
@@ -87,6 +107,7 @@ jobs:
           trivy version
 
       - name: 扫描代码库依赖（fs 模式，全量出报告不阻断）
+        if: steps.converge.outputs.converge != 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
@@ -103,6 +124,7 @@ jobs:
           ignore-unfixed: true
 
       - name: 依赖门禁（仅 CRITICAL/HIGH 阻断）
+        if: steps.converge.outputs.converge != 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
@@ -118,14 +140,14 @@ jobs:
       # 故在此导出一份 JSON 明细并上传；if: always() 保证阻断时也执行，
       # 末尾 `|| true` 保证它自身不额外失败。
       - name: 导出 fs 扫描明细（供定位修复，不阻断）
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         run: |
           trivy fs --format json --output trivy-fs-detail.json \
             --severity CRITICAL,HIGH,MEDIUM --ignore-unfixed . || true
           echo "明细大小: $(wc -c < trivy-fs-detail.json 2>/dev/null || echo 0) bytes"
 
       - name: 上传 fs 扫描明细
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: trivy-fs-detail
@@ -133,6 +155,7 @@ jobs:
           retention-days: 30
 
       - name: 扫描 IaC 配置（YAML/K8s/Helm，全量出报告不阻断）
+        if: steps.converge.outputs.converge != 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'config'
@@ -150,6 +173,7 @@ jobs:
           exit-code: '0'
 
       - name: 扫描 design/deploy/values/ IaC（全量出报告不阻断）
+        if: steps.converge.outputs.converge != 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'config'
@@ -160,18 +184,21 @@ jobs:
           exit-code: '0'
 
       - name: 上传 SARIF 到 GitHub Security
+        if: steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs-results.sarif
           category: 'trivy-fs'
 
       - name: 上传 IaC SARIF
+        if: steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-iac-results.sarif
           category: 'trivy-iac'
 
       - name: 上传 SARIF artifacts
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: trivy-sarif-reports
@@ -442,7 +469,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "Security"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 检查集成测试环境
+        if: steps.converge.outputs.converge != 'true'
         id: zap_check
         run: |
           if [ ! -f "tests/integration/docker-compose.yml" ]; then
@@ -453,7 +496,7 @@ jobs:
           fi
 
       - name: 启动被测服务
-        if: steps.zap_check.outputs.skip != 'true'
+        if: steps.zap_check.outputs.skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           # 台账 #72：先选 base 镜像源，再让 compose 用同一个源构建。
@@ -481,7 +524,7 @@ jobs:
       #   出现 4 次；输入参数 target / cmd_options / artifact_name / allow_issue_writing
       #   全部兼容，且由 node20 升为 node24（顺带消除 Node 20 弃用告警）。
       - name: 执行 ZAP 基线扫描（PR/push 模式，不阻断）
-        if: steps.zap_check.outputs.skip != 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
+        if: steps.zap_check.outputs.skip != 'true' && (github.event_name == 'pull_request' || github.event_name == 'push') && steps.converge.outputs.converge != 'true'
         uses: zaproxy/action-baseline@v0.15.0
         with:
           # 修复：compose 映射 encaps-layer 到本机 18080（见 tests/integration/docker-compose.yml），
@@ -495,7 +538,7 @@ jobs:
 
       # T-07: 夜间/手动触发 → ZAP 完整扫描（阻断模式）
       - name: 执行 ZAP 完整扫描（夜间模式，阻断）
-        if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request' && github.event_name != 'push'
+        if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request' && github.event_name != 'push' && steps.converge.outputs.converge != 'true'
         uses: zaproxy/action-baseline@v0.15.0
         with:
           target: 'http://localhost:18080'
@@ -508,7 +551,7 @@ jobs:
       # 原 /v3/api-docs 目标为空靶。待引入 OpenAPI 端点后恢复（见 ROADMAP）。
 
       - name: 销毁被测服务
-        if: steps.zap_check.outputs.skip != 'true' && always()
+        if: steps.zap_check.outputs.skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: docker compose down -v || true
 
@@ -523,7 +566,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "Security"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: Semgrep 扫描（生成 SARIF）
+        if: steps.converge.outputs.converge != 'true'
         # returntocorp/semgrep-action@v1 已废弃，改用官方 Docker 镜像直接产出 SARIF
         # --error 使发现问题返回非零退出码阻断 CI
         # T-06: 添加 p/golang 规则集，覆盖 Go 组件的安全反模式扫描
@@ -535,13 +594,13 @@ jobs:
               --error --sarif --output /src/reports/semgrep/semgrep.sarif
 
       - name: 上传 Semgrep SARIF
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/semgrep/semgrep.sarif
 
       - name: 上传 Semgrep 报告 Artifact
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-reports
@@ -566,7 +625,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "Security"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Trivy
+        if: steps.converge.outputs.converge != 'true'
         run: |
           # 统一使用固定版本 v0.71.1（与 trivy-scan job 一致），避免 install.sh 拉取最新版导致版本漂移
           curl -fSL --retry 3 --retry-delay 5 -o /tmp/trivy.tar.gz \
@@ -575,6 +650,7 @@ jobs:
           trivy --version
 
       - name: 全量扫描所有 Docker 镜像（遍历所有 Dockerfile）
+        if: steps.converge.outputs.converge != 'true'
         run: |
           mkdir -p reports/trivy
           # FROM 里的 ${BASE_REGISTRY} 是**构建期**变量，trivy 拿到字面量只会 FATAL：
@@ -723,7 +799,7 @@ jobs:
         #   该步骤失败会让整个 job 变红，属于误报式阻断。
         # 改为先合并成**单 run**再上传。
         # 输出写在 reports/ 而非 reports/trivy/，避免被 glob 再次捞到。
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 - <<'PY'
           import json, pathlib, glob
@@ -764,14 +840,14 @@ jobs:
           PY
 
       - name: 上传镜像扫描 SARIF
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/trivy-merged.sarif
           category: 'trivy-image'
 
       - name: 上传镜像扫描报告 Artifact
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: trivy-image-reports
@@ -794,7 +870,30 @@ jobs:
       - trivy-image
     if: always()
     steps:
+      # 汇总作业原先只有 1 个 echo 步骤（无 checkout）⇒ 收敛闸脚本不在工作目录里。
+      # 台账 #102②：汇总作业也要能判定「PR 侧是否已覆盖同一内容」，否则被收敛的
+      # 子作业结论缺失时，本作业会照常打出「已执行的安全扫描」的一串 ✓（与事实不符）。
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "Security"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
+
       - name: 输出安全扫描摘要
+        if: steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Security 流水线完成"
@@ -819,3 +918,19 @@ jobs:
           echo "门禁策略："
           echo "  - CRITICAL/HIGH 漏洞：阻断 CI（exit-code=1）"
           echo "  - 后续可配置 quality gate 阻断合并"
+
+      # 收敛分支：PR 侧已在同一内容上验证过 ⇒ 本波不重复扫描。
+      # 如实说明「本波未执行」而不是照抄上面那串 ✓（否则摘要与事实不符）。
+      - name: 输出安全扫描摘要（PR 侧已覆盖同一内容，本波不重复执行）
+        if: steps.converge.outputs.converge == 'true'
+        run: |
+          echo "============================================"
+          echo "  Security 流水线完成（PR 侧已覆盖同一内容）"
+          echo "============================================"
+          echo "分支: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "本波**未执行**安全扫描：${{ steps.converge.outputs.reason }}"
+          echo ""
+          echo "该内容已由 PR 侧的 pull_request 运行验证通过（台账 #102②），"
+          echo "本次 main push 不重复执行；扫描明细见 PR 侧运行的 artifact 与 Security tab。"
