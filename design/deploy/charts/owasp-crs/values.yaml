@@ -1,0 +1,159 @@
+# ============================================================================
+# owasp-crs Helm Chart 默认 values
+# 关联：台账 #132（可部署面零 WAF）
+# 上游来源：coreruleset/modsecurity-crs-docker（nginx flavor）镜像
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请通过 -f <values>.yaml 覆盖。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# tag 口径：上游稳定 tag 形如 <CRS 版本>-<web server>[-<os>]-<日期>（上游 README-containers.md:21），
+# 本仓钉 4.8.0-nginx-202411071011（上游 README 的实例 tag）。
+# 滚动 tag `nginx` 始终存在（上游 docker-bake.hcl 的 latest 条目产出 tag_base=nginx），
+# 但滚动 tag 不可复现，故仅作探针对照，不作默认值。
+image:
+  repository: "docker.m.daocloud.io/owasp/modsecurity-crs"
+  tag: "4.8.0-nginx-202411071011"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicaCount: 2
+
+# ---- 边缘 WAF 的后端（APISIX 网关）----
+# 上游镜像以反代模式工作：nginx 的 proxy_pass 指向 ${BACKEND}（上游 nginx/templates/includes/
+# proxy_backend.conf.template:18），必须给出一个完整 URL，否则容器起来即 502。
+# 默认指向仓库既有 apisix chart 的 Service（apisix/templates/_helpers.tpl:54-56 ⇒
+# serviceName = fullname；standalone `helm install apisix` ⇒ Service 名 "apisix"）。
+# 若 APISIX 以 umbrella 方式部署（release 名不含 "apisix"），Service 名为 <umbrella-release>-apisix，
+# 需用 --set backend.serviceName=<name> 覆盖。
+backend:
+  serviceName: "apisix"
+  namespace: "apisix"
+  port: 9080
+  scheme: "http"
+  # 直接指定完整 URL（置空则由本 chart 按 scheme/serviceName/namespace/port 拼装）
+  url: ""
+  # 上游 PROXY_HOST_HEADER（nginx proxy_set_header Host ${PROXY_HOST_HEADER}），
+  # 上游默认值为字面量 $host（上游 nginx/Dockerfile:193）——不能置空，
+  # 否则渲染出 `proxy_set_header Host ;` 导致 nginx 配置非法。
+  hostHeader: "$host"
+
+# ---- ModSecurity / CRS 策略 ----
+# 关键口径：上游默认 **不拦**——MODSEC_DEFAULT_PHASE1_ACTION/PHASE2_ACTION 的默认值是
+# "phase:N,log,auditlog,pass,tag:..."（上游 README.md:334-335）⇒ 只记日志不阻断。
+# 台账 #132 要求"可部署面有 WAF"，故本 chart 默认改为 deny（显式阻断），并保留可覆盖能力。
+# 格式说明：这两个变量整体替换 ModSecurity 的 SecDefaultAction（上游
+# src/opt/modsecurity/configure-rules.sh:141-164），因此必须写完整动作列表。
+modsec:
+  ruleEngine: "on"
+  phase1Action: "phase:1,log,auditlog,deny,tag:'${MODSEC_TAG}'"
+  phase2Action: "phase:2,log,auditlog,deny,tag:'${MODSEC_TAG}'"
+  # CRS v4 语义：BLOCKING_PARANOIA 决定进入阻断的 paranoia 级别，DETECTION_PARANOIA 决定仅告警的级别
+  # （上游 README.md:371/375；上游 src/opt/modsecurity/configure-rules.v4.conf）。
+  # 1 = CRS 默认推荐级；提高会显著增加误报，需配套排除规则。
+  blockingParanoia: 1
+  detectionParanoia: 1
+  auditEngine: "On"
+  auditLog: "/dev/stdout"
+  tag: "modsecurity"
+
+# ---- 误报排除（CRS REQUEST-900 / RESPONSE-999）----
+# 挂载路径按上游 README.md:556-558 的口径（覆盖镜像内置的两个排除规则文件）。
+# 内容为空时保留镜像内置示例（仅注释），即"不放行任何规则"。
+exclusions:
+  enabled: true
+  beforeCrs: |
+    # CRS 排除规则（请求侧，REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf）
+    # 形如：SecRuleRemoveById 942100 / SecRuleRemoveByTag "attack-sqli"
+    # 按上游 README-containers.md:556-558 的口径，本文件在 CRS 规则加载前生效。
+  afterCrs: |
+    # CRS 排除规则（响应侧，RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf）
+    # 形如：SecRuleRemoveById 942100 / SecRuleRemoveByTag "attack-sqli"
+
+# ---- TLS（可选）----
+# 镜像默认在启动时自签证书（上游 nginx/docker-entrypoint.d/10-generate-certificate.sh），
+# 证书路径 /etc/nginx/conf/server.crt 与 server.key（上游 nginx/Dockerfile:213-214）。
+# 需要用平台证书时，走 existingSecret 引用（不落明文）：
+#   kubectl -n <ns> create secret tls owasp-crs-tls --cert=server.crt --key=server.key
+tls:
+  existingSecret: ""
+  certKey: "tls.crt"
+  keyKey: "tls.key"
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  httpPort: 8080
+  httpsPort: 8443
+  annotations: {}
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "512Mi"
+  limits:
+    cpu: "2"
+    memory: "2Gi"
+
+# ---- 安全上下文 ----
+# 上游镜像以 USER nginx 运行（上游 nginx/Dockerfile），nginx 需要可写目录 ⇒
+# readOnlyRootFilesystem 默认关闭（与仓库既有 chart 口径一致）。
+podSecurityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（上游镜像 HEALTHCHECK 探 /healthz，HTTPS）----
+probes:
+  liveness:
+    enabled: true
+    path: /healthz
+    port: https
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /healthz
+    port: https
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 ----
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget ----
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Ingress（把外部流量先打到 WAF，再由 WAF 反代 APISIX）----
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: waf.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []

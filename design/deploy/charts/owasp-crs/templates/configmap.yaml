@@ -1,0 +1,15 @@
+{{- if .Values.exclusions.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "owasp-crs.fullname" . }}-exclusions
+  labels:
+    {{- include "owasp-crs.labels" . | nindent 4 }}
+data:
+  # CRS 排除规则（请求侧）：挂载覆盖镜像内置同名文件，路径口径见上游 README.md:556-558。
+  REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf: |
+    {{- .Values.exclusions.beforeCrs | nindent 4 }}
+  # CRS 排除规则（响应侧）
+  RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf: |
+    {{- .Values.exclusions.afterCrs | nindent 4 }}
+{{- end }}

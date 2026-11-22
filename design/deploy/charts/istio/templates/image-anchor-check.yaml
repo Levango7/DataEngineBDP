@@ -1,0 +1,27 @@
+{{- /*
+镜像锚点自洽校验（台账 #129）。
+
+scripts/check-chart-generator-drift.py 只比对 _generate_charts.py 的 CHARTS 表行与本父 chart
+values.yaml 的首个 image 块；本模板再把锚点与"实际渲染用的 istiod 坐标"钉在一起：
+渲染期断言锚点 == istiod.pilot 组装出的坐标，且父 global 与子 chart global 的宿主一致，
+不一致直接 fail ⇒ 不会出现"门禁全绿但拉不到镜像"的静默通过。
+
+本模板不产出任何资源，只做断言。
+*/ -}}
+{{- $pilot := .Values.istiod.pilot -}}
+{{- $expectedRepo := printf "%s/%s" $pilot.hub $pilot.image -}}
+{{- if ne .Values.image.repository $expectedRepo -}}
+{{- fail (printf "istio: image.repository=%q 与实际渲染坐标 %q 不一致（CHARTS 表行/values 已漂移）" .Values.image.repository $expectedRepo) -}}
+{{- end -}}
+{{- if ne .Values.image.tag $pilot.tag -}}
+{{- fail (printf "istio: image.tag=%q 与实际渲染坐标 tag=%q 不一致" .Values.image.tag $pilot.tag) -}}
+{{- end -}}
+{{- if ne .Values.image.pullPolicy .Values.istiod.global.imagePullPolicy -}}
+{{- fail (printf "istio: image.pullPolicy=%q 与实际渲染坐标 pullPolicy=%q 不一致" .Values.image.pullPolicy .Values.istiod.global.imagePullPolicy) -}}
+{{- end -}}
+{{- if ne .Values.global.hub .Values.istiod.global.hub -}}
+{{- fail (printf "istio: global.hub=%q 与 istiod.global.hub=%q 不一致 ⇒ sidecar 注入坐标与控制面坐标会分叉" .Values.global.hub .Values.istiod.global.hub) -}}
+{{- end -}}
+{{- if ne .Values.global.tag .Values.istiod.global.tag -}}
+{{- fail (printf "istio: global.tag=%q 与 istiod.global.tag=%q 不一致" .Values.global.tag .Values.istiod.global.tag) -}}
+{{- end -}}

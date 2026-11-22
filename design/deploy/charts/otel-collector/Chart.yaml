@@ -1,0 +1,19 @@
+apiVersion: v2
+name: otel-collector
+description: "OpenTelemetry Collector - OTLP 链路/指标采集面（数据引擎大数据平台）"
+type: application
+version: 2.0.0
+appVersion: "0.130.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - otel
+  - opentelemetry
+  - collector
+  - tracing
+  - shuqing-platform
+  - monitor
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-monitor

@@ -1,0 +1,33 @@
+apiVersion: v2
+name: istio
+description: "Istio 控制面部署面 - Service Mesh 控制面 + 仓库既有流量治理策略（vendored 上游 1.22.3 base/istiod/gateway）"
+type: application
+version: 0.1.0
+appVersion: "1.22.3"
+home: https://istio.io
+sources:
+  - https://github.com/istio/istio
+keywords:
+  - istio
+  - service-mesh
+  - mtlst
+  - traffic-policy
+
+# 台账 #129：charts 顶层无 istio chart。
+# 形态：vendored Istio 官方 helm chart 1.22.3 的 base（CRD）/ istiod（控制面）/ gateway（网关），
+#       版本锚点与仓库既有 ske/k3s/install-istio.sh 的 ISTIO_VERSION 默认值 1.22.3 对齐，
+#       避免 chart 安装路径与 operator 安装路径出现版本漂移。
+# 刻意不并入 dataenginebdp-umbrella：umbrella 是默认安装面，Mesh 控制面属显式 opt-in 安装面。
+dependencies:
+  - name: base
+    version: 1.22.3
+    repository: file://charts/base
+    condition: base.enabled
+  - name: istiod
+    version: 1.22.3
+    repository: file://charts/istiod
+    condition: istiod.enabled
+  - name: gateway
+    version: 1.22.3
+    repository: file://charts/gateway
+    condition: gateway.enabled

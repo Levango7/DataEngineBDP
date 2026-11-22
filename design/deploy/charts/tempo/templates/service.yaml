@@ -11,5 +11,15 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    {{- if .Values.otlp.enabled }}
+    - port: {{ .Values.otlp.grpcPort | int }}
+      targetPort: otlp-grpc
+      protocol: TCP
+      name: otlp-grpc
+    - port: {{ .Values.otlp.httpPort | int }}
+      targetPort: otlp-http
+      protocol: TCP
+      name: otlp-http
+    {{- end }}
   selector:
     {{- include "tempo.selectorLabels" . | nindent 4 }}
