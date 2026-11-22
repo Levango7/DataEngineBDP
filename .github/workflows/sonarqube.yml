@@ -26,10 +26,12 @@ on:
 #   - contents: read  检出代码
 #   - pull-requests: write  在 PR 上发布 SonarCloud 质量门禁评论
 #   - checks: write  创建 Check Run 用于 SonarCloud 状态展示
+#   - actions: read  台账 #102②：收敛闸要读 actions/runs（PR 侧是否已验证同一内容）
 permissions:
   contents: read
   pull-requests: write
   checks: write
+  actions: read
 
 # 同一分支的并发分析只保留最新一次，避免重复消耗 SonarCloud 配额
 concurrency:
@@ -52,11 +54,28 @@ jobs:
         with:
           fetch-depth: 0
 
+
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "SonarQube Analysis"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       # ============================================================
       # 安装 JDK 17：与项目主构建保持一致（build.yml/codeql.yml 均使用 temurin 17）
       # 启用 Maven 缓存以加速后续 mvn verify
       # ============================================================
       - name: 安装 JDK 17
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
@@ -68,6 +87,7 @@ jobs:
       # 使用 stCarolas/setup-maven@v5 显式指定版本
       # ============================================================
       - name: 安装 Maven 3.9
+        if: steps.converge.outputs.converge != 'true'
         uses: stCarolas/setup-maven@v5
         with:
           maven-version: 3.9.9
@@ -77,6 +97,7 @@ jobs:
       # 缓存键按 OS 区分，restore-keys 允许跨分支复用
       # ============================================================
       - name: 缓存 SonarCloud 包
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
@@ -97,6 +118,7 @@ jobs:
       # 单模块失败仅告警（::warning::），不阻断整体 CI
       # ============================================================
       - name: SonarCloud 分析（Java模块）
+        if: steps.converge.outputs.converge != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -143,6 +165,7 @@ jobs:
       # 失败仅告警，不阻断 CI
       # ============================================================
       - name: 前端 SonarCloud 分析
+        if: steps.converge.outputs.converge != 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
@@ -170,7 +193,7 @@ jobs:
       # 便于开发者点击直达查看分析结果
       # ============================================================
       - name: 输出 SonarCloud 仪表盘链接
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         run: |
           set -euo pipefail
           {
