@@ -15,5 +15,7 @@ metadata:
     {{- include "keycloak.labels" . | nindent 4 }}
 data:
   {{ .Values.mfa.fragment.fileName }}: |-
-{{ include "keycloak.mfaRealm" $ | toPrettyJson | indent 4 }}
+{{- $mfaRealm := include "keycloak.mfaRealm" $ | fromYaml }}
+{{- if not (kindIs "map" $mfaRealm) }}{{ fail "keycloak: MFA realm 片段渲染结果不是 YAML 映射（fromYaml 后类型异常）——检查 templates/_helpers.tpl 的 keycloak.mfaRealm 定义" }}{{ end }}
+{{ $mfaRealm | toPrettyJson | indent 4 }}
 {{- end }}

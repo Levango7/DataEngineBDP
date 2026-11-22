@@ -1008,6 +1008,25 @@ jobs:
           # GOVERNANCE_QUALITY_SOURCE_ENABLED 被 chart 覆盖为 "false" 而应用默认 true）。
           python3 scripts/check-chart-env-default-parity.py
 
+      - name: Keycloak MFA 片段渲染产物门禁（台账 #131：渲染→JSON 对象→合并器）
+        # 台账 #131 的主交付路径是 chart 渲染出的 MFA 片段 ConfigMap。
+        # 既有门禁 scripts/check-deploy-surface-assets.py 只对账**源文件**（权威 JSON ↔
+        # chart values），**不渲染模板** ⇒ 模板层产物形态缺陷在该门禁下结构性不可见。
+        # 2026-11-22 实测过的真实缺陷：realm-mfa-fragment.yaml 原写
+        #   {{ include "keycloak.mfaRealm" $ | toPrettyJson | indent 4 }}
+        # 而 keycloak.mfaRealm 产出的是 YAML 文本，toPrettyJson 直接作用在字符串上
+        # ⇒ 产物是「JSON 字符串包着 YAML 文本」，喂 keycloak-mfa-merge.py 直接 rc=1，
+        # 而 helm lint / helm template 全绿（模板语法没错，错的是产物形态）。
+        # 本步按「渲染 → json.loads ⇒ 必须是对象 → 喂合并器校验 → defaultAction 须为布尔」判。
+        # 刻意不加 --set mfa.fragment.enabled=true：默认值即 true，若默认值被改成 false，
+        # 渲染产物里就没有片段 ⇒ 本门禁直接红，强制显式决策，而不是悄悄放过。
+        run: |
+          helm template sq design/deploy/charts/keycloak \
+            --show-only templates/realm-mfa-fragment.yaml \
+            > /tmp/keycloak-mfa-render.yaml
+          python3 scripts/check-keycloak-mfa-render.py --self-test
+          python3 scripts/check-keycloak-mfa-render.py --rendered /tmp/keycloak-mfa-render.yaml
+
       - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
         # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对
         run: |

@@ -82,7 +82,7 @@ requiredActions:
   - id: {{ $mfa.requiredAction | quote }}
     name: {{ $mfa.requiredActionName | quote }}
     enabled: true
-    defaultAction: {{ $mfa.requiredAction | quote }}
+    defaultAction: true
 {{- if $mfa.browserFlow.enabled }}
 browserFlow: {{ $mfa.browserFlow.alias | quote }}
 authenticationFlows:

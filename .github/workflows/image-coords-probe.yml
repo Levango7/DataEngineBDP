@@ -10,7 +10,10 @@ on:
     branches: ["feat/128-132-deployment-surface"]
 
 permissions:
-  contents: write
+  # 只读：探针不需要写仓库。此前用 contents: write 把结果推到独立结果分支，
+  # 等于把仓库级写令牌发给了这个一次性 workflow（有该分支推送权者可在运行中取得
+  # 写令牌并推其它分支 / 改 workflow）。结果改用 artifact 承载（actions/upload-artifact）。
+  contents: read
 
 concurrency:
   group: image-coords-probe-${{ github.ref }}
@@ -105,25 +108,18 @@ jobs:
           # 探针本身不阻断：坐标缺失需人工改 chart 再提交，不应把 CI 变成红灯。
           exit 0
 
-      - name: 探针结果外发到结果分支（免密可回读）
-        # 免密回读口径：GitHub 的 /actions/jobs/<id>/logs 对未认证请求返回 403
-        # （本机实测），step summary 亦无免密 API 可读 ⇒ 逐坐标结果改随本 workflow
-        # 推到独立结果分支，git 拉取即可读。
-        # 该分支不被任何其它 workflow 监听（其余 workflow 的 push 监听面为
-        # main / release/** / 本 feature 分支），故不会产生额外 CI 触发。
+      - name: 探针结果落盘（待上传为 artifact）
+        # 结果承载口径：GitHub 的 /actions/jobs/<id>/logs 对未认证请求返回 403
+        # （本机实测），step summary 亦无免密 API 可读 ⇒ 逐坐标结果随本 workflow
+        # 以 artifact 形式留存（取回口径：gh run download -n <artifact>）。
+        # 2026-11-22 改口径：此前把结果推到独立结果分支，代价是给这个一次性 workflow
+        # 发了仓库级 contents: write 写令牌（有该分支推送权者可在运行中取得写令牌并推
+        # 其它分支 / 改 workflow）。permissions 已收敛为 contents: read，结果改用
+        # artifact 承载；已跑过的 3 次探针结果仍留在结果分支
+        # probe/128-132-image-coords 上（历史事实不变）。
         continue-on-error: true
         run: |
           set -u
-          BRANCH="probe/128-132-image-coords"
-          OUT_DIR="design/deploy/probe"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "+refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}" || true
-          git checkout -B "$BRANCH" --no-track
-          if git rev-parse --verify "refs/remotes/origin/${BRANCH}" >/dev/null 2>&1; then
-            git reset --hard "refs/remotes/origin/${BRANCH}"
-          fi
-          mkdir -p "$OUT_DIR"
           {
             echo "# run ${GITHUB_RUN_ID} / sha ${GITHUB_SHA} / $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "# 判据：只有 rc=0 记「存在」；rc≠0 一律记「不可判」（与负对照失败形态无法区分时不作存在性断言）"
@@ -131,7 +127,15 @@ jobs:
             cat /tmp/coords.txt
             echo "# 探针结果（PROBE<TAB>状态<TAB>类别<TAB>坐标<TAB>rc<TAB>架构或错误摘要）："
             cat /tmp/probe-results.tsv
-          } > "${OUT_DIR}/image-coords-${GITHUB_RUN_ID}.tsv"
-          git add "$OUT_DIR"
-          git commit -m "chore(probe): 镜像坐标探针结果 run ${GITHUB_RUN_ID}"
-          git push origin "HEAD:refs/heads/${BRANCH}"
+          } > "/tmp/image-coords-${GITHUB_RUN_ID}.tsv"
+          cat "/tmp/image-coords-${GITHUB_RUN_ID}.tsv"
+
+      - name: 上传探针结果 artifact
+        # 探针本身不阻断 CI（坐标缺失需人工改 chart 再提交，不应把 CI 变成红灯），
+        # 故上传失败同样软失败。
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-coords-${{ github.run_id }}
+          path: /tmp/image-coords-${{ github.run_id }}.tsv
+          if-no-files-found: error
