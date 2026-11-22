@@ -1,0 +1,136 @@
+# 一次性事实探针 v5：iceberg-rest 的 healthcheck 片段与挂卷 init 模式实测
+#
+# v4 = run 45014711031 / job 137184442245。v4 取得的净结论：
+#   - 镜像内 curl / wget / nc / python3 全部 MISSING，只有 bash / sh / grep / java / id
+#   - bash = /usr/bin/bash（⇒ 可用 bash 的 /dev/tcp 做 TCP 级探针）
+#   - uid/gid = 1000(iceberg)，默认用户非 root
+#   - 挂卷失败是**权限**问题：象限 1/2（默认属主 755、chmod 0777 未生效）⇒ SQLITE_CANTOPEN；
+#     象限 3（全新卷 + --user 0:0）⇒ NS=200、sqlite 落盘正常
+#   ⇒ 由此产生两个「必须拿到出处才能落码」的问题：
+#     (a) compose healthcheck 不能再用 curl ⇒ 改用 bash + /dev/tcp + grep '200'，
+#         但该片段依赖 head 与 /dev/tcp 语义，需在**真实镜像内**实跑；
+#     (b) compose 侧要让默认用户写挂载卷，要么 user 0:0（降权），要么 root init 容器
+#         chown 到 1000:1000 ⇒ 后者依赖镜像内有 chown，且要验证 chown 后默认用户真能写。
+#
+# 本 workflow 只做事实核验，所有 step 均 continue-on-error，
+# 不改仓内任何交付文件；文件只存在于 probe 分支，不进默认分支。
+name: Image Coords Probe v5
+
+on:
+  push:
+    branches:
+      - "probe/image-coords-20261122"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-coords-probe-v5-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: 对象存储与 iceberg-rest 运行契约一次性核验 v5
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ---------- G1：工具链增量盘点（v4 只盘过 curl/wget/bash/sh/nc/grep/python3/java/id） ----------
+      - name: "G1 镜像内工具链增量盘点"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull tabulario/iceberg-rest:1.6.0 || echo "PROBE_PULL_FAILED iceberg-rest"
+          docker pull rustfs/rustfs:1.0.6 || echo "PROBE_PULL_FAILED rustfs"
+          for img in "tabulario/iceberg-rest:1.6.0" "rustfs/rustfs:1.0.6"; do
+            echo "PROBE_TOOLS5_BEGIN ${img}"
+            docker run --rm --entrypoint sh "${img}" -c '
+              for b in head chown timeout printf dd stat sed cut tr dirname; do
+                if command -v "$b" >/dev/null 2>&1; then
+                  echo "TOOL5 ${b}=$(command -v $b)"
+                else
+                  echo "TOOL5 ${b}=MISSING"
+                fi
+              done
+              echo "WHOAMI5=$(id 2>/dev/null || echo NO_ID)"
+            ' 2>&1 | while IFS= read -r line; do
+              echo "PROBE_TOOLS5 ${img} ${line}"
+            done
+            echo "PROBE_TOOLS5_END ${img}"
+          done
+          echo "PROBE_G1_END"
+
+      # ---------- G2：compose healthcheck 片段在真实镜像内实跑（正对照 + 负对照） ----------
+      - name: "G2 healthcheck 片段实跑（bash /dev/tcp + grep 200）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker rm -f probe-hc-rustfs probe-hc-iceberg >/dev/null 2>&1 || true
+          docker network create probe-net >/dev/null 2>&1 || true
+          docker run -d --name probe-hc-rustfs --network probe-net --network-alias rustfs \
+            -p 19000:9000 \
+            -e RUSTFS_ACCESS_KEY=probeuser -e RUSTFS_SECRET_KEY=probesecret \
+            -e RUSTFS_VOLUMES=/data \
+            rustfs/rustfs:1.0.6 >/dev/null
+          sleep 12
+          echo "PROBE_G2_RUSTFS_HEALTH=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/minio/health/live)"
+
+          docker run -d --name probe-hc-iceberg --network probe-net \
+            -p 18421:8181 \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          sleep 25
+          echo "PROBE_G2_CONFIG_CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:18421/v1/config)"
+          echo "PROBE_G2_NS_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18421/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+
+          # 正对照：与 compose healthcheck 完全相同的片段（连 8181）
+          docker exec probe-hc-iceberg bash -c "exec 3<>/dev/tcp/127.0.0.1/8181 && printf 'GET /v1/config HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 && head -n 1 <&3 | grep -q '200'" >/dev/null 2>&1
+          echo "PROBE_G2_HEALTHCHECK_RC=$?"
+          # 负对照：同一片段连一个没人监听的端口（期望非 0）
+          docker exec probe-hc-iceberg bash -c "exec 3<>/dev/tcp/127.0.0.1/19999 && printf 'GET /v1/config HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 && head -n 1 <&3 | grep -q '200'" >/dev/null 2>&1
+          echo "PROBE_G2_NEGCLOSED_RC=$?"
+          # 负对照二：连得通但路径不存在（期望非 0，说明 grep '200' 不是恒真）
+          docker exec probe-hc-iceberg bash -c "exec 3<>/dev/tcp/127.0.0.1/8181 && printf 'GET /no-such-path HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 && head -n 1 <&3 | grep -q '200'" >/dev/null 2>&1
+          echo "PROBE_G2_NEGPATH_RC=$?"
+          # 对照三：只做 TCP 连通不校验状态码（说明 /dev/tcp 单独可用）
+          docker exec probe-hc-iceberg bash -c "exec 3<>/dev/tcp/127.0.0.1/8181" >/dev/null 2>&1
+          echo "PROBE_G2_TCPONLY_RC=$?"
+          docker rm -f probe-hc-iceberg probe-hc-rustfs >/dev/null 2>&1 || true
+          echo "PROBE_G2_END"
+
+      # ---------- G3：挂卷 init chown 模式（root init → 默认用户写） ----------
+      - name: "G3 挂卷 init chown 模式实测"
+        continue-on-error: true
+        run: |
+          set -u
+          docker volume rm -f probe-vol5 >/dev/null 2>&1 || true
+          docker volume create probe-vol5 >/dev/null 2>&1 || true
+          echo "PROBE_G3_VOL_PERM_BEFORE=$(docker run --rm -v probe-vol5:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'ls -ldn /data' 2>&1 | tr "\n" " ")"
+          # init 容器：以 root 运行并 chown 到镜像默认用户 uid/gid
+          docker run --rm --user 0:0 -v probe-vol5:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'chown 1000:1000 /data && ls -ldn /data' >/dev/null 2>&1
+          echo "PROBE_G3_INIT_CHOWN_RC=$?"
+          echo "PROBE_G3_VOL_PERM_AFTER=$(docker run --rm -v probe-vol5:/data --entrypoint sh tabulario/iceberg-rest:1.6.0 -c 'ls -ldn /data' 2>&1 | tr "\n" " ")"
+          # 默认用户容器 + 挂卷 + 显式 CATALOG_URI ⇒ 期望 NS=200 且 sqlite 落盘
+          docker rm -f probe-iceberg-p5 >/dev/null 2>&1 || true
+          docker run -d --name probe-iceberg-p5 -p 18422:8181 \
+            -v probe-vol5:/data \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://127.0.0.1:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            -e CATALOG_URI=jdbc:sqlite:file:/data/catalog.db \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          sleep 25
+          echo "PROBE_G3_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18422/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_G3_FILE=$(docker exec probe-iceberg-p5 sh -c 'ls -la /data 2>&1' | tr "\n" " | ")"
+          echo "PROBE_G3_LOG=$(docker logs probe-iceberg-p5 2>&1 | grep -E 'Creating catalog with properties|SQLITE_CANTOPEN|Exception' | head -3 | tr "\n" " | ")"
+          docker rm -f probe-iceberg-p5 >/dev/null 2>&1 || true
+          echo "PROBE_G3_END"

@@ -29,11 +29,7 @@
 name: Image Coords Probe v3
 
 on:
-  # 只在本探针分支上 push 触发：workflow 文件不进默认分支，避免在 main 上留孤儿工作流
-  # （gh workflow run 按文件名只在默认分支解析，探针分支上的新文件无法用 CLI 派发）。
-  push:
-    branches:
-      - "probe/image-coords-20261122"
+  # 2026-11-22：push 触发已摘除（改由 v5 单独触发）
   workflow_dispatch:
 
 permissions:

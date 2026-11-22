@@ -27,9 +27,8 @@
 name: Image Coords Probe v4
 
 on:
-  push:
-    branches:
-      - "probe/image-coords-20261122"
+  # 2026-11-22：v5 起同分支改由 v5 单独触发；本探针的 push 触发已摘除以免重复重跑
+  workflow_dispatch:
   workflow_dispatch:
 
 permissions:
