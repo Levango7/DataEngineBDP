@@ -1704,14 +1704,20 @@ milvus:
   affinity: {}
 
 # -----------------------------------------------------------------------------
-# minio（MinIO 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台）
+# minio（RustFS 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台）
 # -----------------------------------------------------------------------------
 minio:
   enabled: true
   image:
-    repository: "docker.m.daocloud.io/minio/minio"
-    tag: "RELEASE.2024-08-03T04-33-23Z"
+    # 直连 Docker Hub：仓内加速器不代理该仓（台账 #17，2026-11-22 实现替换）
+    repository: "rustfs/rustfs"
+    tag: "1.0.6"
     pullPolicy: IfNotPresent
+  # 凭据从 Secret 注入（值不进本文件）
+  credentials:
+    existingSecret: rustfs-creds
+    accessKeyKey: "access-key"
+    secretKeyKey: "secret-key"
   replicaCount: 1
   service:
     type: ClusterIP
@@ -1722,7 +1728,8 @@ minio:
   securityContext:
     enabled: true
     runAsNonRoot: true
-    runAsUser: 1000
+    # 必须 10001：上游 RustFS 镜像的 rustfs 用户 uid/gid 即 10001
+    runAsUser: 10001
   autoscaling:
     enabled: false
     minReplicas: 1

@@ -30,7 +30,7 @@
 | 网关/控制面 | 4C16G（kc1 或 kc2 通用计算增强型） | 1 | K8s master、APISIX、Keycloak、nacos、PostgreSQL、sql-gateway、encaps-layer | openEuler 22.03 |
 | 计算引擎 A | 8C32G（同上） | 1 | Trino、Doris、Spark、Flink | **麒麟 V10 ARM**（OS 兼容证据） |
 | 计算引擎 B | 8C32G（同上） | 1 | Kafka、Flink TaskManager、Spark Worker（弹性分担） | openEuler 22.03 |
-| 存储/数据源 | 4C16G | 1 | MinIO（国产对象存储口径）、MySQL 数据源、E2E runner | openEuler 22.03 |
+| 存储/数据源 | 4C16G | 1 | RustFS（amd64+arm64 双架构）、MySQL 数据源、E2E runner | openEuler 22.03 |
 
 - **合计 4 台**，建议统一放在同一 VPC、同可用区。
 - **关键前置（最高风险项）**：全部服务镜像需 arm64 版本。在租用窗口内，
@@ -54,7 +54,7 @@
 | 网关/控制面 | 4C16G（通用计算增强型 C8） | 1 | K8s master、APISIX、Keycloak、PostgreSQL、sql-gateway | **麒麟 V10 x86**（OS 兼容证据） |
 | 计算引擎 A | 8C32G（C8 或内存优化 M8） | 1 | Trino、Doris | openEuler 22.03 |
 | 计算引擎 B | 8C32G | 1 | Spark、Flink、Kafka | openEuler 22.03 |
-| 存储/数据源 | 4C16G（通用计算型 S8 即可） | 1 | MinIO、MySQL 数据源、E2E runner | CTyunOS（免费，顺验证） |
+| 存储/数据源 | 4C16G（通用计算型 S8 即可） | 1 | RustFS、MySQL 数据源、E2E runner | CTyunOS（免费，顺验证） |
 
 - **合计 4 台**，同 VPC。现有 amd64 镜像直接用，**无需重新构建**（这是与鲲鹏线的本质差异）。
 - 天翼云 ECS 页确认的可用镜像族：自研 CTyunOS、KylinOS、OpenEuler 及第三方镜像（产品页原文）。
@@ -138,7 +138,7 @@ x86 4C16G ≈ 0.99 元/h、8C32G ≈ 1.99 元/h；ARM 4C16G ≈ 0.80 元/h、8C3
 | Flink | apache/flink:1.20.0-scala_2.12 | ✅ 有（1.18+ 全架构） | 直接用 |
 | Kafka | apache/kafka:3.8.1 | ✅ 有 | 直接用 |
 | Doris FE/BE | apache/doris:2.1.7 / selectdb/doris.be:2.1.7 | ⚠️ **FE 无官方 arm64，BE 有** | **D1 必须自建 FE arm64**（源码编译） |
-| MinIO | minio/minio:RELEASE.2024-05-28T17-19-04Z | ✅ 有 | 直接用 |
+| RustFS | rustfs/rustfs:1.0.6 | ✅ 有（amd64+arm64 双架构，runner `docker manifest inspect` 实测） | 直接用 |
 | PostgreSQL | postgres:16 | ✅ 有 | 直接用 |
 | Redis | redis:7.2-alpine | ✅ 有 | 直接用 |
 | APISIX | apache/apisix:3.9.0-debian | ✅ 有 | 直接用 |
@@ -154,25 +154,25 @@ x86 4C16G ≈ 0.99 元/h、8C32G ≈ 1.99 元/h；ARM 4C16G ≈ 0.80 元/h、8C3
 | Elasticsearch | docker.elastic.co/elasticsearch/elasticsearch:8.15 | ✅ 有 | 直接用 |
 | NebulaGraph | vesoft/nebula-graphd:3.6.0 | ⚠️ 仅 amd64 | **D1 自建或降级到 3.5** |
 | Milvus | milvusdb/milvus:v2.3.3 | ✅ 有（2.3+ 支持） | 直接用 |
-| Iceberg REST Catalog | tabulario/iceberg-rest-catalog | ⚠️ 仅 amd64 | **D1 自建** |
+| Iceberg REST Catalog | tabulario/iceberg-rest:1.6.0 | ✅ 有（amd64+arm64 双架构，runner manifest 实测） | **直接用**（2026-11-22 订正：原判「仅 amd64 需自建」基于错坐标 `tabulario/iceberg-rest-catalog`，该仓在 Docker Hub 不存在，runner manifest rc=1 denied） |
 | Hive Metastore | bitsondatadev/hive-metastore | ⚠️ 仅 amd64 | **D1 自建或用 Trino 自带 HMS** |
 | Argo Rollouts | argoproj/argo-rollouts | ✅ 有 | 直接用 |
 | KEDA | kedacore/keda | ✅ 有 | 直接用 |
 | Cilium | cilium/cilium | ✅ 有 | 直接用 |
-| MinIO (旧版) | minio/minio:RELEASE.2024-05-28T17-19-04Z | ✅ 有 | 直接用 |
+| RustFS (旧坐标：MinIO) | rustfs/rustfs:1.0.6 | ✅ 有（amd64+arm64 双架构） | 直接用（原 `minio/minio:RELEASE.2024-05-28T17-19-04Z` 镜像已于 2026-09-11 被上游整体删除） |
 | Elasticsearch | docker.elastic.co/elasticsearch/elasticsearch:8.15 | ✅ 有 | 直接用 |
 | Prometheus / Grafana / Loki / Tempo | prom/prometheus:v2.54 / grafana/grafana:11.1 等 | ✅ 有 | 直接用 |
 | Argo Rollouts / KEDA / Cilium | argoproj/argo-rollouts / kedacore/keda / cilium/cilium | ✅ 有 | 直接用 |
 | 自研镜像 | sq-* 系列 | 🔧 **需自行构建 arm64** | Java/Go 多阶段构建、Go GOARCH=arm64、Python 依赖 wheel |
 
-**统计**：约 12 个直接可用、8 个需自建/降级。生死项（D1 必须先搞定）：Doris FE、Superset、NebulaGraph、SeaTunnel、IoTDB、Iceberg Catalog、Hive Metastore。
+**统计**：约 12 个直接可用、8 个需自建/降级。生死项（D1 必须先搞定）：Doris FE、Superset、NebulaGraph、SeaTunnel、IoTDB、Hive Metastore。**（2026-11-22 订正：Iceberg REST Catalog 原判「仅 amd64、需 D1 自建」已从生死项移除——真实坐标 `tabulario/iceberg-rest:1.6.0` 为 amd64+arm64 双架构，runner manifest 实测 rc=0；原判基于不存在的仓 `tabulario/iceberg-rest-catalog`。统计数字沿用原文口径，未重算。）**
 
 **D1 执行清单**：
 
 ```bash
 # 1. 逐个验证镜像架构
 for img in trinodb/trino:460 apache/spark:3.5.3 apache/flink:1.20.0-scala_2.12 \
-           apache/kafka:3.8.1 minio/minio:RELEASE.2024-05-28T17-19-04Z \
+           apache/kafka:3.8.1 rustfs/rustfs:1.0.6 \
            postgres:16 redis:7.2-alpine apache/apisix:3.9.0-debian \
            quay.io/keycloak/keycloak:25.0 prom/prometheus:v2.54 \
            grafana/grafana:11.1 vesoft/nebula-graphd:3.6.0 \

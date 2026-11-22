@@ -1,14 +1,22 @@
 ﻿# minio Helm Chart
 
-> MinIO 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台
+> RustFS 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台
 
 ## 1. 概述
 
-`minio` 是数据引擎大数据平台（DataEngineBDP）的 Helm Chart，用于在 Kubernetes 集群上一键部署和管理 `minio` 组件。
+`minio` 是数据引擎大数据平台（DataEngineBDP）的 Helm Chart，用于在 Kubernetes 集群上一键部署和管理对象存储组件。
 
 - **Chart 版本**：`2.0.0`
 - **App 版本**：`2.0.0`
 - **默认命名空间**：`sq-engine`
+- **实现说明（2026-11-22，台账 #17）**：本 chart 部署的实现已由 MinIO 社区版换成
+  **RustFS 1.0.6**。MinIO 社区版镜像已于 2026-09-11 被上游整体删除（runner 实测
+  `docker manifest inspect minio/minio:latest` 返回 rc=1 denied），上游仓
+  2026-04-25 归档只读 ⇒ 原坐标在生产已不可拉取。chart 名、服务名（`minio`）与
+  endpoint 保持不变（umbrella 以 `file://../minio` 依赖本 chart，业务侧多处引用
+  该 Service 名），**只换实现与凭据口径**；服务名重命名另立工作项。
+- **凭据口径**：容器内用 RustFS 规范名 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`，
+  值从 Secret 注入（台账 #12：敏感值不进 ConfigMap）。
 
 ## 2. 前置条件
 
@@ -55,20 +63,25 @@ helm template minio design/deploy/charts/minio -n sq-engine
 
 | 参数 | 说明 | 默认值 |
 | --- | --- | --- |
-| `image.repository` | 镜像仓库地址 | `docker.m.daocloud.io/minio/minio` |
-| `image.tag` | 镜像标签 | `RELEASE.2024-08-03T04-33-23Z` |
+| `image.repository` | 镜像仓库地址（直连 Docker Hub，不加加速器前缀） | `rustfs/rustfs` |
+| `image.tag` | 镜像标签 | `1.0.6` |
 | `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
+| `credentials.existingSecret` | 凭据 Secret 名（留空则不注入凭据，Pod 会用上游内置默认凭据启动，**生产必须设置**） | `""` |
+| `credentials.accessKeyKey` | Secret 内 access key 的键名 | `access-key` |
+| `credentials.secretKeyKey` | Secret 内 secret key 的键名 | `secret-key` |
+| `persistence.enabled` | 是否挂 PVC（对象存储数据面；关闭时数据只落在容器可写层，重启即丢） | `false` |
+| `persistence.size` | PVC 容量 | `100Gi` |
 | `replicaCount` | 副本数 | `4` |
 | `service.type` | Service 类型 | `ClusterIP` |
 | `service.port` | Service 端口 | `9000` |
 | `service.containerPort` | 容器端口 | `9000` |
-| `resources.requests.cpu` | CPU 请求 | `500m` |
-| `resources.requests.memory` | 内存请求 | `512Mi` |
-| `resources.limits.cpu` | CPU 上限 | `1000m` |
-| `resources.limits.memory` | 内存上限 | `1Gi` |
+| `resources.requests.cpu` | CPU 请求 | `1` |
+| `resources.requests.memory` | 内存请求 | `2Gi` |
+| `resources.limits.cpu` | CPU 上限 | `2` |
+| `resources.limits.memory` | 内存上限 | `4Gi` |
 | `securityContext.enabled` | 安全上下文开关 | `true` |
 | `securityContext.runAsNonRoot` | 非 root 运行 | `true` |
-| `securityContext.runAsUser` | 运行用户 UID | `1000` |
+| `securityContext.runAsUser` | 运行用户 UID（**必须 10001**：上游镜像用 uid/gid 10001 建 rustfs 用户并把 `/data` 置为 0750 rustfs:rustfs，换 uid 会失去写权限） | `10001` |
 | `probes.liveness.enabled` | 存活探针开关 | `true` |
 | `probes.readiness.enabled` | 就绪探针开关 | `true` |
 | `autoscaling.enabled` | HPA 开关 | `false` |
@@ -86,9 +99,20 @@ helm template minio design/deploy/charts/minio -n sq-engine
 ```yaml
 # minio 自定义配置示例
 image:
-  repository: "docker.m.daocloud.io/minio/minio"
-  tag: "RELEASE.2024-08-03T04-33-23Z"
+  repository: "rustfs/rustfs"
+  tag: "1.0.6"
   pullPolicy: IfNotPresent
+
+# 凭据从 Secret 注入（值不进 values 文件）
+credentials:
+  existingSecret: rustfs-creds
+  accessKeyKey: "access-key"
+  secretKeyKey: "secret-key"
+
+# 生产必须开持久化，否则对象数据重启即丢
+persistence:
+  enabled: true
+  size: 500Gi
 
 replicaCount: 2
 
@@ -99,16 +123,16 @@ service:
 
 resources:
   requests:
-    cpu: "500m"
-    memory: "512Mi"
+    cpu: "1"
+    memory: "2Gi"
   limits:
-    cpu: "1000m"
-    memory: "1Gi"
+    cpu: "2"
+    memory: "4Gi"
 
 securityContext:
   enabled: true
   runAsNonRoot: true
-  runAsUser: 1000
+  runAsUser: 10001
 
 autoscaling:
   enabled: true
@@ -129,7 +153,11 @@ ingress:
 
 本 Chart 默认启用以下安全配置（符合等保三级要求）：
 
-- **非 root 运行**：`runAsNonRoot: true`，`runAsUser: 1000`
+- **非 root 运行**：`runAsNonRoot: true`，`runAsUser: 10001`（RustFS 上游镜像的
+  `rustfs` 用户 uid/gid 即 10001，`/data` 与 `/logs` 目录属主也是 `rustfs:rustfs`
+  且权限 0750 ⇒ 换成别的 uid 会失去数据目录写权限）
+- **凭据走 Secret**：`RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 从
+  `credentials.existingSecret` 注入，不进 ConfigMap 与 Pod spec 字面量
 - **权限降级**：`allowPrivilegeEscalation: false`
 - **能力裁剪**：`capabilities.drop: [ALL]`
 - **只读根文件系统**：按组件特性配置
