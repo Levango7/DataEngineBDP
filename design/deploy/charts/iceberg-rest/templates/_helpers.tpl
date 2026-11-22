@@ -49,6 +49,19 @@ ConfigMap name.
 {{- end -}}
 
 {{/*
+Effective CATALOG_URI (empty = use the image built-in default, i.e. an
+in-container sqlite file under /tmp that is lost on container restart).
+Priority: explicit catalog.uri > catalogPersistence mount path > empty.
+*/}}
+{{- define "iceberg-rest.catalogUri" -}}
+{{- if .Values.catalog.uri -}}
+{{- .Values.catalog.uri -}}
+{{- else if .Values.catalogPersistence.enabled -}}
+{{- printf "jdbc:sqlite:file:%s/catalog.db" .Values.catalogPersistence.mountPath -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Service name.
 */}}
 {{- define "iceberg-rest.serviceName" -}}

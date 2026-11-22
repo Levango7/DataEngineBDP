@@ -1,5 +1,26 @@
-# 数擎云核 SKE · 本地 MinIO in-cluster 兜底 (WSL2/VM 真 kubeadm 无宿主 docker 时使用)
+# 数擎云核 SKE · 本地对象存储 in-cluster 兜底 (WSL2/VM 真 kubeadm 无宿主 docker 时使用)
 # 由 platform/bootstrap.sh 在检测不到 docker 时自动 apply
+#
+# 实现替换（台账 #17）：MinIO 社区版 → RustFS 1.0.6
+#   - MinIO 社区版镜像 2026-09-11 被上游整体删除（runner 实测 pull access denied），
+#     上游仓 minio/minio 2026-04-25 归档只读 ⇒ 原坐标生产已不可拉取。
+#   - RustFS：Apache-2.0，上游仓 rustfs/rustfs @ tag 1.0.6
+#     (commit de9009d882644effc2628e777650025c3d8e7c65)，runner 实拉 PULL_OK。
+#
+# 凭据环境变量名必须是 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY：
+#   - 上游 rustfs/src/config/cli.rs:1551 / :1559 的 clap 绑定
+#     （env = "RUSTFS_ACCESS_KEY" / env = "RUSTFS_SECRET_KEY"）；
+#   - 上游 entrypoint.sh:181 / :182 的 resolve_credential_source 同样只解析这两个 env
+#     （另可给 RUSTFS_ACCESS_KEY_FILE / RUSTFS_SECRET_KEY_FILE）。
+#   - MINIO_ROOT_USER / MINIO_ROOT_PASSWORD 在上游只作为 legacy **参数形态**的提示串出现
+#     （entrypoint.sh:183 / :184 的 validate_credential_source 第三个入参），
+#     entrypoint 与二进制都不读这两个 env ⇒ 服务端继续沿用它们会拿到默认凭据
+#     （entrypoint.sh:24 DEFAULT_ROOT_CREDENTIAL="rustfsadmin"）而与客户端不匹配。
+#
+# 服务名 / Service 名 / endpoint 保持 minio 不变：业务侧
+# （minio.sq-engine.svc.cluster.local:9000、备份脚本、漂移审计、iceberg-compaction）
+# 都按该名字寻址，重命名会连带改这些引用面 ⇒ 重命名另立工作项。
+#
 # 说明: emptyDir 仅用于本地 PoC, 重启 Pod 数据丢失; 生产走 CephDriver/云 S3
 apiVersion: apps/v1
 kind: Deployment
@@ -18,15 +39,31 @@ spec:
       labels:
         app: minio
     spec:
+      # 官方镜像以 10001:10001 运行（上游 Dockerfile addgroup -g 10001 / adduser -u 10001），
+      # 且 /data 为 rustfs:rustfs 0750 ⇒ 换成别的 uid 会失去写权限
+      # （entrypoint 的 ensure_local_directory 只做 best-effort chown，非 root 无法补救）。
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
       - name: minio
-        image: minio/minio:latest
-        args: ["server", "/data", "--console-address", ":9001"]
+        image: rustfs/rustfs:1.0.6
         env:
-        - name: MINIO_ROOT_USER
+        - name: RUSTFS_ACCESS_KEY
           value: minio
-        - name: MINIO_ROOT_PASSWORD
+        - name: RUSTFS_SECRET_KEY
           value: minio123
+        # 走 env 形态而非 `server /data` args：上游 entrypoint.sh 注释明确
+        # RUSTFS_VOLUMES 由 rustfs 直接处理，不得作为 args 追加。
+        - name: RUSTFS_VOLUMES
+          value: /data
+        - name: RUSTFS_ADDRESS
+          value: 0.0.0.0:9000
+        - name: RUSTFS_CONSOLE_ADDRESS
+          value: 0.0.0.0:9001
+        - name: RUSTFS_CONSOLE_ENABLE
+          value: "true"
         ports:
         - containerPort: 9000
           name: api
@@ -68,13 +105,26 @@ spec:
     spec:
       restartPolicy: OnFailure
       containers:
-      - name: mc
-        image: minio/mc:latest
+      # 建桶客户端换 amazon/aws-cli：RustFS 无官方 mc（rustfs/mc 在上游不存在），
+      # 而 minio/mc 已随 MinIO 断供（runner 实测 pull access denied）。
+      # botocore 对自定义 --endpoint-url 默认走 path-style 寻址 ⇒ 直连 S3 兼容端点即可。
+      - name: init
+        image: amazon/aws-cli:2.17.23
         command: ["/bin/sh", "-c"]
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: minio
+        - name: AWS_SECRET_ACCESS_KEY
+          value: minio123
+        - name: AWS_DEFAULT_REGION
+          value: us-east-1
         args:
         - |
-          until mc alias set local http://minio.platform-ops:9000 minio minio123 2>/dev/null; do
-            echo "等待 MinIO 就绪..."; sleep 3
+          until aws --endpoint-url http://minio.platform-ops:9000 s3api head-bucket \
+                  --bucket lakehouse >/dev/null 2>&1; do
+            echo "等待 RustFS 就绪..."
+            sleep 3
+            aws --endpoint-url http://minio.platform-ops:9000 s3api create-bucket \
+                --bucket lakehouse >/dev/null 2>&1 || true
           done
-          mc mb -p local/lakehouse
           echo "bucket lakehouse 已确保"

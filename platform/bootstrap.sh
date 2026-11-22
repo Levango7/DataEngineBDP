@@ -85,22 +85,34 @@ roleRef:
 EOF
 ok "租户 $WS 封装骨架就绪 (Namespace+Quota+deny-all+RBAC)"
 
-# ---- 3. 本地存储底座 (仅 local Profile: 起 MinIO) ----
+# ---- 3. 本地存储底座 (仅 local Profile: 起 RustFS) ----
+# 实现替换（台账 #17）：MinIO 社区版镜像 2026-09-11 被上游整体删除（runner 实测
+# pull access denied）⇒ 改用 RustFS 1.0.6（Apache-2.0，上游仓 rustfs/rustfs @ 1.0.6，
+# runner 实拉 PULL_OK）。容器名/endpoint 仍叫 minio：业务侧按该名字寻址。
+# 凭据 env 必须是 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY（上游 cli.rs:1551/:1559
+# 的 clap env 绑定 + entrypoint.sh:181/:182；MINIO_ROOT_* 上游不读）。
+# 建桶客户端换 amazon/aws-cli（minio/mc 已断供；botocore 对自定义 --endpoint-url
+# 默认 path-style ⇒ 直连 S3 兼容端点）。
 if [ "$PROFILE" = "local" ]; then
   if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-    # Docker Desktop 可达 (kind 模式): 宿主起 MinIO
-    log "local Profile: 启动本地 MinIO 存储驱动 (MinIODriver, Docker)..."
+    # Docker Desktop 可达 (kind 模式): 宿主起 RustFS
+    log "local Profile: 启动本地对象存储 (RustFS, Docker)..."
     if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^minio$'; then
       docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-        -e MINIO_ROOT_USER=minio -e MINIO_ROOT_PASSWORD=minio123 \
-        minio/minio server /data --console-address ":9001" 2>&1 | tail -1 || warn "MinIO 启动失败(网络/镜像?)"
+        -e RUSTFS_ACCESS_KEY=minio -e RUSTFS_SECRET_KEY=minio123 \
+        -e RUSTFS_VOLUMES=/data \
+        -e RUSTFS_ADDRESS=0.0.0.0:9000 \
+        -e RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001 \
+        rustfs/rustfs:1.0.6 2>&1 | tail -1 || warn "RustFS 启动失败(网络/镜像?)"
     fi
-    docker run --rm --network host minio/mc alias set local http://localhost:9000 minio minio123 >/dev/null 2>&1 || true
-    docker run --rm --network host minio/mc mb -p local/$MINIO_BUCKET >/dev/null 2>&1 || true
+    docker run --rm --network host \
+      -e AWS_ACCESS_KEY_ID=minio -e AWS_SECRET_ACCESS_KEY=minio123 -e AWS_DEFAULT_REGION=us-east-1 \
+      amazon/aws-cli:2.17.23 \
+      s3api create-bucket --endpoint-url http://localhost:9000 --bucket "$MINIO_BUCKET" >/dev/null 2>&1 || true
     MINIO_ENDPOINT="http://minio.local:9000"
   else
-    # 无 docker 可达 (WSL2 真 kubeadm): MinIO 跑进集群内
-    log "local Profile: 以 in-cluster 方式部署 MinIO (WSL2/VM 无宿主 docker)..."
+    # 无 docker 可达 (WSL2 真 kubeadm): 对象存储跑进集群内
+    log "local Profile: 以 in-cluster 方式部署 RustFS (WSL2/VM 无宿主 docker)..."
     kubectl apply -f "$ROOT/platform/minio-incluster.yaml"
     MINIO_ENDPOINT="http://minio.platform-ops:9000"
   fi
@@ -108,7 +120,7 @@ if [ "$PROFILE" = "local" ]; then
   kubectl -n "$WS" create secret generic lakehouse-creds \
     --from-literal=accessKey=minio --from-literal=secretKey=minio123 \
     --from-literal=endpoint="$MINIO_ENDPOINT" --dry-run=client -o yaml | kubectl apply -f -
-  ok "MinIO 就绪: $MINIO_ENDPOINT  bucket=$MINIO_BUCKET (secret 已注入 $WS)"
+  ok "对象存储就绪 (RustFS): $MINIO_ENDPOINT  bucket=$MINIO_BUCKET (secret 已注入 $WS)"
 fi
 
 # ---- 4. 提示引擎/治理/智能层部署 ----

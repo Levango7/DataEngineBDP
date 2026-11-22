@@ -47,9 +47,9 @@ encapsulation:
 # L2.1 统一存储（P0）
 # ----------------------------------------------------------------------------
 storage:
-  # 对象存储后端由 Profile 选 driver（MinIO/Ceph/国产/云S3-客户提供密钥）
+  # 对象存储后端由 Profile 选 driver（RustFS/Ceph/国产/云S3-客户提供密钥）
   objectStore:
-    driver: ""            # Profile 注入：minio | ceph | xcobject | s3
+    driver: ""            # Profile 注入：rustfs | ceph | xcobject | s3
     endpoint: ""
     bucketPrefix: "sq-"
     persistence: { size: "1Ti" }

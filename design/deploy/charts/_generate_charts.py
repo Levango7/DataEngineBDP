@@ -26,6 +26,13 @@ IMAGE_PREFIX = "docker.m.daocloud.io"
 # 此前两条线共用 IMAGE_PREFIX，于是 sq-* 被指到 docker.m.daocloud.io ⇒ helm install 必然
 # ImagePullBackOff，而门禁只查"有 Dockerfile 却无部署单元"的反方向，拦不住它。
 FIRST_PARTY_PREFIX = "ghcr.io/levango7"
+# 直连 Docker Hub 的第三方镜像白名单（**不走** IMAGE_PREFIX 加速器）：
+# 仓内加速器 docker.m.daocloud.io 只代理白名单镜像；本机探针对 rustfs/rustfs、已停供的
+# minio/minio、不存在的仓三种目标**同形回 401** ⇒ 加速器侧不可判，不能用它当"镜像存在"的依据。
+# 而 rustfs/rustfs 只有 Docker Hub 直连坐标被 runner 实证拉通（探针 run 44946850847 /
+# job 136975934622：rustfs/rustfs:1.0.6 = PULL_OK）。这些坐标必须保持裸仓名，
+# 否则又回到台账 #17 的"不可核验镜像坐标"（镜像拉不到 / 拉到的内容无法比对）。
+DIRECT_PULL_IMAGES = {"rustfs/rustfs", "amazon/aws-cli", "tabulario/iceberg-rest"}
 
 
 # 33 个新增 Chart 元数据清单
@@ -65,15 +72,15 @@ CHARTS = [
     ("hive-metastore", "Hive Metastore 元数据服务 - 兼容 Hive 3.1 协议", "3.1.3",
      "bitsondatadev/hive-metastore", "2.3.9", 9083, "engine", "sq-engine",
      "hive,metastore,big-data", 2, "1", "2Gi", "2", "4Gi"),
-    ("iceberg-rest", "Iceberg REST Catalog - 表格式 REST 元服务", "0.7.0",
-     "tabulario/iceberg-rest-catalog", "0.7.0", 8181, "engine", "sq-engine",
+    ("iceberg-rest", "Iceberg REST Catalog - 表格式 REST 元服务", "1.6.0",
+     "tabulario/iceberg-rest", "1.6.0", 8181, "engine", "sq-engine",
      "iceberg,catalog,rest", 2, "0.5", "1Gi", "1", "2Gi"),
     ("zookeeper", "ZooKeeper 协调服务 - 分布式一致性", "3.8.3",
      "bitnami/zookeeper", "3.8.3", 2181, "engine", "sq-engine",
      "zookeeper,coordination", 3, "0.5", "1Gi", "1", "2Gi"),
-    ("minio", "MinIO 对象存储 - S3 兼容私有存储", "2024.8.3",
-     "minio/minio", "RELEASE.2024-08-03T04-33-23Z", 9000, "engine", "sq-engine",
-     "minio,s3,storage", 4, "1", "2Gi", "2", "4Gi"),
+    ("minio", "RustFS 对象存储 - S3 兼容私有存储（替代已停供的 MinIO 社区版）", "1.0.6",
+     "rustfs/rustfs", "1.0.6", 9000, "engine", "sq-engine",
+     "minio,s3,storage,rustfs", 4, "1", "2Gi", "2", "4Gi"),
     ("redis", "Redis 缓存 - 高性能键值存储", "7.2.4",
      "bitnami/redis", "7.2.4", 6379, "engine", "sq-engine",
      "redis,cache,nosql", 1, "0.5", "512Mi", "1", "1Gi"),
@@ -230,7 +237,9 @@ namespace: {namespace}
 
 
 def image_ref(image_repo):
-    """自研（sq- 前缀）走 GHCR，第三方走国内镜像源——两者不能共用一个前缀。"""
+    """自研（sq- 前缀）走 GHCR，第三方走国内镜像源，直连白名单保持裸仓名——三者不能共用一个前缀。"""
+    if image_repo in DIRECT_PULL_IMAGES:
+        return image_repo
     prefix = FIRST_PARTY_PREFIX if image_repo.startswith('sq-') else IMAGE_PREFIX
     return f"{prefix}/{image_repo}"
 

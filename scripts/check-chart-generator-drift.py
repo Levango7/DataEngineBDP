@@ -43,9 +43,28 @@ def prefixes(text):
     return out
 
 
+def direct_pull_images(text):
+    """解析生成器的 DIRECT_PULL_IMAGES 白名单（直连 Docker Hub 的裸仓名集合）。
+
+    与生成器 `image_ref()` 的口径必须严格一致：白名单内的仓名既不加 IMAGE_PREFIX
+    加速器前缀，也不加 FIRST_PARTY_PREFIX，自研分流同样不适用（白名单里没有 sq-*）。
+    解析不到该常量时返回空集合（⇒ 判据退化为"全部走加速器"，与旧版一致）。
+    """
+    for node in ast.parse(text).body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) \
+                and node.targets[0].id == 'DIRECT_PULL_IMAGES':
+            try:
+                val = ast.literal_eval(node.value)
+            except (ValueError, SyntaxError):
+                return set()
+            return {str(v) for v in val} if isinstance(val, (set, frozenset, list, tuple)) else set()
+    return set()
+
+
 def table_rows(text):
     """解析 CHARTS 表 ⇒ {chart: 期望的 image 三字段}（与 gen_values_yaml 的口径一致）。"""
     pre = prefixes(text)
+    direct = direct_pull_images(text)
     rows = {}
     for node in ast.parse(text).body:
         if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) \
@@ -53,6 +72,12 @@ def table_rows(text):
             for r in ast.literal_eval(node.value):
                 name, repo, tag = r[0], r[3], r[4]
                 fp = repo.startswith('sq-')
+                if repo in direct:
+                    # 直连白名单：裸仓名，不加任何前缀，pullPolicy 仍按第三方口径
+                    rows[name] = {'repository': repo,
+                                  'tag': tag,
+                                  'pullPolicy': 'IfNotPresent'}
+                    continue
                 host = pre.get('FIRST_PARTY_PREFIX', '') if fp else pre.get('IMAGE_PREFIX', '')
                 rows[name] = {'repository': '%s/%s' % (host, repo),
                               'tag': 'latest' if fp else tag,
@@ -139,10 +164,13 @@ def self_test():
     """合成样本双向验证判据：一致放行、漂移判红、豁免不参与、表空判失明。"""
     gen = ('IMAGE_PREFIX = "docker.m.daocloud.io"\n'
            'FIRST_PARTY_PREFIX = "ghcr.io/levango7"\n'
+           'DIRECT_PULL_IMAGES = {"direct/repo"}\n'
            'CHARTS = [\n'
            ' ("good", "d", "1", "sq-good", "9.9", 80, "c", "n", "k", 1, "1", "1", "2", "2"),\n'
            ' ("bad", "d", "1", "k8s.gcr.io/bad", "v1", 80, "c", "n", "k", 1, "1", "1", "2", "2"),\n'
            ' ("exempt", "d", "1", "sq-exempt", "9", 80, "c", "n", "k", 1, "1", "1", "2", "2"),\n'
+           ' ("direct", "d", "1", "direct/repo", "1.0.6", 80, "c", "n", "k", 1, "1", "1", "2", "2"),\n'
+           ' ("third", "d", "1", "third/repo", "2.0.0", 80, "c", "n", "k", 1, "1", "1", "2", "2"),\n'
            ']\n')
     rows = table_rows(gen)
     ok = True
@@ -151,17 +179,33 @@ def self_test():
     checks.append(('自研行期望 ghcr + latest + Always',
                    good == {'repository': 'ghcr.io/levango7/sq-good', 'tag': 'latest',
                             'pullPolicy': 'Always'}))
+    checks.append(('非白名单第三方仍走加速器前缀',
+                   rows['third'] == {'repository': 'docker.m.daocloud.io/third/repo',
+                                     'tag': '2.0.0', 'pullPolicy': 'IfNotPresent'}))
+    checks.append(('直连白名单行期望裸仓名（不加加速器前缀）',
+                   rows['direct'] == {'repository': 'direct/repo', 'tag': '1.0.6',
+                                      'pullPolicy': 'IfNotPresent'}))
     blocks = {
         'good': dict(good),
         'bad': {'repository': 'docker.m.daocloud.io/registry.k8s.io/bad',
                 'tag': 'v1', 'pullPolicy': 'IfNotPresent'},
         'exempt': {'repository': 'docker.m.daocloud.io/sq-exempt',
                    'tag': '0.1.0', 'pullPolicy': 'IfNotPresent'},
+        'direct': dict(rows['direct']),
+        'third': dict(rows['third']),
     }
     drift = compare(rows, blocks, {'exempt'})
     checks.append(('一致行放行（good 不出现在漂移里）', not any(d[0] == 'good' for d in drift)))
     checks.append(('退役 registry 被判漂移', any(d[0] == 'bad' and d[1] == 'repository' for d in drift)))
     checks.append(('基线在册项被豁免', not any(d[0] == 'exempt' for d in drift)))
+    # 直连白名单的反侧夹具：文件里若被写成加速器前缀（带前缀的裸仓名）⇒ 必须判漂移，
+    # 否则"直连"口径会被静默放宽成"随便写什么前缀都行"。
+    blocks_prefixed = dict(blocks)
+    blocks_prefixed['direct'] = {'repository': 'docker.m.daocloud.io/direct/repo',
+                                 'tag': '1.0.6', 'pullPolicy': 'IfNotPresent'}
+    drift_prefixed = compare(rows, blocks_prefixed, {'exempt'})
+    checks.append(('直连行写成加速器前缀 ⇒ 判漂移（不静默放宽）',
+                   any(d[0] == 'direct' and d[1] == 'repository' for d in drift_prefixed)))
     checks.append(('缺文件也判漂移（不静默跳过）',
                    any(d[0] == 'ghost' for d in compare(
                        dict(rows, **{'ghost': {'repository': 'x', 'tag': 'y', 'pullPolicy': 'z'}}),
