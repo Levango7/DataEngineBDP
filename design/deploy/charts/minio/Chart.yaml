@@ -1,6 +1,6 @@
 apiVersion: v2
 name: minio
-description: "MinIO 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台"
+description: "RustFS 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台（替代已停供的 MinIO 社区版）"
 type: application
 version: 2.0.0
 appVersion: "2.0.0"
@@ -10,9 +10,16 @@ maintainers:
     email: platform@shuqing.example.com
 keywords:
   - minio
+  - rustfs
   - s3
   - storage
   - shuqing-platform
   - engine
 # 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
 namespace: sq-engine
+# 2026-11-22 实现替换（台账 #17）：本 chart 部署的实现已由 MinIO 社区版换成
+# RustFS 1.0.6 —— MinIO 社区版镜像 2026-09-11 被上游整体删除（runner 实测 pull
+# access denied），上游仓 2026-04-25 归档只读，本坐标生产已不可拉取。
+# chart 名 `minio` 暂时保留：umbrella 以 file://../minio 依赖本 chart，业务侧
+# endpoint / Service 名被备份脚本、漂移审计、iceberg-compaction 等引用 ⇒
+# 本次只换实现与凭据口径，不改服务名；服务名重命名另立工作项。

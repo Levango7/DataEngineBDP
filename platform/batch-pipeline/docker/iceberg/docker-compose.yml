@@ -1,9 +1,14 @@
-# Phase 4: Iceberg REST catalog + MinIO 编排（生产部署）
+# Phase 4: Iceberg REST catalog + RustFS 编排（生产部署）
 # 设计参见 docs/evolution.md §6.x
 #
 # 组件：
-#   - MinIO：S3 兼容对象存储，存储 Iceberg 数据文件（复用 Phase 3 实例）
-#   - Iceberg REST catalog：表元数据管理（tabio/iceberg-rest image）
+#   - RustFS：S3 兼容对象存储，存储 Iceberg 数据文件（复用 Phase 3 实例）
+#     —— 2026-11-22 实现替换（台账 #17）：原 MinIO 社区版镜像已于 2026-09-11 被
+#        上游整体删除（runner 实测 pull access denied），上游仓 2026-04-25 归档只读。
+#   - Iceberg REST catalog：表元数据管理（tabulario/iceberg-rest image）
+#     —— 2026-11-22 坐标订正（台账 #126）：原 `tabio/iceberg-rest:1.11.0` 是
+#        **双重错坐标**（厂商名拼错 + tag 不存在，上游最高 1.6.0），runner 实测
+#        manifest rc=1 denied；真实坐标 `tabulario/iceberg-rest:1.6.0`（amd64+arm64）。
 #   -（可选）PostgreSQL：REST catalog 的后端 DB（生产用，开发可用 SQLite）
 #
 # 使用：
@@ -17,89 +22,149 @@
 #   storage.endpoint = "localhost:9000"
 #   storage.bucket = "batch-pipeline"
 #
-# 安全：MinIO 凭证通过环境变量注入（缺省 minioadmin 仅用于开发）
+# 安全：凭证通过环境变量注入（缺省仅用于开发）
+#   **外部变量名保持 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD 不变**（.env 契约不破，
+#   既有部署者的 .env 继续可用），但在容器内映射成 RustFS 的规范名
+#   RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY。
 #   生产部署：在 .env 或 shell 中设置 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
 #   切勿将生产凭证提交到版本控制
 
 services:
-  # MinIO：S3 兼容对象存储（复用 Phase 3 配置）
+  # RustFS：S3 兼容对象存储（复用 Phase 3 配置）
   minio:
     # 锁定版本：避免 :latest 导致的不可复现构建
-    image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+    # 直连 Docker Hub：仓内加速器不代理该仓，且本机探针对 rustfs/rustfs、已停供的
+    # minio/minio、不存在的仓三种目标同形回 401 ⇒ 加速器侧不可判
+    image: rustfs/rustfs:1.0.6
     container_name: batch-pipeline-minio
     ports:
-      # 显式绑定 127.0.0.1：缺省凭证为 minioadmin（仅开发用），0.0.0.0 通配绑定
+      # 显式绑定 127.0.0.1：缺省凭证仅开发用，0.0.0.0 通配绑定
       # 会把缺省凭证服务暴露到所有网卡。与 docker/spark-cluster/docker-compose.yml
       # 的 127.0.0.1 安全基线保持一致。
-      # 本地测试通过 localhost:9000 访问 MinIO；compose 内部容器经 minio 主机名
+      # 本地测试通过 localhost:9000 访问对象存储；compose 内部容器经 minio 主机名
       # 走 Docker 内部网络访问，不经过宿主端口映射，改绑定不影响这些路径。
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     environment:
-      # 凭证从环境变量读取（缺省 minioadmin 仅开发用；生产通过 .env 覆盖）
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    command: server /data --console-address ":9001"
+      # 外部变量名不变（.env 契约），容器内用 RustFS 规范名
+      RUSTFS_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      RUSTFS_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      # RUSTFS_VOLUMES 由 rustfs 直接处理，不得作为 args 追加（上游 entrypoint 注释）
+      RUSTFS_VOLUMES: /data
+    # 不覆写 command：RustFS 的 entrypoint+CMD 形态与 MinIO 的 `server /data` 不同，
+    # env 形态更稳（上游 entrypoint 对 RUSTFS_VOLUMES 有显式处理）
     volumes:
       - minio-data:/data
     healthcheck:
+      # 健康端点与 MinIO 同号（上游 rustfs/src/server/layer.rs 同时注册
+      # /minio/health/live → Liveness、/minio/health/ready → Readiness）
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  # MinIO 初始化：创建 bucket
+  # 对象存储初始化：创建 bucket
   minio-init:
-    # 锁定版本（与 minio 对齐，避免 mc 与 server 版本不匹配）
-    image: minio/mc:RELEASE.2024-08-29T01-40-52Z
+    # RustFS 无官方 mc 客户端，minio/mc 已停供 ⇒ 用 AWS CLI 的 S3 客户端
+    # （botocore 对自定义 --endpoint-url 默认走 path-style 寻址）
+    image: amazon/aws-cli:2.17.23
     container_name: batch-pipeline-minio-init
     depends_on:
       minio:
         condition: service_healthy
     environment:
-      # 传递凭证给 mc（与 minio 服务一致）
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_DEFAULT_REGION: us-east-1
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-      mc mb local/batch-pipeline || true;
-      mc mb local/warehouse || true;
+      aws s3api create-bucket --endpoint-url http://minio:9000 --bucket batch-pipeline || true;
+      aws s3api create-bucket --endpoint-url http://minio:9000 --bucket warehouse || true;
       exit 0;
       "
     restart: "no"
 
+  # catalog 元数据卷初始化：把卷属主改成镜像默认用户（uid/gid=1000）
+  # 2026-11-22 runner 实测（run 45020791024 G3）：
+  #   - 新建 named volume 默认属主 root:root 0755 ⇒ 默认用户（iceberg, uid=1000）**写不进去**
+  #     （实测 SQLITE_CANTOPEN: unable to open the database file）；
+  #   - 以 root 跑一次 `chown 1000:1000 /data` ⇒ rc=0，属主变为 1000:1000；
+  #   - 随后默认用户容器挂同一卷 + CATALOG_URI=jdbc:sqlite:file:/data/catalog.db
+  #     ⇒ 建 namespace 返回 200，且 /data/catalog.db 落盘（20480 bytes，iceberg:iceberg）。
+  # ⇒ 不用 `user: "0:0"` 降权跑主容器，用一次性 root init 容器改属主，是更稳的形态。
+  # 说明：镜像内确实有 chown（/usr/bin/chown）与 sh（runner 实测工具链清单）。
+  iceberg-rest-init:
+    image: tabulario/iceberg-rest:1.6.0
+    container_name: batch-pipeline-iceberg-rest-init
+    user: "0:0"
+    volumes:
+      - iceberg-rest-catalog:/data
+    entrypoint: >
+      /bin/sh -c "chown 1000:1000 /data && echo catalog-volume-ready"
+    restart: "no"
+
   # Iceberg REST catalog：表元数据管理
-  # 使用 tabio/iceberg-rest image（Apache Iceberg REST catalog 实现）
-  # 后端用 in-memory（开发测试）；生产用 PostgreSQL（注释部分）
+  # 使用 tabulario/iceberg-rest image（Apache Iceberg REST catalog 实现）
+  # 后端用镜像内置的 JdbcCatalog + sqlite（开发测试）；生产用 PostgreSQL（注释部分）
   iceberg-rest:
-    # 锁定版本：与 config/pipeline.json 中 iceberg.properties.iceberg_spark_runtime 1.11.0 对齐
-    image: tabio/iceberg-rest:1.11.0
+    # 坐标订正见文件头（台账 #126）：tabulario/iceberg-rest:1.6.0
+    image: tabulario/iceberg-rest:1.6.0
     container_name: batch-pipeline-iceberg-rest
     ports:
       # 显式绑定 127.0.0.1：REST catalog 仅供本机访问（catalog_uri=http://localhost:8181），
-      # 与 spark-cluster / minio 的安全基线一致（Spark worker 经容器内部网络访问）
+      # 与 spark-cluster / 对象存储的安全基线一致（Spark worker 经容器内部网络访问）
       - "127.0.0.1:8181:8181"
     depends_on:
       minio-init:
         condition: service_completed_successfully
+      iceberg-rest-init:
+        condition: service_completed_successfully
+    volumes:
+      # catalog 元数据落盘（2026-11-22 补）：默认 CATALOG_URI 落在容器 /tmp
+      # （jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory，实测是 20480 字节真实 sqlite 文件，
+      #  非内存库）⇒ 容器重启即丢表清单。挂卷后 CATALOG_URI 指向 /data/catalog.db。
+      # 约束：sqlite 单文件不支持多副本并发写 ⇒ compose 侧只能是单实例；
+      #        要多副本必须把 CATALOG_URI 换成外部共享 JDBC 库（PostgreSQL）。
+      - iceberg-rest-catalog:/data
     environment:
-      # REST catalog 配置
-      CATALOG_NAME: batch_pipeline
+      # REST catalog 配置（契约按 runner 实测对齐，台账 #126）
       CATALOG_WAREHOUSE: s3://batch-pipeline/warehouse
-      CATALOG_OBJECT_STORE: s3
+      # catalog 元数据后端：指向挂载卷里的 sqlite 文件（见 volumes 段说明）
+      CATALOG_URI: jdbc:sqlite:file:/data/catalog.db
+      # CATALOG_IO__IMPL 用双下划线：Iceberg REST 的 Env 映射把属性名里的 '-' 记作
+      # '__'，'io-impl' ⇒ 'IO__IMPL'（runner 实跑 properties:
+      # io-impl=org.apache.iceberg.aws.s3.S3FileIO）。旧值单下划线映射不到。
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
       CATALOG_S3_ENDPOINT: http://minio:9000
-      # S3 凭证从环境变量读取（与 MinIO 一致）
-      CATALOG_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-      CATALOG_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      CATALOG_S3_REGION: us-east-1
-      # 后端存储：in-memory（开发测试）；生产用 postgresql
-      CATALOG_IO_IMPL: org.apache.iceberg.aws.s3.S3FileIO
-      CATALOG_METRICS_REPORTER: org.apache.iceberg.metrics.LoggingMetricsReporter
+      # path-style 必须开：虚拟主机式寻址会把 bucket 拼到 endpoint 主机名前面，
+      # 解析到 <bucket>.<endpoint> 而失败（runner 实测：未开时建表 500
+      # UnknownHostException: probe-bucket.rustfs；开启后建表 200）
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+      # S3 凭证用 AWS SDK 标准名（旧值 CATALOG_S3_ACCESS_KEY / CATALOG_S3_SECRET_KEY /
+      # CATALOG_S3_REGION 不是该镜像认的键）
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_REGION: us-east-1
+      # catalog 后端：镜像内置默认即 JdbcCatalog + sqlite
+      # （HadoopCatalog 在该镜像不可用——缺 hadoop-aws，实测报
+      #  UnsupportedFileSystemException: No FileSystem for scheme "s3"）
     healthcheck:
-      # Iceberg REST catalog 健康端点（/health 返回 200 即健康）
-      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      # 探针路径订正（台账 #126）：该镜像**不实现** /health、/healthz、/readyz，
+      # 三个路径实测全部返回 400（旧值必然导致容器永远 unhealthy）；
+      # REST 规范的 /v1/config 实测返回 200
+      #
+      # 探针命令订正（台账 #126，2026-11-22 runner 实测 run 45020791024）：
+      # 该镜像内**没有 curl、没有 wget、没有 nc**（只有 bash / sh / grep / java / id），
+      # 旧值 `["CMD","curl",...]` ⇒ healthcheck 永远失败 ⇒ 依赖它的服务永远等不到
+      # service_healthy。改用镜像内确实存在的 bash（/usr/bin/bash）走 bash 的 /dev/tcp：
+      #   exec 3<>/dev/tcp/127.0.0.1/8181 && printf 'GET /v1/config HTTP/1.0\r\n...' >&3
+      #   && head -n 1 <&3 | grep -q '200'
+      # runner 实测：该片段在真实镜像内对 /v1/config 返回 rc=0（同一片段连关闭端口
+      # 19999 返回非 0）。
+      # 注意：dash（/bin/sh）不支持 /dev/tcp ⇒ 必须显式调 bash，不能写 sh -c。
+      # K8s 侧不需要这段——kubelet 的 httpGet 探针由节点侧发起，不依赖镜像内工具。
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8181 && printf 'GET /v1/config HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q '200'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -122,4 +187,6 @@ services:
 
 volumes:
   minio-data:
+  # catalog 元数据卷（见 iceberg-rest-init / iceberg-rest 的 volumes 段说明）
+  iceberg-rest-catalog:
   # postgres-data:

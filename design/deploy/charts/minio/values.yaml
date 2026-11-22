@@ -2,13 +2,34 @@
 # minio Helm Chart 默认 values
 # 关联：design/deploy/values/minio-values.yaml（深度调优配置）
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+#
+# 2026-11-22 实现替换（台账 #17）：本 chart 部署的实现已由 MinIO 社区版换成
+# RustFS 1.0.6 —— MinIO 社区版镜像 2026-09-11 被上游整体删除（runner 实测
+# pull access denied），上游仓 2026-04-25 归档只读，本坐标生产已不可拉取。
+# chart 名 `minio` 暂时保留：umbrella 以 file://../minio 依赖本 chart，且业务侧
+# endpoint / Service 名（minio.sq-engine.svc.cluster.local:9000）被备份脚本、
+# 漂移审计、iceberg-compaction 等引用，重命名会连带改这些引用面 ⇒ 本次只换
+# 实现与凭据口径，不改服务名；服务名重命名另立工作项。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（直连 Docker Hub）----
+# 仓内加速器 docker.m.daocloud.io 不代理该仓，且本机探针对 rustfs/rustfs、
+# 已停供的 minio/minio、不存在的仓三种目标**同形回 401** ⇒ 加速器侧不可判；
+# 直连坐标是唯一被 runner 实证拉通的形态（探针 run 44946850847 /
+# job 136975934622：rustfs/rustfs:1.0.6 = PULL_OK）。
 image:
-  repository: "docker.m.daocloud.io/minio/minio"
-  tag: "RELEASE.2024-08-03T04-33-23Z"
+  repository: "rustfs/rustfs"
+  tag: "1.0.6"
   pullPolicy: IfNotPresent
+
+# ---- 访问凭据（走 Secret，不进 ConfigMap：台账 #12 敏感值不进 ConfigMap）----
+# 生产必须配置，例如：
+#   kubectl -n <ns> create secret generic rustfs-creds \
+#     --from-literal=access-key=<AK> --from-literal=secret-key=<SK>
+credentials:
+  existingSecret: ""
+  accessKeyKey: "access-key"
+  secretKeyKey: "secret-key"
 
 # ---- 副本数 ----
 replicaCount: 4
@@ -31,12 +52,16 @@ resources:
 
 
 # ---- 安全上下文（Pod/Container 安全加固）----
+# uid/gid 必须用 10001：上游 Dockerfile 用 addgroup -g 10001 / adduser -u 10001
+# 建 rustfs 用户，并把 /data 与 /logs 置为 rustfs:rustfs 0750 ⇒ 换成别的 uid
+# 会失去 /data 写权限（entrypoint 的 ensure_local_directory 只做 best-effort
+# chown，非 root 身份下无法补救，官方镜像报错文案即提示 10001:10001）。
 securityContext:
   enabled: true
   runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   capabilities:
@@ -44,6 +69,9 @@ securityContext:
       - ALL
 
 # ---- 健康检查 ----
+# 探针路径零改动：RustFS 1.0.6 仍注册 MinIO 兼容健康端点
+# （上游 rustfs/src/server/layer.rs：/minio/health/live → Liveness，
+#   /minio/health/ready → Readiness）。
 probes:
   liveness:
     enabled: true
@@ -61,6 +89,19 @@ probes:
     initialDelaySeconds: 10
     periodSeconds: 5
     failureThreshold: 3
+
+# ---- 持久化（对象存储数据面）----
+# 默认关闭 = 沿用旧 chart 的行为（数据只落在容器可写层，重启即丢）。
+# 生产必须开启并绑定 PVC，否则对象存储不具备可用性前提。
+persistence:
+  enabled: false
+  size: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  # 留空则用集群默认 StorageClass（与 charts/prometheus 同口径）
+  storageClassName: ""
+  # 已有 PVC 时填名字（填了就复用、不再创建）
+  existingClaim: ""
 
 # ---- Pod 调度 ----
 nodeSelector: {}
@@ -92,15 +133,18 @@ ingress:
           pathType: Prefix
   tls: []
 
-# ---- 环境变量 ----
+# ---- 环境变量（仅非敏感项，进 ConfigMap；凭据见上方 credentials）----
 env:
-  LOG_LEVEL: info
-  JAVA_OPTS: ""
+  RUSTFS_VOLUMES: "/data"
+  RUSTFS_ADDRESS: "0.0.0.0:9000"
+  RUSTFS_CONSOLE_ADDRESS: "0.0.0.0:9001"
+  RUSTFS_CONSOLE_ENABLE: "true"
+  RUSTFS_OBS_LOGGER_LEVEL: "warn"
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |
-    # minio 默认配置，完整配置请引用 design/deploy/values/minio-values.yaml
+    # RustFS 默认配置，完整配置请引用 design/deploy/values/minio-values.yaml
 
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/minio-values.yaml 覆盖
@@ -112,6 +156,10 @@ networkPolicy:
   enabled: false
 
 # ---- ServiceMonitor（Prometheus 指标采集）----
+# 注意：RustFS 1.0.6 的指标是**推送**模式——上游自带 .docker/observability/
+# prometheus.yml 抓的是 otel-collector:8889（应用指标出口），服务端未检出
+# /metrics 拉取路由（rustfs/src/server/*.rs 共 21 文件 0 命中）⇒ 本项保持关闭；
+# 启用前须改走 OTel Collector 采集链路（台账 #130），不要按 MinIO 的拉取模型打开。
 serviceMonitor:
   enabled: false
   path: /metrics

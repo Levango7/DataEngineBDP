@@ -36,6 +36,12 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      {{- if .Values.catalogPersistence.enabled }}
+      volumes:
+        - name: catalog-data
+          persistentVolumeClaim:
+            claimName: {{ .Values.catalogPersistence.existingClaim | default (printf "%s-catalog" (include "iceberg-rest.fullname" .)) }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -47,6 +53,30 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "iceberg-rest.configmapName" . }}
+          {{- if or .Values.credentials.existingSecret (include "iceberg-rest.catalogUri" .) }}
+          env:
+            {{- if .Values.credentials.existingSecret }}
+            # 凭据走 Secret（台账 #12：敏感值不进 ConfigMap / Pod spec 字面量）。
+            # 与 envFrom 的 ConfigMap 并存时，同名键以本段 env 为准。
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.accessKeyKey | quote }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.secretKeyKey | quote }}
+            {{- end }}
+            {{- $catalogUri := include "iceberg-rest.catalogUri" . }}
+            {{- if $catalogUri }}
+            # CATALOG_URI：catalog 元数据后端 JDBC URL。
+            # 留空时用镜像内置默认（容器内 sqlite，容器重启即丢表清单）。
+            - name: CATALOG_URI
+              value: {{ $catalogUri | quote }}
+            {{- end }}
+          {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -64,6 +94,11 @@ spec:
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
+          {{- end }}
+          {{- if .Values.catalogPersistence.enabled }}
+          volumeMounts:
+            - name: catalog-data
+              mountPath: {{ .Values.catalogPersistence.mountPath | quote }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

@@ -372,6 +372,8 @@ def test_metrics_recorder_negative_quarantined_not_validated():
 # s3_credentials：配置显式凭证 > 环境变量回退（安全收敛，2026-08）
 # ----------------------------------------------------------------------
 _ENV_KEYS = (
+    "RUSTFS_ACCESS_KEY",
+    "RUSTFS_SECRET_KEY",
     "MINIO_ROOT_USER",
     "MINIO_ROOT_PASSWORD",
     "AWS_ACCESS_KEY_ID",
@@ -393,6 +395,37 @@ def test_s3_credentials_explicit_config_wins(_clean_s3_env):
     _clean_s3_env.setenv("MINIO_ROOT_PASSWORD", "envpass")
     cfg = {"storage": {"access_key": "ak", "secret_key": "sk"}}
     assert s3_credentials(cfg) == ("ak", "sk")
+
+
+def test_s3_credentials_env_fallback_rustfs(_clean_s3_env):
+    """RustFS 规范名优先（本平台对象存储实现的容器内凭据口径，2026-11-22）。"""
+    from batch_pipeline.io._s3_parquet import s3_credentials
+
+    _clean_s3_env.setenv("RUSTFS_ACCESS_KEY", "rustfsuser")
+    _clean_s3_env.setenv("RUSTFS_SECRET_KEY", "rustfspass")
+    assert s3_credentials({"storage": {}}) == ("rustfsuser", "rustfspass")
+
+
+def test_s3_credentials_rustfs_wins_over_minio_compat(_clean_s3_env):
+    """RUSTFS_* 与 MINIO_* 同时存在时取 RUSTFS_*（规范名优先于兼容名）。"""
+    from batch_pipeline.io._s3_parquet import s3_credentials
+
+    _clean_s3_env.setenv("RUSTFS_ACCESS_KEY", "rustfsuser")
+    _clean_s3_env.setenv("RUSTFS_SECRET_KEY", "rustfspass")
+    _clean_s3_env.setenv("MINIO_ROOT_USER", "envuser")
+    _clean_s3_env.setenv("MINIO_ROOT_PASSWORD", "envpass")
+    assert s3_credentials({"storage": {}}) == ("rustfsuser", "rustfspass")
+
+
+def test_s3_credentials_minio_compat_wins_over_aws(_clean_s3_env):
+    """兼容名（MINIO_*）优先于 AWS 通用名。"""
+    from batch_pipeline.io._s3_parquet import s3_credentials
+
+    _clean_s3_env.setenv("MINIO_ROOT_USER", "envuser")
+    _clean_s3_env.setenv("MINIO_ROOT_PASSWORD", "envpass")
+    _clean_s3_env.setenv("AWS_ACCESS_KEY_ID", "awsid")
+    _clean_s3_env.setenv("AWS_SECRET_ACCESS_KEY", "awskey")
+    assert s3_credentials({"storage": {}}) == ("envuser", "envpass")
 
 
 def test_s3_credentials_env_fallback_minio(_clean_s3_env):

@@ -1,0 +1,27 @@
+{{/*
+catalog 元数据持久卷（台账 #126）。
+
+背景：该镜像内置的 catalog 后端是 JdbcCatalog + sqlite，默认 CATALOG_URI 落在
+容器 /tmp（runner 实测：20480 字节真实 sqlite 文件，非内存库）⇒ 容器重启即丢表清单。
+开启 catalogPersistence 后挂此卷并把 CATALOG_URI 指向卷内 catalog.db。
+
+约束：sqlite 单文件不支持多副本并发写 ⇒ 开启本项时必须保持 replicaCount=1。
+写权限靠 Pod 级 securityContext.fsGroup（镜像默认用户 uid/gid=1000）。
+*/}}
+{{- if and .Values.catalogPersistence.enabled (not .Values.catalogPersistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "iceberg-rest.fullname" . }}-catalog
+  labels:
+    {{- include "iceberg-rest.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.catalogPersistence.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.catalogPersistence.size }}
+  {{- if .Values.catalogPersistence.storageClassName }}
+  storageClassName: {{ .Values.catalogPersistence.storageClassName | quote }}
+  {{- end }}
+{{- end }}

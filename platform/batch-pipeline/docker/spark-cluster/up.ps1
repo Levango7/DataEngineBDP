@@ -10,7 +10,7 @@ param(
 
 # ── up.ps1 ─────────────────────────────────────────────────────
 # 一键启动 batch-pipeline Spark 集群
-# 步骤: build → up → 等待 Master 就绪 → 连接 MinIO
+# 步骤: build → up → 等待 Master 就绪 → 连接对象存储容器
 # ───────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
@@ -74,14 +74,14 @@ if (-not $MasterReady) {
 }
 Write-Host ""
 
-# Step 3: 连接 MinIO 到集群网络
-Write-Host "[Step 3/4] 连接 MinIO 到集群网络 ..." -ForegroundColor Cyan
+# Step 3: 连接对象存储容器到集群网络
+Write-Host "[Step 3/4] 连接对象存储容器到集群网络 ..." -ForegroundColor Cyan
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 & "$scriptDir\connect-minio.ps1"
 # 修复：检查 connect-minio 退出码，失败立即终止
 # 此前未检查 $LASTEXITCODE，connect-minio 失败时集群仍报"启动完成"
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] connect-minio 失败！MinIO 未加入集群网络，Worker 无法访问 S3" -ForegroundColor Red
+    Write-Host "[ERROR] connect-minio 失败！对象存储容器未加入集群网络，Worker 无法访问 S3" -ForegroundColor Red
     exit 1
 }
 Write-Host ""

@@ -80,11 +80,11 @@ case "${SPARK_MODE}" in
         export SPARK_WORKER_CORES="${SPARK_WORKER_CORES:-2}"
         export SPARK_WORKER_MEMORY="${SPARK_WORKER_MEMORY:-2g}"
 
-        # socat 代理：localhost:9000 -> minio:9000
-        # 让 Worker 用 localhost:9000 访问 MinIO（与 Driver 一致）
+        # socat 代理：localhost:9000 -> minio:9000（对象存储容器，RustFS）
+        # 让 Worker 用 localhost:9000 访问对象存储（RustFS）（与 Driver 一致）
         socat TCP-LISTEN:9000,fork,reuseaddr TCP:minio:9000 &
         SOCAT_PID=$!
-        echo ">>> socat proxy started: localhost:9000 -> minio:9000 (pid=${SOCAT_PID})"
+        echo ">>> socat proxy started: localhost:9000 -> minio:9000 (RustFS, pid=${SOCAT_PID})"
 
         # 等待 Master 就绪（失败立即退出）
         wait_for_master

@@ -1,6 +1,6 @@
 # 笔记本单机验证 Profile (非信创, x86_64 / amd64)
-# 适用: 开发者笔记本 (无信创机器), 单机 K3s / kind, 最小资源, 本地 MinIO 存储
-# 与 xinchuang 差异: arch=amd64, 无 openeuler 变体, 标准加密(非国密), 存储走 MinIO
+# 适用: 开发者笔记本 (无信创机器), 单机 K3s / kind, 最小资源, 本地 RustFS 存储
+# 与 xinchuang 差异: arch=amd64, 无 openeuler 变体, 标准加密(非国密), 存储走 RustFS
 # 注意: 仅用于本地验证 PoC; 客户交付仍用 xinchuang/onprem/publiccloud/privatecloud
 
 profile: local
@@ -25,13 +25,15 @@ global:
 storage:
   # 统一对象存储抽象（storage-io 0.1.0）: driver 与 values-base.yaml 注入约定对齐
   objectStore:
-    driver: minio               # 枚举: minio | ceph | s3 | xcobject; 本地单机用 MinIO
+    driver: rustfs              # 枚举: rustfs | ceph | xcobject | s3; 本地单机用 RustFS
+                               # (2026-11-22 台账 #17: 原 minio 档的实现换成 RustFS 1.0.6,
+                               #  MinIO 社区版镜像 2026-09-11 被上游整体删除)
     endpoint: "http://minio.local:9000"
     bucket: "lakehouse"
     accessKey: "minio"
     secretKey: "minio123"
     # ---- storage-io 对接字段（S3 兼容）----
-    pathStyle: true              # MinIO/Ceph 需 path-style 访问
+    pathStyle: true              # RustFS/Ceph 需 path-style 访问
     region: "us-east-1"
     accessKeySource: env         # env | secret | customer-provided
     encryption: aes              # aes | sm4（xinchuang 用 sm4）
