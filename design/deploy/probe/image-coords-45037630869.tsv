@@ -1,0 +1,54 @@
+# run 45037630869 / sha 11a30d46a04dff5d9e27377009891ab43b9f14cc / 2026-11-22T15:31:01Z
+# 判据：只有 rc=0 记「存在」；rc≠0 一律记「不可判」（与负对照失败形态无法区分时不作存在性断言）
+# 坐标清单：
+karmada|docker.m.daocloud.io/karmada/karmada-controller-manager:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-scheduler:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-webhook:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-aggregated-apiserver:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-agent:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-metrics-adapter:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-scheduler-estimator:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-descheduler:v1.12.0
+karmada|docker.m.daocloud.io/karmada/karmada-search:v1.12.0
+karmada|docker.m.daocloud.io/cfssl/cfssl:latest
+karmada|docker.m.daocloud.io/bitnami/kubectl:latest
+karmada|registry.k8s.io/etcd:3.5.16-0
+karmada|registry.k8s.io/kube-apiserver:v1.31.3
+karmada|registry.k8s.io/kube-controller-manager:v1.31.3
+istio|docker.m.daocloud.io/istio/pilot:1.22.3
+istio|docker.m.daocloud.io/istio/proxyv2:1.22.3
+istio|busybox:1.28
+otel|docker.m.daocloud.io/otel/opentelemetry-collector-contrib:0.130.0
+otel|docker.m.daocloud.io/grafana/tempo:2.6.0
+owasp|docker.m.daocloud.io/owasp/modsecurity-crs:4.8.0-nginx-202411071011
+owasp|docker.m.daocloud.io/owasp/modsecurity-crs:nginx
+owasp|apache/apisix:3.11.0
+keycloak|quay.io/keycloak/keycloak:25.0.0
+positive-control|postgres:16
+negative-control|docker.m.daocloud.io/this-repo-must-not-exist-128-probe/nope:0.0.0
+# 探针结果（PROBE<TAB>状态<TAB>类别<TAB>坐标<TAB>rc<TAB>架构或错误摘要）：
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-controller-manager:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-scheduler:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-webhook:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-aggregated-apiserver:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	FAIL	karmada	docker.m.daocloud.io/karmada/karmada-agent:v1.12.0	rc=1	err=Get "https://docker.m.daocloud.io/v2/karmada/karmada-agent/manifests/sha256:1d8b17a18e9e506438739403bdd1341ee3bfbc4ee9d74bd81b663f6ff456df39": net/http: TLS handshake timeout
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-metrics-adapter:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-scheduler-estimator:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-descheduler:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/karmada/karmada-search:v1.12.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/cfssl/cfssl:latest	rc=0	arch=amd64,arm64,s390x,unknown
+PROBE	OK	karmada	docker.m.daocloud.io/bitnami/kubectl:latest	rc=0	arch=amd64,arm64
+PROBE	OK	karmada	registry.k8s.io/etcd:3.5.16-0	rc=0	arch=amd64,arm,arm64,ppc64le,s390x
+PROBE	OK	karmada	registry.k8s.io/kube-apiserver:v1.31.3	rc=0	arch=amd64,arm64,ppc64le,s390x
+PROBE	OK	karmada	registry.k8s.io/kube-controller-manager:v1.31.3	rc=0	arch=amd64,arm64,ppc64le,s390x
+PROBE	OK	istio	docker.m.daocloud.io/istio/pilot:1.22.3	rc=0	arch=amd64,arm64
+PROBE	OK	istio	docker.m.daocloud.io/istio/proxyv2:1.22.3	rc=0	arch=amd64,arm64
+PROBE	OK	istio	busybox:1.28	rc=0	arch=386,amd64,arm,arm64,ppc64le,s390x
+PROBE	OK	otel	docker.m.daocloud.io/otel/opentelemetry-collector-contrib:0.130.0	rc=0	arch=386,amd64,arm,arm64,ppc64le,s390x
+PROBE	OK	otel	docker.m.daocloud.io/grafana/tempo:2.6.0	rc=0	arch=amd64,arm64
+PROBE	OK	owasp	docker.m.daocloud.io/owasp/modsecurity-crs:4.8.0-nginx-202411071011	rc=0	arch=386,amd64,arm,arm64,unknown
+PROBE	OK	owasp	docker.m.daocloud.io/owasp/modsecurity-crs:nginx	rc=0	arch=amd64,arm64,unknown
+PROBE	FAIL	owasp	apache/apisix:3.11.0	rc=1	err=no such manifest: docker.io/apache/apisix:3.11.0
+PROBE	OK	keycloak	quay.io/keycloak/keycloak:25.0.0	rc=0	arch=amd64,arm64,unknown
+PROBE	OK	positive-control	postgres:16	rc=0	arch=386,amd64,arm,arm64,ppc64le,riscv64,s390x,unknown
+PROBE	FAIL	negative-control	docker.m.daocloud.io/this-repo-must-not-exist-128-probe/nope:0.0.0	rc=1	err=denied
