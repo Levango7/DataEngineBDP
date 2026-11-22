@@ -891,7 +891,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Node.js 22
         if: steps.converge.outputs.converge != 'true'
@@ -1130,7 +1130,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 JDK 17 (Temurin)
         if: steps.converge.outputs.converge != 'true'
@@ -1167,7 +1167,7 @@ jobs:
           fi
 
       - name: 对每个 Java 组件执行 mvn test（运行单元测试）
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           mvn -version
           echo "============================================"
@@ -1233,7 +1233,7 @@ jobs:
           fi
 
       - name: 收集 Java 构建产物
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           mkdir -p java-build-reports
           while IFS= read -r target_dir; do
@@ -1248,7 +1248,7 @@ jobs:
           echo "已收集构建产物清单到 java-build-reports/"
 
       - name: 上传 Java 构建报告
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: java-build-reports
@@ -1257,7 +1257,7 @@ jobs:
           if-no-files-found: warn
 
       - name: JaCoCo覆盖率门禁检查（全量模块）
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥40% 分支≥18%（2026-09-01 实化提升，目标85% GA标准）)"
@@ -1365,7 +1365,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Java）
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Java 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1424,7 +1424,7 @@ jobs:
           echo "✓ Java 覆盖率趋势检查通过"
 
       - name: 生成 Java 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, glob, re
@@ -1448,7 +1448,7 @@ jobs:
           PYEOF
 
       - name: 上传 Java 覆盖率摘要
-        if: steps.converge.outputs.converge != 'true' && env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: java-coverage-summary
@@ -1482,7 +1482,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Go 1.26.6
         if: steps.converge.outputs.converge != 'true'
@@ -1523,7 +1523,7 @@ jobs:
           fi
 
       - name: 对每个 Go 组件执行 go test（运行单元测试）
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           set -o pipefail
           go version
@@ -1550,7 +1550,7 @@ jobs:
           fi
 
       - name: 上传 Go 构建报告
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go-build-reports
@@ -1559,7 +1559,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Go覆盖率门禁检查（全量模块）
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Go 覆盖率门禁检查 (阈值: ≥30%)"
@@ -1617,7 +1617,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Go）
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Go 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1672,7 +1672,7 @@ jobs:
           echo "✓ Go 覆盖率趋势检查通过"
 
       - name: 生成 Go 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, subprocess, os
@@ -1713,7 +1713,7 @@ jobs:
           PYEOF
 
       - name: 上传 Go 覆盖率摘要
-        if: steps.converge.outputs.converge != 'true' && env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go-coverage-summary
@@ -1747,7 +1747,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
         if: steps.converge.outputs.converge != 'true'
@@ -1793,7 +1793,7 @@ jobs:
           fi
 
       - name: 对每个 Python 组件执行 pytest（运行单元测试）
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           set -o pipefail
           mkdir -p python-syntax-reports
@@ -1842,7 +1842,7 @@ jobs:
           fi
 
       - name: 上传 Python 语法检查报告
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-syntax-reports
@@ -1851,7 +1851,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Python覆盖率门禁检查（全量模块）
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Python 覆盖率门禁检查 (阈值: ≥55%)"
@@ -1905,7 +1905,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Python）
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Python 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1954,7 +1954,7 @@ jobs:
           echo "✓ Python 覆盖率趋势检查通过"
 
       - name: 生成 Python 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, subprocess, os, re
@@ -1984,7 +1984,7 @@ jobs:
           PYEOF
 
       - name: 上传 Python 覆盖率摘要
-        if: steps.converge.outputs.converge != 'true' && env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-coverage-summary
@@ -2037,7 +2037,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.12
         if: steps.converge.outputs.converge != 'true'
@@ -2167,7 +2167,7 @@ jobs:
         # 守卫原因：容器初始化失败时 checkout 从未执行，本步骤会以
         # "working directory platform/batch-pipeline: No such file or directory" 报出
         # 与真实原因无关的错误（2026-09-25 run #1239 实测）。
-        if: steps.converge.outputs.converge != 'true' && failure() && steps.checkout.outcome == 'success'
+        if: failure() && steps.checkout.outcome == 'success' && steps.converge.outputs.converge != 'true'
         shell: bash
         run: |
           grep -E "^(FAILED|ERROR) " /tmp/pytest-batch-pipeline.log | head -30 | while IFS= read -r line; do
@@ -2182,7 +2182,7 @@ jobs:
           python main.py --config config/pipeline_small.json
 
       - name: 冒烟失败时上传 run/ 目录 artifact
-        if: steps.converge.outputs.converge != 'true' && failure() && steps.smoke.outcome == 'failure'
+        if: failure() && steps.smoke.outcome == 'failure' && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: batch-pipeline-smoke-run
@@ -2195,7 +2195,7 @@ jobs:
         # 供 baseline-consistency-check 检查 3（基线上限）对 batch-pipeline 生效。
         # python-test job 排除了 batch-pipeline，其 python-coverage-summary.json 不含本模块，
         # 因此 baseline-consistency-check 需单独下载本摘要并合并到 Python 摘要中。
-        if: steps.converge.outputs.converge != 'true' && always() && steps.checkout.outcome == 'success'
+        if: always() && steps.checkout.outcome == 'success' && steps.converge.outputs.converge != 'true'
         shell: bash
         run: |
           python3 << 'PYEOF'
@@ -2220,7 +2220,7 @@ jobs:
           PYEOF
 
       - name: 上传 batch-pipeline 覆盖率摘要
-        if: steps.converge.outputs.converge != 'true' && always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: batch-pipeline-coverage-summary
@@ -2271,7 +2271,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       # 台账 #100：这条 job 两天内出过两种"容量型"红（46m29s 撞 45 分钟超时、
       # 13m35s runner 自身 No space left on device 而 steps 全无不失败项）。
@@ -2350,7 +2350,7 @@ jobs:
           fi
 
       - name: 对每个 Dockerfile 执行 docker build（仅验证，不 push）
-        if: steps.converge.outputs.converge != 'true' && env.docker_skip != 'true'
+        if: env.docker_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           fail_count=0
           # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
@@ -2454,7 +2454,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 检查集成测试环境
         if: steps.converge.outputs.converge != 'true'
@@ -2468,13 +2468,13 @@ jobs:
           fi
 
       - name: 安装 Python 3.11 和 pytest
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: 安装集成测试依赖
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           if [ -f requirements.txt ]; then
@@ -2483,7 +2483,7 @@ jobs:
           pip install pytest pytest-html -q
 
       - name: 安装 Python 组件依赖（子进程模式启动所需）
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           # 集成测试以子进程方式启动 Python 组件，需在 CI Python 环境中安装其依赖
           # model-finetuning 已降级为规划（移至 design/planned/），不再参与集成测试
@@ -2510,7 +2510,7 @@ jobs:
           fi
 
       - name: 启动 docker-compose 服务
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         # 门禁收紧（2026-08-26）：compose 启动失败直接 exit 1 阻断 CI，不再置跳过标记；
         # 服务不可用时后续集成测试无意义，静默跳过会掩盖真实故障
@@ -2559,7 +2559,7 @@ jobs:
         # --ignore=perf：perf/ 是压测套件（单用例 2000~20000 请求），本泳道不适跑；
         #   且当前用例打 GET /api/v1/tenants 用的是 USER token（403）并触发限流（429）。
         #   见 docs/KNOWN-FAILURES.md 台账（专用压测泳道待建）。
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         env:
           # 上一步已用 --profile karmada-extra 拉起四个服务：不可达即真故障，
@@ -2574,7 +2574,7 @@ jobs:
         # 为什么需要：pytest 的 --tb=short 只给出客户端看到的响应码（如 "assert 500 == 200"），
         # 服务端抛出的异常与堆栈在容器里。实测 #1249 的 3 个 account 500 与 1 个 projects 409
         # 就无法从 pytest 输出归因，只能靠容器日志区分"缺租户上下文"与别的成因。
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true' && failure()
+        if: env.it_skip != 'true' && failure() && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           echo "=== 容器状态 ==="
@@ -2587,7 +2587,7 @@ jobs:
 
       - name: 上传集成测试报告
         # always()：pytest 失败时也尽量上传已生成的报告辅助排查
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true' && always()
+        if: env.it_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-report
@@ -2596,7 +2596,7 @@ jobs:
           if-no-files-found: warn
 
       - name: 清理 docker-compose 服务
-        if: steps.converge.outputs.converge != 'true' && env.it_skip != 'true' && always()
+        if: env.it_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           echo "清理 docker-compose 服务..."
@@ -3030,7 +3030,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
         if: steps.converge.outputs.converge != 'true'
@@ -3053,7 +3053,7 @@ jobs:
 
       - name: 上传性能报告 artifact
         uses: actions/upload-artifact@v4
-        if: steps.converge.outputs.converge != 'true' && always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: performance-benchmark-report
           path: tests/performance/benchmark_report.md
@@ -3063,7 +3063,7 @@ jobs:
       # T-04: 上传性能 JSON 结果（供后续 SLA 阻断门禁消费）
       - name: 上传性能 JSON 结果 artifact
         uses: actions/upload-artifact@v4
-        if: steps.converge.outputs.converge != 'true' && always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: performance-benchmark-json
           path: |
@@ -3076,7 +3076,7 @@ jobs:
       # T-04: 上传 SLA 基线文档（供趋势对比与阻断决策参考）
       - name: 上传 SLA 基线文档 artifact
         uses: actions/upload-artifact@v4
-        if: steps.converge.outputs.converge != 'true' && always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: sla-perf-baseline
           path: docs/SLA-PERF-BASELINE-2026-09-01.md
@@ -3118,7 +3118,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python3 scripts/ci-push-converge.py --workflow "CI"
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
           grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
         if: steps.converge.outputs.converge != 'true'
