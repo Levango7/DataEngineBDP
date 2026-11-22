@@ -1,0 +1,55 @@
+# ============================================================================
+# istio Helm Chart 默认 values
+# 关联：台账 #129（charts 顶层无 istio chart）
+# 上游来源：istio 官方 helm repo 的 base/istiod/gateway 1.22.3（vendored 于 charts/）
+# 说明：本文件是"父 chart 覆盖层"；上游默认值见 charts/<name>/values.yaml。
+# ============================================================================
+
+# ---- 镜像锚点（必须与 design/deploy/charts/_generate_charts.py 的 CHARTS 表行一致）----
+# 该块是漂移门禁 scripts/check-chart-generator-drift.py 的比对对象，必须等于实际渲染出的
+# pilot 坐标；由 templates/image-anchor-check.yaml 在渲染期强制自洽。
+image:
+  repository: "docker.m.daocloud.io/istio/pilot"
+  tag: "1.22.3"
+  pullPolicy: IfNotPresent
+
+# ---- 镜像宿主改写 ----
+# Istio 1.22.3 上游 global.hub 默认 docker.io/istio（charts/istiod/values.yaml:235），
+# 本仓统一走国内镜像站 docker.m.daocloud.io（与 _generate_charts.py 的 IMAGE_PREFIX 一致）。
+# 覆盖同时写两处：
+#   · global.*            —— 父 chart 口径（对子 chart 的 global 传播行为依赖 Helm 版本，
+#                            故不作为唯一来源）；
+#   · istiod.global/pilot —— 子 chart 口径（父 chart values 对子 chart values.yaml 具高优先级，
+#                            该覆盖必然生效）。
+# 坐标影响面：pilot（istiod Deployment）+ proxyv2（sidecar 注入模板由 istiod 运行期按
+# global.hub/global.proxy.image/global.tag 组装）。
+global:
+  hub: "docker.m.daocloud.io/istio"
+  tag: "1.22.3"
+  imagePullPolicy: IfNotPresent
+
+istiod:
+  enabled: true
+  global:
+    hub: "docker.m.daocloud.io/istio"
+    tag: "1.22.3"
+    imagePullPolicy: IfNotPresent
+  pilot:
+    hub: "docker.m.daocloud.io/istio"
+    image: "pilot"
+    tag: "1.22.3"
+
+base:
+  enabled: true
+
+gateway:
+  enabled: true
+
+# ---- 流量治理策略 ----
+# 承载仓库既有 design/deploy/istio/traffic-policies.yaml（Namespace 打标 + mTLS STRICT +
+# DestinationRule 灰度 subset + VirtualService 权重 + AuthorizationPolicy + Sidecar + LimitRange）。
+# 该文件在本 chart 的 files/ 下有一份副本（去 BOM），副本一致性由
+# scripts/check-deploy-surface-assets.py 守护。
+# 置 false 可只装控制面、策略另行 kubectl apply。
+trafficPolicies:
+  enabled: true

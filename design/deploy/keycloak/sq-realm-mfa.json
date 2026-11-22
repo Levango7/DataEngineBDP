@@ -1,0 +1,23 @@
+{
+  "otpPolicy": {
+    "type": "totp",
+    "algorithm": "HmacSHA1",
+    "digits": 6,
+    "period": 30,
+    "lookAheadWindow": 1
+  },
+  "webAuthnPolicy": {
+    "enabled": false,
+    "attestationType": "none",
+    "userVerificationRequirement": "preferred",
+    "rpName": "数擎云核"
+  },
+  "requiredActions": [
+    {
+      "id": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "enabled": true,
+      "defaultAction": true
+    }
+  ]
+}

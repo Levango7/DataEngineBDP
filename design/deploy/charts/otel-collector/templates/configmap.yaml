@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "otel-collector.configmapName" . }}
+  labels:
+    {{- include "otel-collector.labels" . | nindent 4 }}
+data:
+  collector.yaml: |-
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: {{ .Values.config.receivers.otlp.grpc.endpoint | quote }}
+          http:
+            endpoint: {{ .Values.config.receivers.otlp.http.endpoint | quote }}
+    processors:
+      memory_limiter:
+        check_interval: {{ .Values.config.processors.memoryLimiter.checkInterval | quote }}
+        limit_mib: {{ .Values.config.processors.memoryLimiter.limitMiB | int }}
+        spike_limit_mib: {{ .Values.config.processors.memoryLimiter.spikeLimitMiB | int }}
+      {{- if .Values.config.sampling.enabled }}
+      tail_sampling:
+        decision_wait: "10s"
+        num_traces: 50000
+        policies:
+          - name: baseline
+            type: "and"
+            and:
+              and:
+                - type: "probability"
+                  probability: {{ .Values.config.sampling.ratio | float64 }}
+      {{- end }}
+      {{- if .Values.config.resourceAttributes }}
+      resource:
+        attributes:
+          {{- range $key, $val := .Values.config.resourceAttributes }}
+          - key: {{ $key | quote }}
+            value: {{ $val | toString | quote }}
+            action: upsert
+          {{- end }}
+      {{- end }}
+      batch:
+        timeout: {{ .Values.config.processors.batch.timeout | quote }}
+        send_batch_size: {{ .Values.config.processors.batch.sendBatchSize | int }}
+        send_batch_max_size: {{ .Values.config.processors.batch.sendBatchMaxSize | int }}
+    exporters:
+      otlp/tempo:
+        endpoint: {{ .Values.config.exporters.otlpTempo.endpoint | quote }}
+        tls:
+          insecure: {{ .Values.config.exporters.otlpTempo.insecure }}
+      prometheus:
+        endpoint: {{ .Values.config.exporters.prometheus.endpoint | quote }}
+    extensions:
+      health_check:
+        endpoint: {{ .Values.config.extensions.healthCheck.endpoint | quote }}
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter{{ if .Values.config.sampling.enabled }}, tail_sampling{{ end }}{{ if .Values.config.resourceAttributes }}, resource{{ end }}, batch]
+          exporters: [otlp/tempo]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter{{ if .Values.config.sampling.enabled }}, tail_sampling{{ end }}{{ if .Values.config.resourceAttributes }}, resource{{ end }}, batch]
+          exporters: [prometheus]

@@ -1,0 +1,131 @@
+# ============================================================================
+# otel-collector Helm Chart 默认 values
+# 关联：design/deploy/values/otel-collector-values.yaml（深度调优配置）
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+#
+# 形态说明（台账 #130）：
+#   应用侧 OTel SDK（Go catalog / Java encaps-* 模块）已接入，缺口在**采集面**。
+#   本 chart 提供 OTLP 接收（gRPC 4317 / HTTP 4318），链路经 otlp exporter
+#   推送到同 namespace 的 tempo chart（tempo 已开启 OTLP receiver）。
+# ============================================================================
+
+# ---- 镜像配置（第三方镜像源 docker.m.daocloud.io）----
+image:
+  repository: "docker.m.daocloud.io/otel/opentelemetry-collector-contrib"
+  tag: "0.130.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 4317                 # OTLP gRPC
+  containerPort: 4317
+  httpPort: 4318             # OTLP HTTP
+  httpContainerPort: 4318
+  metricsPort: 8889          # prometheus exporter（自监控指标）
+  metricsContainerPort: 8889
+  healthPort: 13133          # health_check extension
+  healthContainerPort: 13133
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（health_check extension，/ 路径返回 200）----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /
+      port: 13133
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /
+      port: 13133
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 ----
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget ----
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Collector 配置（结构化 values，模板渲染成 collector.yaml）----
+config:
+  receivers:
+    otlp:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+  processors:
+    memoryLimiter:
+      checkInterval: "1s"
+      limitMiB: 512
+      spikeLimitMiB: 128
+    batch:
+      timeout: "5s"
+      sendBatchSize: 1024
+      sendBatchMaxSize: 2048
+  exporters:
+    otlpTempo:
+      # Tempo 的 OTLP gRPC 接收端（tempo chart 已开启 distributor.receivers.otlp）
+      endpoint: "tempo.sq-monitor.svc.cluster.local:4317"
+      insecure: true
+    prometheus:
+      endpoint: "0.0.0.0:8889"
+  extensions:
+    healthCheck:
+      endpoint: "0.0.0.0:13133"
+  # 资源属性（写入每条遥测，UPSERT 语义）
+  resourceAttributes: {}
+  # 采样策略：SDK 侧负责头部采样，collector 侧尾采样默认关闭
+  sampling:
+    enabled: false
+    ratio: "0.1"
+
+# ---- 附加标量环境变量（键值会以 envFrom 注入）----
+env: {}
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/otel-collector-values.yaml 覆盖
+# 渲染命令： helm template otel-collector design/deploy/charts/otel-collector -f design/deploy/values/otel-collector-values.yaml

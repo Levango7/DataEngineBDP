@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "owasp-crs.fullname" . }}
+  labels:
+    {{- include "owasp-crs.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "owasp-crs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "owasp-crs.selectorLabels" . | nindent 8 }}
+      {{- if .Values.exclusions.enabled }}
+      annotations:
+        checksum/exclusions: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      {{- end }}
+    spec:
+      {{- if .Values.podSecurityContext.enabled }}
+      securityContext:
+        # 与上游镜像的 USER nginx 对齐（上游 nginx/Dockerfile 末段 USER nginx）
+        runAsNonRoot: {{ .Values.podSecurityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.podSecurityContext.runAsUser }}
+        runAsGroup: {{ .Values.podSecurityContext.runAsGroup }}
+        fsGroup: {{ .Values.podSecurityContext.fsGroup }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.securityContext.enabled }}
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+                {{- toYaml .Values.securityContext.capabilities.drop | nindent 16 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.service.httpsPort }}
+              protocol: TCP
+          env:
+            # 反代目标：上游 nginx proxy_pass ${BACKEND}（上游 proxy_backend.conf.template:18）
+            - name: BACKEND
+              value: {{ include "owasp-crs.backendUrl" . | quote }}
+            # 上游默认 PROXY_HOST_HEADER='$host'（上游 nginx/Dockerfile:193）——不能置空，
+            # 否则渲染出 `proxy_set_header Host ;` 导致 nginx 配置非法。
+            - name: PROXY_HOST_HEADER
+              value: {{ .Values.backend.hostHeader | quote }}
+            # 规则引擎开关
+            - name: MODSEC_RULE_ENGINE
+              value: {{ .Values.modsec.ruleEngine | quote }}
+            # 阻断策略：上游默认 pass（只记日志不拦），本 chart 默认改 deny。
+            # 该变量整体替换 SecDefaultAction（上游 configure-rules.sh:141-164），须写完整动作列表。
+            - name: MODSEC_DEFAULT_PHASE1_ACTION
+              value: {{ .Values.modsec.phase1Action | quote }}
+            - name: MODSEC_DEFAULT_PHASE2_ACTION
+              value: {{ .Values.modsec.phase2Action | quote }}
+            # CRS v4 paranoia 分级（上游 configure-rules.v4.conf）
+            - name: BLOCKING_PARANOIA
+              value: {{ .Values.modsec.blockingParanoia | quote }}
+            - name: DETECTION_PARANOIA
+              value: {{ .Values.modsec.detectionParanoia | quote }}
+            # 审计日志
+            - name: MODSEC_AUDIT_ENGINE
+              value: {{ .Values.modsec.auditEngine | quote }}
+            - name: MODSEC_AUDIT_LOG
+              value: {{ .Values.modsec.auditLog | quote }}
+            - name: MODSEC_TAG
+              value: {{ .Values.modsec.tag | quote }}
+            # 监听端口（上游默认 8080/8443）
+            - name: PORT
+              value: {{ .Values.service.httpPort | quote }}
+            - name: SSL_PORT
+              value: {{ .Values.service.httpsPort | quote }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: {{ .Values.probes.liveness.port }}
+              scheme: HTTPS
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: {{ .Values.probes.readiness.port }}
+              scheme: HTTPS
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if or .Values.exclusions.enabled .Values.tls.existingSecret }}
+          volumeMounts:
+            {{- if .Values.exclusions.enabled }}
+            # 用 subPath 只覆盖两个排除规则文件，不遮蔽镜像内置的 CRS 规则目录
+            - name: exclusions
+              mountPath: /etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+              subPath: REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+              readOnly: true
+            - name: exclusions
+              mountPath: /etc/modsecurity.d/owasp-crs/rules/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
+              subPath: RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
+              readOnly: true
+            {{- end }}
+            {{- if .Values.tls.existingSecret }}
+            # 证书路径口径：上游 nginx/Dockerfile:213-214（server.crt / server.key）
+            - name: tls
+              mountPath: /etc/nginx/conf/server.crt
+              subPath: {{ .Values.tls.certKey }}
+              readOnly: true
+            - name: tls
+              mountPath: /etc/nginx/conf/server.key
+              subPath: {{ .Values.tls.keyKey }}
+              readOnly: true
+            {{- end }}
+          {{- end }}
+      {{- if or .Values.exclusions.enabled .Values.tls.existingSecret }}
+      volumes:
+        {{- if .Values.exclusions.enabled }}
+        - name: exclusions
+          configMap:
+            name: {{ include "owasp-crs.fullname" . }}-exclusions
+        {{- end }}
+        {{- if .Values.tls.existingSecret }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.existingSecret }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
