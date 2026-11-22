@@ -827,6 +827,24 @@ jobs:
           python3 scripts/check-deploy-surface-assets.py
           python3 scripts/keycloak-mfa-merge.py --self-test
 
+      - name: Keycloak MFA 片段消费链离线自检（片段 → 最小更新体，台账 #131）
+        # 台账 #131 的消费链另一半：渲染产物门禁（helm-lint job）判的是
+        # 「chart 渲染出的片段是不是合法 JSON 对象」，本步判的是
+        # 「该片段喂进仓内唯一的消费脚本 scripts/keycloak-mfa-merge.py 后，
+        #   产出的是不是**最小更新体**」——两者合起来才覆盖「片段 → realm 落地」。
+        # 为什么必须最小更新体：kcadm update realms/<realm> -b <体> 是整段 PUT，
+        # 直接把整个片段当体提交会抹掉 realm 既有 requiredActions
+        # （如 UPDATE_PASSWORD / UPDATE_PROFILE）⇒ 合并器必须保留既有 action、
+        # 只覆盖同 id 的 CONFIGURE_TOTP、并只输出 MFA 相关字段。
+        # 离线自测（不起 Keycloak、不连集群、不需要凭据）：
+        #   正对照 = 合成 realm + 权威片段 design/deploy/keycloak/sq-realm-mfa.json
+        #            → 断言 UPDATE_PASSWORD 仍在、CONFIGURE_TOTP.defaultAction 为布尔 true、
+        #              otpPolicy.type=totp；
+        #   负对照 = 含 usersProfile 的非法片段 → 合并器必须拒绝（否则非法片段会被静默写进 realm）。
+        # 边界如实：kcadm update 那一半需要真集群，**不在本步覆盖内**。
+        run: |
+          bash scripts/import-keycloak-realm.sh --self-test
+
       - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
         # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
         # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，
