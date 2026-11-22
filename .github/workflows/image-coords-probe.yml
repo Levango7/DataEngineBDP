@@ -1,0 +1,171 @@
+# 一次性事实探针（对象存储坐标 + 运行契约）：核 4 个「本机不可判」点
+#
+# 背景：本机到 Docker Hub 全域不可达（探针 6/6 目标全部超时），仓内加速器
+# docker.m.daocloud.io 对 rustfs/minio/不存在仓同形回 401 ⇒ 加速器侧不可判。
+# 唯一权威环境 = GitHub Actions runner。本 workflow 只做事实核验，
+# 不参与任何泳道判定（continue-on-error），也不改仓内任何交付文件。
+#
+# 核 4 件事：
+#   P1 坐标存在性：候选坐标真拉得下来吗？两个现役错坐标是否确实拉不到？
+#   P2 multi-arch  ：候选坐标有没有 linux/arm64（对应 D1 鲲鹏线）？
+#   P3 加速器代理  ：docker.m.daocloud.io 到底代理不代理这两个仓？
+#   P4 运行契约    ：RustFS 的凭据 env 名 / 健康端点 / aws-cli 客户端 path-style 建桶；
+#                   iceberg-rest 的 CATALOG_* 环境变量契约。
+name: Image Coords Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-coords-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: 镜像坐标与运行契约一次性核验
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ---------- P1 + P2：坐标存在性与 multi-arch ----------
+      - name: "P1/P2 坐标存在性与 multi-arch（manifest inspect）"
+        continue-on-error: true
+        run: |
+          for ref in "tabulario/iceberg-rest:1.6.0" \
+                     "tabulario/iceberg-rest:0.7.0" \
+                     "tabulario/iceberg-rest-catalog:0.7.0" \
+                     "tabio/iceberg-rest:1.11.0" \
+                     "rustfs/rustfs:1.0.6" \
+                     "amazon/aws-cli:2.17.23" \
+                     "minio/minio:latest" \
+                     "minio/mc:latest"; do
+            echo "PROBE_MANIFEST_START ${ref}"
+            out="$(docker manifest inspect "$ref" 2>&1)" && rc=0 || rc=$?
+            echo "PROBE_MANIFEST_RC ${ref} rc=${rc}"
+            if [ "${rc}" = "0" ]; then
+              echo "${out}" | grep -o '"architecture"[[:space:]]*:[[:space:]]*"[^"]*"' \
+                | sed 's/.*"architecture"[[:space:]]*:[[:space:]]*"//; s/"$//' \
+                | sort -u | tr '\n' ',' | sed 's/,$//' \
+                | while read -r archs; do echo "PROBE_MANIFEST_ARCH ${ref} archs=${archs}"; done
+              echo "${out}" | head -c 1200
+            else
+              echo "PROBE_MANIFEST_ERR ${ref} :: $(echo "${out}" | tr '\n' ' ' | cut -c1-400)"
+            fi
+            echo "PROBE_MANIFEST_DONE ${ref}"
+          done
+
+      # ---------- P3：加速器是否代理 ----------
+      - name: "P3 仓内加速器 docker.m.daocloud.io 代理行为"
+        continue-on-error: true
+        run: |
+          for ref in "docker.m.daocloud.io/rustfs/rustfs:1.0.6" \
+                     "docker.m.daocloud.io/tabulario/iceberg-rest:1.6.0" \
+                     "docker.m.daocloud.io/tabulario/iceberg-rest:0.7.0" \
+                     "docker.m.daocloud.io/postgres:16"; do
+            echo "PROBE_MIRROR_START ${ref}"
+            if docker manifest inspect "$ref" >/tmp/m.txt 2>/tmp/me.txt; then
+              echo "PROBE_MIRROR_RESULT ${ref} MIRROR_OK"
+              grep -o '"architecture"[[:space:]]*:[[:space:]]*"[^"]*"' /tmp/m.txt \
+                | sed 's/.*"architecture"[[:space:]]*:[[:space:]]*"//; s/"$//' \
+                | sort -u | tr '\n' ',' | sed 's/,$//' \
+                | while read -r archs; do echo "PROBE_MIRROR_ARCH ${ref} archs=${archs}"; done
+            else
+              echo "PROBE_MIRROR_RESULT ${ref} MIRROR_FAILED"
+              echo "PROBE_MIRROR_ERR ${ref} :: $(tr '\n' ' ' < /tmp/me.txt | cut -c1-400)"
+            fi
+            echo "PROBE_MIRROR_DONE ${ref}"
+          done
+
+      # ---------- P4a：RustFS 运行契约（凭据 env 名 / 健康端点 / aws-cli 建桶）----------
+      - name: "P4a RustFS 运行契约（env 凭据名 + 健康端点 + aws-cli path-style 建桶）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull rustfs/rustfs:1.0.6 || { echo "PROBE_RUSTFS_PULL_FAILED"; exit 0; }
+          docker rm -f probe-rustfs probe-rustfs-minioenv >/dev/null 2>&1 || true
+          docker network create probe-net >/dev/null 2>&1 || true
+
+          # A1：用规范名 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY
+          docker run -d --name probe-rustfs --network probe-net --network-alias rustfs \
+            -p 19000:9000 -p 19001:9001 \
+            -e RUSTFS_ACCESS_KEY=probeuser -e RUSTFS_SECRET_KEY=probesecret \
+            -e RUSTFS_VOLUMES=/data \
+            rustfs/rustfs:1.0.6
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:19000/minio/health/live >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "PROBE_RUSTFS_LIVE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/minio/health/live)"
+          echo "PROBE_RUSTFS_READY=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/minio/health/ready)"
+          echo "PROBE_RUSTFS_ROOT=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/)"
+          docker logs probe-rustfs 2>&1 | head -40
+
+          awsrun() {
+            local ak="$1" sk="$2" cmd="$3"
+            docker run --rm --network host \
+              -e AWS_ACCESS_KEY_ID="$ak" -e AWS_SECRET_ACCESS_KEY="$sk" -e AWS_DEFAULT_REGION=us-east-1 \
+              amazon/aws-cli:2.17.23 $cmd 2>&1
+          }
+          echo "PROBE_AWS_RUSTFSNAMES_CREATE_BEGIN"
+          awsrun probeuser probesecret "s3api create-bucket --endpoint-url http://localhost:19000 --bucket probe-bucket" \
+            | tail -5
+          echo "PROBE_AWS_RUSTFSNAMES_CREATE_END"
+          echo "PROBE_AWS_RUSTFSNAMES_LIST_BEGIN"
+          awsrun probeuser probesecret "s3api list-buckets --endpoint-url http://localhost:19000" | tail -20
+          echo "PROBE_AWS_RUSTFSNAMES_LIST_END"
+          echo "PROBE_AWS_RUSTFSNAMES_PUT_BEGIN"
+          echo "probe-payload-$$" > /tmp/probe-obj.txt
+          awsrun probeuser probesecret "s3 cp /tmp/probe-obj.txt s3://probe-bucket/probe.txt --endpoint-url http://localhost:19000" | tail -5
+          echo "PROBE_AWS_RUSTFSNAMES_PUT_END"
+          echo "PROBE_AWS_RUSTFSNAMES_GET_BEGIN"
+          awsrun probeuser probesecret "s3 cp s3://probe-bucket/probe.txt /tmp/probe-obj-back.txt --endpoint-url http://localhost:19000" | tail -5
+          echo "PROBE_AWS_RUSTFSNAMES_GET_END"
+          echo "PROBE_AWS_RUSTFSNAMES_GETBODY=$(cat /tmp/probe-obj-back.txt 2>/dev/null | head -c 120)"
+
+          # A2：负对照 —— 只给 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD，服务端是否认？
+          docker run -d --name probe-rustfs-minioenv --network probe-net \
+            -e MINIO_ROOT_USER=miniokey -e MINIO_ROOT_PASSWORD=miniosecret \
+            -e RUSTFS_VOLUMES=/data \
+            rustfs/rustfs:1.0.6
+          sleep 12
+          echo "PROBE_MINIOENV_DEFAULTPAIR_BEGIN"
+          awsrun rustfsadmin rustfsadmin "s3api list-buckets --endpoint-url http://localhost:19000" \
+            | tail -8 | sed 's/^/PROBE_MINIOENV_DEFAULT /'
+          echo "PROBE_MINIOENV_DEFAULTPAIR_END"
+          echo "PROBE_MINIOENV_MINIOPAIR_BEGIN"
+          awsrun miniokey miniosecret "s3api list-buckets --endpoint-url http://localhost:19000" \
+            | tail -8 | sed 's/^/PROBE_MINIOENV_MINIO /'
+          echo "PROBE_MINIOENV_MINIOPAIR_END"
+          docker logs probe-rustfs-minioenv 2>&1 | head -30 | sed 's/^/PROBE_MINIOENV_LOG /'
+
+      # ---------- P4b：iceberg-rest 的 CATALOG_* 环境变量契约 ----------
+      - name: "P4b iceberg-rest env 契约（对 RustFS 的真实读写路径）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull tabulario/iceberg-rest:1.6.0 || { echo "PROBE_ICEBERG_PULL_FAILED"; exit 0; }
+          docker rm -f probe-iceberg >/dev/null 2>&1 || true
+          docker run -d --name probe-iceberg --network probe-net \
+            -p 18181:8181 \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            tabulario/iceberg-rest:1.6.0
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:18181/v1/config >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          for p in /health /healthz /readyz /v1/config; do
+            echo "PROBE_ICEBERG_HTTP ${p} $(curl -s -o /dev/null -w '%{http_code}' http://localhost:18181${p})"
+          done
+          echo "PROBE_ICEBERG_CONFIG_BEGIN"
+          curl -s http://localhost:18181/v1/config | head -c 1200
+          echo ""
+          echo "PROBE_ICEBERG_CONFIG_END"
+          docker logs probe-iceberg 2>&1 | tail -60 | sed 's/^/PROBE_ICEBERG_LOG /'
