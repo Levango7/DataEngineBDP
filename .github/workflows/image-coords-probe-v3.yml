@@ -1,0 +1,183 @@
+# 一次性事实探针 v3：iceberg-rest 元数据持久化 + 镜像内工具链 + RustFS 凭据 env 兼容面
+#
+# v2 = run 45009633821 / job 137168862924。v2 已坐实：
+#   - RustFS 对象 PUT/GET 往返成立（PROBE_AWS_ROUNDTRIP_BODY 回读一致，30 bytes）
+#   - MINIO_ROOT_USER/MINIO_ROOT_PASSWORD **确实被 RustFS 1.0.6 读取为凭据**
+#     （对照容器独立端口 19010：miniokey/miniosecret 认证成功；rustfsadmin/rustfsadmin
+#      报 InvalidAccessKeyId ⇒ 给了 MINIO_* 时不回落到内置默认凭据）
+#   - iceberg-rest 1.6.0 + 默认 JdbcCatalog + CATALOG_S3_PATH__STYLE__ACCESS=true：
+#     /v1/config=200、建 namespace=200、建表=200、表清单可列出；
+#     表元数据 json 落进对象存储 warehouse/default/t1/metadata/*.metadata.json（903 bytes）
+#   - 未开 path-style ⇒ 建表 500（UnknownHostException: probe-bucket.rustfs）
+#   - HadoopCatalog 在该镜像不可用（UnsupportedFileSystemException: No FileSystem for
+#     scheme "s3" ⇒ 镜像不含 hadoop-aws）
+#
+# v3 补三件事（都是本批落笔/落笔前必须知道的运行契约）：
+#   F1 镜像内工具链：iceberg-rest / rustfs 镜像内是否存在 curl / wget / bash / nc
+#      —— 决定 docker-compose healthcheck 能用什么命令（K8s 的 httpGet 探针由
+#      kubelet 从节点侧发起，不需要镜像内工具，故不受此影响）。
+#   F2 iceberg-rest catalog 元数据的落盘位置与可覆盖性：
+#      默认 CATALOG_URI（jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory）建表后
+#      /tmp 里到底是文件还是内存库；改 CATALOG_URI 到挂载卷后是否落盘
+#      —— 决定"元数据持久化"这条剩余条件能不能靠 PVC 解。
+#   F3 RustFS 凭据 env 的完整兼容面：RUSTFS_ROOT_USER / RUSTFS_ROOT_PASSWORD
+#      是否也被读取（上游告警文案声称是"受支持来源"，但 v1 的源码级结论说
+#      entrypoint 只解析 RUSTFS_ACCESS_KEY —— v2 只证了 MINIO_*，没证 RUSTFS_ROOT_*）。
+#
+# 本 workflow 只做事实核验，所有 step 均 continue-on-error，
+# 不改仓内任何交付文件；文件只存在于 probe 分支，不进默认分支。
+name: Image Coords Probe v3
+
+on:
+  # 只在本探针分支上 push 触发：workflow 文件不进默认分支，避免在 main 上留孤儿工作流
+  # （gh workflow run 按文件名只在默认分支解析，探针分支上的新文件无法用 CLI 派发）。
+  push:
+    branches:
+      - "probe/image-coords-20261122"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # 与 v2 的 group 名区分开，避免两个 workflow 互相取消
+  group: image-coords-probe-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: 对象存储与 iceberg-rest 运行契约一次性核验 v3
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ---------- F1：镜像内工具链 ----------
+      - name: "F1 镜像内工具链盘点"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull tabulario/iceberg-rest:1.6.0 || echo "PROBE_PULL_FAILED iceberg-rest"
+          docker pull rustfs/rustfs:1.0.6 || echo "PROBE_PULL_FAILED rustfs"
+          for img in "tabulario/iceberg-rest:1.6.0" "rustfs/rustfs:1.0.6"; do
+            echo "PROBE_TOOLS_BEGIN ${img}"
+            docker run --rm --entrypoint sh "${img}" -c '
+              for b in curl wget bash sh nc grep python3 java; do
+                if command -v "$b" >/dev/null 2>&1; then
+                  echo "PROBE_TOOL ${b}=$(command -v $b)"
+                else
+                  echo "PROBE_TOOL ${b}=MISSING"
+                fi
+              done
+              echo "PROBE_TOOLS_OS :: $(cat /etc/os-release 2>/dev/null | head -2 | tr "\n" " ")"
+            ' 2>&1 | sed "s/^/PROBE_TOOLS ${img} /"
+            echo "PROBE_TOOLS_END ${img}"
+          done
+
+      # ---------- F2：iceberg-rest 元数据落盘位置与 CATALOG_URI 可覆盖性 ----------
+      - name: "F2 iceberg-rest 元数据落盘位置（默认 vs 指定路径 + 挂卷）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker rm -f probe-iceberg-persist probe-rustfs-persist >/dev/null 2>&1 || true
+          docker network create probe-net >/dev/null 2>&1 || true
+          docker rm -f probe-rustfs-persist >/dev/null 2>&1 || true
+          docker run -d --name probe-rustfs-persist --network probe-net --network-alias rustfs \
+            -p 19000:9000 \
+            -e RUSTFS_ACCESS_KEY=probeuser -e RUSTFS_SECRET_KEY=probesecret \
+            -e RUSTFS_VOLUMES=/data \
+            rustfs/rustfs:1.0.6 >/dev/null
+          sleep 12
+          echo "PROBE_F2_RUSTFS_HEALTH=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:19000/minio/health/live)"
+          docker run --rm --network host --entrypoint sh \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret \
+            -e AWS_DEFAULT_REGION=us-east-1 \
+            amazon/aws-cli:2.17.23 -c \
+            'aws s3api create-bucket --endpoint-url http://localhost:19000 --bucket probe-bucket 2>&1 | head -5' \
+            | sed 's/^/PROBE_F2_CREATEBUCKET /'
+
+          # 象限 1：镜像内置默认 CATALOG_URI（不显式设置）
+          docker run -d --name probe-iceberg-persist --network probe-net \
+            -p 18211:8181 \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          for i in $(seq 1 45); do
+            if curl -sf "http://localhost:18211/v1/config" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "PROBE_F2_DEFAULT_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18211/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_F2_DEFAULT_TABLE=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18211/v1/namespaces/default/tables' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"name":"t1","schema":{"type":"struct","fields":[{"id":1,"name":"id","required":false,"type":"long"}]}}')"
+          echo "PROBE_F2_DEFAULT_TABLES=$(curl -s 'http://localhost:18211/v1/namespaces/default/tables' -H 'Accept: application/json' | head -c 400)"
+          docker exec probe-iceberg-persist sh -c 'ls -la /tmp 2>&1 | head -20' 2>&1 | sed 's/^/PROBE_F2_DEFAULT_TMP /'
+          docker exec probe-iceberg-persist sh -c 'ls -la /tmp/iceberg_rest_mode=memory 2>&1 | head -3' 2>&1 | sed 's/^/PROBE_F2_DEFAULT_DBFILE /'
+          docker exec probe-iceberg-persist sh -c 'head -c 16 /tmp/iceberg_rest_mode=memory 2>/dev/null | od -c | head -2' 2>&1 | sed 's/^/PROBE_F2_DEFAULT_DBHEAD /'
+          docker logs probe-iceberg-persist 2>&1 | grep -E "Creating catalog with properties|ERROR|Exception" | head -10 | sed 's/^/PROBE_F2_DEFAULT_LOG /'
+          docker rm -f probe-iceberg-persist >/dev/null 2>&1 || true
+
+          # 象限 2：显式 CATALOG_URI 指向挂载卷的目录
+          docker volume create probe-iceberg-data >/dev/null 2>&1 || true
+          docker run -d --name probe-iceberg-persist --network probe-net \
+            -p 18212:8181 \
+            -v probe-iceberg-data:/data \
+            -e AWS_ACCESS_KEY_ID=probeuser -e AWS_SECRET_ACCESS_KEY=probesecret -e AWS_REGION=us-east-1 \
+            -e CATALOG_WAREHOUSE=s3://probe-bucket/warehouse \
+            -e CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO \
+            -e CATALOG_S3_ENDPOINT=http://rustfs:9000 \
+            -e CATALOG_S3_PATH__STYLE__ACCESS=true \
+            -e CATALOG_URI=jdbc:sqlite:file:/data/catalog.db \
+            tabulario/iceberg-rest:1.6.0 >/dev/null
+          for i in $(seq 1 45); do
+            if curl -sf "http://localhost:18212/v1/config" >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          echo "PROBE_F2_CUSTOM_NS=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18212/v1/namespaces' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"namespace":["default"]}')"
+          echo "PROBE_F2_CUSTOM_TABLE=$(curl -s -o /dev/null -w '%{http_code}' -X POST 'http://localhost:18212/v1/namespaces/default/tables' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"name":"t2","schema":{"type":"struct","fields":[{"id":1,"name":"id","required":false,"type":"long"}]}}')"
+          echo "PROBE_F2_CUSTOM_TABLES=$(curl -s 'http://localhost:18212/v1/namespaces/default/tables' -H 'Accept: application/json' | head -c 400)"
+          docker exec probe-iceberg-persist sh -c 'ls -la /data 2>&1 | head -20' 2>&1 | sed 's/^/PROBE_F2_CUSTOM_DATA /'
+          docker logs probe-iceberg-persist 2>&1 | grep -E "Creating catalog with properties|ERROR|Exception" | head -10 | sed 's/^/PROBE_F2_CUSTOM_LOG /'
+          echo "PROBE_F2_END"
+
+      # ---------- F3：RustFS 凭据 env 兼容面（RUSTFS_ROOT_USER / RUSTFS_ROOT_PASSWORD）----------
+      - name: "F3 RustFS 凭据 env 兼容面（RUSTFS_ROOT_* 与 RUSTFS_ACCESS_* 各自独立对照）"
+        continue-on-error: true
+        run: |
+          set -u
+          docker pull amazon/aws-cli:2.17.23 || echo "PROBE_PULL_FAILED aws-cli"
+          docker network create probe-net >/dev/null 2>&1 || true
+          for spec in "rootenv:19021:RUSTFS_ROOT_USER:rootuser:RUSTFS_ROOT_PASSWORD:rootpass" \
+                      "accessenv:19022:RUSTFS_ACCESS_KEY:accuser:RUSTFS_SECRET_KEY:accpass"; do
+            name="${spec%%:*}"; rest="${spec#*:}"; port="${rest%%:*}"; rest="${rest#*:}"
+            akey="${rest%%:*}"; rest="${rest#*:}"; aval="${rest%%:*}"; skey="${rest%%:*}"; sval="${rest#*:}"
+            docker rm -f "probe-rustfs-${name}" >/dev/null 2>&1 || true
+            docker run -d --name "probe-rustfs-${name}" --network probe-net \
+              -p "${port}:9000" \
+              -e "${akey}=${aval}" -e "${skey}=${sval}" \
+              -e RUSTFS_VOLUMES=/data \
+              rustfs/rustfs:1.0.6 >/dev/null
+            sleep 12
+            echo "PROBE_F3_HEALTH ${name} $(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${port}/minio/health/live")"
+            echo "PROBE_F3_MATCH_BEGIN ${name}"
+            docker run --rm --network host --entrypoint sh \
+              -e AWS_ACCESS_KEY_ID="${aval}" -e AWS_SECRET_ACCESS_KEY="${sval}" \
+              -e AWS_DEFAULT_REGION=us-east-1 \
+              amazon/aws-cli:2.17.23 -c \
+              "aws s3api list-buckets --endpoint-url http://localhost:${port} 2>&1 | tail -8" \
+              | sed "s/^/PROBE_F3_MATCH ${name} /"
+            echo "PROBE_F3_MATCH_END ${name}"
+            echo "PROBE_F3_OTHER_BEGIN ${name}"
+            docker run --rm --network host --entrypoint sh \
+              -e AWS_ACCESS_KEY_ID=wronguser -e AWS_SECRET_ACCESS_KEY=wrongpass \
+              -e AWS_DEFAULT_REGION=us-east-1 \
+              amazon/aws-cli:2.17.23 -c \
+              "aws s3api list-buckets --endpoint-url http://localhost:${port} 2>&1 | tail -4" \
+              | sed "s/^/PROBE_F3_OTHER ${name} /"
+            echo "PROBE_F3_OTHER_END ${name}"
+            docker logs "probe-rustfs-${name}" 2>&1 | head -12 | sed "s/^/PROBE_F3_LOG ${name} /"
+            docker rm -f "probe-rustfs-${name}" >/dev/null 2>&1 || true
+          done
+          echo "PROBE_F3_END"
