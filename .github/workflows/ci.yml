@@ -456,6 +456,15 @@ jobs:
       - name: 自测钉版外链可达性判据（check-pinned-downloads）
         run: bash scripts/check-pinned-downloads.sh --self-test
 
+      # 台账 #113：Trivy 镜像豁免的单位从「CVE 号」上移到「包 + 版本水位」。
+      # docs/trivy-image-watermark.yaml 是唯一事实源，docs/trivy-image-ignore.yaml 是派生结果
+      # （scripts/gen-trivy-ignore.py 是唯一写入者）⇒ 手改生成物、或改水位忘重新生成，都判红。
+      # 本门禁只读本仓文件、不碰网络，成本可忽略；先跑离线双向夹具证明它真会转红。
+      - name: 自测 Trivy 镜像豁免水位账漂移门禁（check-trivy-ignore-drift）
+        run: |
+          python3 scripts/check-trivy-ignore-drift.py --self-test
+          python3 scripts/check-trivy-ignore-drift.py
+
       # 台账 #112 续：Spark 取数「预算记账」回归测试。
       # 2026-11-15 CI 实测暴露的缺陷：取数段 curl 带 --retry 2，而 curl 的 --max-time 是
       # **每次传输尝试**的上限 ⇒ 「剩余预算 ÷ 剩余尝试数」切出来的片不是本源实耗上限
@@ -2298,6 +2307,21 @@ jobs:
         if: steps.converge.outputs.converge != 'true'
         run: bash scripts/check-pinned-downloads.sh
 
+      # 台账 #116：基座 registry manifest 可达性预检（#112 预检增开的一类被测坐标）。
+      # 为什么单开一个 step（而不是只靠上面那个全量预检）：「基座 tag 拉不拉得动」与
+      #   「钉住的下载坐标还下不下得动」是两回事，混在一份结论里看不出到底是谁红的。
+      # 源口径：BASE_REGISTRY 用与构建腿同一个探源脚本（scripts/pick-base-registry.sh）选，
+      #   导出后由检查脚本按「环境变量优先」展开 ${BASE_REGISTRY} ⇒ 探的就是构建要拉的那个源。
+      # 成本：registry 子集会重复探测一次（上面那个全量预检已经含这一类），代价约 10–160 秒。
+      # 已知盲区（必须记住）：这是**轻量 tag 级探测**，构建期是真的拉层，两边失败条件不同源
+      #   ⇒「预检绿」≠「构建绿」；构建期的第二道防线仍是 scripts/build-retry.sh 的 5xx 换源重试。
+      - name: 基座 registry manifest 可达性预检（台账 #116，多一类被测坐标）
+        run: |
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
+          export BASE_REGISTRY
+          bash scripts/check-pinned-downloads.sh --registry-only
+
       - name: 设置 Docker Buildx
         if: steps.converge.outputs.converge != 'true'
         uses: docker/setup-buildx-action@v3
@@ -2402,7 +2426,8 @@ jobs:
     # 2026-11-15（台账 #112 第 ⑥ 项待裁加固）：10 → 15。
     # 本作业没有 job 级 `if:` ⇒ push(main / release/** / tags v*)、pull_request、
     # schedule(每日 02:00)、workflow_dispatch 这五个触发面**全覆盖**；
-    # 真检最坏耗时 ≈5 分钟（5 个坐标 × 最多 3 源 × 单源 20s 墙钟上限），
+    # 真检最坏耗时 ≈8 分钟（下载坐标类 5 个 × 最多 3 源 × 单源 20s 墙钟上限 ≈5 分钟
+    # ＋ 台账 #116 增开的 registry 类 9 个基座坐标 × 最多 2 源 × 单源 8s ≈2.7 分钟），
     # 10 分钟太贴边，抬到 15 留出余量。
     timeout-minutes: 15
     steps:

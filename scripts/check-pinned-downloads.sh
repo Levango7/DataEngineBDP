@@ -28,6 +28,26 @@
 #    根本不是那个 JAR），且前两源顺序与 Dockerfile 相反（Dockerfile 先 aliyun 后
 #    repo1）。两处都改成与 Dockerfile 的真实取数源、真实顺序一致。
 #
+# ── 2026-11-22 增开第二类被测坐标（台账 #116）：基座 registry manifest 可达性 ──────────
+# 本脚本原来只覆盖 Apache/Maven 的**下载坐标**（PINNED_ITEMS 5 条）。现在多一类：
+# **基座镜像 tag 在 registry 上还拉不拉得动**（FROM 引用 ⇒ manifest 可达性）。
+# 这一类的必要性：台账 #93 的现场是「加速器答得出 /v2/，却在拉具体 tag 时 TLS 超时或回 500」，
+# 2026-10-23 同一时间窗把 Kind Smoke / Docker Build Verify / Integration Test 三条腿同批带红；
+# 探测层不看 tag，就永远只能在"构建已经失败"之后才发现源坏了。
+# 实现口径：
+#   ① **基座镜像清单从仓内受版本控制的 Dockerfile 实算**（git ls-files + 解析 FROM），
+#      **不手工维护一份会漂移的列表**；
+#   ② tag 级 manifest 探测与 OK 码表**共用** scripts/lib/registry-probe.sh
+#      （与 scripts/pick-base-registry.sh 同一份实现，禁止第三份）；
+#   ③ 四态判定与是否阻断**复用**本脚本既有的 classify / policy_verdict 语义，
+#      **不新增判定分支**；registry 类不改变 #112 原有的 policy 语义，
+#      只是多一类被测坐标（原 5 条下载坐标的立论与结论不变）。
+#
+# **残余缺口（必须写进交付说明）**：本预检用的是 tag 级**轻量探测**（manifest HEAD/GET，
+# 取响应码与字节数），构建期用的是真正的**镜像 GET**（拉层），两者**失败条件不同源**
+# ⇒ 「预检全绿」**不得**被引用为「构建一定不会因源红」。构建期那侧的第二道防线仍然是
+# scripts/build-retry.sh：命中 5xx 传输类签名即换源重试一次（exit 2 语义不变）。
+#
 # 判据（四态，不许把「没结论」当成通过或失败）：
 #   OK            源交出了字节（2xx/206 且实收字节 > 0）
 #   FAIL          快源确定性 404 ⇒ 该发布线已被快源挤出（抬版本 + 更新 sha 清单）
@@ -35,12 +55,15 @@
 #   INCONCLUSIVE  状态不足（如 404 与 5xx 混合）⇒ 只告警，不判红也不判绿
 #
 # 用法：
-#   bash scripts/check-pinned-downloads.sh             # 真检（限量 Range GET）
+#   bash scripts/check-pinned-downloads.sh             # 真检（限量 Range GET + registry 探测）
+#   bash scripts/check-pinned-downloads.sh --registry-only  # 只跑 registry 类（新增坐标那一类）
 #   bash scripts/check-pinned-downloads.sh --self-test  # 离线自测（喂状态码表，不碰网）
 set -uo pipefail
 
 SELF_TEST=0
 [ "${1:-}" = "--self-test" ] && SELF_TEST=1
+REGISTRY_ONLY=0
+[ "${1:-}" = "--registry-only" ] && REGISTRY_ONLY=1
 
 # ── 探测参数 ──────────────────────────────────────────────────────────
 PROBE_TIMEOUT="${PINNED_DOWNLOAD_PROBE_TIMEOUT:-20}"   # 单源探测墙钟上限（秒）
@@ -48,6 +71,22 @@ RANGE_BYTES="${PINNED_DOWNLOAD_RANGE_BYTES:-262144}"   # 每次取多少字节�
 MAX_BYTES="${PINNED_DOWNLOAD_MAX_BYTES:-4194304}"      # 单次最多允许落盘多少字节（4 MiB）
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOCKERFILE_PATH="${PINNED_DOWNLOAD_DOCKERFILE:-${REPO_ROOT}/platform/batch-pipeline/docker/spark-cluster/Dockerfile}"
+
+# ── 增类：基座 registry manifest 探测（台账 #116）──────────────────────
+# tag 级 manifest 探测实现与 OK 码表**共用** scripts/lib/registry-probe.sh
+# （与 scripts/pick-base-registry.sh 同一份实现，禁止第三份）。
+# 共用库缺失 ⇒ fail-closed（本检对 registry 类出不了结论 ⇒ 判红），绝不静默跳过这一类。
+REGISTRY_LIB="${REPO_ROOT}/scripts/lib/registry-probe.sh"
+if [ ! -f "$REGISTRY_LIB" ]; then
+  echo "::error::共用 registry 探测库缺失：$REGISTRY_LIB" >&2
+  exit 2
+fi
+# shellcheck source=scripts/lib/registry-probe.sh
+. "$REGISTRY_LIB"
+
+REGISTRY_TIMEOUT="${REGISTRY_PROBE_TIMEOUT:-8}"              # 单次探测墙钟上限（秒）
+REGISTRY_PROBE_CMD="${REGISTRY_PROBE_CMD:-}"                  # 自测注入点：外部探针命令（回 "<code> <bytes>"）
+REGISTRY_FALLBACK_HOST="${REGISTRY_FALLBACK_HOST:-docker.io}" # 上游兜底宿主（与 build-retry.sh 的换源路径一致）
 
 # ── 条目表 ────────────────────────────────────────────────────────────
 # 格式：名称|类别|模式|快源数|源1|源2|源3
@@ -296,11 +335,224 @@ check_consistency() {
   return 1
 }
 
+# ── 增类：基座镜像 registry manifest 可达性（台账 #116）────────────────
+# 本节**不新增判定分支**：四态（OK / FAIL / DEGRADED / INCONCLUSIVE）与是否阻断，
+# 全部复用上面的 classify / policy_verdict；本节只负责三件事：
+#   ① 从仓内受版本控制的 Dockerfile **实算**基座镜像清单（不手工维护会漂移的列表）；
+#   ② 把 registry 的 HTTP 状态码翻译成既有 classify 认识的 "<code> <bytes>" 形态；
+#   ③ 调共用探测库 scripts/lib/registry-probe.sh 探一次 tag 级 manifest。
+
+# HTTP 状态码 → 既有 classify 的 "<code> <bytes>" 形态。
+# 为什么要翻译：classify 的 GOOD 词汇只有 200/206，而 registry 的「宿主活着但拿不到
+# manifest 体」（匿名探测在要 token ⇒ 401；registry 把请求重定向 ⇒ 3xx）在共用 OK 码表里
+# 属于**可用**（见 scripts/lib/registry-probe.sh 的 REGISTRY_PROBE_OK_CODES）。
+# ⇒ 统一映射成 "200 1"（那个 1 是"有应答"这个事实的占位，**不是**真实字节数）；
+#   **真实状态码在报告里原样打印**（读者看得到 401/302/404，不会被占位值误导）。
+# 404 单独映射成 "404 0"：在「宿主存活」这层它算活着（加速器懒加载未缓存），
+#   但在「这个 tag」这层它是「这一源没有这个 tag」＝确定性失败 ⇒ 不能混进 GOOD。
+registry_state() {
+  local code="${1:-}" size="${2:-}"
+  [ -n "$code" ] || code="000"
+  case "$size" in ''|*[!0-9]*) size="0" ;; esac
+  case "$code" in
+    200|206) printf '200 %s' "$size" ;;
+    301|302|307|308|401) printf '200 1' ;;
+    404) printf '404 0' ;;
+    000) printf '000 0' ;;
+    *) printf '%s 0' "$code" ;;
+  esac
+}
+
+# 状态码的人话描述（报告用；真实码由调用方原样打印）
+registry_code_desc() {
+  case "${1:-}" in
+    200|206) printf '有 manifest 体' ;;
+    301|302|307|308) printf '重定向（宿主在应答）' ;;
+    401) printf '要 token（宿主活着）' ;;
+    404) printf '这个 tag 不存在' ;;
+    000) printf '连不上' ;;
+    *) printf '服务端错误' ;;
+  esac
+}
+
+# 从仓内受版本控制的 Dockerfile 实算基座镜像清单。
+# 口径（与 CI 的构建面/扫描面对齐）：
+#   ① 只认**受版本控制**的 Dockerfile（git ls-files）——未提交的本地文件不代表出货面；
+#   ② 排除 design/**——CI 的镜像构建循环只扫 platform/（ci.yml 的 find platform -name Dockerfile），
+#      design/ 下的镜像不进构建面，与 security.yml 的扫描面口径一致；
+#   ③ ${BASE_REGISTRY} 按**该文件自己的 ARG BASE_REGISTRY 默认值**展开，环境变量优先
+#      （环境变量优先＝与 `docker build --build-arg BASE_REGISTRY=...` 的语义一致；
+#       BASE_REGISTRY 必须是**裸宿主名**，与 scripts/pick-base-registry.sh 的契约「只返回宿主」一致）；
+#   ④ 无命名空间的本地镜像名（如 spark-cluster-spark-master:latest）不是 registry 坐标，跳过；
+#   ⑤ digest 钉版引用（@sha256:...）不是 tag 级坐标（本预检只探 tag），跳过；
+#   ⑥ 没有 registry 宿主前缀的短名（如 kindest/node:v1.30.0）按 Docker 规范归 docker.io。
+# 输出：每行 "host<TAB>name:tag"（去重 + 确定性排序）。
+list_base_image_specs() {
+  local root="${PINNED_DOWNLOAD_REPO_ROOT:-$REPO_ROOT}"
+  local list_file="${PINNED_DOWNLOAD_DOCKERFILE_LIST:-}"
+  local f rel path arg_reg line image first name tag eff placeholder host
+  local out=""
+  local -a files=()
+
+  if [ -n "$list_file" ]; then
+    while IFS= read -r f; do
+      [ -n "$f" ] && files+=("$f")
+    done < "$list_file"
+  else
+    # 用「子 shell 里 cd 过去再 git」而不是 `git -C`：
+    # `git -C` 会强制从目标目录重新做仓库发现，在 worktree 的 .git 指针写着别的文件系统
+    # 路径时（例如 Windows 建 worktree、WSL 里跑）发现会失败；而 cd + git 允许外部用
+    # GIT_DIR/GIT_WORK_TREE 指到真实的 gitdir。
+    if ! ( cd "$root" && git rev-parse --git-dir >/dev/null 2>&1 ); then
+      echo "::error::当前目录不是可用的 git 检出（git rev-parse 失败）：$root" >&2
+      return 1
+    fi
+    while IFS= read -r f; do
+      [ -n "$f" ] && files+=("$f")
+    done < <( cd "$root" && git ls-files '*Dockerfile*' 2>/dev/null || true )
+  fi
+
+  for f in "${files[@]}"; do
+    # ② 排除 design/**（相对 root 判定；fixture 给绝对路径时也能命中）
+    rel="${f#$root/}"
+    case "$rel" in design/*) continue ;; esac
+    case "$f" in */design/*) continue ;; esac
+    path="$f"
+    case "$f" in /*) ;; *) path="$root/$f" ;; esac
+    [ -f "$path" ] || continue
+    arg_reg="$(df_value "$path" '^ARG BASE_REGISTRY=' || true)"
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      # 取 FROM 的镜像引用：剥 FROM 关键字 → 剥行尾 AS <alias> → 剥 --platform= 前缀
+      image="$(printf '%s' "$line" | sed -E 's/^[[:space:]]*[Ff][Rr][Oo][Mm][[:space:]]+//')"
+      image="${image%%[[:space:]]AS[[:space:]]*}"
+      image="${image%%[[:space:]]as[[:space:]]*}"
+      while [ "${image#--platform=}" != "$image" ]; do
+        image="${image#--platform=* }"
+      done
+      image="$(printf '%s' "$image" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/\r$//')"
+      [ -n "$image" ] || continue
+      case "$image" in scratch|scratch/*) continue ;; esac
+      case "$image" in *@*) continue ;; esac
+      # ③ 展开 ${BASE_REGISTRY}
+      placeholder='${BASE_REGISTRY}'
+      case "$image" in
+        *'${BASE_REGISTRY}'*)
+          eff="${BASE_REGISTRY:-$arg_reg}"
+          [ -n "$eff" ] || continue
+          image="${image//$placeholder/$eff}"
+          ;;
+        *'${BASE_REGISTRY'*) continue ;;   # 带 :- 默认值等变体，本预检不猜
+      esac
+      # ④ 无命名空间的本地镜像名不是 registry 坐标
+      case "$image" in */*) ;; *) continue ;; esac
+      first="${image%%/*}"
+      if [[ "$first" == *.* || "$first" == *:* || "$first" == "localhost" ]]; then
+        host="$first"; name="${image#*/}"
+      else
+        host="docker.io"; name="$image"
+      fi
+      case "$name" in
+        *:*) tag="${name##*:}" ;;
+        *) name="$name:latest"; tag="latest" ;;
+      esac
+      [ -n "$tag" ] || continue
+      out+="$host"$'\t'"$name"$'\n'
+    done < <(grep -iE '^[[:space:]]*FROM[[:space:]]+' "$path" 2>/dev/null || true)
+  done
+
+  printf '%s' "$out" | grep -v '^$' | LC_ALL=C sort -u
+}
+
+# registry 类真检：对每个基座坐标探一次 tag 级 manifest；
+# 判据全部复用 classify / policy_verdict（不新增判定分支）。
+run_registry_check() {
+  local specs host spec raw1 raw2 code1 size1 code2 size2 st1 st2 verdict policy s2desc
+  local ok=0 fails=0 degraded=0 incon=0 red=0 n=0
+
+  specs="$(list_base_image_specs)"
+  local list_rc=$?
+  if [ "$list_rc" != "0" ] || [ -z "$specs" ]; then
+    echo "::error::实算不出任何基座镜像坐标（受版本控制的 Dockerfile 清单为空，或 git 不可用）⇒ fail-closed 判红"
+    return 1
+  fi
+
+  while IFS=$'\t' read -r host spec; do
+    [ -n "${host:-}" ] && [ -n "${spec:-}" ] || continue
+    n=$((n + 1))
+    raw1="$(registry_probe_tag "$host" "$spec" "$REGISTRY_PROBE_CMD" "$REGISTRY_TIMEOUT")"
+    code1="${raw1%% *}"; size1="${raw1##* }"
+    st1="$(registry_state "$code1" "$size1")"
+    raw2=""; code2=""; size2=""; st2=""
+    if registry_code_answered "$code1"; then
+      # 主源有实质应答 ⇒ 不再探副源（省时；不新增判定分支）
+      verdict="$(classify plain 1 "$st1")"
+    elif [ "$host" = "$REGISTRY_FALLBACK_HOST" ]; then
+      # 主源就是上游兜底源 ⇒ 没有第二个源可探
+      verdict="$(classify plain 1 "$st1")"
+    else
+      raw2="$(registry_probe_tag "$REGISTRY_FALLBACK_HOST" "$spec" "$REGISTRY_PROBE_CMD" "$REGISTRY_TIMEOUT")"
+      code2="${raw2%% *}"; size2="${raw2##* }"
+      st2="$(registry_state "$code2" "$size2")"
+      verdict="$(classify plain 1 "$st1" "$st2")"
+    fi
+    s2desc="未探第二源"
+    [ -n "$code2" ] && s2desc="上游 HTTP $code2：$(registry_code_desc "$code2")"
+    policy="$(policy_verdict large "$verdict")"
+    case "$verdict" in
+      OK)
+        ok=$((ok + 1))
+        printf '  ✓ %-56s manifest 可达（主源 HTTP %s：%s）\n' \
+          "$host/$spec" "$code1" "$(registry_code_desc "$code1")"
+        ;;
+      FAIL)
+        fails=$((fails + 1)); red=1
+        printf '::error::基座镜像 tag 在所有源上都不存在：%s（主源 HTTP %s：%s / %s）\n' \
+          "$host/$spec" "$code1" "$(registry_code_desc "$code1")" "$s2desc"
+        echo "  ⇒ 处置：确认这个 tag 是否还在架（可能已删 tag / 改了 tag）；要么改 FROM 的 tag，要么改 ARG BASE_REGISTRY 换源。"
+        ;;
+      DEGRADED)
+        degraded=$((degraded + 1))
+        if [ "$policy" = "RED" ]; then
+          red=1
+          printf '::error::基座镜像 manifest 所有源都拿不到字节（连不上，或应答了但零字节）：%s（主源 HTTP %s：%s / %s）\n' \
+            "$host/$spec" "$code1" "$(registry_code_desc "$code1")" "$s2desc"
+          echo "  ⇒ 处置：这是传输面坏了（台账 #93 的 TLS 超时 / 500 形态），不是镜像内容坏了；构建期只会挂到 job 超时，本检据此早失败。"
+        else
+          printf '  ⚠ %-56s 所有源都拿不到字节（不判红）\n' "$host/$spec"
+        fi
+        ;;
+      *)
+        incon=$((incon + 1))
+        printf '  ⚠ %-56s 状态不足，不下结论（主源 HTTP %s：%s / %s）\n' \
+          "$host/$spec" "$code1" "$(registry_code_desc "$code1")" "$s2desc"
+        ;;
+    esac
+  done <<< "$specs"
+
+  echo "汇总：可达 $ok / 不存在 $fails / 取不到字节 $degraded / 状态不足 $incon（共 $n 个基座坐标）"
+  if [ "$red" = "1" ]; then
+    echo "::error::基座 registry manifest 不可用，阻断 CI（早失败，省掉一次镜像构建的误诊）"
+    return 1
+  fi
+  echo "::notice::registry 类本检不阻断（未发现确定性不可用的基座坐标）"
+  echo "::notice::口径提醒：本检是**轻量 tag 级探测**，构建期是真的拉层 ⇒ 「预检绿」不等于「构建一定绿」；构建期的第二道防线是 scripts/build-retry.sh 的 5xx 换源重试。"
+  return 0
+}
+
 # ── 真检主流程 ────────────────────────────────────────────────────────
 run_check() {
   local df="${1:-$DOCKERFILE_PATH}"
   local ok=0 fails=0 degraded=0 incon=0 red=0
   local name cls mode nfast u1 u2 u3 s1 s2 s3 verdict policy
+
+  if [ "$REGISTRY_ONLY" = "1" ]; then
+    # 只跑增开的那一类（台账 #116）：基座 registry manifest 可达性。
+    # 不跑 #112 的下载坐标类，也不跑它的一致性自检（本类不依赖那份清单）。
+    echo "== 基座 registry manifest 可达性预检（台账 #116；registry-only 子集）=="
+    run_registry_check
+    return $?
+  fi
 
   echo "== 钉版外链可达性预检（台账 #112）=="
   echo "-- 步骤 0：预检清单 × Dockerfile 源清单 一致性自检（fail-closed）--"
@@ -351,9 +603,16 @@ run_check() {
     esac
   done <<< "$PINNED_ITEMS"
 
-  echo "汇总：可达 $ok / 被挤出 $fails / 取不到字节 $degraded / 状态不足 $incon"
+  # 步骤 2：增开的一类被测坐标（台账 #116）——FROM 引用的基座 tag 拉不拉得动。
+  # 放在下载坐标类之后：两者各自独立出结论（谁红看谁），但共用同一次 CI 早失败的机会。
+  echo "-- 步骤 2：基座 registry manifest 可达性预检（台账 #116：FROM 引用的基座 tag）--"
+  if ! run_registry_check; then
+    red=1
+  fi
+
+  echo "汇总：可达 $ok / 被挤出 $fails / 取不到字节 $degraded / 状态不足 $incon（以上为下载坐标类）"
   if [ "$red" = "1" ]; then
-    echo "::error::钉住的下载源不可用，阻断 CI（早失败，省掉一次 60 分钟的误诊）"
+    echo "::error::钉住的下载源或基座 registry 不可用，阻断 CI（早失败，省掉一次 60 分钟的误诊）"
     return 1
   fi
   echo "::notice::本检不阻断（未发现确定性不可用的坐标）"
@@ -468,18 +727,108 @@ FIXTURE
   check_consistency "$tmp/drift-missing.Dockerfile" >/dev/null 2>&1; rc=$?
   check_rc "锚点缺失 ⇒ fail-closed 判红" 1 "$rc"
 
+  echo "-- registry 类：状态码翻译（HTTP → 既有 classify 的 <code> <bytes> 形态）--"
+  check "200 带字节 ⇒ 200 <bytes>" "200 512" "$(registry_state 200 512)"
+  check "206 带字节 ⇒ 200 <bytes>" "200 1024" "$(registry_state 206 1024)"
+  check "401（要 token，宿主活着但无 manifest 体）⇒ 200 1" "200 1" "$(registry_state 401 145)"
+  check "302（重定向）⇒ 200 1" "200 1" "$(registry_state 302 0)"
+  check "404（这个 tag 不存在）⇒ 404 0" "404 0" "$(registry_state 404 153)"
+  check "000（连不上）⇒ 000 0" "000 0" "$(registry_state 000 0)"
+  check "空码 ⇒ 000 0" "000 0" "$(registry_state '' 0)"
+  check "500（服务端错误）⇒ 500 0" "500 0" "$(registry_state 500 0)"
+
+  echo "-- registry 类：四态判定（复用 classify/policy_verdict，不新增判定分支）--"
+  check "主源有 manifest ⇒ OK" "OK" "$(classify plain 1 "$(registry_state 200 512)")"
+  check "主源要 token（401）⇒ OK" "OK" "$(classify plain 1 "$(registry_state 401 145)")"
+  check "主源 404 + 上游有 manifest ⇒ OK" "OK" \
+    "$(classify plain 1 "$(registry_state 404 153)" "$(registry_state 200 512)")"
+  check "主源 404 + 上游 404 ⇒ FAIL" "FAIL" \
+    "$(classify plain 1 "$(registry_state 404 153)" "$(registry_state 404 153)")"
+  check "主源连不上 + 上游连不上 ⇒ DEGRADED" "DEGRADED" \
+    "$(classify plain 1 "$(registry_state 000 0)" "$(registry_state 000 0)")"
+  check "主源连不上 + 上游有 manifest ⇒ OK" "OK" \
+    "$(classify plain 1 "$(registry_state 000 0)" "$(registry_state 200 512)")"
+  check "主源 500 + 上游 500 ⇒ INCONCLUSIVE（既有语义：确定性非 404 的错码＝状态不足）" "INCONCLUSIVE" \
+    "$(classify plain 1 "$(registry_state 500 0)" "$(registry_state 500 0)")"
+  check "registry 类按 large 计：DEGRADED ⇒ RED" "RED" "$(policy_verdict large DEGRADED)"
+  check "registry 类按 large 计：FAIL ⇒ RED" "RED" "$(policy_verdict large FAIL)"
+  check "registry 类按 large 计：INCONCLUSIVE ⇒ PASS（只告警）" "PASS" "$(policy_verdict large INCONCLUSIVE)"
+
+  echo "-- registry 类：基座清单从受版本控制 Dockerfile 实算（口径自证）--"
+  mkdir -p "$tmp/fix/design"
+  cat >"$tmp/fix/Dockerfile.a" <<'FIXTURE'
+ARG BASE_REGISTRY=docker.m.daocloud.io
+FROM ${BASE_REGISTRY}/library/alpine:3.20 AS runtime
+FROM --platform=linux/amd64 ${BASE_REGISTRY}/library/python:3.12-slim AS builder
+FROM kindest/node:v1.30.0
+FROM scratch
+FROM spark-cluster-spark-master:latest
+FROM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temurin-17@sha256:0000000000000000000000000000000000000000000000000000000000000000
+FIXTURE
+  cat >"$tmp/fix/design/Dockerfile.b" <<'FIXTURE'
+ARG BASE_REGISTRY=docker.io
+FROM ${BASE_REGISTRY}/library/python:3.11.7-slim-bookworm@sha256:1111111111111111111111111111111111111111111111111111111111111111
+FIXTURE
+  printf '%s\n%s\n' "$tmp/fix/Dockerfile.a" "$tmp/fix/design/Dockerfile.b" >"$tmp/list.txt"
+  local expect_specs got_specs
+  expect_specs="$(printf 'docker.io\tkindest/node:v1.30.0\ndocker.m.daocloud.io\tlibrary/alpine:3.20\ndocker.m.daocloud.io\tlibrary/python:3.12-slim')"
+  got_specs="$(PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" list_base_image_specs)"
+  check "实算清单（排除 design/ / scratch / 本地镜像 / digest 钉版）" "$expect_specs" "$got_specs"
+  expect_specs="$(printf 'docker.io\tkindest/node:v1.30.0\ndocker.io\tlibrary/alpine:3.20\ndocker.io\tlibrary/python:3.12-slim')"
+  got_specs="$(BASE_REGISTRY=docker.io PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" \
+    PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" list_base_image_specs)"
+  check "环境变量 BASE_REGISTRY 优先于文件里的 ARG 默认值" "$expect_specs" "$got_specs"
+  local real_specs real_n real_rc
+  real_specs="$(list_base_image_specs 2>/dev/null)"; real_rc=$?
+  if [ "$real_rc" != "0" ]; then
+    printf '  – 当前环境不是可用的 git 检出（rc=%s），跳过「真实仓内实算」这一项（真检时 fail-closed）\n' "$real_rc"
+  else
+    real_n="$(printf '%s' "$real_specs" | grep -c . || true)"
+    if [ "${real_n:-0}" -ge 1 ]; then
+      pass=$((pass + 1)); printf '  ✓ 真实仓内实算出基座坐标 ⇒ %s 个\n' "$real_n"
+    else
+      fail=$((fail + 1)); printf '  ✗ 真实仓内实算出基座坐标 ⇒ 0 个（期望 ≥1）\n'
+    fi
+  fi
+
   echo "-- 端到端（桩探测，不碰网）--"
   printf '#!/usr/bin/env bash\necho "206 262144"\n' >"$tmp/stub_ok.sh"
   printf '#!/usr/bin/env bash\necho "404 153"\n' >"$tmp/stub_404.sh"
   printf '#!/usr/bin/env bash\necho "200 0"\n' >"$tmp/stub_zero.sh"
+  printf '#!/usr/bin/env bash\necho "000 0"\n' >"$tmp/stub_000.sh"
+  printf '#!/usr/bin/env bash\necho "500 0"\n' >"$tmp/stub_500.sh"
   chmod +x "$tmp"/stub_*.sh
 
-  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh"; run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  # 两类被测坐标共用同一批桩：下载类的探针收到的是 URL，registry 类的探针收到的是
+  # "<host> <name:tag>"，桩不区分入参、按固定状态码回 ⇒ 两类都能离线跑通。
+  # registry 类的那份 Dockerfile 清单用夹具喂（不依赖当前环境能不能跑 git），
+  # 保证这三条端到端夹具在任何环境下的结论都一样。
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt"; \
+      run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
   check_rc "全部源交出字节 ⇒ 不阻断" 0 "$rc"
-  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_404.sh"; run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_404.sh" REGISTRY_PROBE_CMD="$tmp/stub_404.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt"; \
+      run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
   check_rc "快源全 404 ⇒ 判红" 1 "$rc"
-  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_zero.sh"; run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_zero.sh" REGISTRY_PROBE_CMD="$tmp/stub_zero.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt"; \
+      run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
   check_rc "大件全部源零字节 ⇒ 判红" 1 "$rc"
+
+  echo "-- registry-only 端到端（桩探测，不碰网）--"
+  ( export PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_ONLY=1; run_check ) >/dev/null 2>&1; rc=$?
+  check_rc "registry-only：manifest 全部可达 ⇒ 不阻断" 0 "$rc"
+  ( export PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           REGISTRY_PROBE_CMD="$tmp/stub_404.sh" REGISTRY_ONLY=1; run_check ) >/dev/null 2>&1; rc=$?
+  check_rc "registry-only：所有源都 404 ⇒ 判红" 1 "$rc"
+  ( export PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           REGISTRY_PROBE_CMD="$tmp/stub_000.sh" REGISTRY_ONLY=1; run_check ) >/dev/null 2>&1; rc=$?
+  check_rc "registry-only：所有源都连不上 ⇒ DEGRADED ⇒ 判红" 1 "$rc"
+  ( export PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           REGISTRY_PROBE_CMD="$tmp/stub_500.sh" REGISTRY_ONLY=1; run_check ) >/dev/null 2>&1; rc=$?
+  check_rc "registry-only：所有源都 500 ⇒ INCONCLUSIVE ⇒ 不判红（只告警）" 0 "$rc"
 
   if [ -f "$DOCKERFILE_PATH" ]; then
     check_consistency "$DOCKERFILE_PATH" >/dev/null 2>&1; rc=$?
