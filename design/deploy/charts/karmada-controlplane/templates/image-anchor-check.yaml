@@ -1,0 +1,24 @@
+{{- /*
+镜像锚点自洽校验（台账 #128）。
+
+scripts/check-chart-generator-drift.py 只比对 _generate_charts.py 的 CHARTS 表行与本父 chart
+values.yaml 的首个 image 块；但表行本身可能与"实际渲染出的坐标"不一致（例如上游 chart 的
+image helper 走了 global.imageRegistry 改写）。本模板把三者钉在一起：渲染期即断言，
+不一致直接 fail ⇒ 不会出现"门禁全绿但拉不到镜像"的静默通过。
+
+本模板不产出任何资源，只做断言。
+*/ -}}
+{{- $cm := .Values.karmada.controllerManager.image -}}
+{{- $expectedRepo := printf "%s/%s" $cm.registry $cm.repository -}}
+{{- if ne .Values.image.repository $expectedRepo -}}
+{{- fail (printf "karmada-controlplane: image.repository=%q 与实际渲染坐标 %q 不一致（CHARTS 表行/values 已漂移）" .Values.image.repository $expectedRepo) -}}
+{{- end -}}
+{{- if ne .Values.image.tag $cm.tag -}}
+{{- fail (printf "karmada-controlplane: image.tag=%q 与实际渲染坐标 tag=%q 不一致" .Values.image.tag $cm.tag) -}}
+{{- end -}}
+{{- if ne .Values.image.pullPolicy $cm.pullPolicy -}}
+{{- fail (printf "karmada-controlplane: image.pullPolicy=%q 与实际渲染坐标 pullPolicy=%q 不一致" .Values.image.pullPolicy $cm.pullPolicy) -}}
+{{- end -}}
+{{- if .Values.karmada.global.imageRegistry -}}
+{{- fail (printf "karmada-controlplane: karmada.global.imageRegistry=%q 会被上游 common.images.image 施加到全部 registry（含 registry.k8s.io 的 etcd/kube-apiserver），daocloud 镜像站无该路径 ⇒ 禁止设置" .Values.karmada.global.imageRegistry) -}}
+{{- end -}}

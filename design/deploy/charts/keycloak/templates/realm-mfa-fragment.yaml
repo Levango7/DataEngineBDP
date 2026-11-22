@@ -1,0 +1,19 @@
+{{- if and .Values.mfa.enabled .Values.mfa.fragment.enabled }}
+# MFA realm 片段 ConfigMap（台账 #131）
+#
+# 为什么单独一份而不是并进 realm-import：
+#   realm-import 的文件会被 Keycloak 当作**完整 realm** 导入（--import-realm），
+#   MFA 片段只含 otpPolicy/webAuthnPolicy/requiredActions 等属性、没有 realm 名，
+#   放进去会被当成一个无名的 realm 导入 ⇒ 污染导入目录。
+# 本 ConfigMap 不挂载进 Pod，只作为 kcadm 导入路径（scripts/import-keycloak-realm.sh）
+# 的输入物：kubectl get cm ... -o jsonpath 取出后与现有 realm 合并再 PUT。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "keycloak.fullname" . }}-mfa-fragment
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+data:
+  {{ .Values.mfa.fragment.fileName }}: |-
+{{ include "keycloak.mfaRealm" $ | toPrettyJson | indent 4 }}
+{{- end }}

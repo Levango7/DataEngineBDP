@@ -40,10 +40,24 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.otlp.enabled }}
+          # Tempo 无默认配置文件可用：必须显式指定 -config.file，否则只用内置默认值，
+          # 不会开启 distributor.receivers.otlp ⇒ 采集面推来的链路无处落地（台账 #130）。
+          args:
+            - "-config.file=/conf/tempo.yaml"
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.containerPort | int }}
               protocol: TCP
+            {{- if .Values.otlp.enabled }}
+            - name: otlp-grpc
+              containerPort: {{ .Values.otlp.grpcPort | int }}
+              protocol: TCP
+            - name: otlp-http
+              containerPort: {{ .Values.otlp.httpPort | int }}
+              protocol: TCP
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "tempo.configmapName" . }}
@@ -67,6 +81,14 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.otlp.enabled }}
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+              readOnly: true
+            - name: data
+              mountPath: /var/tempo
+          {{- end }}
 {{- if .Values.securityContext.enabled }}
           securityContext:
             runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
@@ -80,3 +102,11 @@ spec:
                 - {{ . }}
 {{- end }}
 {{- end }}
+      {{- if .Values.otlp.enabled }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "tempo.configmapName" . }}
+        - name: data
+          emptyDir: {}
+      {{- end }}

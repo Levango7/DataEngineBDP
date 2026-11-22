@@ -110,6 +110,48 @@ realmImport:
 # ---- 附加标量环境变量（键值会以 envFrom 注入；仅标量会渲染）----
 env: {}
 
+# ---- MFA（多因素认证，台账 #131）----
+# 此前可部署面零 MFA 配置：chart 内无任何 OTP/TOTP/WebAuthn 声明，只有合规报告里的
+# 「已集成多因素认证」文字声明。本段把二次验证策略落成**可渲染的 realm 配置**：
+#   · otpPolicy       —— TOTP 参数（算法 / 位数 / 周期）
+#   · webAuthnPolicy  —— WebAuthn（通行密钥）策略，默认关闭
+#   · requiredActions —— CONFIGURE_TOTP 作为默认动作 ⇒ 用户首次登录必须完成二次凭据配置
+# 两条生效路径：
+#   ① realmImport.enabled=true 时，mfa 字段被合并进每个导入 realm（--import-realm 生效）；
+#   ② mfa.fragment.enabled=true 时，单独渲染一份 MFA realm 片段 ConfigMap，
+#      供 scripts/import-keycloak-realm.sh 的 kcadm 路径使用。
+# 强制范围（哪些用户/角色被挑战）属身份安全策略裁决，见 mfa.enforceRoles 与
+# design/deploy/values/keycloak-values.yaml 的 mfa 段。
+mfa:
+  enabled: true
+  # 强制范围：留空 = 全体登录用户；非空 = 仅这些 realm 角色被强制
+  enforceRoles: []
+  otpPolicy:
+    type: totp
+    algorithm: HmacSHA1
+    digits: 6
+    period: 30
+    lookAheadWindow: 1
+  webAuthnPolicy:
+    enabled: false
+    attestationType: none
+    userVerificationRequirement: preferred
+    rpName: "数擎云核"
+    rpId: ""
+  # 强制配置二次凭据的 required action
+  requiredAction: CONFIGURE_TOTP
+  requiredActionName: Configure OTP
+  # 浏览器登录流（条件式 OTP 挑战）：默认关闭——该流结构（authenticationExecutions /
+  # conditionalAuthFlow 字段拼写）需真机 Keycloak 校验，本仓无运行环境，未经验证。
+  browserFlow:
+    enabled: false
+    alias: sq-browser-mfa
+    description: "数擎云核 · 条件式 OTP 二次验证"
+  # 渲染独立 MFA realm 片段（kcadm 导入路径用），不进 /opt/keycloak/data/import
+  fragment:
+    enabled: true
+    fileName: sq-realm-mfa.json
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/keycloak-values.yaml 覆盖
 # 渲染命令： helm template keycloak design/deploy/charts/keycloak -f design/deploy/values/keycloak-values.yaml

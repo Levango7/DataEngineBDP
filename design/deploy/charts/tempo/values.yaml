@@ -118,3 +118,39 @@ serviceMonitor:
   interval: 30s
   scrapeTimeout: 10s
   additionalLabels: {}
+
+# ---- OTLP 接收端（台账 #130：采集面缺口）----
+# Tempo 原 chart 只渲染 config: 块、deployment 无 args、无 config 挂载 ⇒
+# 收不到 OTLP 链路数据。此处补 distributor.receivers.otlp 与对应 Service 端口，
+# 供同 namespace 的 otel-collector chart（otlp exporter）推送。
+otlp:
+  enabled: true
+  grpcPort: 4317
+  httpPort: 4318
+
+# ---- Tempo 运行时配置（-config.file 挂载到 /conf/tempo.yaml）----
+# 说明：本地后端 + 内存 WAL，适用于单节点开发/验证环境；生产需换对象存储后端。
+tempoConfig: |
+  server:
+    http_listen_port: 3200
+    log_level: info
+  distributor:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+  ingester:
+    max_block_duration: 5m
+  compactor:
+    compaction:
+      block_retention: 24h
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+      wal:
+        path: /var/tempo/wal

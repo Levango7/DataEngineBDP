@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "owasp-crs.fullname" . }}
+  labels:
+    {{- include "owasp-crs.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.httpPort }}
+      targetPort: http
+      protocol: TCP
+    - name: https
+      port: {{ .Values.service.httpsPort }}
+      targetPort: https
+      protocol: TCP
+  selector:
+    {{- include "owasp-crs.selectorLabels" . | nindent 4 }}

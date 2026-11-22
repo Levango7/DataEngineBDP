@@ -54,3 +54,61 @@ Service name.
 {{- define "keycloak.serviceName" -}}
 {{- include "keycloak.fullname" . -}}
 {{- end -}}
+
+{{/*
+MFA realm 片段（台账 #131）：把 values.mfa 渲染成 Keycloak realm 表示法的字段集合。
+用法：
+  · realmImport 路径 —— mergeOverwrite 到每个待导入 realm 上（--import-realm 生效）；
+  · fragment 路径 —— 单独渲染成 ConfigMap，供 scripts/import-keycloak-realm.sh 的 kcadm 路径使用。
+字段口径：otpPolicy / webAuthnPolicy / requiredActions 均为 realm 表示法里的顶层属性。
+*/}}
+{{- define "keycloak.mfaRealm" -}}
+{{- $mfa := .Values.mfa -}}
+otpPolicy:
+  type: {{ $mfa.otpPolicy.type | quote }}
+  algorithm: {{ $mfa.otpPolicy.algorithm | quote }}
+  digits: {{ $mfa.otpPolicy.digits | int }}
+  period: {{ $mfa.otpPolicy.period | int }}
+  lookAheadWindow: {{ $mfa.otpPolicy.lookAheadWindow | int }}
+webAuthnPolicy:
+  enabled: {{ $mfa.webAuthnPolicy.enabled }}
+  attestationType: {{ $mfa.webAuthnPolicy.attestationType | quote }}
+  userVerificationRequirement: {{ $mfa.webAuthnPolicy.userVerificationRequirement | quote }}
+  rpName: {{ $mfa.webAuthnPolicy.rpName | quote }}
+{{- if $mfa.webAuthnPolicy.rpId }}
+  rpId: {{ $mfa.webAuthnPolicy.rpId | quote }}
+{{- end }}
+requiredActions:
+  - id: {{ $mfa.requiredAction | quote }}
+    name: {{ $mfa.requiredActionName | quote }}
+    enabled: true
+    defaultAction: {{ $mfa.requiredAction | quote }}
+{{- if $mfa.browserFlow.enabled }}
+browserFlow: {{ $mfa.browserFlow.alias | quote }}
+authenticationFlows:
+  - alias: {{ $mfa.browserFlow.alias | quote }}
+    description: {{ $mfa.browserFlow.description | quote }}
+    providerId: basic-flow
+    topLevel: true
+    builtIn: false
+    authenticationExecutions:
+      - authenticator: auth-cookie
+        authenticatorFlow: false
+        requirement: ALTERNATIVE
+        priority: 10
+        userSetupAllowed: false
+      - authenticator: auth-otp-form
+        authenticatorFlow: false
+        requirement: CONDITIONAL
+        priority: 30
+        userSetupAllowed: false
+        conditionalAuthFlow: true
+        authenticationExecutions:
+          - authenticator: conditional-user-configured
+            authenticatorFlow: false
+            requirement: REQUIRED
+            priority: 10
+            userSetupAllowed: false
+{{- end }}
+{{- end -}}
+

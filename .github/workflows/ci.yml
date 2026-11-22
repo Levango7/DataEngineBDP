@@ -782,6 +782,21 @@ jobs:
           python3 scripts/check-keycloak-realm-fragment.py --self-test
           python3 scripts/check-keycloak-realm-fragment.py
 
+      - name: 部署面资产自检（Keycloak MFA 片段↔chart 对账 + Istio 策略副本逐字节一致）
+        # 台账 #128–#132 部署面补齐批次的自检（本 job 内新增 step，不新增 CI job）：
+        #   A. design/deploy/keycloak/sq-realm-mfa.json 与 charts/keycloak values.yaml 的
+        #      mfa 段对账——otpPolicy / webAuthnPolicy / requiredAction 三类字段一致，
+        #      禁 usersProfile 与未知键，requiredActions 必含 CONFIGURE_TOTP；
+        #   B. charts/istio/files/traffic-policies.yaml 与权威
+        #      design/deploy/istio/traffic-policies.yaml 逐字节一致（去 BOM），
+        #      防两份策略静默漂移。
+        # 另跑 Keycloak realm 合并器 scripts/keycloak-mfa-merge.py 的合成正反例。
+        # 惯例：先跑合成正反例（--self-test），再跑真判定。
+        run: |
+          python3 scripts/check-deploy-surface-assets.py --self-test
+          python3 scripts/check-deploy-surface-assets.py
+          python3 scripts/keycloak-mfa-merge.py --self-test
+
       - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
         # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
         # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，

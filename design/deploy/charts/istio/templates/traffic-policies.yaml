@@ -1,0 +1,7 @@
+{{- if .Values.trafficPolicies.enabled }}
+{{- $policies := .Files.Get "files/traffic-policies.yaml" }}
+{{- if not $policies }}
+{{- fail "istio: files/traffic-policies.yaml 缺失（trafficPolicies.enabled=true 时必须存在）" }}
+{{- end }}
+{{ $policies }}
+{{- end }}

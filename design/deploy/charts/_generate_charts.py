@@ -185,6 +185,25 @@ CHARTS = [
     ("tempo", "Tempo 链路追踪 - 分布式追踪后端", "2.6.0",
      "grafana/tempo", "2.6.0", 3200, "monitor", "sq-monitor",
      "tempo,trace,monitor", 1, "0.5", "1Gi", "1", "2Gi"),
+
+    # ===== 部署面补齐类 (4) =====
+    # 台账 #128/#129/#130/#132：四个"有形态、无部署面"的缺口。
+    # 这四行是**手工 chart**（vendored 上游 chart 或自建）的登记行，不是生成器骨架的产物；
+    # 登记进表只为让 scripts/check-chart-generator-drift.py 能把"表里的坐标"与
+    # "values.yaml 的首个 image 块"钉在一起（防有人跑生成器把坐标改回旧值）。
+    # 生成器本身仍禁止对 design/deploy/charts 重跑（见本文件顶部警示）。
+    ("karmada-controlplane", "Karmada 控制面 - 多集群联邦控制面（vendored 上游 chart v1.12.0）", "v1.12.0",
+     "karmada/karmada-controller-manager", "v1.12.0", 443, "infrastructure", "karmada-system",
+     "karmada,multicluster,federation,control-plane", 1, "0.5", "512Mi", "2", "2Gi"),
+    ("istio", "Istio 控制面 - Service Mesh 控制面 + 流量治理策略（vendored 上游 1.22.3）", "1.22.3",
+     "istio/pilot", "1.22.3", 15010, "infrastructure", "istio-system",
+     "istio,service-mesh,mtls,traffic-policy", 1, "1", "2Gi", "2", "4Gi"),
+    ("otel-collector", "OpenTelemetry Collector - OTLP 采集与导出（追踪采集面）", "0.130.0",
+     "otel/opentelemetry-collector-contrib", "0.130.0", 4317, "monitor", "sq-monitor",
+     "otel,opentelemetry,collector,trace,otlp", 1, "0.5", "512Mi", "1", "1Gi"),
+    ("owasp-crs", "OWASP CRS + ModSecurity v3 边缘 WAF - 反代至 APISIX 网关", "4.8.0",
+     "owasp/modsecurity-crs", "4.8.0-nginx-202411071011", 8080, "security", "apisix",
+     "waf,modsecurity,owasp-crs,apisix,edge", 2, "0.5", "512Mi", "2", "2Gi"),
 ]
 
 

@@ -11,6 +11,11 @@ metadata:
 data:
   {{- range $name, $realm := .Values.realmImport.files }}
   {{ $name }}: |-
-{{ $realm | toPrettyJson | indent 4 }}
+{{- $merged := $realm }}
+{{- if $.Values.mfa.enabled }}
+{{- /* MFA 字段（otpPolicy/webAuthnPolicy/requiredActions）以 chart 策略为准覆盖 realm 自带值 */}}
+{{- $merged = mergeOverwrite (deepCopy $realm) (include "keycloak.mfaRealm" $ | fromYaml) }}
+{{- end }}
+{{ $merged | toPrettyJson | indent 4 }}
   {{- end }}
 {{- end }}
