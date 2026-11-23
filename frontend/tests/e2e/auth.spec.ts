@@ -16,6 +16,9 @@ import { login, ADMIN, apiBase } from './helpers'
 test.describe('登录流程', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/login', { waitUntil: 'domcontentloaded' })
+    // DOMContentLoaded 只代表文档就绪，不代表 Vue Router 的首次导航已落地。
+    // 等登录表单真实可见后再发后续 hash 导航，避免初始裸 /login 覆盖目标 redirect。
+    await expect(page.locator('input[autocomplete="username"]')).toBeVisible()
   })
 
   test('登录页 UI 元素正确显示', async ({ page }) => {
@@ -124,8 +127,8 @@ test.describe('登录流程', () => {
     // 直接访问 projects
     await page.goto('/#/projects', { waitUntil: 'domcontentloaded' })
 
-    // 应跳转到登录页并携带 redirect 参数
-    await expect(page).toHaveURL(/#\/login/, { timeout: 10_000 })
+    // 必须等到 redirect 已写入；宽泛匹配 /login 会被旧页或中间态提前满足。
+    await expect(page).toHaveURL(/#\/login\?.*redirect=/, { timeout: 10_000 })
     const url = page.url()
     expect(url).toMatch(/redirect=/)
   })
@@ -133,7 +136,14 @@ test.describe('登录流程', () => {
   test('登录后按 redirect 参数跳转回原页面', async ({ page }) => {
     // 直接访问 projects（会跳到 login?redirect=...）
     await page.goto('/#/projects', { waitUntil: 'domcontentloaded' })
-    await page.waitForURL(/#\/login/, { timeout: 10_000 })
+    // 等待目标 redirect 本身，而不是已经在 beforeEach 中出现过的裸 /login。
+    // 若产品守卫真的丢 redirect，这里会按超时失败，不会把缺失判据洗绿。
+    await page.waitForURL(
+      (url) =>
+        url.hash.startsWith('#/login') &&
+        decodeURIComponent(url.hash).includes('redirect=/projects'),
+      { timeout: 10_000 }
+    )
     // 目标页必须在提交登录前就已在 URL 里；一旦被守卫弹成裸 /login，登录成功只会兜底去 dashboard
     expect(decodeURIComponent(new URL(page.url()).hash)).toContain('redirect=/projects')
 
