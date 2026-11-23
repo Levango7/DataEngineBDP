@@ -2357,10 +2357,15 @@ jobs:
       # 同时加了「清单 ↔ Dockerfile 源清单」的双源 fail-closed 一致性自检。
       # 2026-11-23（台账 #116 冗余修复）：本 step 改跑 **--download-only**（只探下载坐标类）。
       #   为什么：下面那个独立 step 已独家承担 registry 类（--registry-only），本 step 再跑
-      #   默认模式（含 registry）会把基座 manifest 预检在同一个 job 里探两遍 —— 两次都是
-      #   9/9 可达、各约 9 秒，属纯冗余（不构成正确性缺陷）。
-      #   拆开之后：两类坐标**仍各自独立出结论**（谁红看谁），但每类每 job 只探一遍。
-      #   口径变化：本 step 不再探 registry ⇒ registry 类的红只可能来自下面那个独立 step。
+      #   默认模式（含 registry）会把基座 manifest 预检在同一个 job 里探两遍，属纯冗余
+      #   （不构成正确性缺陷）：两类坐标仍各自独立出结论（谁红看谁），但每类每 job 只探一遍。
+      #   口径变化：本 step **只探下载坐标类、不再探 registry 坐标** ⇒ registry 类的红
+      #   只可能来自下面那个独立 step。
+      # 2026-11-23 订正（本刀，#116 复核）：初稿此处写「两次都是 9/9 可达、各约 9 秒」——
+      #   ①「9/9 可达」对本 step 已结构失效（本 step 不探 registry 坐标，9 个基座坐标在此
+      #      step 里根本不出现）；②「约 9 秒」不是实测值。实测（步骤级 API，2026-11-23 两轮）：
+      #   本 step 10–15s（run 45238737699=10s、45201417734=15s）、下面那个 registry step
+      #   8–9s（run 45201417734=8s、45238737699=9s）⇒ 该成本随镜像源网络状况波动，不是常数。
       - name: 钉版外链可达性预检（台账 112，快源挤出即早失败）
         if: steps.converge.outputs.converge != 'true'
         run: bash scripts/check-pinned-downloads.sh --download-only
@@ -2371,7 +2376,9 @@ jobs:
       # 源口径：BASE_REGISTRY 用与构建腿同一个探源脚本（scripts/pick-base-registry.sh）选，
       #   导出后由检查脚本按「环境变量优先」展开 ${BASE_REGISTRY} ⇒ 探的就是构建要拉的那个源。
       # 成本：2026-11-23 起本 step **独家**承担 registry 类（上面那个组合预检已改 --download-only）
-      #   ⇒ 同一个 job 内 registry 子集只探一遍，不再重复（原先探两遍，各约 9 秒）。
+      #   ⇒ 同一个 job 内 registry 子集只探一遍，不再重复（原先探两遍）。
+      #   实测（步骤级 API，2026-11-23 两轮）：本 step 8–9s（run 45201417734=8s、
+      #   45238737699=9s）⇒ 随镜像源网络状况波动，不是常数，不作固定值承诺。
       #   跨 job 的那一遍（version-check 腿）**保留**：那条腿覆盖 main 推送/release/定时/手工
       #   触发面（docker-build 是 PR-only），删掉它会让那些触发面失去 registry 覆盖。
       # 已知盲区（必须记住）：这是**轻量 tag 级探测**，构建期是真的拉层，两边失败条件不同源
@@ -2504,9 +2511,11 @@ jobs:
       # 定时巡检、手工触发都看不到外链可达性 ⇒ 钉住的坐标被镜像站挤出这件事
       # 要等到下一次 PR 才暴露。本作业覆盖全部触发面，且**不引入 needs 依赖、
       # 不与任何腿串行化**（不给 30–60 分钟的反馈周期再加延迟）。
-      # 代价：PR 事件上真检跑 2 次（version-check 一次 + docker-build 一次），
-      # 每次约 10–60 秒。docker-build 里的那份**保留**：它保住
-      # 「早失败、不烧 44 个 Dockerfile」的原语义。
+      # 代价：PR 事件上真检跑 2 次（version-check 一次 + docker-build 一次）。
+      #   实测（步骤级 API，2026-11-23 四轮）：本作业真检 14–39s（run 45218632004=14s、
+      #   45201417734=22s、45238737699=25s、45247938690=39s）；docker-build 侧拆两段后是
+      #   10–15s（download-only）+ 8–9s（registry-only）⇒ 随镜像源网络状况波动，不是常数。
+      #   docker-build 里的那份**保留**：它保住「早失败、不烧 44 个 Dockerfile」的原语义。
       # 2026-11-23：docker-build 那次已拆成两个子集（下载类 --download-only /
       #   registry 类 --registry-only），**job 内**不再重复探同一类；这里的跨 job 一遍保留
       #   （这条腿覆盖非 PR 触发面，删掉会让那些触发面失去覆盖）。
