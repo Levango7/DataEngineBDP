@@ -4,14 +4,41 @@
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
+# ---- 镜像配置（直连 Docker Hub）----
+# 2026-11-22 坐标订正（台账 #126）：原值 `docker.m.daocloud.io/tabulario/
+# iceberg-rest-catalog:0.7.0` 是**双重错坐标**——仓名 `iceberg-rest-catalog` 在
+# Docker Hub 不存在，runner 上 `docker manifest inspect` 返回 rc=1
+# （denied: requested access to the resource is denied unauthorized）。
+# 真实坐标为 `tabulario/iceberg-rest`，最新可用 tag 1.6.0（runner 实测 amd64+arm64
+# 双架构，manifest rc=0 + 实拉 PULL_OK + 建表成功 + 表元数据写入对象存储）。
+# 仓内加速器对该仓 1.6.0 的代理结果不可判（TLS handshake timeout，而同批正对照
+# postgres:16 同样失败 ⇒ 方法在该 runner 上对该镜像站不可用）⇒ 取直连坐标。
 image:
-  repository: "docker.m.daocloud.io/tabulario/iceberg-rest-catalog"
-  tag: "0.7.0"
+  repository: "tabulario/iceberg-rest"
+  tag: "1.6.0"
   pullPolicy: IfNotPresent
 
+# ---- 访问凭据（走 Secret，不进 ConfigMap：台账 #12 敏感值不进 ConfigMap）----
+# 与 minio chart 的凭据 Secret 共用（键名一致）：对象存储与 catalog 用同一套 AK/SK。
+#   kubectl -n <ns> create secret generic rustfs-creds \
+#     --from-literal=access-key=<AK> --from-literal=secret-key=<SK>
+credentials:
+  existingSecret: ""
+  accessKeyKey: "access-key"
+  secretKeyKey: "secret-key"
+
 # ---- 副本数 ----
-replicaCount: 2
+# 2026-11-22 订正（台账 #126）：默认值由 2 改为 1。
+# 该镜像内置 catalog 后端是 JdbcCatalog + **容器内 sqlite 文件**
+# （默认 CATALOG_URI=jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory；
+#   runner 实测该路径是 20480 字节的真实 sqlite 文件，文件头 "SQLite format 3"，
+#   **不是**内存库 ⇒ 容器重启即丢表清单）。
+# sqlite 是单文件库：多副本各自持有自己的本地文件 ⇒ 表清单分叉，
+# REST 请求落到不同副本会看到不同的 catalog ⇒ 语义错误。
+#  ⇒ 单机 sqlite 后端必须 replicaCount=1；
+#    要多副本必须把 catalog.uri 指向外部共享 JDBC 库（PostgreSQL/MySQL），
+#    此时才能放开副本数与 HPA。
+replicaCount: 1
 
 # ---- Service 配置 ----
 service:
@@ -44,11 +71,14 @@ securityContext:
       - ALL
 
 # ---- 健康检查 ----
+# 探针路径订正（台账 #126）：runner 实测 /health、/healthz、/readyz 三个路径在
+# 真实镜像上**全部返回 400**（这三个是 K8s 探针惯例路径，该镜像并不实现），
+# 而 REST 规范的 /v1/config 返回 200 ⇒ 旧值必然导致 Pod 永远 NotReady。
 probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
+      path: /v1/config
       port: 8181
     initialDelaySeconds: 30
     periodSeconds: 10
@@ -56,7 +86,7 @@ probes:
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
+      path: /v1/config
       port: 8181
     initialDelaySeconds: 10
     periodSeconds: 5
@@ -68,9 +98,11 @@ tolerations: []
 affinity: {}
 
 # ---- 水平自动扩缩容 ----
+# 注意：HPA 只能在 catalog.uri 指向外部共享 JDBC 库时启用；
+# sqlite 单文件后端下多副本会表清单分叉（见上方 replicaCount 说明）。
 autoscaling:
   enabled: false
-  minReplicas: 2
+  minReplicas: 1
   maxReplicas: 6
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
@@ -92,10 +124,48 @@ ingress:
           pathType: Prefix
   tls: []
 
-# ---- 环境变量 ----
+# ---- 环境变量（仅非敏感项，进 ConfigMap；凭据见上方 credentials）----
+# 契约按 runner 实测对齐（台账 #126）：
+#   - CATALOG_IO__IMPL 用**双**下划线：Iceberg REST 的 Env 映射把属性名里的 '-'
+#     记作 '__'，'io-impl' ⇒ 'IO__IMPL'（runner 实跑 properties:
+#     io-impl=org.apache.iceberg.aws.s3.S3FileIO）。旧值 CATALOG_IO_IMPL 单下划线
+#     映射不到 io-impl。
+#   - S3 凭证用 AWS SDK 标准名 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY /
+#     AWS_REGION（旧值 CATALOG_S3_ACCESS_KEY / CATALOG_S3_SECRET_KEY /
+#     CATALOG_S3_REGION 不是该镜像认的键）。
+#   - CATALOG_S3_PATH__STYLE__ACCESS=true 必须开：虚拟主机式寻址会把 bucket 拼到
+#     endpoint 主机名前面，解析到 <bucket>.<endpoint> 而失败（runner 实测：未开时
+#     建表 500 UnknownHostException: probe-bucket.rustfs；开启后建表 200）。
 env:
-  LOG_LEVEL: info
+  CATALOG_IO__IMPL: "org.apache.iceberg.aws.s3.S3FileIO"
+  CATALOG_WAREHOUSE: "s3://lakehouse/warehouse"
+  CATALOG_S3_ENDPOINT: "http://minio:9000"
+  CATALOG_S3_PATH__STYLE__ACCESS: "true"
+  AWS_REGION: "us-east-1"
+  LOG_LEVEL: "info"
   JAVA_OPTS: ""
+
+# ---- catalog 元数据后端（CATALOG_URI）----
+# 2026-11-22 新增（台账 #126）。留空 = 用镜像内置默认
+# （jdbc:sqlite:file:/tmp/iceberg_rest_mode=memory，容器内文件 ⇒ 重启即丢）。
+# 指向外部共享 JDBC 库时填完整 JDBC URL，例如：
+#   jdbc:postgresql://sq-postgres.sq-engine.svc.cluster.local:5432/iceberg_catalog
+# 指向挂载卷时填 jdbc:sqlite:file:/data/catalog.db（配合 catalogPersistence.enabled）。
+catalog:
+  uri: ""
+
+# ---- catalog 元数据持久化（默认关闭）----
+# 开启后挂 PVC 到 mountPath，并把 CATALOG_URI 指向该卷内的 sqlite 文件。
+# 写权限：靠 securityContext.fsGroup=1000（镜像默认用户 uid/gid=1000）让卷可写。
+# 约束：**必须保持 replicaCount=1** —— sqlite 单文件不支持多副本并发写。
+catalogPersistence:
+  enabled: false
+  mountPath: /data
+  size: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  existingClaim: ""
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:

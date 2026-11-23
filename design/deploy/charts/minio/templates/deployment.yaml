@@ -47,6 +47,20 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "minio.configmapName" . }}
+          {{- if .Values.credentials.existingSecret }}
+          env:
+            # 凭据走 Secret（台账 #12：敏感值不进 ConfigMap / Pod spec 字面量）
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.accessKeyKey | quote }}
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.credentials.existingSecret }}
+                  key: {{ .Values.credentials.secretKeyKey | quote }}
+          {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
@@ -65,6 +79,11 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
           {{- end }}
+          volumeMounts:
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /data
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
 {{- if .Values.securityContext.enabled }}
@@ -80,3 +99,13 @@ spec:
                 - {{ . }}
 {{- end }}
 {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            {{- if .Values.persistence.existingClaim }}
+            claimName: {{ .Values.persistence.existingClaim }}
+            {{- else }}
+            claimName: {{ include "minio.fullname" . }}-data
+            {{- end }}
+      {{- end }}

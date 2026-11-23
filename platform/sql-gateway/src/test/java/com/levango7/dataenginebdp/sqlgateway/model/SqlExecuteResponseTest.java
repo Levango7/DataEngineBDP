@@ -52,4 +52,42 @@ class SqlExecuteResponseTest {
                 .build();
         assertThat(response.toString()).isNotNull();
     }
+
+    @Test
+    @DisplayName("getRowCount — 行数由 rows 推导（与契约 §4.1 的 rowCount 一致）")
+    void getRowCount_shouldDeriveFromRows() {
+        SqlExecuteResponse response = SqlExecuteResponse.builder()
+                .queryId("q-003")
+                .status("SUCCESS")
+                .columns(List.of("customer_id", "cnt"))
+                .rows(List.of(List.of("C001", 42), List.of("C002", 35)))
+                .build();
+
+        assertThat(response.getRowCount()).isEqualTo(2);
+        assertThat(response.getRowCount()).isEqualTo(response.getRows().size());
+    }
+
+    @Test
+    @DisplayName("getRowCount — rows 缺席 ⇒ 0")
+    void getRowCount_shouldBeZeroWhenRowsAbsent() {
+        SqlExecuteResponse response = SqlExecuteResponse.builder()
+                .queryId("q-004")
+                .status("FAILED")
+                .build();
+
+        assertThat(response.getRowCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("getRowCount — rows 为空集合 ⇒ 0")
+    void getRowCount_shouldBeZeroWhenRowsEmpty() {
+        SqlExecuteResponse response = SqlExecuteResponse.builder()
+                .queryId("q-005")
+                .status("SUCCESS")
+                .columns(List.of())
+                .rows(List.of())
+                .build();
+
+        assertThat(response.getRowCount()).isZero();
+    }
 }

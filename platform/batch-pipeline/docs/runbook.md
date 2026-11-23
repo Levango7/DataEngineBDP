@@ -5,7 +5,7 @@
 - Python 3.10+（Windows / Linux / macOS 均可；与 pyproject.toml requires-python 一致）
 - 零第三方依赖（仅标准库），无需安装任何包
 - 可选：Polars>=1.0,<2.0（`pip install polars`，启用 `engine.backend="polars"` 列式加速路径）
-- 可选：PySpark 4.x + JDK 11+ 或 17（`pip install pyspark`，启用 `engine.backend="spark"` 分布式加速路径；Windows 额外需 `winutils.exe` + `hadoop.dll` 并设 `HADOOP_HOME`，详见第 21 节；多机模式需 Docker Desktop + MinIO，详见第 21.3 节）
+- 可选：PySpark 4.x + JDK 11+ 或 17（`pip install pyspark`，启用 `engine.backend="spark"` 分布式加速路径；Windows 额外需 `winutils.exe` + `hadoop.dll` 并设 `HADOOP_HOME`，详见第 21 节；多机模式需 Docker Desktop + 对象存储容器（RustFS），详见第 21.3 节）
 - 可选：pyarrow>=23.0.1,<25.0 + minio 7+（`pip install pyarrow minio`，启用 `storage.backend="parquet"` 湖存储路径，详见第 22 节）
 - 可选：pyiceberg 0.12.0rc1+（`pip install pyiceberg>=0.12.0rc1`，启用 `storage.backend="iceberg"` 湖表路径，详见第 23 节）
 - 可选：Docker 20+（容器化运行）
@@ -24,9 +24,9 @@
 | 增量 + Polars | 同时设 `incremental.enabled=true` 与 `engine.backend="polars"` | 两能力正交叠加，ingest 流式过滤 + compute 列式 merge |
 | Spark 分布式加速 | 把 `engine.backend` 改为 `"spark"` 后 `python main.py --config config\pipeline_small.json` | 五阶段走 Spark DataFrame API 路径，产物与 python 一致，详见第 21 节 |
 | 增量 + Spark | 同时设 `incremental.enabled=true` 与 `engine.backend="spark"` | 两能力正交叠加，ingest 分区并行过滤 + compute 分布式 merge |
-| Spark 多机分布式 | 启动集群 `pwsh docker/spark-cluster/up.ps1` + `engine.spark.master="spark://localhost:15077"` + `engine.spark.cluster.enabled=true` + `storage.backend="parquet"` | Docker Compose Standalone 集群（Master + 2 Worker）+ MinIO 共享存储，详见第 21.3 节 |
+| Spark 多机分布式 | 启动集群 `pwsh docker/spark-cluster/up.ps1` + `engine.spark.master="spark://localhost:15077"` + `engine.spark.cluster.enabled=true` + `storage.backend="parquet"` | Docker Compose Standalone 集群（Master + 2 Worker）+ RustFS 共享存储，详见第 21.3 节 |
 | 本地 Parquet 湖存储 | 把 `storage.backend` 改为 `"parquet"`（不配 bucket/endpoint）后 `python main.py --config config\pipeline_small.json` | 五阶段产物改写本地 `.parquet`，列式压缩 3-6 倍，产物与 local_csv 一致，详见第 22 节 |
-| S3/MinIO Parquet 湖存储 | 把 `storage.backend` 改为 `"parquet"` + 配 `bucket`/`endpoint` 后 `python main.py --config config\pipeline_small.json` | 产物写到 `s3://bucket/warehouse/.../*.parquet`，远端共享存储，详见第 22 节 |
+| S3/RustFS Parquet 湖存储 | 把 `storage.backend` 改为 `"parquet"` + 配 `bucket`/`endpoint` 后 `python main.py --config config\pipeline_small.json` | 产物写到 `s3://bucket/warehouse/.../*.parquet`，远端共享存储，详见第 22 节 |
 | 增量 + Parquet | 同时设 `incremental.enabled=true` 与 `storage.backend="parquet"` | 两能力正交叠加，ingest 增量过滤 + Parquet 谓词下推，compute 增量 merge + 列式聚合 |
 | Iceberg 湖表模式 | 把 `storage.backend` 改为 `"iceberg"` + 配 `iceberg` 子段后 `python main.py --config config\pipeline_small.json` | 五阶段产物改写 Iceberg 表，获得 ACID + time travel + snapshot diff，详见第 23 节 |
 | 增量 + Iceberg snapshot diff | 同时设 `incremental.mode="iceberg_snapshot_diff"` 与 `storage.backend="iceberg"` | 用 Iceberg 原生 snapshot diff 替代自建水位，详见第 23 节 |
@@ -79,10 +79,10 @@
 | engine.spark.adaptive_query_execution | AQE 开关（自动合并小分区、处理倾斜） | true（缺省）/ false |
 | engine.spark.write_single_file | 写出时合并为单文件（coalesce(1)） | false（缺省）/ true |
 | engine.spark.read_options | 传给 `spark.read.csv` 的参数 | `{}`（缺省） |
-| storage.backend | 存储介质后端 | `local_csv`（缺省，本地 CSV，向后兼容）/ `parquet`（Parquet 列式存储，本地或 S3/MinIO，需 `pip install pyarrow minio`，详见第 22 节）/ `iceberg`（Iceberg 湖表，ACID + time travel + snapshot diff，需 `pip install pyiceberg>=0.12.0rc1`，详见第 23 节） |
-| storage.bucket | S3/MinIO bucket 名 | `batch-pipeline`（缺省） |
-| storage.endpoint | S3/MinIO endpoint（host:port） | `localhost:9000`（缺省，本地 MinIO） |
-| storage.access_key / secret_key | S3 凭证 | 缺省空串，无内置回退——`config/pipeline.json` / `pipeline_small.json` 默认省略这两个字段（见其中 `_s3_creds_note`）。解析优先级（`batch_pipeline/io/_s3_parquet.py` `s3_credentials`）：配置显式值 > 环境变量 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` > 环境变量 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。连接缺省启动的本地 MinIO 时可显式配 `minioadmin` / `minioadmin` 或 export `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` |
+| storage.backend | 存储介质后端 | `local_csv`（缺省，本地 CSV，向后兼容）/ `parquet`（Parquet 列式存储，本地或 S3/RustFS，需 `pip install pyarrow minio`，详见第 22 节）/ `iceberg`（Iceberg 湖表，ACID + time travel + snapshot diff，需 `pip install pyiceberg>=0.12.0rc1`，详见第 23 节） |
+| storage.bucket | S3/RustFS bucket 名 | `batch-pipeline`（缺省） |
+| storage.endpoint | S3/RustFS endpoint（host:port） | `localhost:9000`（缺省，本地 RustFS） |
+| storage.access_key / secret_key | S3 凭证 | 缺省空串，无内置回退——`config/pipeline.json` / `pipeline_small.json` 默认省略这两个字段（见其中 `_s3_creds_note`）。解析优先级（`batch_pipeline/io/_s3_parquet.py` `s3_credentials`）：配置显式值 > 环境变量 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` > 环境变量 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`（兼容名）> 环境变量 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`。连接缺省启动的本地 RustFS 时可显式配 `minioadmin` / `minioadmin` 或 export `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`（`MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 为兼容名） |
 | storage.secure | 是否用 HTTPS | false（缺省）/ true |
 | storage.region | S3 region | `us-east-1`（缺省） |
 | storage.warehouse | warehouse 子路径（bucket 下的逻辑仓库根） | `warehouse`（缺省） |
@@ -90,7 +90,7 @@
 | storage.compression | Parquet 压缩算法 | `zstd`（缺省）/ `snappy` / `gzip` / `none` |
 | storage.iceberg.catalog_type | Iceberg catalog 类型 | `sql`（开发/测试，SQLite 零额外服务）/ `rest`（生产，REST catalog 服务） |
 | storage.iceberg.catalog_uri | catalog URI（与 config 实际字段名对齐） | `sqlite:///state/iceberg_catalog.db`（SQL catalog，开发）/ `http://localhost:8181`（REST catalog，生产） |
-| storage.iceberg.warehouse | Iceberg warehouse 路径（与 `storage.warehouse` 解耦，Iceberg catalog 独立寻址） | `state/warehouse`（缺省，本地路径）/ `s3://batch-pipeline/warehouse`（S3/MinIO 生产） |
+| storage.iceberg.warehouse | Iceberg warehouse 路径（与 `storage.warehouse` 解耦，Iceberg catalog 独立寻址） | `state/warehouse`（缺省，本地路径）/ `s3://batch-pipeline/warehouse`（S3/RustFS 生产） |
 | incremental.mode | 增量模式 | `high_watermark`（缺省，Phase 1 自建水位）/ `iceberg_snapshot_diff`（Phase 4，Iceberg 原生 snapshot diff，详见第 23 节） |
 
 ## 4. 调整数据规模
@@ -179,7 +179,7 @@
 python -m pytest tests/ -v
 ```
 
-测试覆盖范围（26 个测试模块 + conftest.py；Windows 本地 Python 3.14 全量回归：419 passed + 18 skipped + 0 failed——18 个 skip 为 `test_engine_spark.py` 本地模式用例因缺 `hadoop.dll` 的环境跳过，属正常；其余环境相关用例在 MinIO / Docker 集群 / Iceberg JAR 未就绪时由 `skipif` 自动跳过）：
+测试覆盖范围（26 个测试模块 + conftest.py；Windows 本地 Python 3.14 全量回归：419 passed + 18 skipped + 0 failed——18 个 skip 为 `test_engine_spark.py` 本地模式用例因缺 `hadoop.dll` 的环境跳过，属正常；其余环境相关用例在 RustFS / Docker 集群 / Iceberg JAR 未就绪时由 `skipif` 自动跳过）：
 
 | 文件 | 覆盖内容 | 用例数 |
 |---|---|---|
@@ -203,16 +203,16 @@ python -m pytest tests/ -v
 | tests/test_pipeline_e2e.py | 端到端冒烟：pipeline success、DQ Score 落区间、manifest 血缘非空、metrics.json 存在、各表行数、KPI 一致性（daily_sales/category_stats 收入对账）等 14 个场景 | 14 |
 | tests/test_quality.py | 28 个场景：8 类质量规则的正例与反例（completeness / uniqueness / range / allowed_values / format / date_valid / referential / outlier）+ referential 性能回归（2 万行外键检查秒级完成）+ null 键唯一性豁免 / format 前缀锚定 / 秒级精度 date_valid 边界 / Spark 空 DataFrame 守护 | 28 |
 | tests/test_resume.py | 24 个断点续跑测试：resume 触发条件（disabled/auto batch/no manifest/success status/version drift/digest drift）/ 产物完整性检查（主输出目录判据 + validate 需批次根 quality_summary.json）/ lineage_decl 持久化 / 干净数据 e2e 续跑回归锁 / validate、clean 失败后续跑 e2e（增量与全量模式 DQ 等价）；纯单元级，零外部依赖 | 24 |
-| tests/test_spark_iceberg.py | 10 个 Spark+Iceberg 三合一场景：8 个 `skipif` 环境守护（pyiceberg/pyspark/Docker/MinIO/Iceberg JAR 不可用）+ 2 个 config 验证 Spark Iceberg connector 注入 | 10 |
+| tests/test_spark_iceberg.py | 10 个 Spark+Iceberg 三合一场景：8 个 `skipif` 环境守护（pyiceberg/pyspark/Docker/RustFS/Iceberg JAR 不可用）+ 2 个 config 验证 Spark Iceberg connector 注入 | 10 |
 | tests/test_stages.py | 7 个 stage 单测：ingest / validate / clean / compute / output + clean 折扣语义（python / polars 两分支） | 7 |
 | tests/test_state.py | StateStore：水位/snapshot id 两阶段提交、失败不推进、聚合 merge 累加与派生列重算、原子写、批次台账（ledger 去重/上限/陈旧标记清理）等 41 个场景 | 41 |
 | tests/test_storage_iceberg.py | 13 个 Iceberg 湖表场景：等价性 / ACID / time travel / schema evolution / snapshot diff 增量 / 增量+Iceberg / SQL catalog / REST catalog；pyiceberg 未安装时 `skipif` 跳过 | 13 |
-| tests/test_storage_parquet.py | 4 个 Parquet 湖存储场景：本地 Parquet 全量产物与 local_csv 一致、S3 MinIO Parquet 全量产物与 local_csv 一致、Parquet 压缩比基准、增量 + Parquet 组合；MinIO 不可用时 `skipif` 跳过 | 4 |
+| tests/test_storage_parquet.py | 4 个 Parquet 湖存储场景：本地 Parquet 全量产物与 local_csv 一致、S3 RustFS Parquet 全量产物与 local_csv 一致、Parquet 压缩比基准、增量 + Parquet 组合；RustFS 不可用时 `skipif` 跳过 | 4 |
 | tests/test_tools_quality_collect.py | tools/quality_collect.py 脚本：命令由 argv + 解释器组装、空 argv 构造、subprocess.run 调用参数、成功写合并日志与 marker、非零/中断返回码透传、failed/error 行注解（含 30 行上限与 180 字符截断）、尾部 dump 截断、None 流处理、入口冒烟等 14 个场景 | 14 |
 
 合计 437 个用例（26 个测试模块 + conftest.py 共 27 个文件）。
 
-`pytest.ini` 已配置 `testpaths = tests` 与 `pythonpath = .`，从项目根直接运行即可，无需额外参数。增量测试用 `conftest.py` 的 `inc_env` 夹具隔离 state 目录与数据目录，互不污染。Spark 本地模式测试用 `pytest.mark.skipif` 在 Windows 缺 `hadoop.dll` 或未装 `pyspark` 时跳过，代码逻辑完整，装齐环境后可直接运行。Spark 多机模式测试在 Docker Desktop / MinIO 不可用时跳过。Parquet S3 测试用 `pytest.mark.skipif` 在 MinIO 不可达时跳过，本地 Parquet 测试无需 MinIO 即可运行。OpenLineage 与断点续跑测试为纯单元级，不依赖任何外部服务。
+`pytest.ini` 已配置 `testpaths = tests` 与 `pythonpath = .`，从项目根直接运行即可，无需额外参数。增量测试用 `conftest.py` 的 `inc_env` 夹具隔离 state 目录与数据目录，互不污染。Spark 本地模式测试用 `pytest.mark.skipif` 在 Windows 缺 `hadoop.dll` 或未装 `pyspark` 时跳过，代码逻辑完整，装齐环境后可直接运行。Spark 多机模式测试在 Docker Desktop / RustFS 不可用时跳过。Parquet S3 测试用 `pytest.mark.skipif` 在 RustFS 不可达时跳过，本地 Parquet 测试无需 RustFS 即可运行。OpenLineage 与断点续跑测试为纯单元级，不依赖任何外部服务。
 
 ## 10. CI（GitHub Actions）
 
@@ -241,7 +241,7 @@ docker compose up --build
 |---|---|
 | main.py 串行五阶段 | Airflow / Dagster / DolphinScheduler 的 DAG |
 | 单机 Python 计算 | Spark（批）/ Dask / Polars（单机加速） |
-| 本地目录 + CSV | MinIO/S3 + Parquet，再上 Delta/Iceberg/Hudi 湖表格式 |
+| 本地目录 + CSV | RustFS/S3 + Parquet，再上 Delta/Iceberg/Hudi 湖表格式 |
 | 自研规则引擎 | Great Expectations / Soda Core（规则库可平移），Spark 阶段用 Deequ |
 | manifest 台账 | OpenLineage 事件（job/run/dataset + facets）+ Marquez/DataHub |
 | metrics.json 扁平指标 | Prometheus（pushgateway / node_exporter textfile）+ Grafana 看板 |
@@ -474,7 +474,7 @@ Phase 2a 列式加速 + Phase 2b 分布式加速能力通过 `config/pipeline.js
 - **ingest**：增量 + Spark 分区并行过滤，`spark.read.csv(src).filter(F.col(wm_col) > wm_value)` 既只读新增行又跨 executor 并行扫描
 - **validate**：外键参考表（customers / products）仍全量 `table_read` 到 SparkDataFrame；增量 orders 用 Spark SQL 表达式批量校验
 - **compute**：增量分桶用 `df.groupBy(key).agg(...)` 生成 delta；`pipeline._advance_and_merge` 调用 `_merge_aggregate_spark`，用 `history_df.unionByName(delta_df).groupBy(key).agg(...)` 分布式合并
-- **state 持久化**：`state/aggregates/*.csv` 由 Spark 读写，merge 用 union + groupBy，跨机分布式合并；多机模式待 Phase 3 MinIO 共享存储就位后推进
+- **state 持久化**：`state/aggregates/*.csv` 由 Spark 读写，merge 用 union + groupBy，跨机分布式合并；多机模式待 Phase 3 RustFS 共享存储就位后推进
 
 ## 19. Python vs Polars vs Spark 路径选择建议
 
@@ -488,7 +488,7 @@ Phase 2a 列式加速 + Phase 2b 分布式加速能力通过 `config/pipeline.js
 | 5 万 ~ 100 万 | `polars` | `csv` 或 `parquet` | validate / compute 阶段 Python 循环成为瓶颈，Polars 向量化 + 多线程收益明显 |
 | 100 万 ~ 1000 万 | `polars` | `parquet` | 列式压缩节省 IO + 谓词下推 + streaming spill 到磁盘 |
 | 1000 万 ~ 1 亿（单机内存足够） | `polars`（streaming=true） | `parquet` | 单机内存上限附近，需 streaming |
-| > 1 亿 或 超单机内存 | `spark` | `parquet` | 分布式 shuffle 突破单机内存上限；多机模式需共享存储（MinIO/HDFS，Phase 3） |
+| > 1 亿 或 超单机内存 | `spark` | `parquet` | 分布式 shuffle 突破单机内存上限；多机模式需共享存储（RustFS/HDFS，Phase 3） |
 
 ### 19.2 按环境选择
 
@@ -498,7 +498,7 @@ Phase 2a 列式加速 + Phase 2b 分布式加速能力通过 `config/pipeline.js
 | 生产单机批处理 | `polars` | 单机加速，零运维，pip 安装即可 |
 | 容器化部署 | `polars` | Dockerfile 加 `pip install polars` 一行，镜像增约 30MB |
 | 已部署 Spark 集群 | `spark` | 复用现有集群资源，分布式 shuffle 突破单机上限 |
-| 超大数据 + 多机需求 | `spark` | 千万行以上或超内存，需多 executor 并行；配合 Phase 3 MinIO 共享存储（多机模式已实现，见第 21.3 节） |
+| 超大数据 + 多机需求 | `spark` | 千万行以上或超内存，需多 executor 并行；配合 Phase 3 RustFS 共享存储（多机模式已实现，见第 21.3 节） |
 | 无外网隔离环境 | `python` | 无法 pip 安装时退回零依赖路径 |
 
 ### 19.3 切换步骤
@@ -523,8 +523,8 @@ Phase 2a 列式加速 + Phase 2b 分布式加速能力通过 `config/pipeline.js
 **切换到 Spark 多机模式**：
 
 1. 安装 driver 端依赖：`pip install pyspark==4.2.0` + JDK 17（建议 junction 路径 `F:\jdk17` / `F:\spark_home` / `F:\Py314` 避免空格）
-2. 启动 MinIO + 创建 bucket `batch-pipeline`（见第 22.2 节）
-3. 启动 Spark 集群：`pwsh docker/spark-cluster/up.ps1`（自动 build 镜像 + 启动 Master/Worker + 连接 MinIO 网络）
+2. 启动 RustFS + 创建 bucket `batch-pipeline`（见第 22.2 节）
+3. 启动 Spark 集群：`pwsh docker/spark-cluster/up.ps1`（自动 build 镜像 + 启动 Master/Worker + 连接对象存储网络）
 4. 修改配置：`engine.backend="spark"` + `engine.spark.master="spark://localhost:15077"` + `engine.spark.cluster.enabled=true` + `storage.backend="parquet"` + `storage.endpoint="localhost:9000"`
 5. 运行：`python main.py --config config/pipeline_small.json`
 6. 验证产物：与 `backend="python"` 路径产物完全一致。`tests/test_engine_spark.py::test_cluster_spark_s3_equivalence` 自动覆盖多机模式等价性
@@ -548,7 +548,7 @@ Phase 2a 列式加速 + Phase 2b 分布式加速能力通过 `config/pipeline.js
 
 ## 21. Spark 配置与运行（Phase 2b）
 
-Phase 2b 分布式加速能力通过 `config/pipeline.json` 的 `engine.spark` 段开启，`engine.backend="spark"` 时生效。本地模式 `master="local[*]"` 与多机模式 `master="spark://localhost:15077"`（Docker Compose Standalone 集群）均已实现并上线（2026-08-16）。多机模式通过 S3A connector 连接 MinIO 共享存储、Worker 内 socat 代理解决 `localhost:9000` → `minio:9000` 网络寻址问题。
+Phase 2b 分布式加速能力通过 `config/pipeline.json` 的 `engine.spark` 段开启，`engine.backend="spark"` 时生效。本地模式 `master="local[*]"` 与多机模式 `master="spark://localhost:15077"`（Docker Compose Standalone 集群）均已实现并上线（2026-08-16）。多机模式通过 S3A connector 连接 RustFS 共享存储、Worker 内 socat 代理解决 `localhost:9000` → `minio:9000` 网络寻址问题。
 
 ### 21.1 engine.spark 段配置说明
 
@@ -592,7 +592,7 @@ Phase 2b 分布式加速能力通过 `config/pipeline.json` 的 `engine.spark` �
 
 ### 21.3 Spark 多机模式运行（Docker Compose Standalone 集群，已实现 2026-08-16）
 
-多机模式通过 Docker Compose 部署 Spark Standalone 集群（Master + 2 Worker）+ MinIO 共享存储 + S3A connector + socat 代理实现。**S3 存储（MinIO）是多机模式的必要条件**——多 executor 无法共享 driver 本地 FS 路径，必须通过 S3 协议访问共享存储。
+多机模式通过 Docker Compose 部署 Spark Standalone 集群（Master + 2 Worker）+ RustFS 共享存储 + S3A connector + socat 代理实现。**S3 存储（RustFS）是多机模式的必要条件**——多 executor 无法共享 driver 本地 FS 路径，必须通过 S3 协议访问共享存储。
 
 #### 21.3.1 集群架构
 
@@ -625,15 +625,15 @@ Phase 2b 分布式加速能力通过 `config/pipeline.json` 的 `engine.spark` �
 | Spark Master Web UI | 8080 | 8080 | Master 状态 / Worker 列表 / 应用列表 |
 | Spark Worker-1 Web UI | 8081 | 8081 | Worker-1 资源 / 执行的 executor |
 | Spark Worker-2 Web UI | 8081 | 8082 | Worker-2 资源 / 执行的 executor |
-| MinIO S3 API | 9000 | 9000 | S3 协议端点（`storage.endpoint=localhost:9000`） |
-| MinIO Web Console | 9001 | 9001 | 浏览器管理 bucket / 凭证 |
+| RustFS S3 API | 9000 | 9000 | S3 协议端点（`storage.endpoint=localhost:9000`） |
+| RustFS Web Console | 9001 | 9001 | 浏览器管理 bucket / 凭证 |
 
 #### 21.3.2 部署步骤
 
 **前置条件**：
 
 - Docker Desktop 4.x+（Windows 下建议 WSL2 后端，分配 ≥ 4 GB 内存给 Docker）
-- MinIO 容器已启动（见第 22.2 节），bucket `batch-pipeline` 已创建
+- 对象存储容器（RustFS）已启动（见第 22.2 节），bucket `batch-pipeline` 已创建
 - JDK 17（driver 端，宿主机；Worker 内容器自带 JRE 17）
 - PySpark 4.2.0（driver 端，宿主机 `pip install pyspark==4.2.0`）
 - Windows junction 路径建议：`F:\spark_home` → Spark 安装目录、`F:\jdk17` → JDK 17、`F:\Py314` → Python 3.14（避免路径含空格，见第 21.5 节故障排查）
@@ -650,7 +650,7 @@ pwsh docker/spark-cluster/up.ps1
 
 1. `docker compose up -d --build`：构建镜像（基于 `eclipse-temurin:17-jre` + Spark 4.2.0 + hadoop-aws 3.5.0 + aws-sdk-v2-bundle 2.35.4 + analyticsaccelerator-s3 1.3.1，JAR 构建时打入 `/opt/spark/jars/` 避免运行时分发 530 MB）并启动 Master + 2 Worker 容器
 2. 等待 Master Web UI `http://localhost:8080` 就绪（最多 30 次重试，每次间隔 3 秒）
-3. 调用 `connect-minio.ps1` 把已运行的 MinIO 容器加入 `batch-pipeline-net` 网络（使 Worker 可经容器名 `minio:9000` 访问）
+3. 调用 `connect-minio.ps1` 把已运行的对象存储容器加入 `batch-pipeline-net` 网络（使 Worker 可经容器名 `minio:9000` 访问）
 4. 调用 Master REST API `http://localhost:8080/api/v1/workers` 验证 Worker 已注册并 ALIVE
 
 启动成功后输出：
@@ -665,17 +665,17 @@ pwsh docker/spark-cluster/up.ps1
 ==============================================
 ```
 
-**步骤 2：把 MinIO 加入集群网络（如未自动执行）**
+**步骤 2：把对象存储容器加入集群网络（如未自动执行）**
 
-命令示例：把 MinIO 加入 batch-pipeline-net 网络
+命令示例：把对象存储容器加入 batch-pipeline-net 网络
 
 ```bash
 pwsh docker/spark-cluster/connect-minio.ps1
 ```
 
-- 自动查找运行中的 MinIO 容器（按 `ancestor=minio/minio` 或容器名 `minio`）
+- 自动查找运行中的对象存储容器（按 `ancestor=rustfs/rustfs` 或容器名 `minio`）
 - 检查是否已在 `batch-pipeline-net` 网络中，已在则跳过；否则 `docker network connect batch-pipeline-net <minio_container>`
-- 验证 MinIO 在 `batch-pipeline-net` 中的 IP
+- 验证对象存储容器在 `batch-pipeline-net` 中的 IP
 
 **步骤 3：Worker 内 socat 代理（已内置于 entrypoint.sh）**
 
@@ -685,7 +685,7 @@ Worker 容器 `entrypoint.sh` 启动时自动执行：
 socat TCP-LISTEN:9000,fork,reuseaddr TCP:minio:9000 &
 ```
 
-作用：让 Worker 用 `localhost:9000` 访问 MinIO（与 driver 一致）。driver 在宿主机用 `localhost:9000` 直连 MinIO 端口映射；Worker 在容器内 `localhost:9000` 经 socat 代理转到 `minio:9000`（容器互连）。这样 driver 与 Worker 用统一的 `storage.endpoint="localhost:9000"` 配置，无需 Worker 单独配 MinIO 容器名。
+作用：让 Worker 用 `localhost:9000` 访问 RustFS（与 driver 一致）。driver 在宿主机用 `localhost:9000` 直连 RustFS 端口映射；Worker 在容器内 `localhost:9000` 经 socat 代理转到 `minio:9000`（容器互连）。这样 driver 与 Worker 用统一的 `storage.endpoint="localhost:9000"` 配置，无需 Worker 单独配对象存储容器名。
 
 **步骤 4：配置 batch-pipeline 多机模式**
 
@@ -727,7 +727,7 @@ socat TCP-LISTEN:9000,fork,reuseaddr TCP:minio:9000 &
 
 S3 凭证注入（二者择一，解析优先级见 `batch_pipeline/io/_s3_parquet.py` `s3_credentials`）：
 
-- 环境变量（推荐，避免凭证进版本库）：`export MINIO_ROOT_USER=minioadmin` + `export MINIO_ROOT_PASSWORD=minioadmin`（或 AWS 风格 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`）；Windows 用 `$env:MINIO_ROOT_USER="minioadmin"`
+- 环境变量（推荐，避免凭证进版本库）：`export RUSTFS_ACCESS_KEY=minioadmin` + `export RUSTFS_SECRET_KEY=minioadmin`（`MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 为兼容名；或 AWS 风格 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`）；Windows 用 `$env:RUSTFS_ACCESS_KEY="minioadmin"`
 - 或在 `storage` 段显式加 `"access_key": "..."` / `"secret_key": "..."`（显式配置优先于环境变量；生产凭证切勿提交版本控制）
 
 `engine.spark.cluster` 子段说明：
@@ -758,7 +758,7 @@ driver 在宿主机创建 SparkSession 连接 `spark://localhost:15077`，五阶
 pwsh docker/spark-cluster/down.ps1
 ```
 
-执行 `docker compose down`，移除 Master + 2 Worker 容器（MinIO 容器不动，数据卷持久化）。
+执行 `docker compose down`，移除 Master + 2 Worker 容器（对象存储容器不动，数据卷持久化）。
 
 #### 21.3.3 部署要求
 
@@ -770,12 +770,12 @@ pwsh docker/spark-cluster/down.ps1
 | JDK | 17（driver 端） | driver JVM | 系统包管理器或官方 tarball，设 `JAVA_HOME` |
 | PySpark | 4.2.0（driver 端） | Python 调用 Spark API | `pip install pyspark==4.2.0` |
 | Python | 3.9+（driver 端） | driver 进程 | 系统自带或 pyenv |
-| MinIO | latest | S3 共享存储 | `docker run -p 9000:9000 -p 9001:9001 minio/minio server /data --console-address ":9001"` |
+| RustFS | 1.0.6 | S3 共享存储 | 见第 22.2 节（docker run 形态，RUSTFS_VOLUMES=/data，不覆写 command） |
 | Spark 集群 | 4.2.0（容器内） | 分布式调度 | `docker/spark-cluster/up.ps1` 一键部署 |
 | hadoop-aws | 3.5.0（容器内） | S3A connector | Dockerfile 构建时打入 `/opt/spark/jars/` |
 | aws-sdk-v2-bundle | 2.35.4（容器内） | hadoop-aws 依赖 | Dockerfile 构建时打入 `/opt/spark/jars/` |
 | analyticsaccelerator-s3 | 1.3.1（容器内） | hadoop-aws 传递依赖 | Dockerfile 构建时打入 `/opt/spark/jars/` |
-| socat | 容器内自带 | Worker→MinIO 代理 | Dockerfile `apt-get install socat` |
+| socat | 容器内自带 | Worker→对象存储代理 | Dockerfile `apt-get install socat` |
 
 **Windows 特殊处理**：
 
@@ -791,13 +791,13 @@ pwsh docker/spark-cluster/down.ps1
 |---|---|
 | `up.ps1` 卡在 "等待 Spark Master 就绪" | Master 容器启动失败。处理：① `docker logs spark-master` 看 Master 日志；② 确认 Docker Desktop 已启动且 WSL2 后端可用；③ 确认 15077/8080 端口未被占用（`netstat -an \| findstr "15077 8080"`）；④ 内存不足时调大 Docker 内存限制或减小 Worker `SPARK_WORKER_MEMORY` |
 | Worker 不注册到 Master（Master Web UI Workers=0） | Worker 无法连接 Master。处理：① `docker logs spark-worker-1` 看 Worker 日志；② 确认 Worker 与 Master 在同一 `batch-pipeline-net` 网络（`docker network inspect batch-pipeline-net`）；③ 确认 `SPARK_MASTER_URL=spark://spark-master:7077`（容器名 `spark-master` 而非 `localhost`） |
-| Worker 报 `Connection refused: minio:9000` | MinIO 未加入 `batch-pipeline-net` 网络。处理：① 确认 MinIO 容器已启动（`docker ps \| findstr minio`）；② 重新执行 `pwsh docker/spark-cluster/connect-minio.ps1`；③ `docker network inspect batch-pipeline-net` 确认 MinIO 在网络成员列表中 |
+| Worker 报 `Connection refused: minio:9000` | 对象存储容器未加入 `batch-pipeline-net` 网络。处理：① 确认对象存储容器已启动（`docker ps \| findstr minio`）；② 重新执行 `pwsh docker/spark-cluster/connect-minio.ps1`；③ `docker network inspect batch-pipeline-net` 确认对象存储容器在网络成员列表中 |
 | Worker 报 `Connection refused: localhost:9000` | socat 代理未启动。处理：① `docker exec spark-worker-1 ps aux \| findstr socat` 确认 socat 进程存在；② 若不存在，`docker exec spark-worker-1 socat TCP-LISTEN:9000,fork,reuseaddr TCP:minio:9000 &` 手动启动；③ 检查 `entrypoint.sh` 是否被正确复制（Dockerfile `COPY entrypoint.sh /opt/entrypoint.sh`） |
 | driver 报 `FileNotFoundException: s3a://batch-pipeline/...` | bucket 不存在或 S3A 配置错误。处理：① 浏览器打开 `http://localhost:9001` 确认 bucket `batch-pipeline` 已创建；② 确认 `storage.backend="parquet"` + `storage.bucket="batch-pipeline"` + `storage.endpoint="localhost:9000"`；③ 确认 `engine.spark.cluster.enabled=true`；④ `docker logs spark-worker-1` 看 S3A 连接日志 |
 | driver 报 `Connection refused: localhost:7077` | Master 未启动或端口未映射。处理：① `docker ps \| findstr spark-master` 确认容器运行；② `curl http://localhost:8080` 确认 Web UI 可达；③ 确认 `engine.spark.master="spark://localhost:15077"`（不是 `spark://master:7077`，driver 在宿主机用 `localhost`） |
 | Docker Desktop 不稳定 / 容器频繁退出 | Docker Desktop 资源不足。处理：① Settings → Resources 调大 Memory ≥ 4 GB、CPU ≥ 2；② 启用 WSL2 后端；③ `docker system prune -a` 清理无用镜像/容器释放磁盘；④ 重启 Docker Desktop |
-| 多机模式产物与 python 路径不一致 | 不应发生。`tests/test_engine_spark.py::test_cluster_spark_s3_equivalence` 覆盖此等价性。若观察到差异，检查：① MinIO bucket 是否被其他数据污染；② config 是否还残留其他改动；③ `docker logs spark-master` + `spark-worker-1` + `spark-worker-2` 看是否有 task 失败重试 |
-| 多机模式比本地模式慢 | 不应发生（除非数据量极小）。可能原因：① 数据量 < 10 万行，分布式调度 + 网络开销大于并行收益；② Docker Desktop 网络性能差（WSL2 后端建议）；③ MinIO IO 瓶颈（单机 MinIO 磁盘）；④ `shuffle_partitions` 过大（小数据建议 8，非 200）。处理：小数据量用 `master="local[*]"` 本地模式 |
+| 多机模式产物与 python 路径不一致 | 不应发生。`tests/test_engine_spark.py::test_cluster_spark_s3_equivalence` 覆盖此等价性。若观察到差异，检查：① 对象存储 bucket 是否被其他数据污染；② config 是否还残留其他改动；③ `docker logs spark-master` + `spark-worker-1` + `spark-worker-2` 看是否有 task 失败重试 |
+| 多机模式比本地模式慢 | 不应发生（除非数据量极小）。可能原因：① 数据量 < 10 万行，分布式调度 + 网络开销大于并行收益；② Docker Desktop 网络性能差（WSL2 后端建议）；③ 对象存储 IO 瓶颈（单机磁盘）；④ `shuffle_partitions` 过大（小数据建议 8，非 200）。处理：小数据量用 `master="local[*]"` 本地模式 |
 
 ### 21.4 环境要求
 
@@ -810,7 +810,7 @@ pwsh docker/spark-cluster/down.ps1
 | Python | 3.9+ | driver / executor Python 进程 | 系统自带或 pyenv |
 | winutils.exe + hadoop.dll | 对应 Hadoop 3.x | **仅 Windows**：Spark 写文件需 Hadoop Native IO | 下载放到 `%HADOOP_HOME%\bin\`，设 `HADOOP_HOME` 环境变量 |
 | Spark 集群 | 4.2.0 | **仅多机模式**：分布式调度 | Standalone（`docker/spark-cluster/up.ps1` 一键部署）/ YARN / K8s |
-| 共享存储 | MinIO / HDFS / S3 | **仅多机模式**：executor 共享数据 | MinIO Docker 启动（见第 22.2 节），多机模式已实现 |
+| 共享存储 | RustFS / HDFS / S3 | **仅多机模式**：executor 共享数据 | RustFS Docker 启动（见第 22.2 节），多机模式已实现 |
 
 **Windows 额外配置（重要）**：
 
@@ -839,7 +839,7 @@ Spark 在 Windows 上写文件（`df.write.csv` / `df.write.parquet`）需要 Ha
 | Spark 路径比 python / polars 路径慢 | 小数据量（< 10 万行）Spark 启动 + JVM 预热开销大于并行收益。处理：小数据量用 `backend="python"` 或 `"polars"`，Spark 适合千万行以上或超内存场景 |
 | `engine.backend="spark"` + `incremental.enabled=true` 行为异常 | 两能力正交叠加，`tests/test_engine_spark.py::test_spark_incremental` 覆盖。若观察到异常，检查 state 目录是否被污染（删除 `state/` 重建），或 pyspark 版本是否 4.x |
 | Spark 写出产物是目录而非单文件 | 设计如此。`df.write.csv(path)` 写出 `path/` 目录下多个分区文件（part-00000-...csv 等）。如需单文件，设 `engine.spark.write_single_file=true`（触发 `coalesce(1)`，性能下降）。`table_read` 自动识别目录并读取所有分区文件 |
-| 多机模式 executor 报 `FileNotFoundException` | executor 无法访问 driver 本地路径。多机模式必须用共享存储（MinIO/HDFS/S3），所有路径指向共享存储 URL。Phase 3 MinIO 已就位，多机模式已实现（见第 21.3 节） |
+| 多机模式 executor 报 `FileNotFoundException` | executor 无法访问 driver 本地路径。多机模式必须用共享存储（RustFS/HDFS/S3），所有路径指向共享存储 URL。Phase 3 RustFS 已就位，多机模式已实现（见第 21.3 节） |
 | `OutOfMemoryError: Java heap space` | executor 内存不足。处理：调大 `engine.spark.executor_memory`（如 `4g` → `8g`），或减小 `shuffle_partitions` 减少 shuffle 缓存压力 |
 
 ## 22. storage 配置与运行（Phase 3）
@@ -852,13 +852,13 @@ Phase 3 湖存储能力通过 `config/pipeline.json` 的 `storage` 段开启，�
 
 | 字段 | 取值 | 含义 |
 |---|---|---|
-| `backend` | `local_csv`（缺省）/ `parquet` | 存储介质后端。`local_csv` 走现有 CSV 路径，零依赖，向后兼容；`parquet` 走 Parquet 列式存储路径（本地 `.parquet` 文件或 S3/MinIO 远端存储），需 `pip install pyarrow minio` |
-| `bucket` | str | S3/MinIO bucket 名，如 `batch-pipeline`。`backend="parquet"` 且配了 `bucket` + `endpoint` 时走 S3 路径；不配或清空 `endpoint` 时降级为本地 `.parquet` 文件 |
-| `endpoint` | host:port | S3/MinIO endpoint，如 `localhost:9000`（本地 MinIO）/ `minio:9000`（Docker 内）/ `s3.amazonaws.com`（AWS S3） |
-| `access_key` | str | S3 access key。代码缺省空串、无内置回退；config 文件默认省略本字段，经显式配置或环境变量 `MINIO_ROOT_USER` 注入（连接缺省 MinIO 实例时其服务端凭证为 `minioadmin`） |
-| `secret_key` | str | S3 secret key。同上，环境变量为 `MINIO_ROOT_PASSWORD`（或 AWS 风格 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`），解析优先级见 `batch_pipeline/io/_s3_parquet.py` `s3_credentials` |
-| `secure` | bool | 是否用 HTTPS。本地 MinIO 缺省 `false`，云上 S3 缺省 `true` |
-| `region` | str | S3 region。缺省 `us-east-1`，MinIO 不强制 region |
+| `backend` | `local_csv`（缺省）/ `parquet` | 存储介质后端。`local_csv` 走现有 CSV 路径，零依赖，向后兼容；`parquet` 走 Parquet 列式存储路径（本地 `.parquet` 文件或 S3/RustFS 远端存储），需 `pip install pyarrow minio` |
+| `bucket` | str | S3/RustFS bucket 名，如 `batch-pipeline`。`backend="parquet"` 且配了 `bucket` + `endpoint` 时走 S3 路径；不配或清空 `endpoint` 时降级为本地 `.parquet` 文件 |
+| `endpoint` | host:port | S3/RustFS endpoint，如 `localhost:9000`（本地 RustFS）/ `minio:9000`（Docker 内）/ `s3.amazonaws.com`（AWS S3） |
+| `access_key` | str | S3 access key。代码缺省空串、无内置回退；config 文件默认省略本字段，经显式配置或环境变量 `RUSTFS_ACCESS_KEY` 注入（`MINIO_ROOT_USER` 为兼容名；连接缺省 RustFS 实例时其服务端凭证为 `minioadmin`） |
+| `secret_key` | str | S3 secret key。同上，环境变量为 `RUSTFS_SECRET_KEY`（`MINIO_ROOT_PASSWORD` 为兼容名，或 AWS 风格 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`），解析优先级为配置显式值 > `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` > `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` > `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`，见 `batch_pipeline/io/_s3_parquet.py` `s3_credentials` |
+| `secure` | bool | 是否用 HTTPS。本地 RustFS 缺省 `false`，云上 S3 缺省 `true` |
+| `region` | str | S3 region。缺省 `us-east-1`，RustFS 不强制 region |
 | `warehouse` | str | warehouse 子路径（bucket 下的逻辑仓库根）。缺省 `warehouse`。逻辑路径 `orders/orders_clean` 解析为 `s3://bucket/warehouse/orders/orders_clean.parquet` |
 | `prefix` | str | bucket 下额外前缀（多租户隔离用）。缺省 `""`。如 `tenant_a/` 让所有产物落到 `s3://bucket/tenant_a/warehouse/...` |
 | `compression` | str | Parquet 压缩算法。`zstd`（缺省，压缩比与速度综合最优）/ `snappy`（速度优先）/ `gzip`（兼容性最好）/ `none`（不压缩） |
@@ -878,28 +878,56 @@ Phase 3 湖存储能力通过 `config/pipeline.json` 的 `storage` 段开启，�
 }
 ```
 
-### 22.2 MinIO 部署
+### 22.2 对象存储部署（RustFS，2026-11-22 起替换 MinIO）
 
-MinIO 是 S3 兼容的对象存储，单机一行命令启动，适合开发/测试/小规模生产。
+RustFS 是 S3 兼容的对象存储，单机一行命令启动，适合开发/测试/小规模生产。
+
+> **实现说明（台账 #17，2026-11-22）**：本节原先部署 MinIO 社区版。该实现已停止
+> 供应——上游 2026-09-11 整体删除 `minio/minio` 与 `minio/mc` 镜像（runner 实测
+> `docker manifest inspect` 返回 rc=1 denied），上游仓 2026-04-25 归档只读 ⇒ 原坐标
+> 在生产已不可拉取，**原命令会直接拉取失败**。现改为 RustFS 1.0.6
+> （Apache-2.0，amd64+arm64 双架构）。容器名、端口、endpoint 与 volume 名保持不变
+> （`minio` / `minio-data` / `localhost:9000`），因此 `storage.*` 配置项与既有
+> 脚本不用改；只是**镜像坐标与凭据变量口径**变了。
 
 **Docker 启动（推荐）**：
 
-命令示例：本地启动 MinIO（开发环境）
+命令示例：本地启动对象存储（开发环境）
 
 ```
-docker run -d --name minio -p 9000:9000 -p 9001:9001 -v minio-data:/data minio/minio server /data --console-address ":9001"
+docker run -d --name minio -p 9000:9000 -p 9001:9001 -v minio-data:/data \
+  -e RUSTFS_ACCESS_KEY=minioadmin -e RUSTFS_SECRET_KEY=minioadmin \
+  -e RUSTFS_VOLUMES=/data \
+  rustfs/rustfs:1.0.6
 ```
 
 - `9000`：S3 API 端口（`storage.endpoint=localhost:9000` 指向此）
 - `9001`：Web 控制台端口（浏览器打开 `http://localhost:9001`）
-- 默认凭证：access_key=`minioadmin`，secret_key=`minioadmin`（生产环境务必修改）
+- 凭据变量用 RustFS 规范名 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY`；
+  RustFS 1.0.6 也兼容读 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`
+  （runner 实测：只给这两个变量时，用同名凭证可 `list-buckets` 成功），但那是
+  兼容名，新部署一律用 `RUSTFS_*`
+- **不覆写 `command`**：RustFS 的 entrypoint+CMD 形态与 MinIO 的 `server /data`
+  不同，`RUSTFS_VOLUMES` 由 rustfs 直接处理，不得作为 args 追加
 - 数据卷 `minio-data` 持久化到宿主机，重启不丢数据
+- 镜像内以 uid/gid **10001** 运行（上游 `rustfs` 用户），数据目录 `/data` 属主
+  `rustfs:rustfs` 且权限 0750 ⇒ 换 uid 会失去写权限
 
 **bucket 创建**：
 
 1. 浏览器打开 `http://localhost:9001`，用 `minioadmin` / `minioadmin` 登录
 2. 左侧 Buckets → Create Bucket → 名字填 `batch-pipeline` → Create
-3. 或用 mc 客户端：`mc alias set local http://localhost:9000 minioadmin minioadmin && mc mb local/batch-pipeline`
+3. 或用 AWS CLI（`mc` 客户端已随 MinIO 一同停供，`rustfs` 无官方 mc 镜像）：
+
+   ```
+   docker run --rm --network host --entrypoint sh \
+     -e AWS_ACCESS_KEY_ID=minioadmin -e AWS_SECRET_ACCESS_KEY=minioadmin \
+     -e AWS_DEFAULT_REGION=us-east-1 \
+     amazon/aws-cli:2.17.23 -c \
+     'aws s3api create-bucket --endpoint-url http://localhost:9000 --bucket batch-pipeline'
+   ```
+
+   （botocore 对自定义 `--endpoint-url` 默认走 path-style 寻址，可直连对象存储）
 4. 或用 Python minio SDK：`from minio import Minio; c = Minio("localhost:9000", "minioadmin", "minioadmin", secure=False); c.make_bucket("batch-pipeline")`
 
 **默认凭证（开发环境）**：
@@ -933,13 +961,13 @@ s3://<bucket>/<prefix>/<warehouse>/<path>.parquet
 `_is_s3_target` 判断规则（按优先级）：
 
 1. path 以 `s3://` 开头 → S3
-2. path 指向本地已存在的文件 → 本地（允许 `storage.backend="parquet"` 时读写本地 `.parquet`，便于单测与无 MinIO 环境的降级）
+2. path 指向本地已存在的文件 → 本地（允许 `storage.backend="parquet"` 时读写本地 `.parquet`，便于单测与无对象存储环境的降级）
 3. `cfg["storage"]` 配了 `bucket` + `endpoint` → S3（path 是逻辑路径，用 `_resolve_s3_path` 解析为 `s3://` URI）
 4. 其余 → 本地
 
 ### 22.4 本地 Parquet 模式
 
-不配 `bucket` / `endpoint`（或清空 `endpoint`）时，`storage.backend="parquet"` 降级为本地 `.parquet` 文件模式：产物写到本地路径 + `.parquet` 后缀，用 pyarrow 读写。无需 MinIO 实例，适合单机列式压缩场景。
+不配 `bucket` / `endpoint`（或清空 `endpoint`）时，`storage.backend="parquet"` 降级为本地 `.parquet` 文件模式：产物写到本地路径 + `.parquet` 后缀，用 pyarrow 读写。无需对象存储实例，适合单机列式压缩场景。
 
 配置示例（本地 Parquet 模式）：
 
@@ -952,11 +980,11 @@ s3://<bucket>/<prefix>/<warehouse>/<path>.parquet
 
 运行：`python main.py --config config/pipeline_small.json`。五阶段产物从 `.csv` 改为 `.csv.parquet`（如 `03_clean/orders_clean.csv.parquet`），列式压缩 3-6 倍，与 `local_csv` 路径产物内容完全一致（行数、聚合值、DQ Score、manifest lineage、metrics）。`tests/test_storage_parquet.py::test_local_parquet_equivalence` 自动覆盖此等价性。
 
-### 22.5 S3/MinIO Parquet 模式
+### 22.5 S3/RustFS Parquet 模式
 
-配了 `bucket` + `endpoint` 时，`storage.backend="parquet"` 走 S3/MinIO 远端存储：产物写到 `s3://bucket/warehouse/.../*.parquet`，任意节点通过 S3 协议访问。
+配了 `bucket` + `endpoint` 时，`storage.backend="parquet"` 走 S3/RustFS 远端存储：产物写到 `s3://bucket/warehouse/.../*.parquet`，任意节点通过 S3 协议访问。
 
-配置示例（S3/MinIO Parquet 模式；config 文件缺省省略 `access_key` / `secret_key`，凭证经环境变量 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 注入或在此显式配置）：
+配置示例（S3/RustFS Parquet 模式；config 文件缺省省略 `access_key` / `secret_key`，凭证经环境变量 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` 注入（`MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` 为兼容名）或在此显式配置）：
 
 ```json
 "storage": {
@@ -971,7 +999,7 @@ s3://<bucket>/<prefix>/<warehouse>/<path>.parquet
 }
 ```
 
-运行：先启动 MinIO + 创建 bucket（见第 22.2 节），再 `python main.py --config config/pipeline_small.json`。`tests/test_storage_parquet.py::test_s3_parquet_equivalence` 自动覆盖此等价性（MinIO 不可用时 `skipif` 跳过）。
+运行：先启动 RustFS + 创建 bucket（见第 22.2 节），再 `python main.py --config config/pipeline_small.json`。`tests/test_storage_parquet.py::test_s3_parquet_equivalence` 自动覆盖此等价性（RustFS 不可用时 `skipif` 跳过）。
 
 ### 22.6 与 Phase 1 增量的集成
 
@@ -996,11 +1024,11 @@ s3://<bucket>/<prefix>/<warehouse>/<path>.parquet
 |---|---|
 | `ModuleNotFoundError: No module named 'pyarrow'` | 未安装 pyarrow。处理：`pip install pyarrow`（requirements.txt 约束 `>=23.0.1,<25.0`）。`storage.backend="local_csv"` 路径不受影响，无需安装 |
 | `ModuleNotFoundError: No module named 'minio'` | 未安装 minio SDK。处理：`pip install minio`（7+）。仅 S3 模式 bucket 初始化与迁移脚本需要，本地 Parquet 模式不需要 |
-| MinIO 连接失败（`ConnectionRefusedError` / `EndpointConnectionError`） | MinIO 未启动或 endpoint 配置错误。处理：① 确认 MinIO 已启动（`docker ps` 看容器状态）；② 确认 `storage.endpoint` 正确（本地 `localhost:9000`，Docker 内 `minio:9000`）；③ 确认端口未被占用（`netstat -an \| findstr 9000`） |
-| `S3Error: The specified bucket does not exist` | bucket 未创建。处理：在 MinIO 控制台或用 mc / minio SDK 创建 bucket（见第 22.2 节）。`tests/test_storage_parquet.py` 的 `_minio_available` 会自动尝试 `make_bucket`，但生产环境应预先创建 |
-| `S3Error: Access Denied` / `InvalidAccessKeyId` | 凭证错误。处理：确认凭证与 MinIO 实例配置一致——解析优先级为 `storage.access_key` / `secret_key` 显式配置 > 环境变量 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` > `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`（见 `batch_pipeline/io/_s3_parquet.py` `s3_credentials`）；config 缺省省略凭证字段、代码无内置回退，未注入凭证时以空串访问必然被拒。缺省启动的本地 MinIO 服务端凭证为 `minioadmin` / `minioadmin`，生产环境可能已修改 |
+| 对象存储连接失败（`ConnectionRefusedError` / `EndpointConnectionError`） | 对象存储未启动或 endpoint 配置错误。处理：① 确认对象存储容器已启动（`docker ps` 看容器状态）；② 确认 `storage.endpoint` 正确（本地 `localhost:9000`，Docker 内 `minio:9000`）；③ 确认端口未被占用（`netstat -an \| findstr 9000`） |
+| `S3Error: The specified bucket does not exist` | bucket 未创建。处理：在对象存储控制台或用 AWS CLI / Python minio SDK 创建 bucket（mc 已停供，见第 22.2 节）。`tests/test_storage_parquet.py` 的 `_minio_available` 会自动尝试 `make_bucket`，但生产环境应预先创建 |
+| `S3Error: Access Denied` / `InvalidAccessKeyId` | 凭证错误。处理：确认凭证与对象存储实例配置一致——解析优先级为 `storage.access_key` / `secret_key` 显式配置 > 环境变量 `RUSTFS_ACCESS_KEY` / `RUSTFS_SECRET_KEY` > 环境变量 `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`（兼容名）> `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`（见 `batch_pipeline/io/_s3_parquet.py` `s3_credentials`）；config 缺省省略凭证字段、代码无内置回退，未注入凭证时以空串访问必然被拒。缺省启动的本地 RustFS 服务端凭证为 `minioadmin` / `minioadmin`，生产环境可能已修改 |
 | `OSError: [WinError 123]` 路径含非法字符 | Windows 下 S3 URI 被误当本地路径。处理：确认 `storage.backend="parquet"` 已生效（`_get_storage_backend` 读 `cfg["storage"]["backend"]`），且 `bucket` + `endpoint` 已配（否则 `_is_s3_target` 可能误判为本地） |
-| `ArrowIOError: Failed to open Parquet file` | S3 上文件不存在或路径解析错误。处理：① 用 MinIO 控制台或 mc 检查 `s3://bucket/warehouse/...` 路径是否存在；② 确认 `storage.warehouse` / `prefix` 配置与产物路径拼接一致（见第 22.3 节） |
+| `ArrowIOError: Failed to open Parquet file` | S3 上文件不存在或路径解析错误。处理：① 用对象存储控制台或 AWS CLI 检查 `s3://bucket/warehouse/...` 路径是否存在；② 确认 `storage.warehouse` / `prefix` 配置与产物路径拼接一致（见第 22.3 节） |
 | `pyarrow.lib.ArrowInvalid: Unsupported compression type` | pyarrow 版本过旧，不支持 `zstd`。处理：升级 pyarrow 到 23.0.1+（`pip install --upgrade pyarrow`，requirements.txt 约束 `>=23.0.1,<25.0`）。或改用 `snappy` / `gzip`（`storage.compression="snappy"`） |
 | Parquet 路径产物与 local_csv 路径不一致 | 不应发生。`tests/test_storage_parquet.py::test_local_parquet_equivalence` + `test_s3_parquet_equivalence` 覆盖此等价性。若观察到差异，检查：① pyarrow 版本是否 23.0.1+；② config 是否还残留其他改动；③ 上游数据是否在运行间被修改 |
 | `storage.backend="parquet"` + `incremental.enabled=true` 行为异常 | 两能力正交叠加，`tests/test_storage_parquet.py::test_incremental_parquet` 覆盖。若观察到异常，检查 state 目录是否被污染（删除 `state/` 重建），或 pyarrow 版本是否 23.0.1+ |
@@ -1046,7 +1074,7 @@ SQL catalog 把元数据存到关系库，开发/测试用 SQLite 零额外服�
 - 零额外 Docker 服务，`sqlite:///state/iceberg_catalog.db` 自动建库
 - 单机使用，不支持多客户端并发写 catalog（SQLite 文件锁）
 - 适合 CI、本地开发、单元测试（`tests/test_storage_iceberg.py` 全部用 SQL catalog）
-- warehouse 仍可指向 S3/MinIO（数据文件远端，元数据本地 SQLite）
+- warehouse 仍可指向 S3/RustFS（数据文件远端，元数据本地 SQLite）
 
 #### 23.1.2 REST catalog（生产）
 
@@ -1080,7 +1108,7 @@ REST catalog 服务端口与用途：
 |---|---|---|
 | iceberg-rest | 8181 | REST catalog API（`storage.iceberg.uri` 指向此） |
 | postgres（catalog 后端） | 5432 | catalog 元数据持久化（REST 服务后端） |
-| minio（数据存储） | 9000 / 9001 | S3 API / Web Console（数据文件存储） |
+| 对象存储容器（RustFS，容器名 minio） | 9000 / 9001 | S3 API / Web Console（数据文件存储） |
 
 停止：
 
@@ -1364,9 +1392,9 @@ WHEN NOT MATCHED THEN INSERT *
 | 场景 | 推荐路径 | 理由 |
 |---|---|---|
 | 单机演示 / 教学 / CI | `local_csv` | 零依赖，产物可直接用文本编辑器 / Excel 查看 |
-| 单机生产 + 节省磁盘 | `parquet`（本地） | 列式压缩 3-6 倍，节省存储 + IO 带宽，无需运维 MinIO |
-| 多机协同 / 远端访问 | `parquet`（S3/MinIO） | 共享存储，任意节点可访问，解锁 Phase 2b 多机模式 |
-| 已有 S3/MinIO 基础设施 | `parquet`（S3/MinIO） | 复用现有对象存储，无需额外部署 |
+| 单机生产 + 节省磁盘 | `parquet`（本地） | 列式压缩 3-6 倍，节省存储 + IO 带宽，无需运维对象存储 |
+| 多机协同 / 远端访问 | `parquet`（S3/RustFS） | 共享存储，任意节点可访问，解锁 Phase 2b 多机模式 |
+| 已有 S3/RustFS 基础设施 | `parquet`（S3/RustFS） | 复用现有对象存储，无需额外部署 |
 | 数据量极小（< 1000 行） | `local_csv` | Parquet 元数据开销可能超过压缩收益 |
 
 ### 24.2 何时用 polars+parquet / spark+parquet
@@ -1377,8 +1405,8 @@ WHEN NOT MATCHED THEN INSERT *
 |---|---|---|
 | 单机加速 + 远端存储 | `engine.backend="polars"` + `storage.backend="parquet"`（S3） | Polars 原生读 S3 Parquet 零拷贝 + 谓词下推，单机列式加速 + 对象存储压缩，无需 Spark |
 | 单机加速 + 本地压缩 | `engine.backend="polars"` + `storage.backend="parquet"`（本地） | Polars 原生读写本地 Parquet，列式 + 压缩 + 谓词下推，零运维 |
-| 分布式 + 共享存储 | `engine.backend="spark"` + `storage.backend="parquet"`（S3） | Spark + S3A connector + Docker Compose Standalone 集群，多 executor 分布式 + MinIO 共享存储，突破单机内存上限（多机模式已实现，见第 21.3 节） |
-| 分布式 + 本地（仅本地模式） | `engine.backend="spark"` + `storage.backend="local_csv"` | Spark 本地模式 `master="local[*]"`，单机模拟分布式，无需 MinIO |
+| 分布式 + 共享存储 | `engine.backend="spark"` + `storage.backend="parquet"`（S3） | Spark + S3A connector + Docker Compose Standalone 集群，多 executor 分布式 + RustFS 共享存储，突破单机内存上限（多机模式已实现，见第 21.3 节） |
+| 分布式 + 本地（仅本地模式） | `engine.backend="spark"` + `storage.backend="local_csv"` | Spark 本地模式 `master="local[*]"`，单机模拟分布式，无需对象存储 |
 | 零依赖 / CI 轻量 | `engine.backend="python"` + `storage.backend="local_csv"` | 零第三方依赖，一键复现 |
 
 ### 24.3 切换步骤
@@ -1391,11 +1419,11 @@ WHEN NOT MATCHED THEN INSERT *
 4. 验证产物：与 `storage.backend="local_csv"` 路径产物内容完全一致（行数、聚合值、DQ Score、manifest lineage、metrics）。`tests/test_storage_parquet.py::test_local_parquet_equivalence` 自动覆盖此等价性
 5. 回退：`storage.backend` 改回 `"local_csv"` 即恢复 CSV 路径
 
-**切换到 S3/MinIO Parquet**：
+**切换到 S3/RustFS Parquet**：
 
 1. 安装依赖：`pip install pyarrow minio`（一次性，pyarrow>=23.0.1,<25.0 + minio 7+）
-2. 启动 MinIO + 创建 bucket（见第 22.2 节）
+2. 启动 RustFS + 创建 bucket（见第 22.2 节）
 3. 修改配置：`config/pipeline.json` 或 `pipeline_small.json` 的 `storage.backend` 改为 `"parquet"`，配 `bucket="batch-pipeline"` + `endpoint="localhost:9000"` + 凭证
 4. 运行：`python main.py --config config/pipeline_small.json`
-5. 验证产物：与 `storage.backend="local_csv"` 路径产物内容完全一致。`tests/test_storage_parquet.py::test_s3_parquet_equivalence` 自动覆盖此等价性（MinIO 不可用时 `skipif` 跳过）
+5. 验证产物：与 `storage.backend="local_csv"` 路径产物内容完全一致。`tests/test_storage_parquet.py::test_s3_parquet_equivalence` 自动覆盖此等价性（RustFS 不可用时 `skipif` 跳过）
 6. 回退：`storage.backend` 改回 `"local_csv"` 或 `"parquet"`（本地）即恢复路径

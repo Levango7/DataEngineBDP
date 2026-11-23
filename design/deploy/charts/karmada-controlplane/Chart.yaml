@@ -1,0 +1,25 @@
+apiVersion: v2
+name: karmada-controlplane
+description: "Karmada 控制面部署面 - 多集群联邦控制面（vendored 上游 karmada chart v1.12.0）"
+type: application
+version: 0.1.0
+appVersion: "v1.12.0"
+home: https://karmada.io
+sources:
+  - https://github.com/karmada-io/karmada
+keywords:
+  - karmada
+  - multicluster
+  - federation
+  - control-plane
+
+# 台账 #128：多集群联邦缺的是"上游 Karmada 控制面部署面"。
+# 形态：vendored 上游官方 chart（karmada-io/karmada tag v1.12.0 的 charts/karmada）
+#       + bitnami common 2.19.1（上游 Chart.lock 锁定版本，已 vendored 为 tgz）
+#       + 上游 _crds/bases/** 提到本父 chart 的 crds/（Helm 只自动 apply 顶层 crds/）。
+# 刻意不并入 dataenginebdp-umbrella：umbrella 是默认安装面，而台账 #90 的口径是
+# "控制面不做/不装"，并入会把冻结口径翻成默认路径；本 chart 为显式 opt-in 安装面。
+dependencies:
+  - name: karmada
+    version: 0.0.0
+    repository: file://charts/karmada

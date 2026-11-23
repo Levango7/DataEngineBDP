@@ -36,10 +36,12 @@ on:
   workflow_dispatch:
 
 # 默认权限最小化，PR 评论和检查需要 pull-requests: write
+# actions: read —— 台账 #102②：收敛闸要读 actions/runs（PR 侧是否已验证同一内容）
 permissions:
   contents: read
   pull-requests: write
   checks: write
+  actions: read
 
 # 同一分支、同一事件类型只保留最新一次，避免重复执行浪费资源。
 # 必须带事件类型：2026-10-20 main 7112292e 的 push run 39380781708 就是被
@@ -454,6 +456,15 @@ jobs:
       - name: 自测钉版外链可达性判据（check-pinned-downloads）
         run: bash scripts/check-pinned-downloads.sh --self-test
 
+      # 台账 #113：Trivy 镜像豁免的单位从「CVE 号」上移到「包 + 版本水位」。
+      # docs/trivy-image-watermark.yaml 是唯一事实源，docs/trivy-image-ignore.yaml 是派生结果
+      # （scripts/gen-trivy-ignore.py 是唯一写入者）⇒ 手改生成物、或改水位忘重新生成，都判红。
+      # 本门禁只读本仓文件、不碰网络，成本可忽略；先跑离线双向夹具证明它真会转红。
+      - name: 自测 Trivy 镜像豁免水位账漂移门禁（check-trivy-ignore-drift）
+        run: |
+          python3 scripts/check-trivy-ignore-drift.py --self-test
+          python3 scripts/check-trivy-ignore-drift.py
+
       # 台账 #112 续：Spark 取数「预算记账」回归测试。
       # 2026-11-15 CI 实测暴露的缺陷：取数段 curl 带 --retry 2，而 curl 的 --max-time 是
       # **每次传输尝试**的上限 ⇒ 「剩余预算 ÷ 剩余尝试数」切出来的片不是本源实耗上限
@@ -474,6 +485,24 @@ jobs:
       - name: 自测 Maven JAR 取数预算记账（test-maven-download-budget）
         run: bash scripts/test-maven-download-budget.sh
 
+      # 台账 #112 续：pyspark 取数段的「墙钟上限」回归测试。
+      # 改前（两处）pyspark 从 PyPI 取数百 MB 且**无任何墙钟上限**：
+      #   ① platform/batch-pipeline/docker/spark-cluster/Dockerfile 的 pyspark 安装段
+      #      （CI 实测 pyspark-4.2.1.tar.gz 450.0MB，该段 28.0s / 30.4s）；
+      #   ② platform/batch-pipeline/Dockerfile builder 段的运行时依赖安装段
+      #      （requirements 含 pyspark>=4.0,<5.0 ⇒ CI 实测 pyspark-4.3.0.tar.gz 455.9MB
+      #        并本地构建 wheel，整步 32.45s / 32.61s）。
+      # 后果不是「慢」而是**红相被伪装**：外层 build-retry 的 per-attempt 600s 会把整条
+      # docker build SIGKILL 掉 ⇒ BuildKit 报 `context canceled` ⇒ 看着像编译失败，
+      # 实际是取数面速率问题（2026-11-20 当轮实测本机到 PyPI 仅 43–54 kB/s ⇒ 整包 ≈ 9300s）。
+      # 本测试用「虚拟时钟 + 复刻 GNU timeout 墙钟语义的桩」逐条断言：健康形态成功、
+      # 超上限时**段自己**判红（不是被外层 SIGKILL）、被调命令自身失败时不混判据、
+      # python3 -m pip → pip3 的老回退语义仍在、以及「上限 + 本段之前的耗时 + 余量 ≤
+      # 外层 per-attempt 预算」的算术（外层预算现场读自 scripts/build-retry.sh，不写死）。
+      # 不碰网络、不调 docker，成本可忽略。
+      - name: 自测 pyspark 取数段墙钟上限（test-pyspark-install-budget）
+        run: bash scripts/test-pyspark-install-budget.sh
+
       # 触发面收敛判据的离线自测。
       # 该判据决定「本波要不要重建 44 个镜像」⇒ 判错的代价不对称（误判「不相关」会让
       # 镜像验证静默消失）⇒ 必须有离线自测把判据钉死，且自测不碰网络不调 docker。
@@ -481,6 +510,25 @@ jobs:
       # API 取数失败 fail-closed、$GITHUB_OUTPUT 输出协议。
       - name: 自测镜像构建面相关性判据（check-docker-build-relevance）
         run: bash scripts/check-docker-build-relevance.sh --self-test
+
+      # 台账 #102②：push 扇出侧收敛闸的离线自测。
+      # 该判据决定「main push 是否需要把 PR 侧已验证过的内容再跑一遍」⇒ 误判
+      # 「已覆盖」会**静默丢掉一次验证** ⇒ 必须有离线自测把判据钉死。
+      # 自测覆盖：非 push 事件 / 非 main / 查不到关联 PR / PR 未合并 / tree 不一致
+      # （内容变了必须重跑）/ PR 侧失败 / PR 侧无该工作流运行 / 同名多条取最新一条 /
+      # 取数异常 fail-closed / $GITHUB_OUTPUT 输出协议 / 四个 workflow 的接线断言。
+      # 不碰网络，成本可忽略。
+      - name: 自测 push 扇出侧收敛判据（ci-push-converge）
+        run: python3 scripts/ci-push-converge.py --self-test
+
+      # 台账 #102③：Quality Gate 聚合收敛判据的离线自测。
+      # 该判据决定「同一 SHA 的聚合是否要盖章/跳过/继续等」⇒ 误判会放大盖章面
+      # （实测同一 SHA 上聚合器跑过 10 次）⇒ 必须有离线自测把判据钉死。
+      # 自测覆盖：四前置全 completed 只盖 1 条 / 只完成 1 个前置是 neutral 不是 failure /
+      # 预算耗尽仍不是红 / cancelled 按既有口径判红 / 同指纹去重 / 结论变化后允许重盖 /
+      # quality-gate.yml 接线断言。不碰网络，成本可忽略。
+      - name: 自测 Quality Gate 聚合收敛判据（quality-gate-aggregate）
+        run: python3 scripts/quality-gate-aggregate.py --self-test
 
       # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
       # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
@@ -764,6 +812,39 @@ jobs:
           python3 scripts/check-keycloak-realm-fragment.py --self-test
           python3 scripts/check-keycloak-realm-fragment.py
 
+      - name: 部署面资产自检（Keycloak MFA 片段↔chart 对账 + Istio 策略副本逐字节一致）
+        # 台账 #128–#132 部署面补齐批次的自检（本 job 内新增 step，不新增 CI job）：
+        #   A. design/deploy/keycloak/sq-realm-mfa.json 与 charts/keycloak values.yaml 的
+        #      mfa 段对账——otpPolicy / webAuthnPolicy / requiredAction 三类字段一致，
+        #      禁 usersProfile 与未知键，requiredActions 必含 CONFIGURE_TOTP；
+        #   B. charts/istio/files/traffic-policies.yaml 与权威
+        #      design/deploy/istio/traffic-policies.yaml 逐字节一致（去 BOM），
+        #      防两份策略静默漂移。
+        # 另跑 Keycloak realm 合并器 scripts/keycloak-mfa-merge.py 的合成正反例。
+        # 惯例：先跑合成正反例（--self-test），再跑真判定。
+        run: |
+          python3 scripts/check-deploy-surface-assets.py --self-test
+          python3 scripts/check-deploy-surface-assets.py
+          python3 scripts/keycloak-mfa-merge.py --self-test
+
+      - name: Keycloak MFA 片段消费链离线自检（片段 → 最小更新体，台账 #131）
+        # 台账 #131 的消费链另一半：渲染产物门禁（helm-lint job）判的是
+        # 「chart 渲染出的片段是不是合法 JSON 对象」，本步判的是
+        # 「该片段喂进仓内唯一的消费脚本 scripts/keycloak-mfa-merge.py 后，
+        #   产出的是不是**最小更新体**」——两者合起来才覆盖「片段 → realm 落地」。
+        # 为什么必须最小更新体：kcadm update realms/<realm> -b <体> 是整段 PUT，
+        # 直接把整个片段当体提交会抹掉 realm 既有 requiredActions
+        # （如 UPDATE_PASSWORD / UPDATE_PROFILE）⇒ 合并器必须保留既有 action、
+        # 只覆盖同 id 的 CONFIGURE_TOTP、并只输出 MFA 相关字段。
+        # 离线自测（不起 Keycloak、不连集群、不需要凭据）：
+        #   正对照 = 合成 realm + 权威片段 design/deploy/keycloak/sq-realm-mfa.json
+        #            → 断言 UPDATE_PASSWORD 仍在、CONFIGURE_TOTP.defaultAction 为布尔 true、
+        #              otpPolicy.type=totp；
+        #   负对照 = 含 usersProfile 的非法片段 → 合并器必须拒绝（否则非法片段会被静默写进 realm）。
+        # 边界如实：kcadm update 那一半需要真集群，**不在本步覆盖内**。
+        run: |
+          bash scripts/import-keycloak-realm.sh --self-test
+
       - name: Python 服务环境变量绑定一致性（部署侧 env 名 ↔ Settings 绑定面）
         # 2026-10-12：连出两批同型缺陷（PR #447 八服务 / #452 chunker）——pydantic-settings
         # 只把「字段名或别名」大写后拼 env_prefix，驼峰字段会落成 CHUNKER_LOGLEVEL 这类名字，
@@ -839,7 +920,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Node.js 22
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -847,6 +944,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 安装依赖
+        if: steps.converge.outputs.converge != 'true'
         run: |
           if [ -f "package-lock.json" ]; then
             npm ci
@@ -856,17 +954,21 @@ jobs:
           fi
 
       - name: 构建前端
+        if: steps.converge.outputs.converge != 'true'
         run: npm run build
 
       - name: 前端单元测试（vitest）
+        if: steps.converge.outputs.converge != 'true'
         # 130 个 API/视图测试；失败即阻断（防止前端回归被吞）
         run: npm run test -- --run
 
       - name: 前端覆盖率报告（非阻断）
+        if: steps.converge.outputs.converge != 'true'
         continue-on-error: true
         run: npm run test:coverage
 
       - name: 前端覆盖率门禁
+        if: steps.converge.outputs.converge != 'true'
         # 解析 coverage/coverage-summary.json 的 total.lines.pct，断言 ≥25%（阶段1）
         # 阈值来源：scripts/coverage-gate.sh:17 FRONTEND_MIN_COVERAGE=25
         # 与 vitest.config.ts thresholds.lines=25 对齐（阶段1当前值，阶段2目标40%）
@@ -891,6 +993,7 @@ jobs:
           echo "✓ 前端覆盖率达标（${pct}% ≥ ${THRESHOLD}%）"
 
       - name: 检查 bundle 大小
+        if: steps.converge.outputs.converge != 'true'
         run: |
           # 检查 dist 目录下是否有超过 1MB 的 chunk
           oversized=$(find dist -name "*.js" -size +1M 2>/dev/null || true)
@@ -905,6 +1008,7 @@ jobs:
           du -sh dist/assets/* 2>/dev/null || true
 
       - name: 上传构建产物
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -974,6 +1078,25 @@ jobs:
           # 防止 chart env 静默覆盖 Spring Boot 应用默认值（如
           # GOVERNANCE_QUALITY_SOURCE_ENABLED 被 chart 覆盖为 "false" 而应用默认 true）。
           python3 scripts/check-chart-env-default-parity.py
+
+      - name: Keycloak MFA 片段渲染产物门禁（台账 #131：渲染→JSON 对象→合并器）
+        # 台账 #131 的主交付路径是 chart 渲染出的 MFA 片段 ConfigMap。
+        # 既有门禁 scripts/check-deploy-surface-assets.py 只对账**源文件**（权威 JSON ↔
+        # chart values），**不渲染模板** ⇒ 模板层产物形态缺陷在该门禁下结构性不可见。
+        # 2026-11-22 实测过的真实缺陷：realm-mfa-fragment.yaml 原写
+        #   {{ include "keycloak.mfaRealm" $ | toPrettyJson | indent 4 }}
+        # 而 keycloak.mfaRealm 产出的是 YAML 文本，toPrettyJson 直接作用在字符串上
+        # ⇒ 产物是「JSON 字符串包着 YAML 文本」，喂 keycloak-mfa-merge.py 直接 rc=1，
+        # 而 helm lint / helm template 全绿（模板语法没错，错的是产物形态）。
+        # 本步按「渲染 → json.loads ⇒ 必须是对象 → 喂合并器校验 → defaultAction 须为布尔」判。
+        # 刻意不加 --set mfa.fragment.enabled=true：默认值即 true，若默认值被改成 false，
+        # 渲染产物里就没有片段 ⇒ 本门禁直接红，强制显式决策，而不是悄悄放过。
+        run: |
+          helm template sq design/deploy/charts/keycloak \
+            --show-only templates/realm-mfa-fragment.yaml \
+            > /tmp/keycloak-mfa-render.yaml
+          python3 scripts/check-keycloak-mfa-render.py --self-test
+          python3 scripts/check-keycloak-mfa-render.py --rendered /tmp/keycloak-mfa-render.yaml
 
       - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
         # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对
@@ -1055,7 +1178,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 JDK 17 (Temurin)
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
@@ -1063,11 +1202,13 @@ jobs:
           cache: 'maven'
 
       - name: 安装 Maven 3.9
+        if: steps.converge.outputs.converge != 'true'
         uses: stCarolas/setup-maven@v5
         with:
           maven-version: 3.9.9
 
       - name: 发现并遍历所有 Java 组件（含 pom.xml）
+        if: steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  扫描 platform/ 下所有含 pom.xml 的子目录"
@@ -1087,7 +1228,7 @@ jobs:
           fi
 
       - name: 对每个 Java 组件执行 mvn test（运行单元测试）
-        if: env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           mvn -version
           echo "============================================"
@@ -1153,7 +1294,7 @@ jobs:
           fi
 
       - name: 收集 Java 构建产物
-        if: env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           mkdir -p java-build-reports
           while IFS= read -r target_dir; do
@@ -1168,7 +1309,7 @@ jobs:
           echo "已收集构建产物清单到 java-build-reports/"
 
       - name: 上传 Java 构建报告
-        if: env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: java-build-reports
@@ -1177,7 +1318,7 @@ jobs:
           if-no-files-found: warn
 
       - name: JaCoCo覆盖率门禁检查（全量模块）
-        if: env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥40% 分支≥18%（2026-09-01 实化提升，目标85% GA标准）)"
@@ -1285,7 +1426,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Java）
-        if: env.java_skip != 'true'
+        if: env.java_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Java 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1344,7 +1485,7 @@ jobs:
           echo "✓ Java 覆盖率趋势检查通过"
 
       - name: 生成 Java 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, glob, re
@@ -1368,7 +1509,7 @@ jobs:
           PYEOF
 
       - name: 上传 Java 覆盖率摘要
-        if: env.java_skip != 'true' && always()
+        if: env.java_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: java-coverage-summary
@@ -1389,7 +1530,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Go 1.26.6
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-go@v7
         with:
           go-version: '1.26.6'
@@ -1407,6 +1564,7 @@ jobs:
             platform/vector-engine/go.sum
 
       - name: 发现并遍历所有 Go 组件（含 go.mod）
+        if: steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  扫描 platform/ 下所有含 go.mod 的子目录"
@@ -1426,7 +1584,7 @@ jobs:
           fi
 
       - name: 对每个 Go 组件执行 go test（运行单元测试）
-        if: env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           set -o pipefail
           go version
@@ -1453,7 +1611,7 @@ jobs:
           fi
 
       - name: 上传 Go 构建报告
-        if: env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go-build-reports
@@ -1462,7 +1620,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Go覆盖率门禁检查（全量模块）
-        if: env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Go 覆盖率门禁检查 (阈值: ≥30%)"
@@ -1520,7 +1678,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Go）
-        if: env.go_skip != 'true'
+        if: env.go_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Go 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1575,7 +1733,7 @@ jobs:
           echo "✓ Go 覆盖率趋势检查通过"
 
       - name: 生成 Go 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, subprocess, os
@@ -1616,7 +1774,7 @@ jobs:
           PYEOF
 
       - name: 上传 Go 覆盖率摘要
-        if: env.go_skip != 'true' && always()
+        if: env.go_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: go-coverage-summary
@@ -1637,13 +1795,30 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: 发现并遍历所有 Python 组件（含 pytest 配置）
+        if: steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  扫描 platform/ 下所有含 pytest 配置的子目录"
@@ -1679,7 +1854,7 @@ jobs:
           fi
 
       - name: 对每个 Python 组件执行 pytest（运行单元测试）
-        if: env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           set -o pipefail
           mkdir -p python-syntax-reports
@@ -1728,7 +1903,7 @@ jobs:
           fi
 
       - name: 上传 Python 语法检查报告
-        if: env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-syntax-reports
@@ -1737,7 +1912,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Python覆盖率门禁检查（全量模块）
-        if: env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Python 覆盖率门禁检查 (阈值: ≥55%)"
@@ -1791,7 +1966,7 @@ jobs:
           fi
 
       - name: 覆盖率趋势阻断检查（Python）
-        if: env.py_skip != 'true'
+        if: env.py_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           echo "============================================"
           echo "  Python 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
@@ -1840,7 +2015,7 @@ jobs:
           echo "✓ Python 覆盖率趋势检查通过"
 
       - name: 生成 Python 覆盖率摘要（供 baseline-consistency-check 使用）
-        if: env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, subprocess, os, re
@@ -1870,7 +2045,7 @@ jobs:
           PYEOF
 
       - name: 上传 Python 覆盖率摘要
-        if: env.py_skip != 'true' && always()
+        if: env.py_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: python-coverage-summary
@@ -1910,7 +2085,23 @@ jobs:
         id: checkout
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.12
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
@@ -1920,12 +2111,14 @@ jobs:
             platform/batch-pipeline/requirements-dev.txt
 
       - name: 安装依赖
+        if: steps.converge.outputs.converge != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
       - name: 启动 S3 兼容服务（moto 进程内 mock，替代已无公开镜像的 MinIO）
+        if: steps.converge.outputs.converge != 'true'
         # 起不来也不阻断：tests/conftest.py 的 _minio_available() 探不到 localhost:9000
         # 时返回 False，S3 用例经 skipif 自动跳过 —— 其余用例与覆盖率门禁照常运行。
         # 这是与 services.minio 的关键差别：S3 不可用不再拖垮整条腿。
@@ -1951,17 +2144,31 @@ jobs:
           python -c "from minio import Minio; c=Minio('localhost:9000', access_key='minioadmin', secret_key='minioadmin', secure=False); c.make_bucket('batch-pipeline') if not c.bucket_exists('batch-pipeline') else None; print('bucket batch-pipeline 就绪')"
 
       - name: 运行 pytest（全量 - 集群；环境受限用例 skipif 自动跳过）
+        if: steps.converge.outputs.converge != 'true'
         shell: bash
         run: |
           set -eo pipefail
+          # --cov-branch 显式化（2026-11-20 CI 红归因实测）：
+          # pyproject.toml 的 [tool.coverage.run] branch=true 只在「读到该配置文件」的进程内生效。
+          # tests/test_tools_quality_collect.py 的 __main__ 冒烟用例会真实派生
+          # `python -m pytest --version` 子进程（cwd=tmp_path），该子进程读不到仓库内配置
+          # ⇒ 写出「无分支（arcs=False）」的并行数据文件；主进程 combine() 时把它与
+          # 「有分支（arcs=True）」的基线 .coverage 混合 ⇒
+          # DataError: Can't combine statement coverage data with branch data
+          # ⇒ pytest INTERNALERROR / exit code 3 ⇒ 本 job 红 ⇒ Quality Gate 红。
+          # 显式传 --cov-branch 后，pytest-cov 经 COV_CORE_BRANCH 把分支口径传给子进程，
+          # 主/子进程数据文件口径一致 ⇒ 不再触发上述 DataError。
+          # 该参数与仓内 branch=true 的既有意图一致，不改变覆盖率统计口径（不引入数值漂移）。
           python -m pytest tests/ -v \
             -k "not cluster" \
             --cov=batch_pipeline \
+            --cov-branch \
             --cov-report=term-missing \
             --tb=short \
             2>&1 | tee /tmp/pytest-batch-pipeline.log
 
       - name: 覆盖率门禁检查（batch-pipeline，与 python-test 阈值一致 ≥55%）
+        if: steps.converge.outputs.converge != 'true'
         # R6-4: batch-pipeline 被 python-test 排除（独立 job），原无覆盖率门禁；
         # 此处补齐门禁，阈值 55% 与 python-test job 保持一致
         shell: bash
@@ -1984,6 +2191,7 @@ jobs:
           echo "✓ batch-pipeline 覆盖率达标（${cov}% ≥ ${COVERAGE_THRESHOLD}%）"
 
       - name: 覆盖率趋势阻断检查（batch-pipeline）
+        if: steps.converge.outputs.converge != 'true'
         # R11: batch-pipeline 独立 job 需补充趋势阻断，与 python-test job 的 Python 趋势阻断对齐
         # 基线文件：docs/coverage-baseline/python.json（batch-pipeline 键）
         shell: bash
@@ -2020,7 +2228,7 @@ jobs:
         # 守卫原因：容器初始化失败时 checkout 从未执行，本步骤会以
         # "working directory platform/batch-pipeline: No such file or directory" 报出
         # 与真实原因无关的错误（2026-09-25 run #1239 实测）。
-        if: failure() && steps.checkout.outcome == 'success'
+        if: failure() && steps.checkout.outcome == 'success' && steps.converge.outputs.converge != 'true'
         shell: bash
         run: |
           grep -E "^(FAILED|ERROR) " /tmp/pytest-batch-pipeline.log | head -30 | while IFS= read -r line; do
@@ -2029,12 +2237,13 @@ jobs:
           grep -E "^(FAILED|ERROR) " /tmp/pytest-batch-pipeline.log | head -30 || echo "::error::no FAILED lines parsed (crash before summary?)"
 
       - name: Pipeline 冒烟测试
+        if: steps.converge.outputs.converge != 'true'
         id: smoke
         run: |
           python main.py --config config/pipeline_small.json
 
       - name: 冒烟失败时上传 run/ 目录 artifact
-        if: failure() && steps.smoke.outcome == 'failure'
+        if: failure() && steps.smoke.outcome == 'failure' && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: batch-pipeline-smoke-run
@@ -2047,7 +2256,7 @@ jobs:
         # 供 baseline-consistency-check 检查 3（基线上限）对 batch-pipeline 生效。
         # python-test job 排除了 batch-pipeline，其 python-coverage-summary.json 不含本模块，
         # 因此 baseline-consistency-check 需单独下载本摘要并合并到 Python 摘要中。
-        if: always() && steps.checkout.outcome == 'success'
+        if: always() && steps.checkout.outcome == 'success' && steps.converge.outputs.converge != 'true'
         shell: bash
         run: |
           python3 << 'PYEOF'
@@ -2072,7 +2281,7 @@ jobs:
           PYEOF
 
       - name: 上传 batch-pipeline 覆盖率摘要
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: batch-pipeline-coverage-summary
@@ -2110,11 +2319,27 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       # 台账 #100：这条 job 两天内出过两种"容量型"红（46m29s 撞 45 分钟超时、
       # 13m35s runner 自身 No space left on device 而 steps 全无不失败项）。
       # 两种红在日志尾部都读不出来，故开头先落一次读数——只读不删：
       # runner 是组织级共享的，缓存可能属于别的仓，本仓不做 prune。
       - name: 容量读数（磁盘与 docker 占用，仅诊断不阻断）
+        if: steps.converge.outputs.converge != 'true'
         continue-on-error: true
         run: |
           echo "::group::容量读数"
@@ -2131,9 +2356,26 @@ jobs:
       # body stall；PR #795 的实测形态正是预检绿、构建期 GET 仍挂起 600s）。
       # 同时加了「清单 ↔ Dockerfile 源清单」的双源 fail-closed 一致性自检。
       - name: 钉版外链可达性预检（台账 112，快源挤出即早失败）
+        if: steps.converge.outputs.converge != 'true'
         run: bash scripts/check-pinned-downloads.sh
 
+      # 台账 #116：基座 registry manifest 可达性预检（#112 预检增开的一类被测坐标）。
+      # 为什么单开一个 step（而不是只靠上面那个全量预检）：「基座 tag 拉不拉得动」与
+      #   「钉住的下载坐标还下不下得动」是两回事，混在一份结论里看不出到底是谁红的。
+      # 源口径：BASE_REGISTRY 用与构建腿同一个探源脚本（scripts/pick-base-registry.sh）选，
+      #   导出后由检查脚本按「环境变量优先」展开 ${BASE_REGISTRY} ⇒ 探的就是构建要拉的那个源。
+      # 成本：registry 子集会重复探测一次（上面那个全量预检已经含这一类），代价约 10–160 秒。
+      # 已知盲区（必须记住）：这是**轻量 tag 级探测**，构建期是真的拉层，两边失败条件不同源
+      #   ⇒「预检绿」≠「构建绿」；构建期的第二道防线仍是 scripts/build-retry.sh 的 5xx 换源重试。
+      - name: 基座 registry manifest 可达性预检（台账 #116，多一类被测坐标）
+        run: |
+          BASE_REGISTRY="$(bash scripts/pick-base-registry.sh || true)"
+          BASE_REGISTRY="${BASE_REGISTRY:-docker.io}"
+          export BASE_REGISTRY
+          bash scripts/check-pinned-downloads.sh --registry-only
+
       - name: 设置 Docker Buildx
+        if: steps.converge.outputs.converge != 'true'
         uses: docker/setup-buildx-action@v3
 
       # 触发面收敛（台账 #100 / #112 续）：本仓 ci.yml 的 `on:` **没有 paths 过滤**
@@ -2150,6 +2392,7 @@ jobs:
       # （倒向「重建」）：两种误判代价不对称——误判「不相关」会让镜像构建**根本不再执行**
       # （静默失去验证），误判「相关」只是多花一次构建时间。
       - name: 判定改动是否触及镜像构建面（触发面收敛）
+        if: steps.converge.outputs.converge != 'true'
         id: relevance
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -2157,6 +2400,7 @@ jobs:
         run: bash scripts/check-docker-build-relevance.sh --api
 
       - name: 发现并遍历所有含 Dockerfile 的组件
+        if: steps.converge.outputs.converge != 'true'
         env:
           DOCKER_RELEVANT: ${{ steps.relevance.outputs.docker_relevant }}
         run: |
@@ -2182,7 +2426,7 @@ jobs:
           fi
 
       - name: 对每个 Dockerfile 执行 docker build（仅验证，不 push）
-        if: env.docker_skip != 'true'
+        if: env.docker_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           fail_count=0
           # 台账 #72：base 镜像源按可达性选一次；探测脚本自身出问题时退回上游 docker.io——
@@ -2234,7 +2478,8 @@ jobs:
     # 2026-11-15（台账 #112 第 ⑥ 项待裁加固）：10 → 15。
     # 本作业没有 job 级 `if:` ⇒ push(main / release/** / tags v*)、pull_request、
     # schedule(每日 02:00)、workflow_dispatch 这五个触发面**全覆盖**；
-    # 真检最坏耗时 ≈5 分钟（5 个坐标 × 最多 3 源 × 单源 20s 墙钟上限），
+    # 真检最坏耗时 ≈8 分钟（下载坐标类 5 个 × 最多 3 源 × 单源 20s 墙钟上限 ≈5 分钟
+    # ＋ 台账 #116 增开的 registry 类 9 个基座坐标 × 最多 2 源 × 单源 8s ≈2.7 分钟），
     # 10 分钟太贴边，抬到 15 留出余量。
     timeout-minutes: 15
     steps:
@@ -2273,7 +2518,23 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 检查集成测试环境
+        if: steps.converge.outputs.converge != 'true'
         run: |
           if [ ! -f "tests/integration/docker-compose.yml" ]; then
             echo "::warning::tests/integration/docker-compose.yml 不存在，跳过"
@@ -2284,13 +2545,13 @@ jobs:
           fi
 
       - name: 安装 Python 3.11 和 pytest
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: 安装集成测试依赖
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           if [ -f requirements.txt ]; then
@@ -2299,7 +2560,7 @@ jobs:
           pip install pytest pytest-html -q
 
       - name: 安装 Python 组件依赖（子进程模式启动所需）
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         run: |
           # 集成测试以子进程方式启动 Python 组件，需在 CI Python 环境中安装其依赖
           # model-finetuning 已降级为规划（移至 design/planned/），不再参与集成测试
@@ -2326,7 +2587,7 @@ jobs:
           fi
 
       - name: 启动 docker-compose 服务
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         # 门禁收紧（2026-08-26）：compose 启动失败直接 exit 1 阻断 CI，不再置跳过标记；
         # 服务不可用时后续集成测试无意义，静默跳过会掩盖真实故障
@@ -2375,7 +2636,7 @@ jobs:
         # --ignore=perf：perf/ 是压测套件（单用例 2000~20000 请求），本泳道不适跑；
         #   且当前用例打 GET /api/v1/tenants 用的是 USER token（403）并触发限流（429）。
         #   见 docs/KNOWN-FAILURES.md 台账（专用压测泳道待建）。
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         env:
           # 上一步已用 --profile karmada-extra 拉起四个服务：不可达即真故障，
@@ -2390,7 +2651,7 @@ jobs:
         # 为什么需要：pytest 的 --tb=short 只给出客户端看到的响应码（如 "assert 500 == 200"），
         # 服务端抛出的异常与堆栈在容器里。实测 #1249 的 3 个 account 500 与 1 个 projects 409
         # 就无法从 pytest 输出归因，只能靠容器日志区分"缺租户上下文"与别的成因。
-        if: env.it_skip != 'true' && failure()
+        if: env.it_skip != 'true' && failure() && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           echo "=== 容器状态 ==="
@@ -2403,7 +2664,7 @@ jobs:
 
       - name: 上传集成测试报告
         # always()：pytest 失败时也尽量上传已生成的报告辅助排查
-        if: env.it_skip != 'true' && always()
+        if: env.it_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-report
@@ -2412,7 +2673,7 @@ jobs:
           if-no-files-found: warn
 
       - name: 清理 docker-compose 服务
-        if: env.it_skip != 'true' && always()
+        if: env.it_skip != 'true' && always() && steps.converge.outputs.converge != 'true'
         working-directory: tests/integration
         run: |
           echo "清理 docker-compose 服务..."
@@ -2833,16 +3094,34 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: 安装性能测试依赖（locust + pytest）
+        if: steps.converge.outputs.converge != 'true'
         run: pip install locust pytest -q
 
       - name: 运行性能基准测试
+        if: steps.converge.outputs.converge != 'true'
         # R13 修复：添加 --fail-on-sla-violation 参数，SLA 违规时以非零退出码阻断 CI。
         # 配合 T-04 SLA 基线分阶段阻断计划：当前 continue-on-error: true 仍允许失败，
         # 但该参数使 run_benchmark.py 在 SLA 违规时返回非零退出码，
@@ -2851,7 +3130,7 @@ jobs:
 
       - name: 上传性能报告 artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: performance-benchmark-report
           path: tests/performance/benchmark_report.md
@@ -2861,7 +3140,7 @@ jobs:
       # T-04: 上传性能 JSON 结果（供后续 SLA 阻断门禁消费）
       - name: 上传性能 JSON 结果 artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: performance-benchmark-json
           path: |
@@ -2874,7 +3153,7 @@ jobs:
       # T-04: 上传 SLA 基线文档（供趋势对比与阻断决策参考）
       - name: 上传 SLA 基线文档 artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.converge.outputs.converge != 'true'
         with:
           name: sla-perf-baseline
           path: docs/SLA-PERF-BASELINE-2026-09-01.md
@@ -2903,30 +3182,50 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 收敛闸：PR 侧已覆盖同一内容则本波不重复执行（台账 #102②）
+        # 判据在 scripts/ci-push-converge.py（单一事实来源，本地可自测）：
+        #   python3 scripts/ci-push-converge.py --self-test
+        # 口径：push 到 main + 该 commit 是已合并 PR 的产物 + 合并 commit 与 PR 头
+        #       **tree 完全一致**（内容等价）+ PR 侧本工作流运行已成功 ⇒ 本波不重复执行。
+        # fail-closed：任一取数异常 ⇒ 不收敛（照常执行），不静默丢掉一次验证。
+        # 注意：收敛发生在**作业内部**——作业照常跑、照常出结论（success），
+        #       否则 required check 会永远缺失 ⇒ PR 永久阻塞（与仓内既有范式一致）。
+        id: converge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 "${{ github.workspace }}/scripts/ci-push-converge.py" --workflow "CI"
+          grep -E '^(converge|reason)=' "$GITHUB_OUTPUT" || true
       - name: 安装 Python 3.11
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: 下载 Java 覆盖率摘要
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/download-artifact@v4
         with:
           name: java-coverage-summary
         continue-on-error: true
 
       - name: 下载 Go 覆盖率摘要
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/download-artifact@v4
         with:
           name: go-coverage-summary
         continue-on-error: true
 
       - name: 下载 Python 覆盖率摘要
+        if: steps.converge.outputs.converge != 'true'
         uses: actions/download-artifact@v4
         with:
           name: python-coverage-summary
         continue-on-error: true
 
       - name: 下载 batch-pipeline 覆盖率摘要
+        if: steps.converge.outputs.converge != 'true'
         # P3-2: batch-pipeline 独立 job 生成的覆盖率摘要，合并到 Python 摘要后供检查 3 使用
         uses: actions/download-artifact@v4
         with:
@@ -2934,6 +3233,7 @@ jobs:
         continue-on-error: true
 
       - name: 校验基线一致性
+        if: steps.converge.outputs.converge != 'true'
         run: |
           python3 << 'PYEOF'
           import json, os, sys

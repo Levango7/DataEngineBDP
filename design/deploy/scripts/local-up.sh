@@ -29,17 +29,25 @@ else
 fi
 kubectl get nodes
 
-echo; echo "==> 2. 启动本地 MinIO (存储驱动 MinIODriver)"
+echo; echo "==> 2. 启动本地对象存储 (RustFS, 替代已停供的 MinIO 社区版)"
+# 凭据 env 必须是 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY（上游 cli.rs:1551/:1559
+# 的 clap env 绑定 + entrypoint.sh:181/:182；MINIO_ROOT_* 上游不读）。
+# 建桶客户端换 amazon/aws-cli（minio/mc 已断供；botocore 对自定义 --endpoint-url
+# 默认 path-style ⇒ 直连 S3 兼容端点）。
 if ! docker ps --format '{{.Names}}' | grep -q '^minio$'; then
   docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-    -e MINIO_ROOT_USER=minio -e MINIO_ROOT_PASSWORD=minio123 \
-    minio/minio server /data --console-address ":9001"
+    -e RUSTFS_ACCESS_KEY=minio -e RUSTFS_SECRET_KEY=minio123 \
+    -e RUSTFS_VOLUMES=/data \
+    -e RUSTFS_ADDRESS=0.0.0.0:9000 \
+    -e RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001 \
+    rustfs/rustfs:1.0.6
 fi
-# 建 bucket (需 mc 或 curl; 此处用 docker 临时 mc)
-docker run --rm --network host minio/mc alias set local \
-  http://localhost:9000 minio minio123 >/dev/null 2>&1 || true
-docker run --rm --network host minio/mc mb -p local/$MINIO_BUCKET >/dev/null 2>&1 || true
-echo "    MinIO 就绪: http://localhost:9000  bucket=$MINIO_BUCKET"
+# 建 bucket（需 S3 客户端；此处用一次性 aws-cli 容器）
+docker run --rm --network host \
+  -e AWS_ACCESS_KEY_ID=minio -e AWS_SECRET_ACCESS_KEY=minio123 -e AWS_DEFAULT_REGION=us-east-1 \
+  amazon/aws-cli:2.17.23 \
+  s3api create-bucket --endpoint-url http://localhost:9000 --bucket "$MINIO_BUCKET" >/dev/null 2>&1 || true
+echo "    对象存储就绪 (RustFS): http://localhost:9000  bucket=$MINIO_BUCKET"
 
 echo; echo "==> 3. 应用 local Profile 核心组件 (P0: 封装层/存储/引擎/统一SQL/控制台)"
 echo "    (示意: 实际由 Helm 按 deploy/values-base.yaml + profiles/local.yaml 渲染)"

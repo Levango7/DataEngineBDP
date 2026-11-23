@@ -1,6 +1,19 @@
 # yamllint 配置文件
 # 基于 relaxed 配置，忽略 Helm chart 的 templates 目录
 # Helm 模板文件包含 Go template 语法 ({{ }})，不是纯 YAML，无法被 yamllint 解析
+#
+# 2026-11-22（台账 #128–#132）：另忽略 vendored 上游子 chart 树
+#   design/deploy/charts/<chart>/charts/**
+# 理由与 templates/ 同源且更强一层：上游把 Helm 模板片段放在 files/ 下
+# （如 istio istiod 的 waypoint.yaml / injection-template.yaml / grpc-agent.yaml），
+# 它们由上游 chart 以 .Files.Get + tpl 渲染，不是可独立解析的纯 YAML；
+# 该树还带上游自带的空白风格（trailing spaces、无末尾换行），属上游所有——
+# 本仓改写上游制品会在下次 vendoring 时被冲掉，故按「上游负责」处理。
+# 覆盖面核实（当轮实测）：main 基线 2d407a10 上该模式命中 0 个文件
+# ⇒ 不削弱任何既有 lint 覆盖；本批只覆盖新增的 90 个 vendored 文件
+#   （istio 70 + karmada-controlplane 20）。
+# 本仓自研 chart（含 design/deploy/charts/<chart>/templates/ 之外的 values.yaml、
+# Chart.yaml、files/ 下的纯 YAML）仍全量受检。
 extends: relaxed
 
 rules:
@@ -9,3 +22,4 @@ rules:
 
 ignore: |
   **/templates/**
+  design/deploy/charts/*/charts/**

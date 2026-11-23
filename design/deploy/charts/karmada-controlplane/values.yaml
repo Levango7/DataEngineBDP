@@ -1,0 +1,97 @@
+# ============================================================================
+# karmada-controlplane Helm Chart 默认 values
+# 关联：台账 #128（多集群联邦缺的是上游 Karmada 控制面部署面）
+# 上游来源：karmada-io/karmada tag v1.12.0 的 charts/karmada（vendored 于 charts/karmada/）
+# 说明：本文件只做"父 chart 覆盖层"，不改上游 chart 内容；
+#       上游默认值见 charts/karmada/values.yaml。
+# ============================================================================
+
+# ---- 镜像锚点（必须与 design/deploy/charts/_generate_charts.py 的 CHARTS 表行一致）----
+# 该块是漂移门禁 scripts/check-chart-generator-drift.py 的比对对象：
+# 它必须等于实际渲染出的 controller-manager 坐标，由 templates/image-anchor-check.yaml 强制自洽。
+image:
+  repository: "docker.m.daocloud.io/karmada/karmada-controller-manager"
+  tag: "v1.12.0"
+  pullPolicy: IfNotPresent
+
+# ---- 上游 chart 覆盖层 ----
+# 镜像宿主改写口径（见 README「镜像坐标口径」一节）：
+#   · Docker Hub 系（karmada/*、cfssl/cfssl、bitnami/kubectl）→ docker.m.daocloud.io
+#   · registry.k8s.io 系（kube-apiserver、kube-controller-manager、etcd）→ 保持原宿主，
+#     因为这些不在 Docker Hub，daocloud 镜像站无对应路径（改写后必然 ImagePullBackOff）。
+# tag 覆盖说明：上游 values.yaml 用 YAML 锚点 &karmadaImageVersion 绑定各组件 tag，
+# 锚点在 YAML 解析期即已解析为字面量 latest ⇒ 改 karmadaImageVersion 不会传导到
+# 各组件 image.tag，必须逐组件显式覆盖。
+karmada:
+  karmadaImageVersion: "v1.12.0"
+  karmadaImagePullPolicy: IfNotPresent
+
+  cfssl:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "cfssl/cfssl"
+      tag: "latest"
+
+  kubectl:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "bitnami/kubectl"
+      tag: "latest"
+
+  scheduler:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-scheduler"
+      tag: "v1.12.0"
+
+  webhook:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-webhook"
+      tag: "v1.12.0"
+
+  controllerManager:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-controller-manager"
+      tag: "v1.12.0"
+
+  aggregatedApiServer:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-aggregated-apiserver"
+      tag: "v1.12.0"
+
+  metricsAdapter:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-metrics-adapter"
+      tag: "v1.12.0"
+
+  agent:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-agent"
+      tag: "v1.12.0"
+
+  schedulerEstimator:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-scheduler-estimator"
+      tag: "v1.12.0"
+
+  descheduler:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-descheduler"
+      tag: "v1.12.0"
+
+  search:
+    image:
+      registry: "docker.m.daocloud.io"
+      repository: "karmada/karmada-search"
+      tag: "v1.12.0"
+
+# ---- 安装命名空间 ----
+# 上游 chart 用 .Release.Namespace 决定资源落地位置；Karmada 官方安装示例为 karmada-system。
+namespace: karmada-system

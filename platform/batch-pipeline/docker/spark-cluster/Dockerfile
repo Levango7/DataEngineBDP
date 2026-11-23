@@ -393,10 +393,53 @@ RUN set -eux; \
 # 版本取 /opt/spark/.version（下载阶段写入的**实际**安装版本）：
 # 主版本下载失败回退 3.5.9 时，若仍按 ${SPARK_VERSION} 装 pyspark 4.2.1，
 # Worker 端 Python 与集群 JVM 版本错配必然运行时报错。
-RUN PYSPARK_VER=$(cat /opt/spark/.version) && \
-    echo ">>> installing pyspark==${PYSPARK_VER}" && \
-    python3 -m pip install --break-system-packages "pyspark==${PYSPARK_VER}" || \
-    (pip3 install --break-system-packages "pyspark==${PYSPARK_VER}" || exit 1)
+#
+# 2026-11-20（台账 #112 的第 ② 项残余边界，本轮闭合）：给本段补**墙钟上限**。
+# 为什么要补：本段是本 Dockerfile 里唯一**无墙钟上限**的取数段（Spark tarball 有
+# 420s 总预算，5 处 Maven JAR 各有 120/600/60/120/120 的本源上限），而 pyspark 的
+# PyPI sdist 是 450.0 MB（CI 日志实测：`Downloading pyspark-4.2.1.tar.gz (450.0 MB)`，
+# PR #810 第四波 job 132775309149 / 第二波 job 132734732611）⇒ 速率一慢，本段能
+# 单段吃掉整条 attempt。
+# 实测（2026-11-20 当轮）：本机到 PyPI 连续 3 轮 16MB Range GET 实测 43–54 kB/s
+# ⇒ 按该速率整包需 ≈ 9300s；而 scripts/build-retry.sh 的 per-attempt 挂起超时
+# （BASE_HANG_TIMEOUT，缺省 600s）会把整条 docker build SIGKILL 掉 ⇒ BuildKit 报
+# `failed to solve: Canceled: context canceled` ⇒ 面板上长得像编译失败，
+# 实际是取数面速率问题（与本行 2026-11-03 的原始事故同族，只是这次落在 pip 段）。
+# 处置：本段自己设墙钟上限，预算用尽时**自己**判红并说清是「取数面速率不足」，
+# 不再让外层 SIGKILL 把它伪装成编译失败。
+# 上限取 300s 的两条依据（都不外推）：
+#   ① 与本仓已有的取数容差同量级：Spark tarball 预算 420s 对应 529MB（≈1.26 MB/s
+#      的容差），本段 300s 对应 450.0MB（≈1.50 MB/s）⇒ 同一档容差，不比仓内现状更严；
+#      CI 实测本段 28.0s / 30.4s ⇒ 对健康形态有 9–10 倍余量。
+#   ② 与外层 attempt 预算不打架：CI 实测 spark-cluster 整镜像 224s、其中取数 RUN
+#      58.30s（PR #805 CI，job 132626373067）⇒ 本段之前的耗时
+#      ≈ 224 − 58.30 − 30.4 ≈ 135s；135 + 300 = 435s < 600s ⇒ 本段不可能成为被外层
+#      SIGKILL 的那一段（余量 165s）。
+#      该算术由 scripts/test-pyspark-install-budget.sh 断言钉死（上限调大即转红）。
+# 上限可用 --build-arg PYSPARK_INSTALL_TIMEOUT_SECONDS=... 覆盖。
+ARG PYSPARK_INSTALL_TIMEOUT_SECONDS=300
+RUN set -eux; \
+    PYSPARK_VER="$(cat /opt/spark/.version)"; \
+    echo ">>> installing pyspark==${PYSPARK_VER}（墙钟上限 ${PYSPARK_INSTALL_TIMEOUT_SECONDS}s）"; \
+    if command -v timeout >/dev/null 2>&1; then \
+        PYSPARK_TIMEOUT_CMD="timeout ${PYSPARK_INSTALL_TIMEOUT_SECONDS}"; \
+    else \
+        PYSPARK_TIMEOUT_CMD=""; \
+        echo ">>> [warn] 基座无 timeout 命令 ⇒ 本段不设墙钟上限（退化执行）"; \
+    fi; \
+    PYSPARK_START_TS="$(date +%s)"; \
+    ${PYSPARK_TIMEOUT_CMD:+${PYSPARK_TIMEOUT_CMD}} sh -c 'python3 -m pip install --break-system-packages "pyspark==$1" || pip3 install --break-system-packages "pyspark==$1"' _ "${PYSPARK_VER}" || { \
+        rc=$?; \
+        elapsed=$(( $(date +%s) - PYSPARK_START_TS )); \
+        if [ "${rc}" -eq 124 ] || [ "${rc}" -eq 137 ]; then \
+            echo ">>> [FATAL] pyspark==${PYSPARK_VER} 安装超出墙钟上限 ${PYSPARK_INSTALL_TIMEOUT_SECONDS}s（实耗 ${elapsed}s，退出码 ${rc}）"; \
+            echo ">>> [FATAL] 判定：取数面速率不足（pyspark sdist 约 450MB），不是构建内容坏了 ⇒ 调高 PYSPARK_INSTALL_TIMEOUT_SECONDS 或改用快源重试"; \
+        else \
+            echo ">>> [FATAL] pyspark==${PYSPARK_VER} 安装失败（退出码 ${rc}，实耗 ${elapsed}s）"; \
+        fi; \
+        exit 1; \
+    }; \
+    echo ">>> pyspark==${PYSPARK_VER} 安装完成（实耗 $(( $(date +%s) - PYSPARK_START_TS ))s，墙钟上限 ${PYSPARK_INSTALL_TIMEOUT_SECONDS}s）"
 
 # ── Phase 5: Iceberg Spark extensions（可选） ──────────────────
 # 当 ENABLE_ICEBERG=true 时下载 iceberg-spark-runtime + iceberg-aws-bundle JAR

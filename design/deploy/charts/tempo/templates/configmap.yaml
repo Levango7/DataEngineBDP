@@ -12,3 +12,8 @@ data:
   {{ $key }}: |
     {{- $val | nindent 4 }}
   {{- end }}
+  {{- if .Values.otlp.enabled }}
+  # Tempo 运行时配置：OTLP 接收端在此开启（台账 #130）
+  tempo.yaml: |
+    {{- .Values.tempoConfig | nindent 4 }}
+  {{- end }}

@@ -21,10 +21,12 @@ const BASE_JOBS = '/jobs'
 // 拼出 /api/v1/ml/models，但后端 ml-platform 挂 /api/v1/models）。
 // 模型仓库端点对齐 ml-platform（/api/v1/models*）。
 const BASE_ML_MODELS = '/models'
-// 推理服务：ml-platform 无 inference-services 端点（TODO(backend) 历史遗留，
-// 前端单测前从未调通）。实际落点：model-registry 服务的 deployments 契约
-// （/api/v1/registry/deployments*），语义等价（模型部署到推理服务）。
-const BASE_ML_INFER = '/registry/deployments'
+// 推理服务（#133 裁决：llmops 为「模型/评估/微调/推理」单一权威，见 vite.config.ts
+// LLMOps 段注释）。此前误指 model-registry 的 /registry/deployments*——该路径
+// 后端无人实现（charts/registry 是 Harbor 镜像仓库，与模型推理无关），且当年
+// 落点系命名误会 + 从未调通的 TODO 遗留。现改指 llmops 已实现的
+// /llmops/inference-services*（GET/POST/DELETE/scale），契约级状态机、无真编排。
+const BASE_ML_INFER = '/llmops/inference-services'
 
 /* ================================================================== */
 /* 类型定义                                                            */
@@ -292,11 +294,11 @@ export function deleteModel(id: string): Promise<void> {
 }
 
 /* ================================================================== */
-/* API 方法（推理服务——经 model-registry 的 deployments 契约实现）       */
+/* API 方法（推理服务——经 llmops 的 inference-services 契约实现，#133）   */
 /* ================================================================== */
 
 /**
- * 列出推理服务（映射 model-registry: GET /api/v1/registry/deployments）。
+ * 列出推理服务（映射 llmops: GET /api/v1/llmops/inference-services，status 可选过滤）。
  */
 export function listInferenceServices(
   params: { status?: string } = {}
@@ -305,22 +307,22 @@ export function listInferenceServices(
 }
 
 /**
- * 部署推理服务（映射 model-registry: POST /api/v1/registry/deployments）。
+ * 部署推理服务（映射 llmops: POST /api/v1/llmops/inference-services）。
+ * 注意 deploy 请求体用 version（非 modelVersion），后端映射为 modelVersion。
  */
 export function deployInference(req: InferenceDeployRequest): Promise<InferenceService> {
   return post<InferenceService>(`${BASE_ML_INFER}`, req)
 }
 
 /**
- * 停止推理服务（映射 model-registry: DELETE /api/v1/registry/deployments/{id}）。
+ * 停止推理服务（映射 llmops: DELETE /api/v1/llmops/inference-services/{id}）。
  */
 export function stopInference(id: string): Promise<void> {
   return del<void>(`${BASE_ML_INFER}/${id}`)
 }
 
 /**
- * 扩缩容推理服务
- * POST /ml/inference-services/{id}/scale
+ * 扩缩容推理服务（映射 llmops: POST /api/v1/llmops/inference-services/{id}/scale）。
  */
 export function scaleInference(id: string, req: InferenceScaleRequest): Promise<InferenceService> {
   return post<InferenceService>(`${BASE_ML_INFER}/${id}/scale`, req)

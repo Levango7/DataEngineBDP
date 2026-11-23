@@ -14,21 +14,33 @@ logger = logging.getLogger(__name__)
 
 
 def s3_credentials(cfg: dict[str, Any]) -> tuple[str, str]:
-    """解析 S3/MinIO 凭证，返回 (access_key, secret_key).
+    """解析 S3/RustFS 凭证，返回 (access_key, secret_key).
 
     优先级：storage.access_key/secret_key 显式配置 > 环境变量 > 空串。
-    环境变量依次尝试 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD（本地 MinIO
-    惯例，与 docker-compose 注入的变量一致）和
-    AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY（AWS 通用惯例）。凭证经
-    环境注入即可跑通 S3 路径，避免 secret 写进配置文件进版本库.
+    环境变量依次尝试 RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY（RustFS 规范名，
+    本平台对象存储实现的容器内凭据口径，2026-11-22 起为首选）、MINIO_ROOT_USER /
+    MINIO_ROOT_PASSWORD（MinIO 兼容名；RustFS 1.0.6 实测亦读取这两个变量，
+    但只作为兼容回退）与 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY（AWS 通用
+    惯例，用于云 S3）。凭证经环境注入即可跑通 S3 路径，避免 secret 写进
+    配置文件进版本库.
     """
     storage = cfg.get("storage", {}) or {}
     access = storage.get("access_key", "") or ""
     secret = storage.get("secret_key", "") or ""
     if access and secret:
         return access, secret
-    env_access = os.environ.get("MINIO_ROOT_USER") or os.environ.get("AWS_ACCESS_KEY_ID") or ""
-    env_secret = os.environ.get("MINIO_ROOT_PASSWORD") or os.environ.get("AWS_SECRET_ACCESS_KEY") or ""
+    env_access = (
+        os.environ.get("RUSTFS_ACCESS_KEY")
+        or os.environ.get("MINIO_ROOT_USER")
+        or os.environ.get("AWS_ACCESS_KEY_ID")
+        or ""
+    )
+    env_secret = (
+        os.environ.get("RUSTFS_SECRET_KEY")
+        or os.environ.get("MINIO_ROOT_PASSWORD")
+        or os.environ.get("AWS_SECRET_ACCESS_KEY")
+        or ""
+    )
     return access or env_access, secret or env_secret
 
 

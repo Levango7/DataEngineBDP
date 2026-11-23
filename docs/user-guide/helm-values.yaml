@@ -1,4 +1,4 @@
-﻿﻿ =============================================================================
+# =============================================================================
 # DataEngineBDP V2.0.0 GA - Helm Values
 # =============================================================================
 # Description : V2.0 GA 版本完整 Helm 配置
@@ -1249,9 +1249,14 @@ infraProviderPrivate:
 infraProviderXinchang:
   enabled: true
   image:
-    repository: "docker.m.daocloud.io/sq-infra-provider-xinchuang"
-    tag: "0.1.0"
-    pullPolicy: IfNotPresent
+    # 台账 #65：原 docker.m.daocloud.io/sq-infra-provider-xinchuang 三处皆错——宿主 CI 从不推、
+    # tag 非产出形态、且镜像名多了个 u。可构建单元是 platform/infra-provider-xinchang
+    # （pom.xml artifactId 同名），build.yml 镜像名取 Dockerfile 所在目录名
+    # => 只能是 sq-infra-provider-xinchang；tag 只有 latest 与 40 位 sha 两种产出形态。
+    # "信创"这一产品词仍写作 xinchuang（Chart description / DQCTL profile 名），与本坐标无关。
+    repository: "ghcr.io/levango7/sq-infra-provider-xinchang"
+    tag: "latest"
+    pullPolicy: Always
   replicaCount: 1
   service:
     type: ClusterIP
@@ -1678,14 +1683,20 @@ milvus:
   affinity: {}
 
 # -----------------------------------------------------------------------------
-# minio（MinIO 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台）
+# minio（RustFS 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台）
 # -----------------------------------------------------------------------------
 minio:
   enabled: true
   image:
-    repository: "docker.m.daocloud.io/minio/minio"
-    tag: "RELEASE.2024-08-03T04-33-23Z"
+    # 直连 Docker Hub：仓内加速器不代理该仓（台账 #17，2026-11-22 实现替换）
+    repository: "rustfs/rustfs"
+    tag: "1.0.6"
     pullPolicy: IfNotPresent
+  # 凭据从 Secret 注入（值不进本文件）
+  credentials:
+    existingSecret: rustfs-creds
+    accessKeyKey: "access-key"
+    secretKeyKey: "secret-key"
   replicaCount: 1
   service:
     type: ClusterIP
@@ -1696,7 +1707,8 @@ minio:
   securityContext:
     enabled: true
     runAsNonRoot: true
-    runAsUser: 1000
+    # 必须 10001：上游 RustFS 镜像的 rustfs 用户 uid/gid 即 10001
+    runAsUser: 10001
   autoscaling:
     enabled: false
     minReplicas: 1

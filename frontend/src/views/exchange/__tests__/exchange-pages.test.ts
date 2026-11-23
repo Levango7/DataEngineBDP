@@ -265,10 +265,11 @@ describe('exchange/Settlements.vue', () => {
 })
 
 describe('exchange 的枚举镜像（前端选项必须是后端闭包的子集）', () => {
-  it('AUDIT_ACTIONS 与 models/base.py::AuditAction 的 11 个取值逐一对齐', async () => {
+  it('AUDIT_ACTIONS 与 models/base.py::AuditAction 的 12 个取值逐一对齐', async () => {
     const { AUDIT_ACTIONS } = await import('@/api/exchange')
     expect([...AUDIT_ACTIONS]).toEqual([
       'register',
+      'submit_audit',
       'audit',
       'publish',
       'subscribe',

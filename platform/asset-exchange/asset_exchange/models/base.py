@@ -144,20 +144,22 @@ class BillingMode(str, Enum):
 class AuditAction(str, Enum):
     """审计动作类型（全过程留痕）.
 
-    - REGISTER:  资产登记
-    - AUDIT:     上架审核
-    - PUBLISH:   上架
-    - SUBSCRIBE: 订阅
-    - DOWNLOAD:  下载
-    - INVOKE:    API 调用
-    - DELIVER:   交付
-    - SETTLE:    结算
-    - ALLOCATE:  分账
-    - OFFLINE:   下架
-    - RELIST:    重新上架
+    - REGISTER:      资产登记
+    - SUBMIT_AUDIT:  提交审核（DRAFT -> PENDING_AUDIT）
+    - AUDIT:         上架审核
+    - PUBLISH:       上架
+    - SUBSCRIBE:     订阅
+    - DOWNLOAD:      下载
+    - INVOKE:        API 调用
+    - DELIVER:       交付
+    - SETTLE:        结算
+    - ALLOCATE:      分账
+    - OFFLINE:       下架
+    - RELIST:        重新上架
     """
 
     REGISTER = "register"
+    SUBMIT_AUDIT = "submit_audit"
     AUDIT = "audit"
     PUBLISH = "publish"
     SUBSCRIBE = "subscribe"
