@@ -57,13 +57,46 @@
 # 用法：
 #   bash scripts/check-pinned-downloads.sh             # 真检（限量 Range GET + registry 探测）
 #   bash scripts/check-pinned-downloads.sh --registry-only  # 只跑 registry 类（新增坐标那一类）
+#   bash scripts/check-pinned-downloads.sh --download-only  # 只跑下载坐标类（台账 #112 那一类）
 #   bash scripts/check-pinned-downloads.sh --self-test  # 离线自测（喂状态码表，不碰网）
+#
+# 三个子集模式（--registry-only / --download-only / --self-test）**互斥**，一次只能给一个；
+# --registry-only 与 --download-only 对称，合起来 = 默认模式。
+# 为什么要拆（台账 #116 冗余修复，2026-11-23）：两类坐标各自独立出结论（谁红看谁）是设计意图，
+#   但**同一 job 内不该把同一类探两遍** —— registry 子集曾在 Docker Build Verify 里被探两次
+#   （组合预检默认模式一次 + 独立 step --registry-only 一次），两次都是 9/9 可达；
+#   耗时（run 45033606788 job 137242361970 实测：组合预检内那一遍 8.8 秒、独立 step 那遍 11.8 秒，
+#   加上其前置 pick-base-registry 选源 2.9 秒 ⇒ 该 step 整体 15 秒），
+#   属纯冗余（不构成正确性缺陷）。拆成两个子集后：组合预检走 --download-only，
+#   registry 类由独立 step 独家承担 ⇒ 每类每 job 只探一遍，两类结论仍然分开归因。
+# 两遍的源来源不同：组合预检那遍用 Dockerfile 的 ARG 默认值（docker.m.daocloud.io），
+#   独立 step 那遍用 pick-base-registry.sh 现选的源，而 CI 构建期传的也是同一个现选源
+#   （--build-arg BASE_REGISTRY）⇒ 拆完之后，job 内唯一那次 registry 预检与构建实际同源。
+# 注意：--download-only **不跑**步骤 2 的 registry 类，但**照跑**步骤 0 的一致性自检
+#   （下载坐标类依赖那份清单的一致性；registry 类不依赖）。
 set -uo pipefail
 
 SELF_TEST=0
-[ "${1:-}" = "--self-test" ] && SELF_TEST=1
 REGISTRY_ONLY=0
-[ "${1:-}" = "--registry-only" ] && REGISTRY_ONLY=1
+DOWNLOAD_ONLY=0
+if [ "$#" -gt 0 ]; then
+  for _arg in "$@"; do
+    case "$_arg" in
+      --self-test)     SELF_TEST=1 ;;
+      --registry-only) REGISTRY_ONLY=1 ;;
+      --download-only) DOWNLOAD_ONLY=1 ;;
+      *)
+        echo "::error::未知参数：$_arg（可用：--self-test / --registry-only / --download-only）" >&2
+        exit 2
+        ;;
+    esac
+  done
+fi
+_mode_sum=$(( SELF_TEST + REGISTRY_ONLY + DOWNLOAD_ONLY ))
+if [ "$_mode_sum" -gt 1 ]; then
+  echo "::error::--self-test / --registry-only / --download-only 三者互斥，一次只能给一个" >&2
+  exit 2
+fi
 
 # ── 探测参数 ──────────────────────────────────────────────────────────
 PROBE_TIMEOUT="${PINNED_DOWNLOAD_PROBE_TIMEOUT:-20}"   # 单源探测墙钟上限（秒）
@@ -554,7 +587,14 @@ run_check() {
     return $?
   fi
 
-  echo "== 钉版外链可达性预检（台账 #112）=="
+  if [ "$DOWNLOAD_ONLY" = "1" ]; then
+    # 只跑 #112 那一类（下载坐标）：步骤 0 一致性自检 + 步骤 1 限量 Range GET。
+    # **不跑**步骤 2 的 registry 类（台账 #116 由另一个 step 独家承担，
+    # 避免同一 job 内把 registry 子集探两遍）；registry 类结论与本类分开归因。
+    echo "== 钉版外链可达性预检（台账 #112；download-only 子集）=="
+  else
+    echo "== 钉版外链可达性预检（台账 #112）=="
+  fi
   echo "-- 步骤 0：预检清单 × Dockerfile 源清单 一致性自检（fail-closed）--"
   if ! check_consistency "$df"; then
     echo "::error::预检清单与 Dockerfile 的源清单已经漂移，本检不出结论，直接判红"
@@ -603,16 +643,26 @@ run_check() {
     esac
   done <<< "$PINNED_ITEMS"
 
-  # 步骤 2：增开的一类被测坐标（台账 #116）——FROM 引用的基座 tag 拉不拉得动。
-  # 放在下载坐标类之后：两者各自独立出结论（谁红看谁），但共用同一次 CI 早失败的机会。
-  echo "-- 步骤 2：基座 registry manifest 可达性预检（台账 #116：FROM 引用的基座 tag）--"
-  if ! run_registry_check; then
-    red=1
+  if [ "$DOWNLOAD_ONLY" = "1" ]; then
+    # 步骤 2 在 --download-only 下跳过：registry 类由独立 step（--registry-only）独家承担。
+    # 这不是「静默丢一类」——那一类的结论仍然出得来，只是出自另一个 step（谁红看谁的口径不变）。
+    echo "-- 步骤 2：--download-only ⇒ 已跳过基座 registry 类（台账 #116 由独立 step 独家承担）--"
+  else
+    # 步骤 2：增开的一类被测坐标（台账 #116）——FROM 引用的基座 tag 拉不拉得动。
+    # 放在下载坐标类之后：两者各自独立出结论（谁红看谁），但共用同一次 CI 早失败的机会。
+    echo "-- 步骤 2：基座 registry manifest 可达性预检（台账 #116：FROM 引用的基座 tag）--"
+    if ! run_registry_check; then
+      red=1
+    fi
   fi
 
   echo "汇总：可达 $ok / 被挤出 $fails / 取不到字节 $degraded / 状态不足 $incon（以上为下载坐标类）"
   if [ "$red" = "1" ]; then
-    echo "::error::钉住的下载源或基座 registry 不可用，阻断 CI（早失败，省掉一次 60 分钟的误诊）"
+    if [ "$DOWNLOAD_ONLY" = "1" ]; then
+      echo "::error::钉住的下载源不可用，阻断 CI（早失败，省掉一次 60 分钟的误诊）"
+    else
+      echo "::error::钉住的下载源或基座 registry 不可用，阻断 CI（早失败，省掉一次 60 分钟的误诊）"
+    fi
     return 1
   fi
   echo "::notice::本检不阻断（未发现确定性不可用的坐标）"
@@ -829,6 +879,55 @@ FIXTURE
   ( export PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
            REGISTRY_PROBE_CMD="$tmp/stub_500.sh" REGISTRY_ONLY=1; run_check ) >/dev/null 2>&1; rc=$?
   check_rc "registry-only：所有源都 500 ⇒ INCONCLUSIVE ⇒ 不判红（只告警）" 0 "$rc"
+
+  echo "-- download-only 端到端（桩探测，不碰网；registry 类必须完全不被探）--"
+  # 桩：一旦被调用就落标记文件。标记文件存在 ⇒ registry 类被探过（红侧信号）。
+  printf '#!/usr/bin/env bash\n: >"%s"\necho "404 153"\n' "$tmp/registry_called.marker" >"$tmp/stub_reg_marker.sh"
+  chmod +x "$tmp/stub_reg_marker.sh"
+  rm -f "$tmp/registry_called.marker"
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_reg_marker.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           DOWNLOAD_ONLY=1; run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  check_rc "download-only：下载类全绿 ⇒ 不阻断" 0 "$rc"
+  if [ -f "$tmp/registry_called.marker" ]; then
+    fail=$((fail + 1)); printf '  ✗ download-only：registry 探针被调用了（标记文件已生成）⇒ 这一类又跑了一遍\n'
+  else
+    pass=$((pass + 1)); printf '  ✓ download-only：registry 探针一次都没被调用（标记文件未生成）\n'
+  fi
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_404.sh" REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           DOWNLOAD_ONLY=1; run_check "$tmp/good.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  check_rc "download-only：下载类快源全 404 ⇒ 判红（下载类判定没被削弱）" 1 "$rc"
+  ( export PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" \
+           PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+           DOWNLOAD_ONLY=1; run_check "$tmp/drift-version.Dockerfile" ) >/dev/null 2>&1; rc=$?
+  check_rc "download-only：清单 ↔ Dockerfile 漂移 ⇒ 判红（步骤 0 一致性自检仍在）" 1 "$rc"
+
+  echo "-- download-only 走 CLI 入口（子进程实证；证明参数解析真的接上了这条支路）--"
+  rm -f "$tmp/registry_called.marker"
+  ( cd "$REPO_ROOT" && PINNED_DOWNLOAD_DOCKERFILE="$tmp/good.Dockerfile" \
+      PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_reg_marker.sh" \
+      PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+      bash scripts/check-pinned-downloads.sh --download-only ) >/dev/null 2>&1; rc=$?
+  check_rc "--download-only 经 CLI 入口：下载类全绿 ⇒ 不阻断" 0 "$rc"
+  if [ -f "$tmp/registry_called.marker" ]; then
+    fail=$((fail + 1)); printf '  ✗ --download-only 经 CLI 入口：registry 探针仍被调用（标记文件已生成）\n'
+  else
+    pass=$((pass + 1)); printf '  ✓ --download-only 经 CLI 入口：registry 探针一次都没被调用（标记文件未生成）\n'
+  fi
+
+  echo "-- 模式互斥与未知参数（子进程实证）--"
+  local rc_mode=0
+  ( cd "$REPO_ROOT" && PINNED_DOWNLOAD_DOCKERFILE="$tmp/good.Dockerfile" \
+      PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" \
+      PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+      bash scripts/check-pinned-downloads.sh --registry-only --download-only ) >/dev/null 2>&1; rc_mode=$?
+  check_rc "--registry-only 与 --download-only 同时给 ⇒ 参数错误退出" 2 "$rc_mode"
+  ( cd "$REPO_ROOT" && PINNED_DOWNLOAD_DOCKERFILE="$tmp/good.Dockerfile" \
+      PINNED_DOWNLOAD_PROBE_CMD="$tmp/stub_ok.sh" REGISTRY_PROBE_CMD="$tmp/stub_ok.sh" \
+      PINNED_DOWNLOAD_REPO_ROOT="$tmp/fix" PINNED_DOWNLOAD_DOCKERFILE_LIST="$tmp/list.txt" \
+      bash scripts/check-pinned-downloads.sh --bogus-mode ) >/dev/null 2>&1; rc_mode=$?
+  check_rc "未知参数 ⇒ 参数错误退出" 2 "$rc_mode"
 
   if [ -f "$DOCKERFILE_PATH" ]; then
     check_consistency "$DOCKERFILE_PATH" >/dev/null 2>&1; rc=$?
