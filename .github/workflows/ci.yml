@@ -2355,16 +2355,25 @@ jobs:
       # （旧实现 `curl -sI` 只取响应头、不取 body ⇒ 探不出「源应答了但一个字节都不给」的
       # body stall；PR #795 的实测形态正是预检绿、构建期 GET 仍挂起 600s）。
       # 同时加了「清单 ↔ Dockerfile 源清单」的双源 fail-closed 一致性自检。
+      # 2026-11-23（台账 #116 冗余修复）：本 step 改跑 **--download-only**（只探下载坐标类）。
+      #   为什么：下面那个独立 step 已独家承担 registry 类（--registry-only），本 step 再跑
+      #   默认模式（含 registry）会把基座 manifest 预检在同一个 job 里探两遍 —— 两次都是
+      #   9/9 可达、各约 9 秒，属纯冗余（不构成正确性缺陷）。
+      #   拆开之后：两类坐标**仍各自独立出结论**（谁红看谁），但每类每 job 只探一遍。
+      #   口径变化：本 step 不再探 registry ⇒ registry 类的红只可能来自下面那个独立 step。
       - name: 钉版外链可达性预检（台账 112，快源挤出即早失败）
         if: steps.converge.outputs.converge != 'true'
-        run: bash scripts/check-pinned-downloads.sh
+        run: bash scripts/check-pinned-downloads.sh --download-only
 
       # 台账 #116：基座 registry manifest 可达性预检（#112 预检增开的一类被测坐标）。
       # 为什么单开一个 step（而不是只靠上面那个全量预检）：「基座 tag 拉不拉得动」与
       #   「钉住的下载坐标还下不下得动」是两回事，混在一份结论里看不出到底是谁红的。
       # 源口径：BASE_REGISTRY 用与构建腿同一个探源脚本（scripts/pick-base-registry.sh）选，
       #   导出后由检查脚本按「环境变量优先」展开 ${BASE_REGISTRY} ⇒ 探的就是构建要拉的那个源。
-      # 成本：registry 子集会重复探测一次（上面那个全量预检已经含这一类），代价约 10–160 秒。
+      # 成本：2026-11-23 起本 step **独家**承担 registry 类（上面那个组合预检已改 --download-only）
+      #   ⇒ 同一个 job 内 registry 子集只探一遍，不再重复（原先探两遍，各约 9 秒）。
+      #   跨 job 的那一遍（version-check 腿）**保留**：那条腿覆盖 main 推送/release/定时/手工
+      #   触发面（docker-build 是 PR-only），删掉它会让那些触发面失去 registry 覆盖。
       # 已知盲区（必须记住）：这是**轻量 tag 级探测**，构建期是真的拉层，两边失败条件不同源
       #   ⇒「预检绿」≠「构建绿」；构建期的第二道防线仍是 scripts/build-retry.sh 的 5xx 换源重试。
       - name: 基座 registry manifest 可达性预检（台账 #116，多一类被测坐标）
@@ -2498,6 +2507,9 @@ jobs:
       # 代价：PR 事件上真检跑 2 次（version-check 一次 + docker-build 一次），
       # 每次约 10–60 秒。docker-build 里的那份**保留**：它保住
       # 「早失败、不烧 44 个 Dockerfile」的原语义。
+      # 2026-11-23：docker-build 那次已拆成两个子集（下载类 --download-only /
+      #   registry 类 --registry-only），**job 内**不再重复探同一类；这里的跨 job 一遍保留
+      #   （这条腿覆盖非 PR 触发面，删掉会让那些触发面失去覆盖）。
       - name: 钉版外链可达性真检（台账 112，全部触发面）
         run: bash scripts/check-pinned-downloads.sh
 
