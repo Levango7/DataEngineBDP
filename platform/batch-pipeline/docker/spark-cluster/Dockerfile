@@ -66,6 +66,16 @@ ARG SPARK_FAST_MIRRORS=2
 # ⇒ 取数段改为 curl 内部重试 0 次（重试职责交给跨源冗余），单次 curl 的墙钟上限 == 切片；
 #    并加停滞检测（低于 50 KB/s 持续 30s 即放弃该源），避免镜像站卡死时把整片预算耗光。
 ARG SPARK_DOWNLOAD_BUDGET_SECONDS=420
+# ── CI 回退演练开关（缺省 0 ⇒ 生产构建行为逐字不变） ──────────────
+# SPARK_FORCE_FALLBACK=1 时，取数段**跳过主版本**（一个源都不试），直接试回退版本（3.5.10），
+# 用来在 CI 里端到端验证「主版本真的取不到时，回退版本能否完成取数 + 供应链校验 + 解包安装」。
+# 为什么需要它：回退路径此前**从未在真实构建里跑过**（主版本一直可取），
+# 于是「回退版本的钉扎 SHA512 是否还能过」「回退后装出来的 Spark 是不是真是 3.5.10」
+# 都是**未验证假设**——2026-11-24 的回退版抬版（3.5.9→3.5.10）只验了预检可达性，
+# 没验过「构建期真的回退并装成功」。
+# 为什么做成 ARG 而不是 ENV：它是**构建期**开关，不进镜像运行时环境；
+# 缺省 0 时取数段的分支判定与原逻辑等价（见下方 PRIMARY_UNAVAILABLE 段）。
+ARG SPARK_FORCE_FALLBACK=0
 # ── 供应链校验和（钉扎官方值，版本与校验和必须同步变更） ────────
 # 来源：repo1.maven.org 官方 .sha1（获取日期与 URL 见 CHECKSUMS.md）
 # 若升级版本 ARG 而忘记更新校验和 ARG，构建会在校验步骤 fail-fast
@@ -203,8 +213,20 @@ RUN set -eux; \
     }; \
     \
     # 主版本优先；主版本全灭且预算还够，才试回退版本（预算不够就明说并早失败） \
-    if ! try_version "${SPARK_VERSION_PRIMARY}"; then \
+    # CI 回退演练（台账 #112 续）：SPARK_FORCE_FALLBACK=1 ⇒ **跳过主版本**（一个源都不试），
+    # 直接验证回退版本这条路径。缺省 0 ⇒ 下面两个分支与原逻辑逐条等价：
+    #   · 主版本取到   ⇒ 不打「均未取到」、不进回退分支；
+    #   · 主版本全灭   ⇒ 照旧打「均未取到」，再按预算决定试不试回退版本。 \
+    if [ "${SPARK_FORCE_FALLBACK}" = "1" ]; then \
+        echo ">>> [DRILL] 强制主版本失效（SPARK_FORCE_FALLBACK=1）：跳过主版本 ${SPARK_VERSION_PRIMARY}（未尝试任何源），直接验证回退版本 ${SPARK_VERSION_FALLBACK}"; \
+        PRIMARY_UNAVAILABLE=1; \
+    elif try_version "${SPARK_VERSION_PRIMARY}"; then \
+        PRIMARY_UNAVAILABLE=0; \
+    else \
+        PRIMARY_UNAVAILABLE=1; \
         echo ">>> 主版本 ${SPARK_VERSION_PRIMARY} 的 ${ROOTS_TOTAL} 个源均未取到（累计已用 $(elapsed)s，预算余 $(budget_left)s）"; \
+    fi; \
+    if [ "${PRIMARY_UNAVAILABLE}" = "1" ]; then \
         if [ "$(budget_left)" -lt 30 ]; then \
             echo ">>> [BUDGET] 预算余 $(budget_left)s 不足 30s，跳过回退版本 ${SPARK_VERSION_FALLBACK}（宁可早失败，也不半途被外层挂起预算杀掉）"; \
             echo ">>> [FATAL] 取数阶段预算耗尽且未取到压缩包（判定：取数面不可用，不是构建内容坏了）"; \

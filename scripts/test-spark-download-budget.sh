@@ -195,6 +195,9 @@ run_case() {
   clock="${OUTDIR}/${name}.clock"
   echo 0 > "${clock}"
   : > "${argvlog}"
+  # SPARK_FORCE_FALLBACK 必须在环境里给值：抽取出来的取数段带 `set -u`，
+  # 而 Dockerfile 的 ARG 在真实构建里由 BuildKit 注入 ⇒ 桩测侧必须显式补上，
+  # 否则会因「未绑定变量」直接失败（不是被测逻辑的红）。缺省 0 = 生产行为。
   ( export PATH="${STUBDIR}:${PATH}" \
            STUB_CLOCK_FILE="${clock}" \
            STUB_ARGV_LOG="${argvlog}" \
@@ -203,6 +206,7 @@ run_case() {
            SPARK_DOWNLOAD_BUDGET_SECONDS="${BUDGET:-420}" \
            SPARK_VERSION_PRIMARY=4.2.1 \
            SPARK_VERSION_FALLBACK=3.5.10 \
+           SPARK_FORCE_FALLBACK=0 \
            "$@" ; \
     bash "${runscript}" ) >"${log}" 2>&1
   echo $?
@@ -294,6 +298,20 @@ else
   check_le "变体下名义实耗之和仍 ≤ 总预算" "420" "${nom}"
   check_contains "变体下单次 curl 墙钟上限被摊薄（切片 ÷ (1+重试次数)）" "${OUTDIR}/s7.log" "单次 curl 墙钟上限 46s"
 fi
+
+echo "== S8 强制主版本失效（SPARK_FORCE_FALLBACK=1）⇒ 主版本一次都不试，直接回退 =="
+# 演练开关（CI 的端到端演练用）：SPARK_FORCE_FALLBACK=1 ⇒ 取数段**跳过主版本**，
+# 一个源都不试，直接走回退版本这条路径。本场景在**桩层**证明那个开关的语义正确：
+# 主版本的取数尝试次数必须为 0（不是「试了但失败」），回退版本必须被取到。
+rc="$(run_case s8 "${WORK}/dl_run.sh" STUB_MODE=ok SPARK_FORCE_FALLBACK=1)"
+check "退出码" "0" "${rc}"
+check_contains "打印了演练标记" "${OUTDIR}/s8.log" "[DRILL] 强制主版本失效"
+check_contains "取到回退版本" "${OUTDIR}/s8.log" "[RESULT] SPARK_VER=3.5.10 DOWNLOADED=1"
+n_attempt_primary="$(grep -c '^\+ >>> \[attempt\] Spark 4\.2\.1' "${OUTDIR}/s8.log" || true)"
+check "主版本取数尝试次数（开关命中时必须为 0）" "0" "${n_attempt_primary}"
+n_attempt_all="$(grep -c '^>>> \[attempt\]' "${OUTDIR}/s8.log" || true)"
+check "总 attempt 次数（只试回退版本的第一个源）" "1" "${n_attempt_all}"
+check_not_contains "没有打印主版本均未取到（主版本压根没试）" "${OUTDIR}/s8.log" "个源均未取到"
 
 echo
 echo "桩测结果：通过 ${pass} 项 / 失败 ${fail} 项"
