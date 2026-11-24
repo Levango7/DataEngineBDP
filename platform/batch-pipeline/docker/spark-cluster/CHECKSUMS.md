@@ -4,13 +4,14 @@
 > 钉扎校验和及其官方来源，供审计与版本升级时更新。
 >
 > 原则：
+>
 > - 下载源（清华/阿里云镜像）仅为加速，**校验值一律取自官方源**，
 >   防止镜像源与下载源同时被污染。
 > - 任一文件校验失败，构建立即 `exit 1`（fail-fast）。
 > - 升级版本 ARG 时必须同步更新对应 SHA 值（Dockerfile 内 ARG / case 映射），
 >   否则构建会在校验步骤失败——这是有意的 fail-safe。
 
-获取日期：2026-08-27（通过官方 .sha512 / .sha1 端点在线获取）；4.2.1 与 3.5.9 两行获取于 2026-11-03
+获取日期：2026-08-27（通过官方 .sha512 / .sha1 端点在线获取）；4.2.1 与 3.5.9 两行获取于 2026-11-03；3.5.10 行获取于 2026-11-24
 
 ## Spark tarball（SHA512，构建期 `sha512sum -c`）
 
@@ -19,11 +20,13 @@
 | spark-4.2.1-bin-hadoop3.tgz | 4.2.1 | `2f76b113ebb2f3677766e38b6dc78f27756c5ae5a7c103f1a76dac523dba8e5f82077b7f480360391c0cceee79ad712d7843f23389fbfeb18bc018fb85e27866` | https://downloads.apache.org/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz.sha512 | 2026-11-03 起的当前缺省版本；除官方 .sha512 外还用 tuna 实下载 529MB 跑 `sha512sum` 交叉核对一致 |
 | spark-4.2.0-bin-hadoop3.tgz | 4.2.0 | `3a6559e8546ff387db8fe7a04b8fe4008853b467b972c2e343df8e14a81450534777719fc5d4998dd96519a86fdf9de140cee753c61e2e94db044d5f9555ddc4` | https://downloads.apache.org/spark/spark-4.2.0/spark-4.2.0-bin-hadoop3.tgz.sha512 | 历史钉扎保留（2026-11-03 起 tuna/aliyun/downloads 三条快源实测均 404，只剩 archive 有 ⇒ 不再是缺省） |
 | spark-4.1.0-bin-hadoop3.tgz | 4.1.0 | `fff7f929d98779b096a2d2395b1b9db1ce277660f3852dd45e1457c373013f2669074315252181a3cea291d8f3a726c70f7f9b247e723edbf8080f40888edde1` | https://archive.apache.org/dist/spark/spark-4.1.0/spark-4.1.0-bin-hadoop3.tgz.sha512 | ENABLE_ICEBERG=true 所需；downloads.apache.org 同路径值与之相同（双源交叉验证一致） |
-| spark-3.5.9-bin-hadoop3.tgz | 3.5.9 | `66097faf48b12f8673dc13256a44d731c27c86a5831cd8ca930c6fd9dd9bdf31d40593095e959461351d55da1a8e3ad5ed95e0b4b51bea87ca3989ab002ea8ce` | https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz.sha512 | 2026-11-03 起的回退版本（tuna / aliyun 均实测 200，383MB） |
-| spark-3.5.5-bin-hadoop3.tgz | 3.5.5 | `ec5ff678136b1ff981e396d1f7b5dfbf399439c5cb853917e8c954723194857607494a89b7e205fce988ec48b1590b5caeae3b18e1b5db1370c0522b256ff376` | https://archive.apache.org/dist/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz.sha512 | 历史回退版本（快源已挤出，现回退用 3.5.9） |
+| spark-3.5.10-bin-hadoop3.tgz | 3.5.10 | `45b47b81e28e78ec9604f42615e9dd751f5bfad83cce7e5400d11409bd5425a86748e996496981284312c5f75697606c85c75bca7c7aa09a692b6d4594353e88` | https://downloads.apache.org/spark/spark-3.5.10/spark-3.5.10-bin-hadoop3.tgz.sha512 | 2026-11-24 起的回退版本；downloads 与 archive 官方值一致，tuna/aliyun/archive/downloads 四源 Range GET 均 206 |
+| spark-3.5.9-bin-hadoop3.tgz | 3.5.9 | `66097faf48b12f8673dc13256a44d731c27c86a5831cd8ca930c6fd9dd9bdf31d40593095e959461351d55da1a8e3ad5ed95e0b4b51bea87ca3989ab002ea8ce` | https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz.sha512 | 历史回退版本（2026-11-23 CI 实测 tuna/aliyun 均 404，archive 仍 206；现回退用 3.5.10） |
+| spark-3.5.5-bin-hadoop3.tgz | 3.5.5 | `ec5ff678136b1ff981e396d1f7b5dfbf399439c5cb853917e8c954723194857607494a89b7e205fce988ec48b1590b5caeae3b18e1b5db1370c0522b256ff376` | https://archive.apache.org/dist/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz.sha512 | 历史回退版本（快源已挤出，现回退用 3.5.10） |
 
 下载源（2026-11-15 起由 Dockerfile 的 `ARG SPARK_MIRRORS` 承载：逗号分隔的**源根**，
 按书写顺序尝试；前 `ARG SPARK_FAST_MIRRORS=2` 个是快源，其余是兜底源）：
+
 1. https://mirrors.tuna.tsinghua.edu.cn/apache/spark（快源）
 2. https://mirrors.aliyun.com/apache/spark（快源）
 3. https://archive.apache.org/dist/spark（兜底源）
@@ -50,6 +53,7 @@
 | iceberg-aws-bundle-1.11.0.jar | 1.11.0 | `afe5b22dd5bc2d2c0639049b06a92dae2545cac7` | https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/1.11.0/iceberg-aws-bundle-1.11.0.jar.sha1 | ICEBERG_AWS_BUNDLE_SHA1 |
 
 JAR 下载源（Dockerfile 保持不变，按优先级）：
+
 1. https://maven.aliyun.com/repository/central/<路径>（内网加速）
 2. https://repo1.maven.org/maven2/<路径>（官方兜底）
 

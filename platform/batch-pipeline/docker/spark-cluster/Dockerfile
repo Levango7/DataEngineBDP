@@ -98,8 +98,9 @@ RUN python3 --version | grep -q "Python 3\.12\." || { \
     }
 
 # ── Spark 下载（含版本回退 + 国内镜像） ─────────────────────────
-# 优先 ${SPARK_VERSION}（ARG，缺省 4.2.1），若不可用则回退 3.5.9
+# 优先 ${SPARK_VERSION}（ARG，缺省 4.2.1），若不可用则回退 3.5.10
 # 2026-11-03 由 4.2.0/3.5.5 抬到 4.2.1/3.5.9：Apache 快源目录按「当前发布线」滚动，
+# 2026-11-24 回退 3.5.9→3.5.10：3.5.9 已被 tuna/aliyun 快源挤出（CI 双侧 404），3.5.10 双快源 206。
 # 4.2.0 与 3.5.5 已被挤出（tuna / aliyun / downloads.apache.org 三条实测 404），
 # 只剩 archive.apache.org 有（实测 530MB / 382MB）⇒ 下载被拖到挂起预算之外，
 # build-retry 按传输类重试后仍失败（不是代码问题，也不是可无限重跑的抖动）。
@@ -114,7 +115,7 @@ RUN python3 --version | grep -q "Python 3\.12\." || { \
 #   ③ 失败文案不回显 curl 的 stderr（理由见下方 try_version 的注释）。
 # 注意：ENV 引用 ARG 必须在 ARG 声明之后（已在 line 20 声明）
 ENV SPARK_VERSION_PRIMARY=${SPARK_VERSION}
-ENV SPARK_VERSION_FALLBACK=3.5.9
+ENV SPARK_VERSION_FALLBACK=3.5.10
 
 RUN set -eux; \
     # ── 取数预算（秒）：覆盖本 RUN 的全部取数尝试（主版本 + 回退版本） ──
@@ -221,6 +222,7 @@ RUN set -eux; \
     #   4.2.1 ← https://downloads.apache.org/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz.sha512（2026-11-03 取，且与 tuna 实下载值核对一致）
     #   4.2.0 ← https://downloads.apache.org/spark/spark-4.2.0/spark-4.2.0-bin-hadoop3.tgz.sha512
     #   4.1.0 ← https://archive.apache.org/dist/spark/spark-4.1.0/spark-4.1.0-bin-hadoop3.tgz.sha512
+    #   3.5.10 ← https://downloads.apache.org/spark/spark-3.5.10/spark-3.5.10-bin-hadoop3.tgz.sha512（2026-11-24 取，与 archive 一致）
     #   3.5.9 ← https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz.sha512（2026-11-03 取）
     #   3.5.5 ← https://archive.apache.org/dist/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz.sha512
     # 未在清单中的版本（如升级 SPARK_VERSION 忘更新）直接拒绝构建。
@@ -228,6 +230,7 @@ RUN set -eux; \
         4.2.1) SPARK_TGZ_SHA512="2f76b113ebb2f3677766e38b6dc78f27756c5ae5a7c103f1a76dac523dba8e5f82077b7f480360391c0cceee79ad712d7843f23389fbfeb18bc018fb85e27866" ;; \
         4.2.0) SPARK_TGZ_SHA512="3a6559e8546ff387db8fe7a04b8fe4008853b467b972c2e343df8e14a81450534777719fc5d4998dd96519a86fdf9de140cee753c61e2e94db044d5f9555ddc4" ;; \
         4.1.0) SPARK_TGZ_SHA512="fff7f929d98779b096a2d2395b1b9db1ce277660f3852dd45e1457c373013f2669074315252181a3cea291d8f3a726c70f7f9b247e723edbf8080f40888edde1" ;; \
+        3.5.10) SPARK_TGZ_SHA512="45b47b81e28e78ec9604f42615e9dd751f5bfad83cce7e5400d11409bd5425a86748e996496981284312c5f75697606c85c75bca7c7aa09a692b6d4594353e88" ;; \
         3.5.9) SPARK_TGZ_SHA512="66097faf48b12f8673dc13256a44d731c27c86a5831cd8ca930c6fd9dd9bdf31d40593095e959461351d55da1a8e3ad5ed95e0b4b51bea87ca3989ab002ea8ce" ;; \
         3.5.5) SPARK_TGZ_SHA512="ec5ff678136b1ff981e396d1f7b5dfbf399439c5cb853917e8c954723194857607494a89b7e205fce988ec48b1590b5caeae3b18e1b5db1370c0522b256ff376" ;; \
         *) \
@@ -391,7 +394,7 @@ RUN set -eux; \
 # 注意：移除 `|| true`，让 PySpark 安装失败立即暴露构建问题
 # （此前 `|| true` 会掩盖 pip 安装失败，导致 Worker 启动后才报错）
 # 版本取 /opt/spark/.version（下载阶段写入的**实际**安装版本）：
-# 主版本下载失败回退 3.5.9 时，若仍按 ${SPARK_VERSION} 装 pyspark 4.2.1，
+# 主版本下载失败回退 3.5.10 时，若仍按 ${SPARK_VERSION} 装 pyspark 4.2.1，
 # Worker 端 Python 与集群 JVM 版本错配必然运行时报错。
 #
 # 2026-11-20（台账 #112 的第 ② 项残余边界，本轮闭合）：给本段补**墙钟上限**。
