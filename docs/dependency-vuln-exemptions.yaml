@@ -131,11 +131,13 @@ vulnerabilities:
     severity: MEDIUM
     reason: >-
       修复版是 2.3.0.Alpha1，即从 1.9.7 跨过 2.0/2.1/2.2 三个**大版本**。本模块
-      platform/flink-cdc 直依赖 com.ververica:flink-connector-mysql-cdc:3.0.1，该连接器是
-      按 Debezium 1.9.x 的 API 编译的；本仓 Java 源码里 `import io.debezium` 现查 **0 处**
-      （debezium 只作为连接器的运行时依赖存在）。单方面把 debezium 抬到 2.3 会打穿连接器的二进制兼容，
+      platform/flink-cdc 已于 2026-10-24 从 com.ververica 迁至
+      org.apache.flink:flink-connector-mysql-cdc:3.6.0-1.20；上游 Flink CDC 3.x 仍按
+      Debezium 1.9.x 编译（3.6.0 传递 1.9.8.Final），本模块另显式钉 debezium-core
+      1.9.7.Final。本仓 Java 源码里 `import io.debezium` 现查 **0 处**（debezium 只作为
+      连接器的运行时依赖存在）。单方面把 debezium 抬到 2.3 会打穿连接器的二进制兼容，
       而这不是一个依赖批次能验证的事。
-    followup: "解锁条件：先升 flink-cdc 到按 Debezium 2.x 编译的版本（或改用 Flink CDC 的对应发行线），再随之抬 debezium"
+    followup: "解锁条件：等上游 Flink CDC 切到按 Debezium 2.x 编译的发行线（3.x 全线未切），再随之抬 debezium"
     expired_at: 2027-01-31
     source: "platform/flink-cdc/pom.xml；GitHub Security tab / Dependabot alerts"
 
@@ -197,4 +199,4 @@ vulnerabilities:
       受影响面全部是 lint / 构建期工具链，不进产物包。
     followup: "等 eslint / glob / @vue/language-core 各自把 minimatch 抬到 ^11 后随上游消解；单独一刀验全套 lint 亦可解锁"
     expired_at: 2027-01-31
-    source: "frontend/package-lock.json（packages 段逐条读 dependencies，2026-11-03 实测）；Dependabot alert #103"
+    source: "frontend/package-lock.json（packages 段逐条读 dependencies，2026-11-03 实测）；Dependabot alert #104（2026-11-24 复核：#103 已 withdrawn，#104 为当前 open）"
