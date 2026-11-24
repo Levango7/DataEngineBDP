@@ -14,10 +14,10 @@
  * 这些端点返回**裸 JSON**（gin.H{"items":…}），没有 ApiResponse 包裹，
  * 故 src/api/client.ts 的拆包分支不会触发，调用方直接拿到本文件声明的类型。
  *
- * 已知不可用端点（有意不实现）：
- *   GET /api/v1/clusters/{name}/health —— 带路径参数，而粗前缀 /api/v1/clusters
- *   归 infra-orchestrator（见 docs/KNOWN-FAILURES.md #89），网关到不了 failover-api，
- *   所以单集群健康历史改由 /failover-events 过滤呈现，不在此开一个必然 404 的调用。
+ * 网关路由说明：
+ *   GET /api/v1/clusters/health 由 APISIX 精确路由指向 failover-api；
+ *   GET /api/v1/clusters/{name}/health 由 APISIX 单段星号通配路由
+ *   指向 failover-api。当前前端只消费集群健康列表，未新增单集群历史调用。
  */
 import { del, get, post, put } from './client'
 

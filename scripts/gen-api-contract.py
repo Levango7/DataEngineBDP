@@ -205,8 +205,9 @@ GO_SERVICE_PREFIXES: dict[str, str] = {
     "/api/v1/ai-assistant": "ai-assistant internal/api/handler.go RegisterRoutes（/chat /nl2sql /sessions...）",
     # karmada failover-api：main.go:107 把 handler 挂到 `v1.Group("")`（即 /api/v1 根），
     # 组路径写在 internal/handler/failover.go 里，静态不可绑定 ⇒ 按本表既有做法显式登记。
-    # 注意：同文件 :55-58 还有一条 `clusters.GET("/:name/health")` 带路径参数，
-    # 前缀路由表达不了，故意不登记（台账 #89 记为待决）。
+    # 同文件 :55-58 还有一条 `clusters.GET("/:name/health")` 带路径参数；
+    # 动态端点不在本表生成 exact/** 前缀，由 gen-apisix-routes.py 的
+    # EXPLICIT_ROUTES 显式映射 /api/v1/clusters/*/health → failover-api。
     "/api/v1/failover-events": "karmada/failover failover-api internal/handler/failover.go:47 "
                                "rg.Group(\"/failover-events\")（GET 列表 / POST 触发 / GET :eventId）",
     "/api/v1/replica-plans": "karmada/failover failover-api internal/handler/failover.go:62 "
