@@ -247,6 +247,11 @@ PREFIX_CHART_FIXUPS: dict[str, tuple[str, str]] = {
     "/api/v1/federated/scheduling": ("karmada/federated-query", "federated-query"),  # .../federated/scheduling/SchedulingController.java:48
 }
 
+# 静态前缀生成器无法表达路径参数；显式保留后端既有 API 的 radixtree 单段通配。
+EXPLICIT_ROUTES: dict[str, str] = {
+    "/api/v1/clusters/*/health": "failover-api",
+}
+
 # 禁止作为路由上游的 chart：这些 chart 部署的是第三方/基础设施组件，
 # 其 Service 并不提供平台 REST 前缀（把平台前缀指过去必然 404/错误响应）。
 CHART_FALLBACK_DENY: set[str] = {
@@ -323,6 +328,15 @@ def resolve_chart(module: str, chart_ports: dict[str, int]) -> str | None:
     return module if module in chart_ports else None
 
 
+def prefix_routes(prefix: str, target: str, chart_ports: dict[str, int]) -> list[dict]:
+    """同时覆盖无尾斜杠的精确基线路径与其子路径。"""
+    node = f"{target}:{chart_ports[target]}"
+    return [
+        {"uri": prefix, "upstream": {"type": "roundrobin", "nodes": {node: 1}}},
+        {"uri": f"{prefix}/**", "upstream": {"type": "roundrobin", "nodes": {node: 1}}},
+    ]
+
+
 def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
     """构造 APISIX routes。
 
@@ -335,7 +349,7 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
     conflicts: list[str] = []
     accepted: list[str] = []
 
-    # 长前缀优先，避免 /api/v1/x 抢先匹配 /api/v1/x/y
+    # 确定性排序便于审阅；APISIX radixtree 以完全匹配和更深前缀决定优先级。
     for prefix in sorted(prefixes, key=lambda p: (-len(p), p)):
         if prefix in EXCLUDED_PREFIXES or prefix.rstrip("/") in EXCLUDED_PREFIXES:
             continue
@@ -364,13 +378,7 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
                 conflicts.append(
                     f"{prefix} 直连 chart {chart}，但该 chart 没有 Service 端口 —— 先补 chart 或改归属")
                 continue
-            routes.append({
-                "uri": f"{prefix}/**",
-                "upstream": {
-                    "type": "roundrobin",
-                    "nodes": {f"{chart}:{chart_ports[chart]}": 1},
-                },
-            })
+            routes.extend(prefix_routes(prefix, chart, chart_ports))
             continue
 
         # 粗前缀（如 /api/v1）：多个服务把子路径直接挂在版本号下，
@@ -395,13 +403,14 @@ def build_routes(prefixes: dict[str, list[str]], chart_ports: dict[str, int]):
         else:
             target = charts[0]
 
-        routes.append({
-            "uri": f"{prefix}/**",
-            "upstream": {
-                "type": "roundrobin",
-                "nodes": {f"{target}:{chart_ports[target]}": 1},
-            },
-        })
+        routes.extend(prefix_routes(prefix, target, chart_ports))
+
+    for uri, target in EXPLICIT_ROUTES.items():
+        if target not in chart_ports:
+            conflicts.append(f"{uri} 显式路由目标 chart {target} 没有 Service 端口")
+            continue
+        node = f"{target}:{chart_ports[target]}"
+        routes.append({"uri": uri, "upstream": {"type": "roundrobin", "nodes": {node: 1}}})
 
     routes.sort(key=lambda r: r["uri"])
     return routes, unmapped, conflicts, accepted
@@ -498,7 +507,7 @@ def main() -> int:
         return 0
 
     ROUTES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    ROUTES_FILE.write_text(rendered, encoding="utf-8")
+    ROUTES_FILE.write_bytes(rendered.encode("utf-8"))
     print(f"已生成 {ROUTES_FILE.relative_to(REPO_ROOT)}：{len(routes)} 条路由")
     if unmapped:
         print(f"提示：{len(unmapped)} 个前缀未映射到 chart（--report 查看明细）")

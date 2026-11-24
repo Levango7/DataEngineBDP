@@ -56,7 +56,7 @@ helm template apisix design/deploy/charts/apisix -n default
 | 参数 | 说明 | 默认值 |
 | --- | --- | --- |
 | `image.repository` | 镜像仓库地址 | `apache/apisix` |
-| `image.tag` | 镜像标签 | `3.9.1` |
+| `image.tag` | 镜像标签 | `3.11.0-debian` |
 | `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
 | `replicaCount` | 副本数 | `1` |
 | `service.type` | Service 类型 | `ClusterIP` |
@@ -87,7 +87,7 @@ helm template apisix design/deploy/charts/apisix -n default
 # apisix 自定义配置示例
 image:
   repository: "apache/apisix"
-  tag: "3.9.1"
+  tag: "3.11.0-debian"
   pullPolicy: IfNotPresent
 
 replicaCount: 2
