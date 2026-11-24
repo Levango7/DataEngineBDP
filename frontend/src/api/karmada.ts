@@ -16,7 +16,7 @@
  *
  * 网关路由说明：
  *   GET /api/v1/clusters/health 由 APISIX 精确路由指向 failover-api；
- *   GET /api/v1/clusters/{name}/health 由 /api/v1/clusters/*/health 单段通配
+ *   GET /api/v1/clusters/{name}/health 由 APISIX 单段星号通配路由
  *   指向 failover-api。当前前端只消费集群健康列表，未新增单集群历史调用。
  */
 import { del, get, post, put } from './client'
