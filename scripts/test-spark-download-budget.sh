@@ -202,7 +202,7 @@ run_case() {
            SPARK_FAST_MIRRORS=2 \
            SPARK_DOWNLOAD_BUDGET_SECONDS="${BUDGET:-420}" \
            SPARK_VERSION_PRIMARY=4.2.1 \
-           SPARK_VERSION_FALLBACK=3.5.9 \
+           SPARK_VERSION_FALLBACK=3.5.10 \
            "$@" ; \
     bash "${runscript}" ) >"${log}" 2>&1
   echo $?
@@ -236,7 +236,7 @@ check "attempt 次数（只数 echo 输出行，set -x 的回显行不算）" "1
 echo "== S2 主版本三源全 404 ⇒ 回退版本取到 =="
 rc="$(run_case s2 "${WORK}/dl_run.sh" STUB_MODE=ok STUB_FAIL_PATTERN=spark-4.2.1)"
 check "退出码" "0" "${rc}"
-check_contains "取到回退版本" "${OUTDIR}/s2.log" "[RESULT] SPARK_VER=3.5.9 DOWNLOADED=1"
+check_contains "取到回退版本" "${OUTDIR}/s2.log" "[RESULT] SPARK_VER=3.5.10 DOWNLOADED=1"
 check_contains "打印了主版本失败" "${OUTDIR}/s2.log" "个源均未取到"
 n_attempt="$(grep -c '^>>> \[attempt\]' "${OUTDIR}/s2.log" || true)"
 check "attempt 次数（主版本 3 + 回退版本 1）" "4" "${n_attempt}"

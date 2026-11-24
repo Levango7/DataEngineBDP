@@ -130,7 +130,7 @@ REGISTRY_FALLBACK_HOST="${REGISTRY_FALLBACK_HOST:-docker.io}" # 上游兜底宿�
 #   快源数＝前 N 个源是快源，其余是兜底源
 #   源顺序＝Dockerfile 里的实际尝试顺序（一致性自检会逐项核对，顺序不一致也判红）
 PINNED_ITEMS='spark-bin-hadoop3(primary)|large|squeeze|2|https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz|https://mirrors.aliyun.com/apache/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz|https://archive.apache.org/dist/spark/spark-4.2.1/spark-4.2.1-bin-hadoop3.tgz
-spark-bin-hadoop3(fallback)|large|squeeze|2|https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz|https://mirrors.aliyun.com/apache/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz|https://archive.apache.org/dist/spark/spark-3.5.9/spark-3.5.9-bin-hadoop3.tgz
+spark-bin-hadoop3(fallback)|large|squeeze|2|https://mirrors.tuna.tsinghua.edu.cn/apache/spark/spark-3.5.10/spark-3.5.10-bin-hadoop3.tgz|https://mirrors.aliyun.com/apache/spark/spark-3.5.10/spark-3.5.10-bin-hadoop3.tgz|https://archive.apache.org/dist/spark/spark-3.5.10/spark-3.5.10-bin-hadoop3.tgz
 hadoop-aws|small|plain|1|https://maven.aliyun.com/repository/central/org/apache/hadoop/hadoop-aws/3.5.0/hadoop-aws-3.5.0.jar|https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.5.0/hadoop-aws-3.5.0.jar|
 aws-sdk-v2-bundle|small|plain|1|https://maven.aliyun.com/repository/central/software/amazon/awssdk/bundle/2.35.4/bundle-2.35.4.jar|https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/2.35.4/bundle-2.35.4.jar|
 analyticsaccelerator-s3|small|plain|1|https://maven.aliyun.com/repository/central/software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/1.3.1/analyticsaccelerator-s3-1.3.1.jar|https://repo1.maven.org/maven2/software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/1.3.1/analyticsaccelerator-s3-1.3.1.jar|'
@@ -730,7 +730,7 @@ run_self_test() {
 
   cat >"$tmp/good.Dockerfile" <<'FIXTURE'
 ARG SPARK_VERSION=4.2.1
-ENV SPARK_VERSION_FALLBACK=3.5.9
+ENV SPARK_VERSION_FALLBACK=3.5.10
 ARG SPARK_MIRRORS=https://mirrors.tuna.tsinghua.edu.cn/apache/spark,https://mirrors.aliyun.com/apache/spark,https://archive.apache.org/dist/spark
 ARG SPARK_FAST_MIRRORS=2
 ENV MAVEN_MIRROR=https://maven.aliyun.com/repository/central
