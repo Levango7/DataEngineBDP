@@ -39,10 +39,8 @@ router = APIRouter(prefix="/llmops", tags=["llmops-frontend"])
 def _store(request: Request):
     st = getattr(request.app.state, "frontend_store", None)
     if st is None:
-        from llmops.services.frontend_store import FrontendContractStore
-
-        st = FrontendContractStore()
-        request.app.state.frontend_store = st
+        # 不再隐式创建内存 store：缺配置即 503，生产不允许静默回退内存。
+        raise HTTPException(status_code=503, detail="frontend store not configured")
     return st
 
 

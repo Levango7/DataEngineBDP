@@ -91,3 +91,24 @@ python -m pytest tests/ -v
 | LLMOPS_STORE_TYPE | mock | 存储类型: mock / mlflow |
 | LLMOPS_MLFLOW_URI | http://localhost:5000 | MLflow Tracking URI |
 | LLMOPS_MLFLOW_REGISTRY_URI | (同 MLFLOW_URI) | MLflow Registry URI |
+| LLMOPS_FRONTEND_STORE | memory | 前端视图存储: memory / postgresql |
+| LLMOPS_FRONTEND_DATABASE_URL | (空) | PostgreSQL DSN（postgresql 模式必填；生产经 Secret 注入） |
+| LLMOPS_ENV | development | 运行环境: development / test / production（production 禁止内存回退） |
+
+## 生产持久层（PostgreSQL）
+
+默认 `memory` 为进程内存实现（重启即丢，仅开发/测试）。生产必须配：
+
+```bash
+LLMOPS_ENV=production \
+LLMOPS_FRONTEND_STORE=postgresql \
+LLMOPS_FRONTEND_DATABASE_URL="postgresql://user:pass@pg-host:5432/llmops" \
+python main.py
+```
+
+- `LLMOPS_ENV=production` 且 `LLMOPS_FRONTEND_STORE != postgresql` 时**启动即失败**
+  （Settings 校验 fail-fast，禁止静默回退内存）；
+- DSN 只从环境变量/K8s Secret 读取，源码、示例、测试不写可用凭据；
+- 表 `llmops_frontend_metrics/finetunes/inference` 以 JSONB 存储、
+  `(tenant_id, entity_id|task_id)` 主键租户隔离，schema 幂等自举（咨询锁 + IF NOT EXISTS）；
+- Helm Chart 生产默认已按此注入（`design/deploy/charts/llmops`）。

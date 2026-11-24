@@ -65,6 +65,18 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.auth.existingSecretName | quote }}
                   key: {{ .Values.auth.jwtSecretKey | quote }}
+            # 前端视图持久化（A2）：生产禁止内存回退；DSN 只走 Secret，不进 ConfigMap。
+            - name: LLMOPS_FRONTEND_STORE
+              value: {{ .Values.frontend.store | default "memory" | quote }}
+            - name: LLMOPS_ENV
+              value: {{ .Values.environment | default "production" | quote }}
+            {{- if eq (.Values.frontend.store | default "postgresql") "postgresql" }}
+            - name: LLMOPS_FRONTEND_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.frontend.existingSecretName | quote }}
+                  key: {{ .Values.frontend.databaseUrlKey | quote }}
+            {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
