@@ -62,8 +62,8 @@
   ⇒ 若日后抬回退版本，本表的 SHA512 与 Dockerfile 的 `case` 映射必须同步更新，
   否则演练会当场判红（这正是它要抓的形态）。
 - **不覆盖的范围（显式声明）**：演练只到「解包 + 写版本文件」为止，
-  **不装 pyspark、不装 Maven JAR、不装 Iceberg**（完整镜像实测 224s 到约 27 分钟，
-  会顶穿 `Docker Build Verify` 的作业预算）。pyspark 版本取自 `/opt/spark/.version`
+  **不装 pyspark、不装 Maven JAR、不装 Iceberg**（完整镜像实测 217–270 秒：PR #873 那轮 job 138521523958 = 217.1s、PR #867 那轮 job 138153904614 = 269.8s、PR #805 那轮 job 132626373067 = 224s；
+  演练 64 秒 ⇒ 便宜 3–4 倍，且同一作业下方的「逐个 docker build」本就会完整构建 spark-cluster ⇒ 演练再构建完整镜像等于重复构建一遍）。pyspark 版本取自 `/opt/spark/.version`
   （Dockerfile 的 `PYSPARK_VER="$(cat /opt/spark/.version)"`）⇒ 那份文件正是演练断言的对象，
   「回退后 pyspark 跟着降」由此闭合，但 pyspark 安装段本身仍只有桩测覆盖。
 - **已知盲区（必须记住）**：本机到 Docker Hub 全域不可达 ⇒ 该演练的**真 docker build
