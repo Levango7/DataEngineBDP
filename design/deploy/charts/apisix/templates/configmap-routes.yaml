@@ -14,6 +14,15 @@ data:
     {
       "routes": [
         {
+          "uri": "/api/materialized-views",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "flink-cdc:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/materialized-views/**",
           "upstream": {
             "type": "roundrobin",
@@ -23,7 +32,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/account",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/account/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/admin",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -41,11 +68,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/agents",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/agents/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ai-assistant",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ai-assistant:18110": 1
             }
           }
         },
@@ -59,6 +104,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/allocation",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "dashboard:8085": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/allocation/**",
           "upstream": {
             "type": "roundrobin",
@@ -68,7 +122,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/apis",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/apis/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/apis/generate",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -86,7 +158,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/asset-subscriptions",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/asset-subscriptions/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/assets",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -104,11 +194,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/audiences",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/audiences/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/audit-logs",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
             }
           }
         },
@@ -122,11 +230,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/auth",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/auth/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/batches",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "data-quality:8080": 1
             }
           }
         },
@@ -140,11 +266,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/bill/export",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "dashboard:8085": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/bill/export/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "dashboard:8085": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/billing",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
             }
           }
         },
@@ -158,11 +302,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/business-lines",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "business-portal:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/business-lines/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "business-portal:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/capacity",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-orchestrator:8080": 1
             }
           }
         },
@@ -176,11 +338,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/catalog",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "catalog:8082": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/catalog/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "catalog:8082": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/cluster",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
             }
           }
         },
@@ -194,11 +374,38 @@ data:
           }
         },
         {
+          "uri": "/api/v1/clusters",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-orchestrator:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/clusters/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "infra-orchestrator:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/*/health",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/cloud",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-cloud:8080": 1
             }
           }
         },
@@ -212,11 +419,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/clusters/health",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/clusters/health/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/clusters/private",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-private:8080": 1
             }
           }
         },
@@ -230,11 +455,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/clusters/xinchang",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "infra-provider-xinchang:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/clusters/xinchang/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "infra-provider-xinchang:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/contracts",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "operations-api:8081": 1
             }
           }
         },
@@ -248,6 +491,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/cost",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "cost-model:8084": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/cost/**",
           "upstream": {
             "type": "roundrobin",
@@ -257,7 +509,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/dashboard",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "dashboard:8085": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/dashboard/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "dashboard:8085": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/dashboard/billing",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -275,11 +545,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/dashboards",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "business-portal:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/dashboards/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "business-portal:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/datasources",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
             }
           }
         },
@@ -293,11 +581,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/deployments",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/deployments/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "llmops:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/develop",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
             }
           }
         },
@@ -311,11 +617,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/doris",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/doris/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-data:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/eval",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "evaluation:8086": 1
             }
           }
         },
@@ -329,6 +653,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/experiments",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/experiments/**",
           "upstream": {
             "type": "roundrobin",
@@ -338,7 +671,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/failover-events",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/failover-events/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/failover-policies",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -356,6 +707,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/feature-groups",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/feature-groups/**",
           "upstream": {
             "type": "roundrobin",
@@ -365,7 +725,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/federated",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/federated/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/governance",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -383,7 +761,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/federated/scheduling",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/federated/scheduling/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "federated-query:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/federated/transactions",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -401,7 +797,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/finops/billing",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "cost-model:8084": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/finops/billing/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "cost-model:8084": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/finops/metering",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -419,11 +833,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/flink",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/flink/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-data:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/gateway",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-gateway:8082": 1
             }
           }
         },
@@ -437,6 +869,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/governance",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "real-time-pipeline:18090": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/governance/**",
           "upstream": {
             "type": "roundrobin",
@@ -446,7 +887,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/governance/assets",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/governance/assets/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/integrate",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -464,11 +923,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/invites",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/invites/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/iotdb",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
             }
           }
         },
@@ -482,11 +959,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/jobs",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "stream-batch-scheduler:18086": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/jobs/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "stream-batch-scheduler:18086": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/k8s",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
             }
           }
         },
@@ -500,11 +995,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/kafka",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/kafka/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-data:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/knowledge",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
             }
           }
         },
@@ -518,11 +1031,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/lineage",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "lineage-analyzer:8086": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/lineage/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "lineage-analyzer:8086": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/llmops",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
             }
           }
         },
@@ -536,7 +1067,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/master-data",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "master-data:8088": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/master-data/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "master-data:8088": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/master-data/models",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -554,11 +1103,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/metadata",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "metadata-collector:8084": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/metadata/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "metadata-collector:8084": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ml",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
             }
           }
         },
@@ -572,11 +1139,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/models",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/models/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/ops",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
             }
           }
         },
@@ -590,11 +1175,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/orchestrator/dags",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/orchestrator/dags/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/override-policies",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
             }
           }
         },
@@ -608,11 +1211,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/pricing",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "cost-model:8084": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/pricing/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "cost-model:8084": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/profiles",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
             }
           }
         },
@@ -626,11 +1247,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/projects",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/projects/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/propagation-policies",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "karmada-api:8090": 1
             }
           }
         },
@@ -644,7 +1283,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/quality/rules",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/quality/rules/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/quality/rules/batch-pipeline",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -662,11 +1319,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/quotas",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/quotas/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-tenant:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/registrations",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
             }
           }
         },
@@ -680,11 +1355,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/replica-plans",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "failover-api:8094": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/replica-plans/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "failover-api:8094": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/rewrite",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
             }
           }
         },
@@ -698,7 +1391,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/rules",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/rules/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/scheduler",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -716,6 +1427,15 @@ data:
           }
         },
         {
+          "uri": "/api/v1/search",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-data:8083": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/search/**",
           "upstream": {
             "type": "roundrobin",
@@ -725,7 +1445,25 @@ data:
           }
         },
         {
+          "uri": "/api/v1/sec",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/sec/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/security",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -743,11 +1481,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/settlements",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/settlements/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "asset-exchange:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/spaces",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "knowledge-engine:8080": 1
             }
           }
         },
@@ -761,11 +1517,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/sql",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/sql/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/standard-categories",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "data-standard:8087": 1
             }
           }
         },
@@ -779,11 +1553,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/standards",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/standards/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/stream-batch",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "stream-batch-scheduler:18086": 1
             }
           }
         },
@@ -797,11 +1589,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/subscriptions",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/subscriptions/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "open-api-catalog:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/suggestions",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "dashboard:8085": 1
             }
           }
         },
@@ -815,11 +1625,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/tags",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "tag-engine:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/tags/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "tag-engine:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/templates",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "industry-templates:8080": 1
             }
           }
         },
@@ -833,11 +1661,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/tenants",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/tenants/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/training",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llmops:8080": 1
             }
           }
         },
@@ -851,11 +1697,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/training/jobs",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "ml-platform:8080": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/training/jobs/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "ml-platform:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/vector",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "vector-engine:8086": 1
             }
           }
         },
@@ -869,11 +1733,29 @@ data:
           }
         },
         {
+          "uri": "/api/v1/virtual-tables",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
           "uri": "/api/v1/virtual-tables/**",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
               "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/workspaces",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-tenant:8081": 1
             }
           }
         },
@@ -887,7 +1769,25 @@ data:
           }
         },
         {
+          "uri": "/platform",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
+            }
+          }
+        },
+        {
           "uri": "/platform/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "query-api:8090": 1
+            }
+          }
+        },
+        {
+          "uri": "/tenant",
           "upstream": {
             "type": "roundrobin",
             "nodes": {
@@ -901,6 +1801,15 @@ data:
             "type": "roundrobin",
             "nodes": {
               "query-api:8090": 1
+            }
+          }
+        },
+        {
+          "uri": "/v1",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "llm-gateway:8084": 1
             }
           }
         },
