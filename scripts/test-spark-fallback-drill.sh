@@ -30,8 +30,8 @@
 #   「[attempt] Spark <主版本>」这条**每次取数尝试都会打**的记录一条都没有。
 #
 # 为什么不跑完整镜像构建：完整构建还要装 pyspark sdist（450MB）与 5 个 Maven JAR，
-# 实测整镜像 224s（PR #805，job 132626373067）到约 27 分钟（PR #867 那轮，含 Maven 下载），
-# 放进 `Docker Build Verify` 作业会顶穿它的 timeout（稳态实测已占 47m34s / 75 分钟）。
+# 实测整镜像 217–270 秒（PR #873 那轮 job 138521523958 = 217.1s、PR #867 那轮 job 138153904614 = 269.8s），
+# 比演练的 64 秒贵 3–4 倍，且同一作业下方的「逐个 docker build」本就会完整构建 spark-cluster。
 # 本演练只验「回退版本能取到 + 能过钉扎 SHA512 + 能解包安装」这一段；
 # 后续层与版本选择无关——pyspark 的版本取自 /opt/spark/.version
 # （Dockerfile：PYSPARK_VER="$(cat /opt/spark/.version)"），
