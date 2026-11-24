@@ -42,6 +42,33 @@
 预检脚本 `scripts/check-pinned-downloads.sh` 会把本清单与 Dockerfile 的源清单逐项重建
 比对，任一侧改了而另一侧没改即判红（fail-closed）。
 
+## 回退路径的端到端演练（2026-11-24 新增，台账 #112 续）
+
+回退分支自设计以来**从未在真实构建里跑过**（主版本一直可取）⇒「回退版本的钉扎 SHA512
+是否还能过」「装出来的 Spark 是不是真是 3.5.10」都曾是未验证假设。本节登记该缺口怎么补。
+
+- **开关**：Dockerfile 的 `ARG SPARK_FORCE_FALLBACK=0`（缺省 0 ⇒ 生产构建行为逐字不变；
+  它是构建期开关，不进镜像运行时环境）。取值 1 时，取数段**跳过主版本**（一个源都不试），
+  直接走回退版本这条路径。
+- **演练脚本**：`scripts/test-spark-fallback-drill.sh`。它从 Dockerfile **按内容锚点截断**
+  出「取数 + 供应链校验 + 解包」段（锚点 = 写入 `/opt/spark/.version` 的那一行，是那段 RUN
+  的末行 ⇒ 截断点不依赖行号），用 `--build-arg SPARK_FORCE_FALLBACK=1` 构建它，
+  再断言：构建退出码 0、日志含演练标记、日志**不含主版本的取数尝试痕迹**、
+  日志含回退版本取数成功与安装完成、日志含钉扎 SHA512 校验通过行、
+  镜像内 `/opt/spark/.version` 等于回退版本、镜像内 `/opt/spark` 软链指向回退版本目录。
+- **CI 接线**：`Docker Build Verify` 作业里按收敛闸的第二个判定 `spark_drill_relevant`
+  触发（Spark 面四文件：回退逻辑本体 / 本钉扎清单 / 演练脚本自身 / 回退桩测脚本）。
+- **本清单与演练的关系**：演练验的就是本表里 **3.5.10 行的 SHA512**能否在真实构建里通过
+  ⇒ 若日后抬回退版本，本表的 SHA512 与 Dockerfile 的 `case` 映射必须同步更新，
+  否则演练会当场判红（这正是它要抓的形态）。
+- **不覆盖的范围（显式声明）**：演练只到「解包 + 写版本文件」为止，
+  **不装 pyspark、不装 Maven JAR、不装 Iceberg**（完整镜像实测 224s 到约 27 分钟，
+  会顶穿 `Docker Build Verify` 的作业预算）。pyspark 版本取自 `/opt/spark/.version`
+  （Dockerfile 的 `PYSPARK_VER="$(cat /opt/spark/.version)"`）⇒ 那份文件正是演练断言的对象，
+  「回退后 pyspark 跟着降」由此闭合，但 pyspark 安装段本身仍只有桩测覆盖。
+- **已知盲区（必须记住）**：本机到 Docker Hub 全域不可达 ⇒ 该演练的**真 docker build
+  只能在 GitHub Actions runner 上执行**，本机只能跑 `--self-test` 与 `--dry-run`。
+
 ## Maven Central JAR（SHA1，构建期 `sha1sum -c`）
 
 | 文件 | 版本 | 钉扎 SHA1 | 校验和来源 URL（repo1.maven.org 官方） | Dockerfile ARG |

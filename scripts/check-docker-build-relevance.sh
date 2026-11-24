@@ -55,6 +55,20 @@
 #   stdout  —— 人读的诊断（改动文件清单 + 判定 + 理由）
 #   $GITHUB_OUTPUT —— 若已设置则写 `docker_relevant=true|false`
 #                    （true = 必须重建，false = 本波可跳过重建）
+#                    与 `spark_drill_relevant=true|false`
+#                    （Spark 主版本失效回退演练是否要跑；判据面**独立于**上面的构建面）
+#
+# 2026-11-24（台账 #112 续）：新增第二个输出 spark_drill_relevant。
+# 为什么要有第二个：回退演练（scripts/test-spark-fallback-drill.sh）只关心 **Spark 面**，
+#   而「镜像构建面」的口径是 `^platform/` ⇒ 改任何一个别的 Dockerfile 都会把它算进去。
+#   两个口径混用会让演练在无关 PR 上白跑几分钟；反之只认 Spark 面又可能漏掉
+#   「改了演练脚本自身却没跑演练」的情形。故并列给出两个判定，各取所需。
+#   演练面口径（改动下列任一文件 ⇒ 本波要跑回退演练）：
+#     platform/batch-pipeline/docker/spark-cluster/Dockerfile  —— 回退逻辑本体
+#     platform/batch-pipeline/docker/spark-cluster/CHECKSUMS.md —— 钉扎清单（版本/校验和）
+#     scripts/test-spark-fallback-drill.sh                        —— 演练脚本自身
+#     scripts/test-spark-download-budget.sh                       —— 回退逻辑的桩测
+#   取数失败仍一律 fail-closed（两个判定都倒向「要跑」）。
 set -u
 
 SELF_TEST=0
@@ -75,6 +89,42 @@ done
 # ── 判定核心（纯函数式：读清单文件，吐 RELEVANT/IRRELEVANT）────────────────────
 # 路径判据写在这里，便于 --self-test 与真跑共用同一份逻辑（避免两处漂移）。
 RELEVANT_PATTERNS='^platform/|^pom\.xml$|^scripts/build-retry\.sh$|^scripts/pick-base-registry\.sh$|^scripts/check-pinned-downloads\.sh$|^scripts/check-docker-build-relevance\.sh$|^\.github/workflows/ci\.yml$'
+
+# Spark 回退演练面（2026-11-24 新增，与上面的构建面**并列而非包含**）。
+# 口径窄且具体：只有改到回退逻辑本体、钉扎清单、演练脚本自身、回退桩测这四类文件，
+# 本波才需要重跑「强制主版本失效 ⇒ 回退到 3.5.10」的端到端演练。
+SPARK_DRILL_PATTERNS='^platform/batch-pipeline/docker/spark-cluster/Dockerfile$|^platform/batch-pipeline/docker/spark-cluster/CHECKSUMS\.md$|^scripts/test-spark-fallback-drill\.sh$|^scripts/test-spark-download-budget\.sh$'
+
+# 判定「本波是否触及 Spark 回退演练面」——与 judge() 同构（同样 fail-closed）。
+judge_spark() {  # judge_spark <路径清单文件>
+  local list="$1"
+  if [ ! -f "${list}" ]; then
+    echo "RELEVANT"
+    echo "改动文件清单不存在（${list}），无法判定 ⇒ fail-closed 判为需要演练"
+    return 0
+  fi
+  local hit=""
+  local line
+  local count=0
+  while IFS= read -r line; do
+    [ -n "${line}" ] || continue
+    count=$((count + 1))
+    if printf '%s' "${line}" | grep -qE "${SPARK_DRILL_PATTERNS}"; then
+      hit="${line}"
+      break
+    fi
+  done < "${list}"
+  if [ -n "${hit}" ]; then
+    echo "RELEVANT"
+    echo "命中 Spark 回退演练面文件：${hit}"
+  elif [ "${count}" -eq 0 ]; then
+    echo "RELEVANT"
+    echo "改动文件清单为空，无法判定 ⇒ fail-closed 判为需要演练"
+  else
+    echo "IRRELEVANT"
+    echo "已扫描 ${count} 个改动文件，均不触及 Spark 回退演练面"
+  fi
+}
 
 judge() {  # judge <路径清单文件>；结果写 stdout
   local list="$1"
@@ -110,11 +160,16 @@ judge() {  # judge <路径清单文件>；结果写 stdout
 }
 
 # 把判定写进 $GITHUB_OUTPUT（供 GitHub Actions 的 step output 消费）。
-emit_verdict() {  # emit_verdict <true|false>
+# 两个输出并列：docker_relevant（镜像构建面）与 spark_drill_relevant（Spark 回退演练面）。
+# 第二个参数缺省时与第一个相同（保持旧调用点语义不变）。
+emit_verdict() {  # emit_verdict <true|false> [spark true|false]
   local v="$1"
+  local sv="${2:-$1}"
   echo "DOCKER_RELEVANT=${v}"
+  echo "SPARK_DRILL_RELEVANT=${sv}"
   if [ -n "${GITHUB_OUTPUT:-}" ]; then
     echo "docker_relevant=${v}" >> "${GITHUB_OUTPUT}"
+    echo "spark_drill_relevant=${sv}" >> "${GITHUB_OUTPUT}"
   fi
 }
 
@@ -250,6 +305,22 @@ run_self_test() {
 
   echo "-- fail-closed：取数失败 / 清单为空必须倒向重建 --"
   check "空清单判为 RELEVANT（不是 IRRELEVANT）" "RELEVANT" "$(judge "${tmp}/empty.txt" | head -1)"
+
+  echo "-- Spark 回退演练面判定（与构建面并列的第二判定）--"
+  printf '%s\n' 'platform/batch-pipeline/docker/spark-cluster/Dockerfile' > "${tmp}/spark_df.txt"
+  printf '%s\n' 'platform/batch-pipeline/docker/spark-cluster/CHECKSUMS.md' > "${tmp}/spark_sums.txt"
+  printf '%s\n' 'scripts/test-spark-fallback-drill.sh' > "${tmp}/spark_drill.txt"
+  printf '%s\n' 'scripts/test-spark-download-budget.sh' > "${tmp}/spark_budget.txt"
+  printf '%s\n' 'platform/catalog/Dockerfile' > "${tmp}/other_df.txt"
+  check "Spark Dockerfile 改动 ⇒ 要跑演练" "RELEVANT" "$(judge_spark "${tmp}/spark_df.txt" | head -1)"
+  check "Spark 钉扎清单改动 ⇒ 要跑演练" "RELEVANT" "$(judge_spark "${tmp}/spark_sums.txt" | head -1)"
+  check "演练脚本自身改动 ⇒ 要跑演练" "RELEVANT" "$(judge_spark "${tmp}/spark_drill.txt" | head -1)"
+  check "回退桩测脚本改动 ⇒ 要跑演练" "RELEVANT" "$(judge_spark "${tmp}/spark_budget.txt" | head -1)"
+  check "别的 Dockerfile 改动 ⇒ 不跑演练（构建面口径是 ^platform/，此处只认 Spark 面）" "IRRELEVANT" "$(judge_spark "${tmp}/other_df.txt" | head -1)"
+  check "纯 docs 改动 ⇒ 不跑演练" "IRRELEVANT" "$(judge_spark "${tmp}/docs.txt" | head -1)"
+  check "演练面：空清单必须 fail-closed 判为要跑" "RELEVANT" "$(judge_spark "${tmp}/empty.txt" | head -1)"
+  printf '%s\n' 'platform/batch-pipeline/docker/spark-cluster/Dockerfile.bak' > "${tmp}/spark_backup.txt"
+  check "演练面：Dockerfile.bak 不等于 Dockerfile" "IRRELEVANT" "$(judge_spark "${tmp}/spark_backup.txt" | head -1)"
   local rc=0
   ( PR_NUMBER="" GITHUB_REPOSITORY="" GITHUB_REF="" fetch_via_api "${tmp}/api.txt" ) >/dev/null 2>&1 || rc=$?
   check "API 取数失败时返回非 0" "2" "${rc}"
@@ -257,16 +328,27 @@ run_self_test() {
   ( PR_NUMBER="" GITHUB_REPOSITORY="" GITHUB_REF="refs/heads/main" fetch_via_api "${tmp}/api2.txt" ) >/dev/null 2>&1 || rc=$?
   check "非 PR 触发面取数失败时返回非 0" "2" "${rc}"
 
-  echo "-- 输出协议：GITHUB_OUTPUT 文件必须写出 docker_relevant --"
+  echo "-- 输出协议：GITHUB_OUTPUT 文件必须写出 docker_relevant 与 spark_drill_relevant --"
+  # 注意（2026-11-24 加性修改）：本文件现在写**两行**（两个并列判定），
+  # 故原先「整份文件 == 单行 docker_relevant=false」的断言在结构上已不可能成立
+  # ⇒ 改为逐行断言（+ 行数断言）。既有断言的**语义**（docker_relevant 必须被写出、
+  # 且只写一行）逐字保留，不放宽。
   local out_file="${tmp}/gh_output"
   : > "${out_file}"
   GITHUB_OUTPUT="${out_file}" emit_verdict false >/dev/null
-  check "写出 docker_relevant=false" "docker_relevant=false" "$(cat "${out_file}")"
+  check "写出 docker_relevant=false" "docker_relevant=false" "$(grep -m1 '^docker_relevant=' "${out_file}" | tr -d ' ')"
   check "docker_relevant=false 只写一行" "1" "$(grep -c '^docker_relevant=false$' "${out_file}" | tr -d ' ')"
+  check "写出 spark_drill_relevant=false（缺省随第一个）" "spark_drill_relevant=false" "$(grep -m1 '^spark_drill_relevant=' "${out_file}" | tr -d ' ')"
+  check "spark_drill_relevant=false 只写一行" "1" "$(grep -c '^spark_drill_relevant=false$' "${out_file}" | tr -d ' ')"
+  check "GITHUB_OUTPUT 共写两行" "2" "$(grep -c '.' "${out_file}" | tr -d ' ')"
   : > "${out_file}"
   GITHUB_OUTPUT="${out_file}" emit_verdict true >/dev/null
-  check "写出 docker_relevant=true" "docker_relevant=true" "$(cat "${out_file}")"
+  check "写出 docker_relevant=true" "docker_relevant=true" "$(grep -m1 '^docker_relevant=' "${out_file}" | tr -d ' ')"
   check "docker_relevant=true 只写一行" "1" "$(grep -c '^docker_relevant=true$' "${out_file}" | tr -d ' ')"
+  : > "${out_file}"
+  GITHUB_OUTPUT="${out_file}" emit_verdict false true >/dev/null
+  check "两个判定可分别给出（第一个 false）" "docker_relevant=false" "$(grep -m1 '^docker_relevant=' "${out_file}" | tr -d ' ')"
+  check "两个判定可分别给出（第二个 true）" "spark_drill_relevant=true" "$(grep -m1 '^spark_drill_relevant=' "${out_file}" | tr -d ' ')"
 
   echo "-- ci.yml 接线断言（防「会永久阻塞 PR」的接线回归）--"
   local repo_root ci_file
@@ -293,6 +375,14 @@ run_self_test() {
     check "镜像重建循环仍由 docker_skip 门控" "1" "$(grep -c "if: env.docker_skip != 'true'" "${ci_file}" || true)"
     # ⑤ 本脚本的离线自测挂在 bash-check 作业上
     check "bash-check 作业挂了本脚本的自测步骤" "1" "$(grep -c 'check-docker-build-relevance\.sh --self-test' "${ci_file}" || true)"
+    # ⑥ Spark 回退演练面（2026-11-24 新增）：第二个判定必须被 CI 消费，
+    #    否则「改了回退逻辑却没人跑演练」会静默发生 ⇒ 接线断了必须判红。
+    #    口径：**只数真正的调用点**，排除注释行（注释里也会提到脚本名）。
+    #    「真的调用」= 行内不是注释（不以 # 开头）。
+    check "CI 消费了 spark_drill_relevant 判定" "1" "$(grep -v '^[[:space:]]*#' "${ci_file}" | grep -c 'steps\.relevance\.outputs\.spark_drill_relevant' || true)"
+    check "CI 里有回退演练步骤（真跑，不含 --self-test）" "1" "$(grep -v '^[[:space:]]*#' "${ci_file}" | grep 'scripts/test-spark-fallback-drill\.sh' | grep -vc -- '--self-test' || true)"
+    # ⑦ 演练脚本的离线自测也必须挂在 bash-check 上（自测与真跑都要在 CI 里）
+    check "bash-check 作业挂了演练脚本的自测步骤" "1" "$(grep -c 'test-spark-fallback-drill\.sh --self-test' "${ci_file}" || true)"
   fi
 
   echo
@@ -325,7 +415,8 @@ fi
 if [ "${FAIL_CLOSED}" = "1" ]; then
   echo "== 取数失败 ⇒ FAIL_CLOSED =="
   echo "== 判定：RELEVANT（必须重建，不静默跳过镜像验证）=="
-  emit_verdict true
+  # 两个判定都 fail-closed（取数失败 ⇒ 两个面都要跑）
+  emit_verdict true true
   exit 0
 fi
 
@@ -337,13 +428,25 @@ VERDICT="$(printf '%s' "${RESULT}" | head -1)"
 echo "== 判定：${VERDICT} =="
 printf '%s\n' "${RESULT}" | tail -n +2
 
+SPARK_RESULT="$(judge_spark "${TMP_LIST}")"
+SPARK_VERDICT="$(printf '%s' "${SPARK_RESULT}" | head -1)"
+echo "== Spark 回退演练面判定：${SPARK_VERDICT} =="
+printf '%s\n' "${SPARK_RESULT}" | tail -n +2
+
+# 两个判定互不隶属：构建面不相关 ≠ 演练面也不相关（演练面口径窄得多）。
+# 收敛闸只跳过「44 个镜像重建」，**不**跳过回退演练 —— 演练由 CI 里另一个 step
+# 按 spark_drill_relevant 决定，与 docker_skip 是两条独立的闸。
 if [ "${VERDICT}" = "IRRELEVANT" ]; then
-  emit_verdict false
+  SPARK_FLAG="false"
+  [ "${SPARK_VERDICT}" = "RELEVANT" ] && SPARK_FLAG="true"
+  emit_verdict false "${SPARK_FLAG}"
   echo ">> 改动不触及镜像构建面 ⇒ 本波跳过 44 个镜像重建"
   echo ">> 说明：这不是「验证通过」，而是「本波未验证镜像构建」；镜像面证据需回溯到最近一次真正执行过该构建的波次"
   exit 0
 fi
 
-emit_verdict true
+SPARK_FLAG="false"
+[ "${SPARK_VERDICT}" = "RELEVANT" ] && SPARK_FLAG="true"
+emit_verdict true "${SPARK_FLAG}"
 echo ">> 改动触及镜像构建面 ⇒ 必须全量重建"
 exit 0

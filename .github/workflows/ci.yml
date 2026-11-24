@@ -503,6 +503,13 @@ jobs:
       - name: 自测 pyspark 取数段墙钟上限（test-pyspark-install-budget）
         run: bash scripts/test-pyspark-install-budget.sh
 
+      # 台账 #112 续：Spark 主版本失效回退演练脚本的离线自测。
+      # 该脚本在 CI 里做**真 docker build**（端到端验证回退路径），
+      # 自测则只验「截断逻辑 + 断言逻辑」：不碰 docker、不碰网络，成本可忽略。
+      # 真跑挂在 `Docker Build Verify` 作业里（按 spark_drill_relevant 触发）。
+      - name: 自测 Spark 主版本失效回退演练脚本（test-spark-fallback-drill）
+        run: bash scripts/test-spark-fallback-drill.sh --self-test
+
       # 触发面收敛判据的离线自测。
       # 该判据决定「本波要不要重建 44 个镜像」⇒ 判错的代价不对称（误判「不相关」会让
       # 镜像验证静默消失）⇒ 必须有离线自测把判据钉死，且自测不碰网络不调 docker。
@@ -2337,7 +2344,18 @@ jobs:
     # 变成「本文件早失败并给出每源状态」，但**成功轮次的时长不变**（47m34s 仍实测下界），
     # 所以稳态余量问题只能靠抬上限解决：75 分钟 ⇒ 47m34s 占 63%（约 1.58× 余量），
     # 且容得下 ≈69 分钟的最坏形态（约 6 分钟余量）。
-    timeout-minutes: 75
+    # 2026-11-24（台账 #112 续）：75 → 90。
+    # 依据①（本轮新增步骤的成本，实测）：新增的「Spark 回退演练」步骤只做一次
+    #   **截断后**的镜像构建（只含取数 + 供应链校验 + 解包，不含 pyspark / Maven /
+    #   Iceberg 段）⇒ **实测墙钟 63 秒**（PR #873 那轮 CI run 45415800704 的
+    #   `Docker Build Verify` job 138521523958，step 9：15:12:32Z 起 → 15:13:36Z 止），
+    #   不是整镜像的 27 分钟。
+    # 依据②（与既有步骤的关系）：演练与下面「逐个 docker build」共用同一份 BuildKit
+    #   缓存（同一 FROM、同一基础层逐字相同）⇒ 演练的基础层命中缓存，
+    #   只付「回退版本取数 + SHA512 校验 + 解包」这一段的代价。
+    # 依据③（最坏形态，沿用上面 ≈69 分钟的推算 + 演练实测 63 秒）⇒ 抬到 90 分钟后
+    #   稳态 47m34s 仍有约 1.9× 余量，最坏形态 ≈69 分钟 + 演练 63 秒也在预算内。
+    timeout-minutes: 90
     # 仅在 PR 到 main 时执行，push 时不执行以节省资源
     if: github.event_name == 'pull_request'
     steps:
@@ -2432,6 +2450,12 @@ jobs:
       # 判定脚本（scripts/check-docker-build-relevance.sh）取数失败一律 fail-closed
       # （倒向「重建」）：两种误判代价不对称——误判「不相关」会让镜像构建**根本不再执行**
       # （静默失去验证），误判「相关」只是多花一次构建时间。
+      #
+      # 2026-11-24（台账 #112 续）：本步骤除 docker_relevant 外**还产出第二个判定**
+      # spark_drill_relevant（Spark 回退演练面，口径更窄：只认回退逻辑本体、钉扎清单、
+      # 演练脚本自身、回退桩测这四类文件）⇒ 供下面的「回退演练」步骤独立消费。
+      # 两个判定并列而非包含：构建面口径是 ^platform/ ⇒ 改任何一个别的 Dockerfile 都会命中；
+      # 而演练只关心 Spark 面 ⇒ 混用会让演练在无关 PR 上白跑几分钟。
       - name: 判定改动是否触及镜像构建面（触发面收敛）
         if: steps.converge.outputs.converge != 'true'
         id: relevance
@@ -2439,6 +2463,36 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/check-docker-build-relevance.sh --api
+
+      # Spark 主版本失效回退演练（台账 #112 续，本轮落地）
+      #
+      # 要证明的事：**主版本真的取不到时，构建能不能回退到回退版本（3.5.10）并完成安装。**
+      # 为什么以前没有这条证据：回退分支自设计以来**从未在真实构建里跑过**（主版本一直可取），
+      # 于是「回退版本的钉扎 SHA512 是否还能过」「装出来的 Spark 是不是真是 3.5.10」
+      # 都是**未验证假设**。2026-11-24 的回退版抬版（3.5.9→3.5.10）只验了**预检可达性**
+      # （Range GET 206），没验过「构建期真的回退并装成功」。
+      #
+      # 做法（scripts/test-spark-fallback-drill.sh）：
+      #   从 spark-cluster/Dockerfile **按内容锚点截断**出「取数 + 供应链校验 + 解包」段
+      #   （锚点 = 写入 /opt/spark/.version 的那一行，是那段 RUN 的末行 ⇒ 不依赖行号），
+      #   用 --build-arg SPARK_FORCE_FALLBACK=1 构建它 ⇒ Dockerfile 里的取数段**真的**
+      #   跳过主版本、走回退版本这条路径；再断言日志与镜像内容。
+      #   为什么用 ARG 而不是「把主版本指向别处」：后者会与 SHA512 清单 / 清单↔Dockerfile
+      #   一致性自检冲突；为什么不用「复刻一份 Dockerfile」：复刻就不是在验真身了。
+      #
+      # 触发面：用收敛闸的**第二个**判定 spark_drill_relevant（Spark 面四文件），
+      #   不复用 docker_relevant（它的口径是 ^platform/ ⇒ 改任何别的 Dockerfile 都会命中，
+      #   混用会让演练在无关 PR 上白跑几分钟）。
+      #   收敛闸已产出该输出 ⇒ 本步骤直接消费，不新增取数。
+      #
+      # 成本：只构建截断后的一段（取数 + 校验 + 解包），不含 pyspark / Maven / Iceberg 段
+      #   ⇒ **实测墙钟 63 秒**（PR #873 那轮 CI run 45415800704，job 138521523958 step 9：
+      #   15:12:32Z 起 → 15:13:36Z 止）；且与下面的全量构建共用 BuildKit 基础层缓存。
+      #   明确**不走** scripts/build-retry.sh：演练要的是「一次构建里的确定性路径」，
+      #   换源重跑会把失败掩盖成「重跑就好了」，与本用例要证明的东西相反。
+      - name: Spark 主版本失效回退演练（强制主版本失效 ⇒ 回退 3.5.10 ⇒ 取数与安装完成）
+        if: steps.relevance.outputs.spark_drill_relevant == 'true' && steps.converge.outputs.converge != 'true'
+        run: bash scripts/test-spark-fallback-drill.sh
 
       - name: 发现并遍历所有含 Dockerfile 的组件
         if: steps.converge.outputs.converge != 'true'
