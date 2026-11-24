@@ -16,8 +16,8 @@ import os
 import threading
 import uuid
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from llmops.api.app import create_app
 from llmops.config.settings import Settings
@@ -54,6 +54,7 @@ def test_crud_and_merge_semantics_match_memory_contract() -> None:
 
         # 微调视图：字段级合并，不丢旧字段
         v1 = store.upsert_finetune(tenant, "task-1", {"modelName": "ft", "status": "QUEUED", "progress": 0})
+        assert v1["status"] == "QUEUED" and v1["progress"] == 0
         v2 = store.upsert_finetune(tenant, "task-1", {"status": "RUNNING", "progress": 42})
         assert v2["progress"] == 42 and v2["status"] == "RUNNING"
         assert v2["modelName"] == "ft"  # 旧字段保留

@@ -23,8 +23,6 @@ import threading
 from typing import Any, Optional
 import uuid
 
-from llmops.config.settings import Settings
-
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -132,16 +130,3 @@ class FrontendContractStore:
                     svc["status"] = "STOPPED" if replicas == 0 else "RUNNING"
                     return dict(svc)
         return None
-
-
-def create_frontend_store(settings: Settings) -> FrontendContractStore:
-    """按配置选择前端视图存储后端：memory（默认）/ postgresql（生产持久层）。
-
-    postgresql 模式下 DSN 缺失已在 Settings 校验器 fail-fast；这里不再静默回退内存
-    （生产持久层契约：缺配置就是缺配置，不掩盖）。
-    """
-    if settings.frontendStore == "postgresql":
-        from llmops.services.postgres_frontend_store import PostgresFrontendContractStore
-
-        return PostgresFrontendContractStore(settings.frontendDatabaseUrl)
-    return FrontendContractStore()

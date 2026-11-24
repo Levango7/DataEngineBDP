@@ -5,11 +5,12 @@
 
 from __future__ import annotations
 
-import pytest
 from pydantic import ValidationError
+import pytest
 
 from llmops.config.settings import Settings
-from llmops.services.frontend_store import FrontendContractStore, create_frontend_store
+from llmops.services.frontend_store import FrontendContractStore
+from llmops.services.frontend_store_factory import create_frontend_store
 from llmops.services.postgres_frontend_store import PostgresFrontendContractStore
 
 

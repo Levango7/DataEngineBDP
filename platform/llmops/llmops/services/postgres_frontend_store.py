@@ -40,8 +40,8 @@ def _now() -> str:
 class PostgresFrontendContractStore(FrontendContractStore):
     """FrontendContractStore 的 PostgreSQL 实现（方法契约逐字段对齐内存版）。
 
-    刻意不调用 super().__init__()：父类持有的是进程内存状态，本实现全部落库；
-    继承仅为类型兼容（工厂返回类型与路由契约不变）。
+    super().__init__() 仅初始化父类空内存结构（满足类型与静态检查契约）；
+    本实现全部读写走 PostgreSQL，父类内存结构不被使用。
     """
 
     def __init__(
@@ -52,7 +52,8 @@ class PostgresFrontendContractStore(FrontendContractStore):
         pool_max_size: int = 5,
         timeout: float = 30.0,
     ) -> None:
-        # 刻意不调用 super().__init__()：父类持有的是进程内存状态，本实现全部落库。
+        # 父类仅建空 dict 与锁（无副作用）；本实现全部落库，父类内存结构不被使用。
+        super().__init__()
         self._dsn = dsn
         self._pool = ConnectionPool(
             conninfo=dsn,
@@ -111,8 +112,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
                     "applied_at timestamptz NOT NULL DEFAULT now())"
                 )
                 conn.execute(
-                    "INSERT INTO llmops_schema_migrations (version) VALUES (%s) "
-                    "ON CONFLICT (version) DO NOTHING",
+                    "INSERT INTO llmops_schema_migrations (version) VALUES (%s) " "ON CONFLICT (version) DO NOTHING",
                     [_SCHEMA_VERSION],
                 )
                 conn.commit()
@@ -141,8 +141,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
         }
         with self._pool.connection() as conn:
             conn.execute(
-                "INSERT INTO llmops_frontend_metrics (tenant_id, entity_id, payload) "
-                "VALUES (%s, %s, %s::jsonb)",
+                "INSERT INTO llmops_frontend_metrics (tenant_id, entity_id, payload) " "VALUES (%s, %s, %s::jsonb)",
                 [tenant, metric["id"], json.dumps(metric)],
             )
             conn.commit()
@@ -158,8 +157,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT payload FROM llmops_frontend_metrics "
-                    "WHERE tenant_id = %s ORDER BY seq",
+                    "SELECT payload FROM llmops_frontend_metrics " "WHERE tenant_id = %s ORDER BY seq",
                     [tenant],
                 ).fetchall()
         return [dict(r[0]) for r in rows]
@@ -186,8 +184,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
     def list_finetunes(self, tenant: str) -> list[dict[str, Any]]:
         with self._pool.connection() as conn:
             rows = conn.execute(
-                "SELECT payload FROM llmops_frontend_finetunes "
-                "WHERE tenant_id = %s ORDER BY seq",
+                "SELECT payload FROM llmops_frontend_finetunes " "WHERE tenant_id = %s ORDER BY seq",
                 [tenant],
             ).fetchall()
         return [dict(r[0]) for r in rows]
@@ -195,8 +192,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
     def get_finetune(self, tenant: str, task_id: str) -> Optional[dict[str, Any]]:
         with self._pool.connection() as conn:
             row = conn.execute(
-                "SELECT payload FROM llmops_frontend_finetunes "
-                "WHERE tenant_id = %s AND task_id = %s",
+                "SELECT payload FROM llmops_frontend_finetunes " "WHERE tenant_id = %s AND task_id = %s",
                 [tenant, task_id],
             ).fetchone()
         return dict(row[0]) if row else None
@@ -213,8 +209,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT payload FROM llmops_frontend_inference "
-                    "WHERE tenant_id = %s ORDER BY seq",
+                    "SELECT payload FROM llmops_frontend_inference " "WHERE tenant_id = %s ORDER BY seq",
                     [tenant],
                 ).fetchall()
         return [dict(r[0]) for r in rows]
@@ -236,8 +231,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
         }
         with self._pool.connection() as conn:
             conn.execute(
-                "INSERT INTO llmops_frontend_inference (tenant_id, entity_id, payload) "
-                "VALUES (%s, %s, %s::jsonb)",
+                "INSERT INTO llmops_frontend_inference (tenant_id, entity_id, payload) " "VALUES (%s, %s, %s::jsonb)",
                 [tenant, svc_id, json.dumps(svc)],
             )
             conn.commit()
@@ -261,9 +255,7 @@ class PostgresFrontendContractStore(FrontendContractStore):
             },
         )
 
-    def _merge_inference(
-        self, tenant: str, service_id: str, patch: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    def _merge_inference(self, tenant: str, service_id: str, patch: dict[str, Any]) -> Optional[dict[str, Any]]:
         """单条原子 UPDATE：并发 scale/stop 串行化，不丢字段、不出现半更新状态。"""
         with self._pool.connection() as conn:
             row = conn.execute(

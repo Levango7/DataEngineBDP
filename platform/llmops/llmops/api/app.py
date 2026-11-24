@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 import os
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import Depends, FastAPI
@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from llmops.api.jwt_auth import getAuthContext
 from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
-from llmops.services.frontend_store import create_frontend_store
+from llmops.services.frontend_store_factory import create_frontend_store
 from llmops.services.registry import ServiceRegistry, build_services
 
 logger = logging.getLogger(__name__)
