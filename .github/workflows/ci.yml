@@ -1785,12 +1785,37 @@ jobs:
   # ============================================================
   # Python 测试：Python 3.11
   # 遍历 platform/ 下所有含 pytest.ini 或 pyproject.toml(含 pytest 配置) 的子目录
-  # 逐个执行 python -m pytest（运行单元测试，使用Mock模式，无需外部服务），上传测试报告
+  # 逐个执行 python -m pytest（单元测试以 Mock 模式为主；llmops 例外——
+  # 前端视图 PG 持久化集成测试由本 job 的 postgres:16 service 承载，见下），上传测试报告
   # ============================================================
   python-test:
     name: Python Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # llmops 前端视图生产持久层（台账 #135）：集成测试必须连真实 PostgreSQL
+    # （tests/test_postgres_frontend_store.py 由 LLMOPS_TEST_POSTGRES_URL 门控）。
+    # 此前 CI 无 PG ⇒ 整文件 skip ⇒ 新增实现/测试代码零执行，组件覆盖率 TOTAL
+    # 跌破基线（94% → 89%）触发 >2% 趋势阻断。故在本 job 起真 PG service：
+    # 集成测试在 CI 真跑（A3 真 PG 验证由本机泳道升级为 CI 常驻门禁），
+    # 其余组件不读该 env、不受影响。坐标与形态沿用仓内已验证先例
+    # it-realtime-lane.yml 的 postgres:16 service（runner 可拉）。
+    # 口令为 CI 一次性临时容器专用（非生产凭据，与先例 bdp_lane 同形态）。
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: llmops_test
+          POSTGRES_PASSWORD: llmops_test
+          POSTGRES_DB: llmops_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U llmops_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      LLMOPS_TEST_POSTGRES_URL: postgresql://llmops_test:llmops_test@127.0.0.1:5433/llmops_test
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
