@@ -15,9 +15,12 @@ encaps-layer 可退化为转发。
 - POST `/llmops/inference-services`            → 部署推理服务（#133，契约级状态机）
 - DELETE `/llmops/inference-services/{id}`     → 停止推理服务（#133）
 - POST `/llmops/inference-services/{id}/scale` → 扩缩容（#133）
+- POST `/llmops/inference-services/{id}/invoke` → 调用推理（B 线真编排转发；
+  contract 模式诚实 501，kubernetes 模式转发集群内运行时）
 
 模型注册表复用 `registry.modelService`；评估指标/微调视图/推理服务存于
 `FrontendContractStore`（见 llmops/services/frontend_store.py）。
+推理编排经 `inference_orchestrator`（contract 契约级 / kubernetes 真集群）。
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from llmops.api.jwt_auth import AuthContext, getAuthContext
 from llmops.api.routers.deps import get_registry
 from llmops.models.model import ModelFilter, ModelInfo, ModelStatus, ModelType
+from llmops.services.inference_orchestrator import OrchestratorError
 from llmops.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/llmops", tags=["llmops-frontend"])
@@ -42,6 +46,13 @@ def _store(request: Request):
         # 不再隐式创建内存 store：缺配置即 503，生产不允许静默回退内存。
         raise HTTPException(status_code=503, detail="frontend store not configured")
     return st
+
+
+def _orchestrator(request: Request):
+    orch = getattr(request.app.state, "inference_orchestrator", None)
+    if orch is None:
+        raise HTTPException(status_code=503, detail="inference orchestrator not configured")
+    return orch
 
 
 def _now() -> str:
@@ -239,7 +250,10 @@ async def frontend_deploy_inference_service(
 ) -> dict:
     if not (payload.get("modelName") or "").strip():
         raise HTTPException(status_code=422, detail="modelName required")
-    return _store(request).deploy_inference(ctx.tenantId, payload)
+    try:
+        return _orchestrator(request).deploy(ctx.tenantId, payload)
+    except OrchestratorError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
 
 
 @router.delete("/inference-services/{service_id}")
@@ -248,7 +262,10 @@ async def frontend_stop_inference_service(
     service_id: str,
     ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
-    svc = _store(request).stop_inference(ctx.tenantId, service_id)
+    try:
+        svc = _orchestrator(request).stop(ctx.tenantId, service_id)
+    except OrchestratorError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
     if svc is None:
         raise HTTPException(status_code=404, detail="inference service not found")
     return svc
@@ -264,7 +281,27 @@ async def frontend_scale_inference_service(
     replicas = payload.get("replicas")
     if not isinstance(replicas, int) or replicas < 0:
         raise HTTPException(status_code=422, detail="replicas must be a non-negative integer")
-    svc = _store(request).scale_inference(ctx.tenantId, service_id, replicas)
+    try:
+        svc = _orchestrator(request).scale(ctx.tenantId, service_id, replicas)
+    except OrchestratorError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
     if svc is None:
         raise HTTPException(status_code=404, detail="inference service not found")
     return svc
+
+
+@router.post("/inference-services/{service_id}/invoke")
+async def frontend_invoke_inference_service(
+    request: Request,
+    service_id: str,
+    payload: dict,
+    ctx: AuthContext = Depends(getAuthContext),
+) -> dict:
+    """调用推理（B 线）：kubernetes 模式转发集群内运行时；contract 模式诚实 501."""
+    try:
+        result = await _orchestrator(request).invoke(ctx.tenantId, service_id, payload)
+    except OrchestratorError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc))
+    if result is None:
+        raise HTTPException(status_code=404, detail="inference service not found")
+    return result

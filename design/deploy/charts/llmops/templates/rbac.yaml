@@ -1,0 +1,47 @@
+{{- if .Values.inference.rbac.create }}
+# B 线真推理编排：llmops 需要在目标命名空间管理推理 Deployment/Service。
+# 权限收敛在 inference.namespace 一个命名空间内（Role 而非 ClusterRole）。
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "llmops.fullname" . }}
+  labels:
+    {{- include "llmops.labels" . | nindent 4 }}
+---
+{{- if .Values.inference.namespaceCreate }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.inference.namespace }}
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "llmops.fullname" . }}-inference
+  namespace: {{ .Values.inference.namespace }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "llmops.fullname" . }}-inference
+  namespace: {{ .Values.inference.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "llmops.fullname" . }}-inference
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "llmops.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

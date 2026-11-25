@@ -122,6 +122,21 @@ frontend:
 # ---- 运行环境（production 时 Settings 强制 frontendStore=postgresql，否则启动 fail-fast）----
 environment: production
 
+# ---- 推理编排（B 线：production 禁止契约级假编排，必须真集群）----
+# orchestrator=kubernetes 时由本 chart 创建 ServiceAccount 与目标命名空间最小权限 Role；
+# 推理运行时镜像为生产必填（运行时契约=llama.cpp server：/completion 推理、/health 探针）；
+# 模型 URL 与 DSN 同一 Secret（frontend.existingSecretName 的 modelUrlKey 键），不进 values 明文。
+inference:
+  orchestrator: kubernetes
+  namespace: llmops-inference
+  namespaceCreate: true
+  image: "ghcr.io/ggml-org/llama.cpp:server"
+  initImage: "curlimages/curl:8.11.1"
+  syncIntervalSec: 15
+  modelUrlKey: model-url
+  rbac:
+    create: true
+
 config:
   application.conf: |
     # llmops 默认配置，完整配置请引用 design/deploy/values/llmops-values.yaml

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 import logging
 import os
 from typing import Optional
@@ -14,6 +15,7 @@ from llmops.api.jwt_auth import getAuthContext
 from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.frontend_store_factory import create_frontend_store
+from llmops.services.inference_orchestrator import create_inference_orchestrator
 from llmops.services.registry import ServiceRegistry, build_services
 
 logger = logging.getLogger(__name__)
@@ -35,12 +37,34 @@ def _corsOrigins() -> list[str]:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
-    """应用生命周期：退出时释放前端视图存储连接池（memory 实现无 close 则跳过）."""
-    yield
-    store = getattr(app.state, "frontend_store", None)
-    close = getattr(store, "close", None)
-    if callable(close):
-        close()
+    """应用生命周期：周期对账推理服务集群实况；退出时停对账并释放存储连接池."""
+    orch = getattr(app.state, "inference_orchestrator", None)
+    interval = getattr(app.state.settings, "inferenceSyncIntervalSec", 15)
+    task: Optional[asyncio.Task] = None
+
+    if orch is not None and interval > 0:
+
+        async def _reconcile_loop() -> None:
+            while True:
+                await asyncio.sleep(interval)
+                try:
+                    # 同步 K8s list 调用放到线程池，避免阻塞事件循环
+                    await asyncio.to_thread(orch.reconcile)
+                except Exception:  # noqa: BLE001
+                    logger.exception("推理服务集群实况对账异常（下轮重试）")
+
+        task = asyncio.create_task(_reconcile_loop())
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+        store = getattr(app.state, "frontend_store", None)
+        close = getattr(store, "close", None)
+        if callable(close):
+            close()
 
 
 def create_app(
@@ -83,6 +107,8 @@ def create_app(
     app.state.registry = registry
     # 前端视图存储：memory（默认）/ postgresql（生产持久层，DSN 缺失已在 Settings fail-fast）
     app.state.frontend_store = create_frontend_store(settings)
+    # 推理编排：contract（默认）/ kubernetes（生产强制，K8s 不可达初始化即 fail-fast）
+    app.state.inference_orchestrator = create_inference_orchestrator(settings, app.state.frontend_store)
 
     # CORS：仅当显式配置白名单时挂载（fail-closed，避免与网关 cors 插件双重设置）
     origins = _corsOrigins()

@@ -17,6 +17,9 @@ spec:
         # ConfigMap 变更时滚动重启
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.inference.rbac.create }}
+      serviceAccountName: {{ include "llmops.fullname" . }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -76,6 +79,24 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.frontend.existingSecretName | quote }}
                   key: {{ .Values.frontend.databaseUrlKey | quote }}
+            {{- end }}
+            # 推理编排（B 线）：production 禁止契约级假编排；模型 URL 与 DSN 同一 Secret。
+            - name: LLMOPS_INFERENCE_ORCHESTRATOR
+              value: {{ .Values.inference.orchestrator | default "contract" | quote }}
+            - name: LLMOPS_INFERENCE_NAMESPACE
+              value: {{ .Values.inference.namespace | default "llmops-inference" | quote }}
+            - name: LLMOPS_INFERENCE_IMAGE
+              value: {{ .Values.inference.image | quote }}
+            - name: LLMOPS_INFERENCE_INIT_IMAGE
+              value: {{ .Values.inference.initImage | default "curlimages/curl:8.11.1" | quote }}
+            - name: LLMOPS_INFERENCE_SYNC_INTERVAL_SEC
+              value: {{ .Values.inference.syncIntervalSec | default 15 | quote }}
+            {{- if eq (.Values.inference.orchestrator | default "contract") "kubernetes" }}
+            - name: LLMOPS_INFERENCE_MODEL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.frontend.existingSecretName | quote }}
+                  key: {{ .Values.inference.modelUrlKey | default "model-url" | quote }}
             {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
