@@ -25,6 +25,10 @@ def test_production_requires_postgresql_frontend_store() -> None:
         frontendStore="postgresql",
         frontendDatabaseUrl="postgresql://llmops_test@localhost:5432/llmops_test",
         environment="production",
+        # B 线：production 另需真编排（禁止契约级假编排）
+        inferenceOrchestrator="kubernetes",
+        inferenceImage="ghcr.io/ggml-org/llama.cpp:server",
+        inferenceModelUrl="https://example.invalid/model.gguf",
     )
     assert s.environment == "production"
     assert s.frontendStore == "postgresql"
@@ -47,6 +51,9 @@ def test_env_vars_are_honored(monkeypatch) -> None:
     monkeypatch.setenv("LLMOPS_FRONTEND_STORE", "postgresql")
     monkeypatch.setenv("LLMOPS_FRONTEND_DATABASE_URL", "postgresql://llmops_test@localhost:5432/llmops_test")
     monkeypatch.setenv("LLMOPS_ENV", "production")
+    monkeypatch.setenv("LLMOPS_INFERENCE_ORCHESTRATOR", "kubernetes")
+    monkeypatch.setenv("LLMOPS_INFERENCE_IMAGE", "ghcr.io/ggml-org/llama.cpp:server")
+    monkeypatch.setenv("LLMOPS_INFERENCE_MODEL_URL", "https://example.invalid/model.gguf")
     monkeypatch.delenv("AI_MODE", raising=False)
     s = Settings()
     assert s.frontendStore == "postgresql"

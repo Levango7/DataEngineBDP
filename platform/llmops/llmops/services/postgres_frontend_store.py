@@ -214,7 +214,15 @@ class PostgresFrontendContractStore(FrontendContractStore):
                 ).fetchall()
         return [dict(r[0]) for r in rows]
 
-    def deploy_inference(self, tenant: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def list_inference_all(self) -> list[dict[str, Any]]:
+        """全租户推理服务视图（reconcile 对账用；每条附 tenantId 便于回写，非前端形状）."""
+        with self._pool.connection() as conn:
+            rows = conn.execute("SELECT tenant_id, payload FROM llmops_frontend_inference ORDER BY seq").fetchall()
+        return [{**dict(r[1]), "tenantId": r[0]} for r in rows]
+
+    def deploy_inference(
+        self, tenant: str, payload: dict[str, Any], *, initial_status: str = "RUNNING"
+    ) -> dict[str, Any]:
         model_name = (payload.get("modelName") or "").strip()
         replicas = payload.get("replicas") or 1
         svc_id = str(uuid.uuid4())
@@ -223,7 +231,8 @@ class PostgresFrontendContractStore(FrontendContractStore):
             "serviceName": (payload.get("serviceName") or model_name).strip() or model_name,
             "modelName": model_name,
             "modelVersion": payload.get("version") or payload.get("modelVersion") or "1",
-            "status": "RUNNING",  # 契约级：创建即运行（与内存版一致；真编排见台账 #133/B 线）
+            # 契约级默认创建即 RUNNING；真编排由 orchestrator 传 DEPLOYING（B 线对账改写）。
+            "status": initial_status,
             "replicas": int(replicas),
             "desiredReplicas": int(replicas),
             "endpoint": f"/llmops/inference-services/{svc_id}/invoke",
@@ -236,6 +245,10 @@ class PostgresFrontendContractStore(FrontendContractStore):
             )
             conn.commit()
         return dict(svc)
+
+    def patch_inference(self, tenant: str, service_id: str, patch: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """按 service_id 合并补丁字段（orchestrator/reconcile 对账通道；单条原子 UPDATE）."""
+        return self._merge_inference(tenant, service_id, patch)
 
     def stop_inference(self, tenant: str, service_id: str) -> Optional[dict[str, Any]]:
         return self._merge_inference(

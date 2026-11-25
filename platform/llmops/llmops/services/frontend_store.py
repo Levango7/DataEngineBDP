@@ -91,8 +91,15 @@ class FrontendContractStore:
             items = [s for s in items if str(s.get("status", "")).upper() == status.upper()]
         return [dict(s) for s in items]
 
+    def list_inference_all(self) -> list[dict[str, Any]]:
+        """全租户推理服务视图（reconcile 对账用；每条附 tenantId 便于回写，非前端形状）."""
+        with self._lock:
+            return [{**svc, "tenantId": tenant} for tenant, items in self._inference.items() for svc in items]
+
     # ---------- 推理服务 CRUD（#133：llmops 承接推理域权威，契约级状态机，无真编排） ----------
-    def deploy_inference(self, tenant: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def deploy_inference(
+        self, tenant: str, payload: dict[str, Any], *, initial_status: str = "RUNNING"
+    ) -> dict[str, Any]:
         model_name = (payload.get("modelName") or "").strip()
         replicas = payload.get("replicas") or 1
         svc_id = str(uuid.uuid4())
@@ -101,7 +108,9 @@ class FrontendContractStore:
             "serviceName": (payload.get("serviceName") or model_name).strip() or model_name,
             "modelName": model_name,
             "modelVersion": payload.get("version") or payload.get("modelVersion") or "1",
-            "status": "RUNNING",  # 契约级：创建即运行（无真编排，见台账 #133）
+            # 契约级默认创建即 RUNNING（见台账 #133）；真编排由 orchestrator 传 DEPLOYING，
+            # 状态随后由集群实况对账改写（B 线）。
+            "status": initial_status,
             "replicas": int(replicas),
             "desiredReplicas": int(replicas),
             "endpoint": f"/llmops/inference-services/{svc_id}/invoke",
@@ -110,6 +119,15 @@ class FrontendContractStore:
         with self._lock:
             self._inference.setdefault(tenant, []).append(svc)
         return dict(svc)
+
+    def patch_inference(self, tenant: str, service_id: str, patch: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """按 service_id 合并补丁字段（orchestrator/reconcile 对账通道；与 PG 版同语义）."""
+        with self._lock:
+            for svc in self._inference.get(tenant, []):
+                if svc.get("id") == service_id:
+                    svc.update(patch)
+                    return dict(svc)
+        return None
 
     def stop_inference(self, tenant: str, service_id: str) -> Optional[dict[str, Any]]:
         with self._lock:

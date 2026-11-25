@@ -94,6 +94,13 @@ python -m pytest tests/ -v
 | LLMOPS_FRONTEND_STORE | memory | 前端视图存储: memory / postgresql |
 | LLMOPS_FRONTEND_DATABASE_URL | (空) | PostgreSQL DSN（postgresql 模式必填；生产经 Secret 注入） |
 | LLMOPS_ENV | development | 运行环境: development / test / production（production 禁止内存回退） |
+| LLMOPS_INFERENCE_ORCHESTRATOR | contract | 推理编排: contract / kubernetes（production 必须 kubernetes） |
+| LLMOPS_INFERENCE_NAMESPACE | llmops-inference | 推理服务命名空间 |
+| LLMOPS_INFERENCE_IMAGE | (空) | 推理运行时镜像（kubernetes 必填；运行时契约=llama.cpp server） |
+| LLMOPS_INFERENCE_INIT_IMAGE | curlimages/curl:8.11.1 | initContainer 镜像（下载模型） |
+| LLMOPS_INFERENCE_MODEL_URL | (空) | 模型 artifact URL（kubernetes 必填；仅 http/https，经 Secret 注入） |
+| LLMOPS_INFERENCE_KUBECONFIG | (空) | kubeconfig 路径（空则 in-cluster ServiceAccount） |
+| LLMOPS_INFERENCE_SYNC_INTERVAL_SEC | 15 | 集群实况对账周期秒 |
 
 ## 生产持久层（PostgreSQL）
 
@@ -112,3 +119,35 @@ python main.py
 - 表 `llmops_frontend_metrics/finetunes/inference` 以 JSONB 存储、
   `(tenant_id, entity_id|task_id)` 主键租户隔离，schema 幂等自举（咨询锁 + IF NOT EXISTS）；
 - Helm Chart 生产默认已按此注入（`design/deploy/charts/llmops`）。
+
+## 真推理编排（Kubernetes）
+
+默认 `contract` 为契约级状态机（deploy 即 RUNNING、invoke 诚实 501，仅开发/测试）。
+生产必须真集群编排：
+
+```bash
+LLMOPS_ENV=production \
+LLMOPS_FRONTEND_STORE=postgresql \
+LLMOPS_FRONTEND_DATABASE_URL="postgresql://user:pass@pg-host:5432/llmops" \
+LLMOPS_INFERENCE_ORCHESTRATOR=kubernetes \
+LLMOPS_INFERENCE_IMAGE="ghcr.io/ggml-org/llama.cpp:server" \
+LLMOPS_INFERENCE_MODEL_URL="https://<模型仓>/model.gguf" \
+python main.py
+```
+
+- `LLMOPS_ENV=production` 且 `LLMOPS_INFERENCE_ORCHESTRATOR != kubernetes` 时**启动即失败**
+  （禁止契约级假编排）；`kubernetes` 模式缺 `INFERENCE_IMAGE` / `INFERENCE_MODEL_URL` 同样 fail-fast；
+- **deploy**：在 `LLMOPS_INFERENCE_NAMESPACE` 创建 Deployment（initContainer 下载模型
+  + 推理运行时主容器）与 Service，视图先落 `DEPLOYING`；创建失败落 `FAILED + errorMessage`
+  并 best-effort 清理残留；
+- **scale / stop**：走 scale subresource；`desiredReplicas` 立即写、`replicas` 与 `status`
+  由 reconcile 按集群实况对账改写（STOPPED / DEPLOYING / RUNNING）；
+- **invoke**：仅 `RUNNING` 可调用，转发到集群内 Service 的 llama.cpp `/completion`
+  （请求 `{prompt, maxTokens}` → 响应 `{text, raw}`）；非 RUNNING 返回 409；
+- **reconcile**：每 `SYNC_INTERVAL_SEC` 秒对账；store 有而集群没有的非终态记录 ⇒ `FAILED`
+  （不掩盖集群外删除漂移）；
+- 运行时契约＝llama.cpp server（`/completion` 推理、`/health` 探针）；生产可换任何满足
+  该契约的镜像；多模型与模型仓发布策略属后续边界；
+- Helm Chart 生产默认创建 ServiceAccount + 目标命名空间最小权限 Role（`templates/rbac.yaml`），
+  模型 URL 与 DSN 同一 Secret（`frontend.existingSecretName` 的 `model-url` 键）。
+  Secret 需含 `database-url` 与 `model-url` 两键。

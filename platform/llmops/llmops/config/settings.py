@@ -11,6 +11,14 @@
     LLMOPS_FRONTEND_STORE    前端视图存储: memory / postgresql（默认 memory）
     LLMOPS_FRONTEND_DATABASE_URL  PostgreSQL DSN（postgresql 模式必填）
     LLMOPS_ENV               运行环境: development / test / production
+    LLMOPS_INFERENCE_ORCHESTRATOR  推理编排: contract / kubernetes（默认 contract；
+                             production 必须 kubernetes——禁止契约级假编排）
+    LLMOPS_INFERENCE_NAMESPACE 推理服务命名空间（默认 llmops-inference）
+    LLMOPS_INFERENCE_IMAGE     推理运行时镜像（kubernetes 模式必填，如 llama.cpp server）
+    LLMOPS_INFERENCE_MODEL_URL 推理模型 artifact URL（kubernetes 模式必填；
+                             initContainer 下载 GGUF；仅 http/https，操作者配置信任边界）
+    LLMOPS_INFERENCE_KUBECONFIG  kubeconfig 路径（空则 in-cluster ServiceAccount）
+    LLMOPS_INFERENCE_SYNC_INTERVAL_SEC  集群实况对账周期秒（默认 15）
     LLMOPS_API_PREFIX        API 路由前缀（默认 /api/v1）
 
     # ---- AI 模式统一开关（P-02）----
@@ -82,6 +90,50 @@ class Settings(BaseSettings):
         description="运行环境；production 禁止内存回退",
     )
 
+    # ---- inference orchestration（B 线真推理编排） ----
+    inferenceOrchestrator: Literal["contract", "kubernetes"] = Field(
+        default="contract",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_ORCHESTRATOR", "inferenceOrchestrator"),
+        description="推理编排: contract（契约级状态机）/ kubernetes（真集群编排）",
+    )
+    inferenceNamespace: str = Field(
+        default="llmops-inference",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_NAMESPACE", "inferenceNamespace"),
+        description="推理服务命名空间",
+    )
+    inferenceImage: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_IMAGE", "inferenceImage"),
+        description="推理运行时镜像（kubernetes 模式必填）",
+    )
+    inferenceModelUrl: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_MODEL_URL", "inferenceModelUrl"),
+        description="模型 artifact URL（kubernetes 模式必填；initContainer 下载）",
+    )
+    inferenceInitImage: str = Field(
+        default="curlimages/curl:8.11.1",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_INIT_IMAGE", "inferenceInitImage"),
+        description="initContainer 镜像（下载模型 artifact）",
+    )
+    inferenceKubeconfig: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_KUBECONFIG", "inferenceKubeconfig"),
+        description="kubeconfig 路径（空则 in-cluster）",
+    )
+    inferenceInvokeBaseUrl: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_INVOKE_BASE_URL", "inferenceInvokeBaseUrl"),
+        description="invoke 转发地址覆盖（集群外开发调试用，如 port-forward 地址；生产留空走集群 DNS）",
+    )
+    inferenceSyncIntervalSec: int = Field(
+        default=15,
+        ge=2,
+        le=600,
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_SYNC_INTERVAL_SEC", "inferenceSyncIntervalSec"),
+        description="集群实况对账周期秒",
+    )
+
     # ---- mlflow ----
     mlflowUri: str = Field(
         default="http://localhost:5000",
@@ -130,6 +182,21 @@ class Settings(BaseSettings):
             raise ValueError("LLMOPS_ENV=production 时 LLMOPS_FRONTEND_STORE 必须为 postgresql，禁止内存回退")
         if self.frontendStore == "postgresql" and not self.frontendDatabaseUrl.strip():
             raise ValueError("LLMOPS_FRONTEND_STORE=postgresql 时必须配置 LLMOPS_FRONTEND_DATABASE_URL")
+        # 真推理编排 fail-fast：production 禁止契约级假编排（deploy 直接写 RUNNING
+        # 而不接触集群 = 对用户撒谎）；kubernetes 模式必须显式给运行时镜像与模型 URL。
+        if self.environment == "production" and self.inferenceOrchestrator != "kubernetes":
+            raise ValueError(
+                "LLMOPS_ENV=production 时 LLMOPS_INFERENCE_ORCHESTRATOR 必须为 kubernetes，禁止契约级假编排"
+            )
+        if self.inferenceOrchestrator == "kubernetes":
+            if not self.inferenceImage.strip():
+                raise ValueError("LLMOPS_INFERENCE_ORCHESTRATOR=kubernetes 时必须配置 LLMOPS_INFERENCE_IMAGE")
+            if not self.inferenceModelUrl.strip():
+                raise ValueError("LLMOPS_INFERENCE_ORCHESTRATOR=kubernetes 时必须配置 LLMOPS_INFERENCE_MODEL_URL")
+            # 模型 URL 仅允许 http/https（SSRF 白名单）；host 属操作者配置信任边界
+            # （生产模型仓在集群内网，私有地址是合法部署形态，不做拒绝）。
+            if not self.inferenceModelUrl.lower().startswith(("http://", "https://")):
+                raise ValueError("LLMOPS_INFERENCE_MODEL_URL 仅允许 http/https")
         return self
 
     @property
