@@ -121,6 +121,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("LLMOPS_INFERENCE_KUBECONFIG", "inferenceKubeconfig"),
         description="kubeconfig 路径（空则 in-cluster）",
     )
+    inferenceInvokeBaseUrl: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_INFERENCE_INVOKE_BASE_URL", "inferenceInvokeBaseUrl"),
+        description="invoke 转发地址覆盖（集群外开发调试用，如 port-forward 地址；生产留空走集群 DNS）",
+    )
     inferenceSyncIntervalSec: int = Field(
         default=15,
         ge=2,

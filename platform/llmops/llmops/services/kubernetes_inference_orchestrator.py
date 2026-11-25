@@ -42,7 +42,10 @@ def status_patch_from_deployment(dep: dict[str, Any]) -> dict[str, Any]:
     spec = dep.get("spec", {}) or {}
     st = dep.get("status", {}) or {}
     desired = int(spec.get("replicas") or 0)
-    available = int(st.get("availableReplicas") or 0)
+    # 官方 kubernetes client 的 to_dict() 把 JSON 的 camelCase 转成 Python 属性名
+    # snake_case（availableReplicas → available_replicas）；B2 真集群实测抓到：
+    # 只读 camelCase 会恒得 0 ⇒ 状态永远 DEPLOYING。两形态都兼容。
+    available = int(st.get("availableReplicas", st.get("available_replicas")) or 0)
     if desired == 0:
         return {"status": "STOPPED", "replicas": 0, "desiredReplicas": 0}
     if available >= desired:
@@ -263,7 +266,15 @@ class KubernetesInferenceOrchestrator:
                 f"推理服务未就绪（当前 status={svc.get('status')}），请待 RUNNING 后调用",
                 status_code=409,
             )
-        base_url = cluster_service_url(service_id, self._ns)
+        # 集群外开发调试：可用 port-forward 地址覆盖（生产留空走集群 DNS）。
+        # override 同样仅允许 http/https（SSRF 白名单；操作者配置信任边界）。
+        override = self._settings.inferenceInvokeBaseUrl.strip()
+        if override:
+            if not override.lower().startswith(("http://", "https://")):
+                raise OrchestratorError("LLMOPS_INFERENCE_INVOKE_BASE_URL 仅允许 http/https", status_code=500)
+            base_url = override.rstrip("/")
+        else:
+            base_url = cluster_service_url(service_id, self._ns)
         body = {
             "prompt": str(payload.get("prompt") or ""),
             "n_predict": int(payload.get("maxTokens") or 128),

@@ -181,6 +181,14 @@ def test_status_patch_from_deployment(desired, available, expected) -> None:
     assert patch["desiredReplicas"] == desired
 
 
+def test_status_patch_accepts_snake_case_from_real_client() -> None:
+    """B2 真集群实测：官方 client to_dict() 返回 snake_case（available_replicas）."""
+    patch = status_patch_from_deployment({"spec": {"replicas": 2}, "status": {"available_replicas": 2}})
+    assert patch["status"] == "RUNNING"
+    patch2 = status_patch_from_deployment({"spec": {"replicas": 3}, "status": {"available_replicas": 1}})
+    assert patch2["status"] == "DEPLOYING" and patch2["replicas"] == 1
+
+
 # ---------------------------------------------------------------- 资源形状
 
 
@@ -278,6 +286,21 @@ async def test_k8s_invoke_requires_running_and_forwards(monkeypatch) -> None:
     result = await orch.invoke("t1", svc["id"], {"prompt": "hi"})
     assert result["text"] == "hello world"
     assert _FakeAsyncClient.last_url.endswith("/completion")
+
+
+@pytest.mark.asyncio
+async def test_k8s_invoke_base_url_override(monkeypatch) -> None:
+    """集群外开发调试：invoke 转发地址可用 port-forward 覆盖（生产走集群 DNS）."""
+    store = FrontendContractStore()
+    settings = _k8s_settings()
+    settings.inferenceInvokeBaseUrl = "http://172.17.218.229:18080"
+    orch = KubernetesInferenceOrchestrator(store, settings, k8s_client=_FakeK8s())
+    svc = orch.deploy("t1", {"modelName": "m"})
+    store.patch_inference("t1", svc["id"], {"status": "RUNNING"})
+    monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
+    result = await orch.invoke("t1", svc["id"], {"prompt": "hi"})
+    assert result["text"] == "hello world"
+    assert _FakeAsyncClient.last_url.startswith("http://172.17.218.229:18080/")
 
 
 def test_reconcile_maps_cluster_state_and_marks_missing() -> None:
