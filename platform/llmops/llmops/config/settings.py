@@ -8,6 +8,9 @@
     LLMOPS_STORE_TYPE        存储类型: mock / mlflow（默认 mlflow）
     LLMOPS_MLFLOW_URI        MLflow Tracking URI
     LLMOPS_MLFLOW_REGISTRY_URI  MLflow Registry URI（默认同 TRACKING_URI）
+    LLMOPS_FRONTEND_STORE    前端视图存储: memory / postgresql（默认 memory）
+    LLMOPS_FRONTEND_DATABASE_URL  PostgreSQL DSN（postgresql 模式必填）
+    LLMOPS_ENV               运行环境: development / test / production
     LLMOPS_API_PREFIX        API 路由前缀（默认 /api/v1）
 
     # ---- AI 模式统一开关（P-02）----
@@ -62,6 +65,23 @@ class Settings(BaseSettings):
         description="存储类型: mock / mlflow",
     )
 
+    # ---- frontend view persistence ----
+    frontendStore: Literal["memory", "postgresql"] = Field(
+        default="memory",
+        validation_alias=AliasChoices("LLMOPS_FRONTEND_STORE", "frontendStore"),
+        description="评估指标/微调视图/推理服务存储: memory / postgresql",
+    )
+    frontendDatabaseUrl: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_FRONTEND_DATABASE_URL", "frontendDatabaseUrl"),
+        description="PostgreSQL DSN（frontendStore=postgresql 时必填）",
+    )
+    environment: Literal["development", "test", "production"] = Field(
+        default="development",
+        validation_alias=AliasChoices("LLMOPS_ENV", "environment"),
+        description="运行环境；production 禁止内存回退",
+    )
+
     # ---- mlflow ----
     mlflowUri: str = Field(
         default="http://localhost:5000",
@@ -101,6 +121,15 @@ class Settings(BaseSettings):
             self.storeType = "mock"
         elif ai_mode == "real":
             self.storeType = "mlflow"
+        return self
+
+    @model_validator(mode="after")
+    def _validate_frontend_persistence(self) -> "Settings":
+        """生产持久层 fail-fast：禁止无 DSN 或隐式内存回退。"""
+        if self.environment == "production" and self.frontendStore != "postgresql":
+            raise ValueError("LLMOPS_ENV=production 时 LLMOPS_FRONTEND_STORE 必须为 postgresql，禁止内存回退")
+        if self.frontendStore == "postgresql" and not self.frontendDatabaseUrl.strip():
+            raise ValueError("LLMOPS_FRONTEND_STORE=postgresql 时必须配置 LLMOPS_FRONTEND_DATABASE_URL")
         return self
 
     @property

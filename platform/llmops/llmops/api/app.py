@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 import os
 from typing import Optional
@@ -12,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from llmops.api.jwt_auth import getAuthContext
 from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
+from llmops.services.frontend_store_factory import create_frontend_store
 from llmops.services.registry import ServiceRegistry, build_services
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,16 @@ def _corsOrigins() -> list[str]:
     """
     raw = os.environ.get("CORS_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGINS") or ""
     return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """应用生命周期：退出时释放前端视图存储连接池（memory 实现无 close 则跳过）."""
+    yield
+    store = getattr(app.state, "frontend_store", None)
+    close = getattr(store, "close", None)
+    if callable(close):
+        close()
 
 
 def create_app(
@@ -63,11 +75,14 @@ def create_app(
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=_lifespan,
     )
 
     # 把 registry 挂到 app.state，路由通过依赖获取
     app.state.settings = settings
     app.state.registry = registry
+    # 前端视图存储：memory（默认）/ postgresql（生产持久层，DSN 缺失已在 Settings fail-fast）
+    app.state.frontend_store = create_frontend_store(settings)
 
     # CORS：仅当显式配置白名单时挂载（fail-closed，避免与网关 cors 插件双重设置）
     origins = _corsOrigins()

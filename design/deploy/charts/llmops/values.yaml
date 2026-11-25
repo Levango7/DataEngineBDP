@@ -111,6 +111,17 @@ auth:
   existingSecretName: shuqing-jwt-secret
   jwtSecretKey: jwt-secret
 
+# ---- 前端视图持久化（A2：生产禁止内存回退）----
+# store=postgresql 时 LLMOPS_FRONTEND_DATABASE_URL 必须由 existingSecretName 注入；
+# DSN 不进 values/ConfigMap（凭据只走 Secret；源码与示例不写可用凭据）。
+frontend:
+  store: postgresql
+  existingSecretName: shuqing-llmops-pg
+  databaseUrlKey: database-url
+
+# ---- 运行环境（production 时 Settings 强制 frontendStore=postgresql，否则启动 fail-fast）----
+environment: production
+
 config:
   application.conf: |
     # llmops 默认配置，完整配置请引用 design/deploy/values/llmops-values.yaml
