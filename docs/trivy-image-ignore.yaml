@@ -241,6 +241,56 @@ vulnerabilities:
     statement: "同上（同一包同一水位、同一次扫描报出的第二条 CVE）：基座引用 -1+b1，出货镜像 --only-upgrade zlib1g 后为 1+deb13u1"
     expired_at: 2026-12-15
 
+  # ── 2026-11-25 台账 #137：python:3.12-slim 基座漂至 trixie，CI 报 54 条（去重 14 id）HIGH ──
+  # 实测（WSL trivy 0.76.2 同口径）：仅 CVE-2026-124851（libzstd1）有修复版，其余 13 条上游无修复版。
+  # 出货侧 asset-exchange 运行时层已加 --only-upgrade 涉及包（台账 #137 ④ 段），
+  # libzstd1 补至 1.5.7+dfsg-1+deb13u1；其余 13 条上游无修复版 ⇒ 按风险接受限期豁免，
+  # 理由=应用层（Python/FastAPI Web 服务）不直接调用相关二进制/库，实际利用面窄；
+  # 非「出货侧已修」的掩盖（这 13 条补包无门）。到期未清按判据复核（基座自重建带上修复版，
+  # 或主理人裁跨线跃迁 Alpine），不续期。
+  - id: CVE-2026-124851
+    statement: "libzstd1 1.5.7+dfsg-1 → 1.5.7+dfsg-1+deb13u1（HIGH），python:3.12-slim 基座引用（trixie，门禁去重后单扫 asset-exchange）；出货侧 --only-upgrade libzstd1 已补至修复版，出货镜像不在受影响区间"
+    expired_at: 2026-12-15
+  - id: CVE-2025-69720
+    statement: "ncurses-bin 缓冲区溢出（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade ncurses 族已至最新可用补丁；应用为 Python/FastAPI Web 服务、无 TTY 交互，ncurses 利用面不成立；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-54369
+    statement: "libacl1 symlink traversal 提权（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade libacl1 已至最新可用补丁；应用层不直接调用 libacl 文件系统操作，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-76642
+    statement: "util-linux failed external mount helper（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade util-linux 族已至最新可用补丁；应用不调用 mount 辅助二进制，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-78408
+    statement: "util-linux nsenter --join-cgroup leaks root（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade util-linux 族已至最新可用补丁；应用不调用 nsenter 二进制，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-78409
+    statement: "util-linux X-mount.subdir detached-tree（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade util-linux 族已至最新可用补丁；应用不调用相关挂载二进制，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-78410
+    statement: "util-linux restricted bind mounts do not pin（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade util-linux 族已至最新可用补丁；应用不调用相关挂载二进制，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-9538
+    statement: "perl-base（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade perl-base 已至最新可用补丁；应用为 Python 服务、不执行 perl 解释器，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-107494
+    statement: "openssl-provider-legacy（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade openssl 族已至最新可用补丁；应用不加载 legacy provider，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-124709
+    statement: "openssl-provider-legacy（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade openssl 族已至最新可用补丁；应用不加载 legacy provider，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-119373
+    statement: "libsqlite3-0（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade libsqlite3-0 已至最新可用补丁；应用默认 SQLite 模式使用该库、CVE 利用需特制数据库输入，实际暴露面有限；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-119374
+    statement: "libsqlite3-0（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade libsqlite3-0 已至最新可用补丁；应用默认 SQLite 模式、CVE 利用需特制数据库输入，暴露面有限；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-119379
+    statement: "libsqlite3-0（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade libsqlite3-0 已至最新可用补丁；应用默认 SQLite 模式、CVE 利用需特制数据库输入，暴露面有限；风险接受，限期复核"
+    expired_at: 2026-12-15
+  - id: CVE-2026-16742
+    statement: "libudev1（HIGH），同基座引用；上游无修复版，出货侧 --only-upgrade libudev1 已至最新可用补丁；容器无 udev 设备管理，利用面窄；风险接受，限期复核"
+    expired_at: 2026-12-15
+
 # ==== 历史注记（原文保留；对应条目已不在册，仅供追溯）====
 # ---- eclipse-temurin:17-jre（CI 实际构建的 10 个运行层；另有 platform/encaps-layer/Dockerfile.multiarch
 #      用同一基座，但 CI 不构建它，故不在 #684 的删除清单里）----
