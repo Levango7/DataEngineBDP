@@ -13,9 +13,11 @@ WORKDIR /app
 
 # 安装系统依赖（datasets 需要）+ 定向补包（2026-11-08：基座 zlib1g CVE-2026-76844/85091，
 # 修复版在 trixie-security 仓；门禁扫 FROM 基座引用看不见构建期升级 ⇒ 出货镜像自升）
+# 同族补包（2026-11-26：基座 libzstd1 1.5.7+dfsg-1 漂入 CVE-2026-124851（HIGH），修复版
+# 1.5.7+dfsg-1+deb13u1 在 trixie-security 仓）⇒ 与 zlib1g 并列进同一条 --only-upgrade。
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 先复制依赖文件，利用 Docker 层缓存
