@@ -21,10 +21,18 @@ WORKDIR /app
 #    基座 dpkg 实测 zlib1g 1:1.3.dfsg+really1.3.1-1+b1，修复版 1+deb13u1 在 trixie-security
 #    仓（基座 /etc/apt/sources.list.d/debian.sources 含 trixie-security 行，layer 直读实证），
 #    main 仓无 ⇒ --only-upgrade zlib1g 可取到修复版；基座引用那一面由同一豁免账覆盖。
+# ④ Debian 系统包定向升级（台账 #137，2026-11-25）：基座漂至 trixie 后 CI 报 54 条
+#    （去重 14 id）HIGH 于 util-linux/acl/ncurses/sqlite/ssl/systemd/zstd/perl 等系统包。
+#    出货侧按 #115 同法 --only-upgrade 涉及包升至最新可用补丁（只动已安装包，
+#    无更新版时为无操作成功）；基座引用那一面由同一豁免账按 CVE id 限期覆盖。
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg7.0 \
     && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && apt-get install -y --no-install-recommends --only-upgrade \
+        bsdutils libacl1 libblkid1 liblastlog2-2 libmount1 libncursesw6 libsmartcols1 \
+        libsqlite3-0 libssl3t64 libsystemd0 libtinfo6 libudev1 libuuid1 libzstd1 \
+        login mount ncurses-base ncurses-bin openssl openssl-provider-legacy perl-base util-linux \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖
