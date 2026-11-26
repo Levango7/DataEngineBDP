@@ -53,10 +53,14 @@ def status_patch_from_deployment(dep: dict[str, Any]) -> dict[str, Any]:
     return {"status": "DEPLOYING", "replicas": available, "desiredReplicas": desired}
 
 
-def deployment_body(settings: Settings, tenant: str, svc: dict[str, Any]) -> dict[str, Any]:
+def deployment_body(
+    settings: Settings, tenant: str, svc: dict[str, Any], model_url: Optional[str] = None
+) -> dict[str, Any]:
     """构造推理 Deployment（initContainer 下载模型到 emptyDir，主容器起推理运行时）.
 
     模型 URL 经 env 传入 initContainer（$MODEL_URL 引用，不做 shell 拼接注入）；
+    ``model_url`` 为按模型注册表解析出的该服务独立模型地址（多模型发布），
+    为空则回退全局兜底 ``settings.inferenceModelUrl``。
     运行时契约 = llama.cpp server（/completion 推理、/health 探针）。
     """
     svc_id = str(svc["id"])
@@ -89,7 +93,7 @@ def deployment_body(settings: Settings, tenant: str, svc: dict[str, Any]) -> dic
                             "image": settings.inferenceInitImage,
                             "command": ["/bin/sh", "-c"],
                             "args": ['curl -fSL --retry 3 --max-time 900 "$MODEL_URL" -o /models/model.gguf'],
-                            "env": [{"name": "MODEL_URL", "value": settings.inferenceModelUrl}],
+                            "env": [{"name": "MODEL_URL", "value": (model_url or settings.inferenceModelUrl)}],
                             "volumeMounts": [{"name": "model", "mountPath": "/models"}],
                         }
                     ],
@@ -209,13 +213,20 @@ class KubernetesInferenceOrchestrator:
                 logger.warning("残留清理 %s(%s) 失败: %s", fn_name, name, exc)
 
     # ---------------------------------------------------------------- 编排操作
-    def deploy(self, tenant: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def deploy(self, tenant: str, payload: dict[str, Any], model_url: Optional[str] = None) -> dict[str, Any]:
         svc = self._store.deploy_inference(tenant, payload, initial_status="DEPLOYING")
         svc_id = str(svc["id"])
+        # 审计：记录该服务实际使用的模型地址（注册表解析值或全局兜底）。
+        svc = (
+            self._store.patch_inference(
+                tenant, svc_id, {"modelArtifactUrl": (model_url or self._settings.inferenceModelUrl)}
+            )
+            or svc
+        )
         name = deployment_name(svc_id)
         try:
             self._k8s.create_namespaced_deployment(
-                namespace=self._ns, body=deployment_body(self._settings, tenant, svc)
+                namespace=self._ns, body=deployment_body(self._settings, tenant, svc, model_url=model_url)
             )
             self._k8s.create_namespaced_service(namespace=self._ns, body=service_body(self._settings, tenant, svc))
         except Exception as exc:  # noqa: BLE001  K8s API 异常 → 真实上报 FAILED

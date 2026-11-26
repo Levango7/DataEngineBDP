@@ -33,8 +33,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from llmops.api.jwt_auth import AuthContext, getAuthContext
 from llmops.api.routers.deps import get_registry
-from llmops.models.model import ModelFilter, ModelInfo, ModelStatus, ModelType
+from llmops.models.model import ModelFilter, ModelInfo, ModelStatus, ModelType, ModelVersion
 from llmops.services.inference_orchestrator import OrchestratorError
+from llmops.services.model_artifact import resolve_model_artifact_url
 from llmops.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/llmops", tags=["llmops-frontend"])
@@ -128,6 +129,46 @@ async def frontend_register_model(
     except Exception as exc:
         raise HTTPException(status_code=409, detail=str(exc))
     return _to_model_view(saved)
+
+
+@router.post("/models/{model_id}/versions", status_code=201)
+async def frontend_register_model_version(
+    request: Request,
+    model_id: str,
+    payload: dict,
+    registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
+) -> dict:
+    """注册模型版本（多模型发布）：版本 artifactUri 为模型仓 http(s) 直链时，
+    该模型部署推理服务会按版本取独立模型文件；省略版本号自动取下一个。
+
+    租户隔离：非 admin 仅可为本租户模型注册版本（越权一律 404，不泄露存在性）。
+    """
+    try:
+        model = await registry.modelService.get_model(model_id)
+    except Exception as exc:  # noqa: BLE001  不存在/仓储异常一律按未找到处理
+        raise HTTPException(status_code=404, detail=f"model not found: {exc}")
+    if ctx.role != "admin" and ctx.tenantId and getattr(model, "tenantId", None) != ctx.tenantId:
+        raise HTTPException(status_code=404, detail="model not found")
+    req_version = payload.get("version")
+    if req_version is not None and (not isinstance(req_version, int) or req_version < 1):
+        raise HTTPException(status_code=422, detail="version must be a positive integer")
+    versions = await registry.modelService.get_model_versions(model_id)
+    next_no = (max(v.version for v in versions) + 1) if versions else 1
+    try:
+        created = await registry.modelService.add_model_version(
+            model_id,
+            ModelVersion(
+                version=req_version or next_no,
+                modelId=model_id,
+                artifactUri=(payload.get("artifactUri") or "").strip() or None,
+                description=payload.get("description"),
+                sourceRunId=payload.get("sourceRunId"),
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001  版本冲突等
+        raise HTTPException(status_code=409, detail=str(exc))
+    return created.model_dump()
 
 
 # ---------------------------------------------------------------- eval-metrics
@@ -250,8 +291,15 @@ async def frontend_deploy_inference_service(
 ) -> dict:
     if not (payload.get("modelName") or "").strip():
         raise HTTPException(status_code=422, detail="modelName required")
+    # 多模型发布：按模型名+版本从模型仓解析该服务独立的模型 artifact 地址；
+    # 解析不到返回 None ⇒ 编排层回退全局兜底 URL（不破坏单模型部署形态）。
+    model_url = await resolve_model_artifact_url(
+        request.app.state.registry,
+        payload.get("modelName"),
+        payload.get("modelVersion") or payload.get("version"),
+    )
     try:
-        return _orchestrator(request).deploy(ctx.tenantId, payload)
+        return _orchestrator(request).deploy(ctx.tenantId, payload, model_url=model_url)
     except OrchestratorError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc))
 

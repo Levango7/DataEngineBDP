@@ -23,6 +23,18 @@ class ModelService:
     async def get_model(self, model_id: str) -> ModelInfo:
         return await self._store.get_model(model_id)
 
+    async def find_model_by_name(self, name: str) -> Optional[ModelInfo]:
+        """按名称**精确**查找模型（多模型发布时按 modelName 解析 artifact）.
+
+        ModelStore.find_model_by_name 的默认实现基于 ModelFilter 模糊匹配
+        （"qwen" 会命中 "qwen-7b"）⇒ 部署可能选错模型；这里二次精确过滤。
+        """
+        target = (name or "").strip()
+        if not target:
+            return None
+        candidates = await self._store.list_models(ModelFilter(name=target, limit=100))
+        return next((m for m in candidates if m.name == target), None)
+
     async def list_models(self, filter: Optional[ModelFilter] = None) -> list[ModelInfo]:
         return await self._store.list_models(filter or ModelFilter())
 
@@ -35,6 +47,10 @@ class ModelService:
 
     async def get_model_versions(self, model_id: str) -> list[ModelVersion]:
         return await self._store.get_model_versions(model_id)
+
+    async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
+        """登记模型版本（多模型发布：版本携带 artifactUri 供推理部署解析）."""
+        return await self._store.add_model_version(model_id, version)
 
     async def set_production_version(self, model_id: str, version: int) -> ModelInfo:
         return await self._store.set_production_version(model_id, version)

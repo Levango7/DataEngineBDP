@@ -359,3 +359,56 @@ def test_k8s_route_deploy_returns_deploying(monkeypatch) -> None:
     assert r.status_code == 201, r.text
     assert r.json()["status"] == "DEPLOYING"
     assert any(call[0] == "create_deploy" for call in fake.calls)
+
+
+# ---------------------------------------------------------------- 多模型发布（模型仓解析）
+
+
+def test_deployment_body_uses_resolved_model_url() -> None:
+    """按模型注册表解析出的 URL 进 Deployment 的 MODEL_URL；不传则回退全局兜底."""
+    svc = {"id": "svc-1", "modelName": "m", "desiredReplicas": 1}
+    body = deployment_body(_k8s_settings(), "t1", svc, model_url="https://models.example/own.gguf")
+    init = body["spec"]["template"]["spec"]["initContainers"][0]
+    assert init["env"][0]["value"] == "https://models.example/own.gguf"
+    body2 = deployment_body(_k8s_settings(), "t1", svc)
+    init2 = body2["spec"]["template"]["spec"]["initContainers"][0]
+    assert init2["env"][0]["value"] == _k8s_settings().inferenceModelUrl
+
+
+def test_k8s_deploy_records_model_artifact_url() -> None:
+    """deploy 把该服务实际使用的模型地址写进视图（modelArtifactUrl，审计用）."""
+    orch, store, fake = _orch()
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url="https://models.example/own.gguf")
+    assert svc["modelArtifactUrl"] == "https://models.example/own.gguf"
+    body = next(call[2] for call in fake.calls if call[0] == "create_deploy")
+    init = body["spec"]["template"]["spec"]["initContainers"][0]
+    assert init["env"][0]["value"] == "https://models.example/own.gguf"
+
+
+@pytest.mark.asyncio
+async def test_deploy_route_resolves_registered_model(monkeypatch) -> None:
+    """路由集成：注册了 http artifactUri 的模型 ⇒ deploy 的 MODEL_URL 用注册值（多模型并存）."""
+    import uuid as _uuid
+
+    from llmops.models.model import ModelInfo, ModelType, ModelVersion
+
+    monkeypatch.setenv("AUTH_MODE", "none")
+    fake = _FakeK8s()
+    monkeypatch.setattr(kio, "_RealK8sClient", lambda settings: fake)
+    app = create_app(settings=_k8s_settings())
+    model = await app.state.registry.modelService.register_model(
+        ModelInfo(id=str(_uuid.uuid4()), name="own-model", type=ModelType.BASE)
+    )
+    await app.state.registry.modelService.add_model_version(
+        model.id, ModelVersion(version=1, modelId=model.id, artifactUri="https://models.example/own.gguf")
+    )
+    client = TestClient(app)
+    r = client.post(
+        "/api/v1/llmops/inference-services",
+        json={"modelName": "own-model", "modelVersion": "1", "replicas": 1},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["modelArtifactUrl"] == "https://models.example/own.gguf"
+    body = next(call[2] for call in fake.calls if call[0] == "create_deploy")
+    init = body["spec"]["template"]["spec"]["initContainers"][0]
+    assert init["env"][0]["value"] == "https://models.example/own.gguf"
