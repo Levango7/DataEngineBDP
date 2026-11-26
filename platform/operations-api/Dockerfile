@@ -23,10 +23,12 @@ WORKDIR /app
 #    （HIGH，fixed 3.0.4），门禁扫 FROM 引用看不见构建期升级 ⇒ 出货镜像自升，
 #    基座引用那一面由 docs/trivy-image-ignore.yaml 限期豁免覆盖；
 # ③ musl 同族口径（CVE-2026-107891，1.2.5-r3→r4）。
+# 同族补包（2026-11-26：基座 libzstd1 1.5.7+dfsg-1 漂入 CVE-2026-124851（HIGH），修复版
+# 1.5.7+dfsg-1+deb13u1 在 trixie-security 仓）⇒ 与 zlib1g 并列进同一条 --only-upgrade。
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg7.0 \
-    && apt-get install -y --no-install-recommends --only-upgrade zlib1g \
+    && apt-get install -y --no-install-recommends --only-upgrade zlib1g libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装依赖（requirements.txt 实测三件：fastapi / pydantic / uvicorn）

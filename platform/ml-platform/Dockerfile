@@ -35,8 +35,11 @@ LABEL org.opencontainers.image.title="sq-ml-platform" \
 # CVE-2026-76844/85091，修复版 1+deb13u1 在 trixie-security 仓；门禁扫 FROM 基座引用
 # 看不见构建期升级 ⇒ 出货镜像自升，基座那一面由 docs/trivy-image-ignore.yaml 限期豁免覆盖。
 # 此前本文件无 apt 段，新增整段；builder 段不随出货镜像发布，不重复。）
+# 同族补包（2026-11-26：基座 libzstd1 1.5.7+dfsg-1 漂入 CVE-2026-124851（HIGH），修复版
+# 1.5.7+dfsg-1+deb13u1 在 trixie-security 仓）⇒ 与 zlib1g 并列进同一条 --only-upgrade。
 RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade \
     zlib1g \
+    libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 拷贝虚拟环境

@@ -72,10 +72,13 @@ WORKDIR /app
 # 由 docs/trivy-image-ignore.yaml 限期豁免覆盖。--only-upgrade 只动已安装包，
 # 目标版本已在基座内时为无操作成功。builder 段不随出货镜像发布，故不重复此条。
 # 2026-11-08 追加 zlib1g（同族 CVE-2026-76844/85091，修复版在 trixie-security，基座含该源）。
+# 同族补包（2026-11-26：基座 libzstd1 1.5.7+dfsg-1 漂入 CVE-2026-124851（HIGH），修复版
+# 1.5.7+dfsg-1+deb13u1 在 trixie-security 仓）⇒ 与 zlib1g 并列进同一条 --only-upgrade。
 RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade \
     apt \
     libapt-pkg7.0 \
     zlib1g \
+    libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
 # 拷贝 builder 阶段安装的依赖
