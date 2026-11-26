@@ -81,7 +81,8 @@ class ContractInferenceOrchestrator:
     def __init__(self, store: FrontendContractStore) -> None:
         self._store = store
 
-    def deploy(self, tenant: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def deploy(self, tenant: str, payload: dict[str, Any], model_url: Optional[str] = None) -> dict[str, Any]:
+        # 契约级无真实运行时，model_url 无意义（路由仍统一走解析，保持双模式同签名）。
         return self._store.deploy_inference(tenant, payload)
 
     def stop(self, tenant: str, service_id: str) -> Optional[dict[str, Any]]:
