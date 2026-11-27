@@ -94,7 +94,9 @@ class _FakeRegistrySdk:
         self._block()
         self._models.pop(name, None)
 
-    def create_model_version(self, name: str, source: str = "", run_id=None, tags=None) -> _SdkModelVersion:
+    def create_model_version(
+        self, name: str, source: str = "", run_id=None, tags=None, description=None
+    ) -> _SdkModelVersion:
         self._block()
         rm = self._models[name]
         version = self._next_version.get(name, 1)
@@ -102,6 +104,12 @@ class _FakeRegistrySdk:
         self._next_version[name] = version + 1
         rm.latest_versions.append(mv)
         return mv
+
+    def search_model_versions(self, filter_string: str):
+        """模拟 MLflow 3.x：全量返回（含无 stage 的新版本）."""
+        self._block()
+        name = filter_string.split("'")[1]
+        return list(self._models[name].latest_versions)
 
     def transition_model_version_stage(self, name: str, version: int, stage: str) -> None:
         self._block()
