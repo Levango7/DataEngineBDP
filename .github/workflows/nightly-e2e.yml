@@ -424,6 +424,9 @@ jobs:
         # 宿主机/Pod 两个视角的连接耗时与失败类型，并导出 kube-proxy 的 iptables
         # 规则（REJECT vs 无规则/DROP）——把「快速失败 vs 10s 读超时挂起」从推断
         # 变成可复核的实测事实。探针只读，不改业务部署。
+        # continue-on-error：取证脚本失败不应阻断后面的链路测试（取证失败会显式
+        # 打出 POD_NETNS_*/ICMP_CAPTURE_* 标记，由分析脚本按「取证不可用」判读）。
+        continue-on-error: true
         run: bash scripts/probe-endpointless-service.sh shuqing
 
       - name: 安装集成测试依赖
@@ -433,6 +436,13 @@ jobs:
         # 入口脚本逐链路执行并生成报告；任一链路 FAILED 则退出码 1
         # （SKIPPED 不算失败——burn-in 期服务未部署时表现为"绿但空跑"，见 job 注释）
         run: python tests/integration/run_k3s_integration.py
+
+      - name: 采集编排层与 kube-proxy 日志（取证）
+        # 台账 #35 遗留盲区补验：红轮的中间环节「编排器 Pod 调无端点 provider」
+        # 需要同轮的编排器运行日志直证（是否出现 provider 调用失败 + 超时类
+        # reason）。必须 if: always()，否则红臂会在此之前中断、拿不到日志。
+        if: always()
+        run: bash scripts/collect-orchestrator-logs.sh shuqing
 
       - name: 上传 K3s 测试报告
         if: always()
