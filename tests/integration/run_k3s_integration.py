@@ -138,6 +138,9 @@ def run_pytest(chain_ids: list[int]) -> dict:
         f"--rootdir={K3S_TEST_DIR}",
         f"-c={K3S_TEST_DIR / 'pytest.ini'}",
         "--no-header",
+        # 逐用例耗时：链路红时能直接看出"慢在哪个用例"，而不是只有一条链路墙钟
+        # （台账 #35：红轮的断言原文与耗时此前只落在已过期工件里，无法复核）
+        "--durations=0",
     ]
 
     print(f"\n{'='*60}")
@@ -154,6 +157,16 @@ def run_pytest(chain_ids: list[int]) -> dict:
         cwd=str(K3S_TEST_DIR),
     )
     duration = time.time() - start
+
+    # 把 pytest 明细回显到 job 日志：此前 stdout 只进 capture_output 与报告工件，
+    # 工件过期后红轮的断言原文与逐用例耗时都无法复核（台账 #35 遗留盲区）。
+    print("----- pytest stdout 开始 -----")
+    print(result.stdout)
+    print("----- pytest stdout 结束 -----")
+    if result.returncode != 0 and result.stderr:
+        print("----- pytest stderr 开始 -----")
+        print(result.stderr)
+        print("----- pytest stderr 结束 -----")
 
     return {
         "returncode": result.returncode,
