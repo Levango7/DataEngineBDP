@@ -287,6 +287,12 @@ jobs:
     # burn-in 期允许失败：结果仅作趋势观测，不影响工作流整体结论
     continue-on-error: true
     timeout-minutes: 90
+    env:
+      # 台账 #35（2026-11-27 续七）：本 job 此前不锁 k3s 版本，装的是上游 stable 通道当时的最新版；
+      # 2026-11-04 起 stable 漂到 v1.37.2+k3s1，链路2 出现同签名读超时（补扫实测 41 轮红）。
+      # 这里锁到补扫实测的末绿版本，让 burn-in 的观测信号不再随上游发版节奏漂移。
+      # 升到 v1.37.x 之前，须先闭合 #35 续七记录的未验证盲区（v1.37 具体网络行为变化）。
+      K3S_VERSION_PIN: v1.36.5+k3s1
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -297,11 +303,22 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: 安装 K3s（官方安装脚本直装）
+      - name: 安装 K3s（官方安装脚本直装，版本锁定）
         # 选型说明：采用 get.k3s.io 官方脚本（社区标准方式、维护度高于第三方 setup action、
         # 不新增供应链面）；k3s 内嵌 containerd 与 kubectl 符号链接，无需额外装 Docker/kubectl
+        #
+        # 版本锁定（台账 #35）：安装变量名与仓库自有安装脚本 ske/k3s/install-k3s.sh 一致。
+        # 注意 sudo 的 env_reset 会剥掉管道左侧导出的变量 ⇒ 必须写成 `sudo env VAR=… sh`，
+        # 否则变量到不了安装脚本，会静默装成 latest（锁了但没生效）。
         run: |
-          curl -sfL https://get.k3s.io | sudo sh -s - --write-kubeconfig-mode 644
+          curl -sfL https://get.k3s.io | sudo env INSTALL_K3S_VERSION="${K3S_VERSION_PIN}" sh -s - --write-kubeconfig-mode 644
+          # 只锁不验等于把"静默漂回 latest"的风险留在原地，故断言实际安装版本
+          actual="$(k3s --version | head -1)"
+          echo "k3s 已安装版本: ${actual}（锁定 ${K3S_VERSION_PIN}）"
+          case "${actual}" in
+            *"${K3S_VERSION_PIN}"*) ;;
+            *) echo "::error::期望 k3s ${K3S_VERSION_PIN}，实际 ${actual}"; exit 1 ;;
+          esac
           k3s kubectl version --client
 
       - name: 配置 kubeconfig
