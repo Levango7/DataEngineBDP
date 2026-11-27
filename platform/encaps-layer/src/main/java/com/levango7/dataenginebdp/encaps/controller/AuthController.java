@@ -93,6 +93,14 @@ public class AuthController {
     @Value("${app.security.jwt.issuer:shuqing-bigdata}")
     private String jwtIssuer;
 
+    /** JWT 签名算法（HS384 / SM3withSM2），与 JwtAuthFilter 同源。 */
+    @Value("${app.security.jwt.algorithm:HS384}")
+    private String jwtAlgorithm;
+
+    /** SM2 私钥 D 值 hex 串（信创模式本地降级登录用）。 */
+    @Value("${app.security.jwt.sm2-private-key:}")
+    private String sm2PrivateKeyHex;
+
 
     /**
      * 启动时处理本地降级密码：未显式配置则随机生成（避免弱口令 admin/admin 误开风险）。
@@ -118,6 +126,21 @@ public class AuthController {
         }
     }
 
+    @PostConstruct
+    void initLocalAuthGmKey() {
+        if (!localAuthEnabled || !isGmAlgorithm()) {
+            return;
+        }
+        if (sm2PrivateKeyHex == null || sm2PrivateKeyHex.isBlank()) {
+            throw new IllegalStateException(
+                    "本地降级认证在 SM3withSM2 模式下必须配置 app.security.jwt.sm2-private-key");
+        }
+    }
+
+    private boolean isGmAlgorithm() {
+        return "SM3withSM2".equalsIgnoreCase(jwtAlgorithm);
+    }
+
     /**
      * 用 {@link java.security.SecureRandom} 生成指定长度的强随机密码。
      *
@@ -126,6 +149,17 @@ public class AuthController {
      * @param length 密码长度（≥4 以保证四类字符各至少一位）
      * @return 强随机密码
      */
+    private static byte[] hexToBytes(String hex) {
+        if (hex.length() % 2 != 0) {
+            throw new IllegalArgumentException("SM2 私钥 hex 长度必须为偶数");
+        }
+        byte[] out = new byte[hex.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+    }
+
     private String generateRandomPassword(int length) {
         String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         String lower = "abcdefghijklmnopqrstuvwxyz";
@@ -313,19 +347,37 @@ public class AuthController {
         long expiresIn = 3600;
         // 租户标识必须在 JWT claim 与响应体 user 里同源，只写一次，防两处漂移
         final String localTenantId = "platform-admin";
-        String token = io.jsonwebtoken.Jwts.builder()
-                .issuer(jwtIssuer)
-                .subject(localUsername)
-                .claim("tenantId", localTenantId)
-                .claim("role", "admin")
-                // 鉴权只看 realm_access.roles：不带该声明会被 JwtAuthFilter 兜底成 ROLE_USER，
-                // 导致本地管理员访问 /api/v1/tenants、/api/v1/invites 全部 403
-                .claim("realm_access", Map.of("roles", localAuthRoles))
-                .issuedAt(new java.util.Date(now))
-                .expiration(new java.util.Date(now + expiresIn * 1000))
-                .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
-                        jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
-                .compact();
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put("tenantId", localTenantId);
+        claims.put("role", "admin");
+        // 鉴权只看 realm_access.roles：不带该声明会被 JwtAuthFilter 兜底成 ROLE_USER，
+        // 导致本地管理员访问 /api/v1/tenants、/api/v1/invites 全部 403
+        claims.put("realm_access", Map.of("roles", localAuthRoles));
+        String token;
+        if (isGmAlgorithm()) {
+            byte[] privateKeyD = hexToBytes(sm2PrivateKeyHex.trim());
+            if (privateKeyD.length != 32) {
+                log.error("本地降级登录失败: SM2 私钥 D 值必须为 32 字节，实际 {} 字节",
+                        privateKeyD.length);
+                return null;
+            }
+            token = new com.levango7.dataenginebdp.encaps.crypto.jwt.GmJwtProcessor(jwtIssuer)
+                    .sign(privateKeyD, localUsername, claims, expiresIn, "local-sm2");
+        } else {
+            if (jwtSecret == null || jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+                log.error("本地降级登录失败: JWT_SECRET 未配置或不足 32 字节");
+                return null;
+            }
+            token = io.jsonwebtoken.Jwts.builder()
+                    .issuer(jwtIssuer)
+                    .subject(localUsername)
+                    .claims(claims)
+                    .issuedAt(new java.util.Date(now))
+                    .expiration(new java.util.Date(now + expiresIn * 1000))
+                    .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                            jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                    .compact();
+        }
 
         Map<String, Object> user = new LinkedHashMap<>();
         user.put("id", "local-admin");

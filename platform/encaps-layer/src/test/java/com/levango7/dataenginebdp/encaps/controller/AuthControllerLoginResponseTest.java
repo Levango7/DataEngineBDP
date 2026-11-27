@@ -72,6 +72,26 @@ class AuthControllerLoginResponseTest {
     }
 
     @Test
+    @DisplayName("本地降级分支在 SM3withSM2 模式下必须签发国密 JWT")
+    void localBranch_gmAlgorithm_signsSm3WithSm2() throws Exception {
+        AuthController controller = newLocalAuthController();
+        var keyPair = new com.levango7.dataenginebdp.encaps.crypto.gm.SM2Provider().generateKeyPair();
+        ReflectionTestUtils.setField(controller, "jwtAlgorithm", "SM3withSM2");
+        ReflectionTestUtils.setField(controller, "sm2PrivateKeyHex",
+                java.util.HexFormat.of().formatHex(keyPair.getPrivateKeyD()));
+
+        ResponseEntity<?> resp = controller.login(new AuthController.LoginRequest("admin", "admin", null));
+        String token = (String) ((Map<String, Object>) resp.getBody()).get("token");
+
+        var header = new com.levango7.dataenginebdp.encaps.crypto.jwt.GmJwtProcessor(ISSUER)
+                .extractHeader(token);
+        assertThat(header.get("alg")).isEqualTo("SM3withSM2");
+        var claims = new com.levango7.dataenginebdp.encaps.crypto.jwt.GmJwtProcessor(ISSUER)
+                .verify(token, keyPair.getPublicKeyQ());
+        assertThat((String) claims.get("tenantId")).isEqualTo("platform-admin");
+    }
+
+    @Test
     @DisplayName("Keycloak 分支必须把 token 里的 tenantId 与 realm_access.roles 透出到响应体")
     void keycloakBranch_projectsClaimsIntoUser() {
         AuthController controller = newLocalAuthController();
