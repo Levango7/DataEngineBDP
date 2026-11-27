@@ -21,7 +21,7 @@ COPY llmops/ llmops/
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
-    && pip install --no-cache-dir .
+    && pip install --no-cache-dir ".[mlflow]"
 
 # ---------- runtime ----------
 FROM ${BASE_REGISTRY}/library/python:3.12-slim AS runtime
@@ -50,7 +50,12 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 
 # 创建非 root 运行用户（构建/安装阶段保持 root，仅运行时降权）
-RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+# 固定数字 UID/GID（10001，避开系统范围）：chart 以 runAsNonRoot=true 部署时，kubelet
+# 从镜像的 USER 字段校验非 root，而**用户名形式无法校验**（真集群实测报
+# CreateContainerConfigError: "image has non-numeric user (app), cannot verify user
+# is non-root"）⇒ 必须 USER 数字 UID，令镜像自证非 root。
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --home-dir /app --shell /usr/sbin/nologin app
 COPY --from=builder --chown=app:app /build/llmops/ ./llmops/
 COPY --chown=app:app main.py ./
 
@@ -71,6 +76,6 @@ ENV LLMOPS_HOST=0.0.0.0 \
 
 # 确保 app 用户对 /app 可写，切换非 root 运行
 RUN chown -R app:app /app
-USER app
+USER 10001:10001
 
 CMD ["python", "main.py"]

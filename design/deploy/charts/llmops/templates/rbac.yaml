@@ -5,6 +5,10 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ include "llmops.fullname" . }}
+  # 全部资源显式 namespace：渲染产物自描述，kubectl apply -f - 无需 -n 默认。
+  # 坑实录：SA 无 ns 时 `apply -n shuqing` 落 default？不会——落 -n 指定值，
+  # 但跨 ns 清单（Role/RoleBinding 在 inference.namespace）与 -n 冲突会整流报错。
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "llmops.labels" . | nindent 4 }}
 ---
