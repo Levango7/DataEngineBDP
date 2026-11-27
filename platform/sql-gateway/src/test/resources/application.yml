@@ -24,11 +24,9 @@ sql-gateway:
     trino:
       url: http://localhost:9999
       timeout: 5
-      max-retries: 1
     doris:
       url: http://localhost:9998
       timeout: 5
-      max-retries: 1
   default-engine: trino
 
 app:

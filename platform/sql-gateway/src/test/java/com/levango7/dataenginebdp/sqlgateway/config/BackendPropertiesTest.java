@@ -19,8 +19,6 @@ class BackendPropertiesTest {
         assertThat(props.getDoris()).isNotNull();
         assertThat(props.getTrino().getTimeout()).isEqualTo(30);
         assertThat(props.getDoris().getTimeout()).isEqualTo(30);
-        assertThat(props.getTrino().getMaxRetries()).isEqualTo(3);
-        assertThat(props.getDoris().getMaxRetries()).isEqualTo(3);
     }
 
     @Test
@@ -40,10 +38,8 @@ class BackendPropertiesTest {
         BackendProperties.BackendConfig config = new BackendProperties.BackendConfig();
         config.setUrl("http://test:8080");
         config.setTimeout(60);
-        config.setMaxRetries(5);
 
         assertThat(config.getUrl()).isEqualTo("http://test:8080");
         assertThat(config.getTimeout()).isEqualTo(60);
-        assertThat(config.getMaxRetries()).isEqualTo(5);
     }
 }
