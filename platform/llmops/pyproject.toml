@@ -35,6 +35,8 @@ dependencies = [
     "psycopg-pool==3.3.3",
     "loguru==0.7.3",
     "python-dateutil==2.9.0.post0",
+    # K8s 真推理编排（production 强制 orchestrator=kubernetes，_RealK8sClient 必需）
+    "kubernetes==36.0.3",
 ]
 
 [project.optional-dependencies]

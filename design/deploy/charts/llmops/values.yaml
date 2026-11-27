@@ -31,14 +31,16 @@ resources:
 
 
 # ---- 安全上下文（Pod/Container 安全加固）----
-# 镜像 Dockerfile 的 app 用户由 useradd --system 创建（uid 非固定，python:3.11-slim 实测 999）
-# ⇒ 不设 runAsUser/runAsGroup（写死 1000 会让进程落到不存在于 /etc/passwd 的 uid 上，
-#   且 /app 下 app:app 属主文件对 uid 1000 只读）；只留 runAsNonRoot + fsGroup
-#   （kubelet 把 fsGroup 加进容器补充组，emptyDir 仍可写）。同族约定见 ai-assistant/business-portal 等。
+# 2026-11-28 起镜像 Dockerfile 固定数字 UID/GID 10001（runAsNonRoot=true 时 kubelet
+# 无法校验用户名形式的 USER，真集群实测报 "image has non-numeric user (app)" ⇒
+# 镜像必须自证非 root）。chart 侧同步显式 runAsUser/runAsGroup/fsGroup=10001 三重钉死：
+# 即使有人换掉镜像，Pod 仍以非 root 数字 uid 跑；/app 文件属主同 10001，只读根文件系统不受影响。
 securityContext:
   enabled: true
   runAsNonRoot: true
-  fsGroup: 999
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: true
   capabilities:
@@ -97,7 +99,10 @@ ingress:
   tls: []
 
 # ---- 环境变量 ----
+# LLMOPS_STORE_TYPE 必须显式注入（Settings 默认 mlflow；镜像已装 .[mlflow] extra）。
+# 各环境指向自己的 MLflow 服务：在 env values 里覆盖 LLMOPS_MLFLOW_URI。
 env:
+  LLMOPS_STORE_TYPE: mlflow
   LOG_LEVEL: info
   JAVA_OPTS: ""
 
