@@ -29,6 +29,12 @@ on:
       - ".github/workflows/nightly-e2e.yml"
   # 手动触发（支持按需运行夜间 E2E 回归）
   workflow_dispatch:
+    inputs:
+      # 实验用：对照不同 k3s 版本。留空 = 用 job 级默认锁定值。
+      k3s_version:
+        description: "覆盖 k3s 版本（留空=用默认锁定值；仅用于版本对照实验）"
+        required: false
+        default: ""
 
 # 与 ci.yml 保持一致的最小权限风格（PR 评论和检查需要 pull-requests/checks write）
 permissions:
@@ -38,7 +44,8 @@ permissions:
 
 # 同一分支的并发运行只保留最新一次，避免重复执行浪费资源
 concurrency:
-  group: nightly-e2e-${{ github.ref }}
+  # 实验分支：k3s 版本对照臂并入 group，否则同分支的多个版本臂会互相取消
+  group: nightly-e2e-${{ github.ref }}-${{ inputs.k3s_version || 'default' }}
   cancel-in-progress: true
 
 jobs:
@@ -292,7 +299,8 @@ jobs:
       # 2026-11-04 起 stable 漂到 v1.37.2+k3s1，链路2 出现同签名读超时（补扫实测 41 轮红）。
       # 这里锁到补扫实测的末绿版本，让 burn-in 的观测信号不再随上游发版节奏漂移。
       # 升到 v1.37.x 之前，须先闭合 #35 续七记录的未验证盲区（v1.37 具体网络行为变化）。
-      K3S_VERSION_PIN: v1.36.5+k3s1
+      # 实验分支：允许 workflow_dispatch 覆盖版本做对照；默认仍是锁定值。
+      K3S_VERSION_PIN: ${{ inputs.k3s_version || 'v1.36.5+k3s1' }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -410,6 +418,13 @@ jobs:
             kubectl -n shuqing get pods -o wide | head -40
           fi
           kubectl -n shuqing get pods -o wide | head -40
+
+      - name: 探测无端点 Service 的 kube-proxy 行为
+        # 台账 #35 遗留盲区补验：同一集群内对「无 Endpoints 的 Service」取
+        # 宿主机/Pod 两个视角的连接耗时与失败类型，并导出 kube-proxy 的 iptables
+        # 规则（REJECT vs 无规则/DROP）——把「快速失败 vs 10s 读超时挂起」从推断
+        # 变成可复核的实测事实。探针只读，不改业务部署。
+        run: bash scripts/probe-endpointless-service.sh shuqing
 
       - name: 安装集成测试依赖
         run: pip install -r tests/integration/requirements.txt -q
