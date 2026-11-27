@@ -297,6 +297,7 @@ async def frontend_deploy_inference_service(
         request.app.state.registry,
         payload.get("modelName"),
         payload.get("modelVersion") or payload.get("version"),
+        tracking_uri=request.app.state.settings.mlflowUri,
     )
     try:
         return _orchestrator(request).deploy(ctx.tenantId, payload, model_url=model_url)

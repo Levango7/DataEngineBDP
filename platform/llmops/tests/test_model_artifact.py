@@ -161,3 +161,73 @@ def test_register_model_version_endpoint(monkeypatch) -> None:
 
     r4 = c.post("/api/v1/llmops/models/no-such-model/versions", json={"artifactUri": "https://x/y.gguf"})
     assert r4.status_code == 404
+
+
+# ---------------------------------------------------------------- MLflow 内部 URI 解析
+# 「自己训练的模型」的 artifactUri 是 MLflow 产物形式（runs:/…），需转成 tracking
+# server 的下载 URL 才能被推理 initContainer 下载。
+
+
+def test_to_mlflow_download_url_runs() -> None:
+    from llmops.services.model_artifact import _to_mlflow_download_url
+
+    url = _to_mlflow_download_url("runs:/run1/model/foo.gguf", "http://mlflow:5000")
+    assert url == "http://mlflow:5000/get-artifact?path=model%2Ffoo.gguf&run_id=run1"
+
+
+def test_to_mlflow_download_url_mlflow_artifacts() -> None:
+    from llmops.services.model_artifact import _to_mlflow_download_url
+
+    url = _to_mlflow_download_url("mlflow-artifacts:/1/abc/model.gguf", "https://mlflow.local/")
+    assert url == "https://mlflow.local/api/2.0/mlflow-artifacts/artifacts/1/abc/model.gguf"
+
+
+def test_to_mlflow_download_url_rejects_unsupported() -> None:
+    from llmops.services.model_artifact import _to_mlflow_download_url
+
+    assert _to_mlflow_download_url("s3://bucket/key", "http://mlflow:5000") is None
+    assert _to_mlflow_download_url("file:///tmp/x", "http://mlflow:5000") is None
+    assert _to_mlflow_download_url("runs:/run1/model", "ftp://mlflow") is None
+    assert _to_mlflow_download_url("runs:/run1/model", "") is None
+    assert _to_mlflow_download_url("runs:/runonly", "http://mlflow:5000") is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_runs_uri_with_tracking_uri() -> None:
+    svc = await _service_with_versions("ft-model", [(1, "runs:/run1/model/foo.gguf", False)])
+    url = await resolve_model_artifact_url(_Registry(svc), "ft-model", "1", tracking_uri="http://mlflow:5000")
+    assert url == "http://mlflow:5000/get-artifact?path=model%2Ffoo.gguf&run_id=run1"
+
+
+@pytest.mark.asyncio
+async def test_resolve_runs_uri_without_tracking_uri_returns_none() -> None:
+    """不传 tracking_uri 保持旧行为：内部 URI 无法转换 ⇒ None（回退全局兜底）."""
+    svc = await _service_with_versions("ft-model", [(1, "runs:/run1/model/foo.gguf", False)])
+    assert await resolve_model_artifact_url(_Registry(svc), "ft-model", "1") is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_models_uri_recurses_to_runs() -> None:
+    """models:/<name>/<ver> 解析为注册表对应版本的 artifactUri（runs:/）再转下载 URL."""
+    store = MockModelStore()
+    svc = ModelService(store)
+    target = await svc.register_model(ModelInfo(id=str(uuid.uuid4()), name="source-model", type=ModelType.BASE))
+    await svc.add_model_version(
+        target.id, ModelVersion(version=1, modelId=target.id, artifactUri="runs:/run9/model.gguf")
+    )
+    alias = await svc.register_model(ModelInfo(id=str(uuid.uuid4()), name="alias-model", type=ModelType.BASE))
+    await svc.add_model_version(
+        alias.id, ModelVersion(version=1, modelId=alias.id, artifactUri="models:/source-model/1")
+    )
+    url = await resolve_model_artifact_url(_Registry(svc), "alias-model", "1", tracking_uri="http://mlflow:5000")
+    assert url == "http://mlflow:5000/get-artifact?path=model.gguf&run_id=run9"
+
+
+@pytest.mark.asyncio
+async def test_resolve_models_uri_depth_guard() -> None:
+    """models:/ 自指时（深度超限）返回 None，不无限递归."""
+    store = MockModelStore()
+    svc = ModelService(store)
+    m = await svc.register_model(ModelInfo(id=str(uuid.uuid4()), name="self-ref", type=ModelType.BASE))
+    await svc.add_model_version(m.id, ModelVersion(version=1, modelId=m.id, artifactUri="models:/self-ref/1"))
+    assert await resolve_model_artifact_url(_Registry(svc), "self-ref", "1", tracking_uri="http://mlflow:5000") is None

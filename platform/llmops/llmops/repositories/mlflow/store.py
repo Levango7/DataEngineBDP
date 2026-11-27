@@ -95,22 +95,42 @@ class MLflowModelStore(ModelStore):
 
     async def get_model_versions(self, model_id: str) -> list[ModelVersion]:
         m = await self.get_model(model_id)
-        return sorted(m.versions, key=lambda v: v.version)
+        # MLflow 3.x 的 RegisteredModel.latest_versions 只含「每个 stage 的最新版本」——
+        # 无 stage 的新注册版本（刚 register、未 transition）不在其中，用它会导致
+        # get_model_versions 为空、推理部署解析不到 artifactUri（真链路实测踩到）。
+        # 改为 search_model_versions 全量拉取。
+        mvs = await asyncio.to_thread(self._client.client.search_model_versions, f"name='{m.name}'")
+        versions = [
+            ModelVersion(
+                version=int(mv.version),
+                modelId=model_id,
+                sourceRunId=mv.run_id,
+                artifactUri=mv.source,
+                isProduction=(mv.current_stage == "Production"),
+            )
+            for mv in mvs
+        ]
+        return sorted(versions, key=lambda v: v.version)
 
     async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
         m = await self.get_model(model_id)
-        # MLflow create_model_version 需要 source（artifact uri）
+        # MLflow 要求 source=runs:/<run_id>/… 时必须同时传 run_id（标识包含 source 的
+        # run），否则报 INVALID_PARAMETER_VALUE；调用方未显式给 sourceRunId 时从
+        # artifactUri 提取（真链路实测踩到）。
+        run_id = version.sourceRunId
+        if not run_id and (version.artifactUri or "").startswith("runs:/"):
+            run_id = version.artifactUri[len("runs:/") :].split("/", 1)[0]
+        # 不传 tags（`sq.llmops.version` tag 无消费者；MLflow 2.x/3.x 的 tags 参数
+        # 形态不同——dict vs ModelVersionTag 列表，省略可避开形态差异）。
         mv = await asyncio.to_thread(
             self._client.client.create_model_version,
             name=m.name,
             source=version.artifactUri or "",
-            run_id=version.sourceRunId,
-            tags={
-                f"{_TAG_PREFIX}version": str(version.version),
-                f"{_TAG_PREFIX}description": version.description or "",
-            },
+            run_id=run_id,
+            description=version.description,
         )
-        version.version = mv.version
+        # MLflow 3.x 的 mv.version 是字符串，ModelVersion.version 契约为 int。
+        version.version = int(mv.version)
         version.modelId = model_id
         return version
 
@@ -163,7 +183,10 @@ class MLflowModelStore(ModelStore):
 
     def _decode_registered_model(self, rm: Any) -> ModelInfo:
         """从 MLflow Registered Model 解码为 ModelInfo."""
-        tags = {t.key: t.value for t in (rm.tags or [])}
+        raw_tags = rm.tags or []
+        # MLflow 3.x 的 tags 是 dict（2.x 是 Tag 实体列表）——直接 `t.key` 迭代 dict
+        # 会报 "'str' object has no attribute 'key'"（真链路实测）。
+        tags = dict(raw_tags) if isinstance(raw_tags, dict) else {t.key: t.value for t in raw_tags}
         model_id = tags.get(f"{_TAG_PREFIX}id", rm.name)
         type_str = tags.get(f"{_TAG_PREFIX}type", "base")
         status_str = tags.get(f"{_TAG_PREFIX}status", "draft")
@@ -203,7 +226,10 @@ class MLflowModelStore(ModelStore):
         """通过 model_id tag 反查 registered model name."""
         rms = await asyncio.to_thread(self._client.client.search_registered_models)
         for rm in rms:
-            tags = {t.key: t.value for t in (rm.tags or [])}
+            raw_tags = rm.tags or []
+            # MLflow 3.x 的 tags 是 dict（2.x 是 Tag 实体列表）——直接 `t.key` 迭代
+            # dict 会报 "'str' object has no attribute 'key'"（真链路实测）。
+            tags = dict(raw_tags) if isinstance(raw_tags, dict) else {t.key: t.value for t in raw_tags}
             if tags.get(f"{_TAG_PREFIX}id") == model_id:
                 return rm.name
         return None
