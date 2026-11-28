@@ -158,9 +158,11 @@ public class SqlRoutingService {
                 abbreviate(sql, 80),
                 request.getLimit() == null ? "" : " limit=" + request.getLimit());
 
-        // 只读门禁：read-only-only 开启时拒绝 DML/DDL，不下发后端（防误删/越权写入）
-        if (executeProperties.isReadOnlyOnly() && !CacheConfig.isReadOnly(sql)) {
-            log.warn("queryId={} 非只读 SQL 被拒绝(read-only-only=true) tenant={} sql={}",
+        // 只读门禁：read-only-only 开启时拒绝 DML/DDL 与多语句，不下发后端（防误删/越权写入）
+        if (executeProperties.isReadOnlyOnly()
+                && !com.levango7.dataenginebdp.sqlgateway.security.SqlStatementGuard
+                        .isSingleReadOnlyStatement(sql)) {
+            log.warn("queryId={} 非只读/多语句 SQL 被拒绝(read-only-only=true) tenant={} sql={}",
                     queryId, tenantId, abbreviate(sql, 80));
             return SqlExecuteResponse.builder()
                     .queryId(queryId)
@@ -171,7 +173,7 @@ public class SqlRoutingService {
                     .engine(targetEngine)
                     .truncated(false)
                     .message("网关已开启只读模式(read-only-only=true)，"
-                            + "仅允许 SELECT/SHOW/DESC/WITH/EXPLAIN 语句")
+                            + "仅允许单条 SELECT/WITH/SHOW/DESC/DESCRIBE/EXPLAIN 语句")
                     .build();
         }
 
@@ -192,7 +194,7 @@ public class SqlRoutingService {
             }
             try {
                 SqlExecuteResponse response = doExecute(targetEngine, sql, tenantId,
-                        effectiveLimit, queryId, start);
+                        effectiveLimit, queryId, start, request.getParams());
                 if (response != null && "SUCCESS".equals(response.getStatus()) && cache != null) {
                     cache.put(cacheKey, response);
                 }
@@ -201,7 +203,8 @@ public class SqlRoutingService {
                 // doExecute 内部已记录 metering
             }
         }
-        return doExecute(targetEngine, sql, tenantId, effectiveLimit, queryId, start);
+        return doExecute(targetEngine, sql, tenantId, effectiveLimit, queryId, start,
+                request.getParams());
     }
 
     /**
@@ -322,11 +325,12 @@ public class SqlRoutingService {
 
     /** 执行真实查询（缓存未命中路径）。 */
     private SqlExecuteResponse doExecute(String targetEngine, String sql, String tenantId,
-                                         Integer effectiveLimit, String queryId, long start) {
+                                         Integer effectiveLimit, String queryId, long start,
+                                         java.util.List<Object> params) {
         try {
             SqlExecuteResponse response;
             if ("doris".equalsIgnoreCase(targetEngine)) {
-                response = backendProxyService.proxyToDoris(sql, tenantId, effectiveLimit)
+                response = backendProxyService.proxyToDoris(sql, tenantId, effectiveLimit, params)
                         .block(java.time.Duration.ofSeconds(BLOCK_TIMEOUT_SECONDS));
             } else {
                 // 默认走 Trino（未知引擎也走 Trino 兜底）

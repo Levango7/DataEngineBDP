@@ -36,4 +36,12 @@ public class SqlExecuteRequest {
      * 返回行数上限，{@code null} 表示不限制。
      */
     private Integer limit;
+
+    /**
+     * SQL 绑定参数，按 {@code ?} 占位符顺序绑定。
+     *
+     * <p>为空表示整段 SQL 文本执行；非空时 Doris 侧必须走 PreparedStatement，
+     * Trino 侧当前仅做 AST 只读校验后透传文本（Trino Statement API 不接绑定参数）。</p>
+     */
+    private java.util.List<Object> params;
 }

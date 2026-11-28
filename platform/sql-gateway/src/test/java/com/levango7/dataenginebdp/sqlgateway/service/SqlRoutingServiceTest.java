@@ -85,7 +85,7 @@ class SqlRoutingServiceTest {
                 .engine("doris")
                 .build();
 
-        when(backendProxyService.proxyToDoris(anyString(), anyString(), any())).thenReturn(Mono.just(mockResponse));
+        when(backendProxyService.proxyToDoris(anyString(), anyString(), any(), any())).thenReturn(Mono.just(mockResponse));
 
         SqlExecuteResponse result = sqlRoutingService.execute(request);
 

@@ -27,6 +27,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional
@@ -148,6 +149,18 @@ def run_pytest(chain_ids: list[int]) -> dict:
     print(f"命令: {' '.join(cmd)}")
     print(f"{'='*60}\n")
 
+    # 采集阶段计时证据落盘（台账 #35 盲区 e）：
+    # conftest 把逐服务探测耗时写成 JSONL，这里在 pytest 结束后回显到 job 日志。
+    # 为什么不只靠 conftest 的 print：pytest 各版本对 collection 阶段 stdout 的
+    # 捕获行为有差异，文件通道不依赖该行为。
+    timing_path = Path(tempfile.gettempdir()) / (
+        "k3s_probe_timing_" + "_".join(str(c) for c in chain_ids) + ".jsonl"
+    )
+    if timing_path.exists():
+        timing_path.unlink()
+    env = os.environ.copy()
+    env["K3S_PROBE_TIMING_FILE"] = str(timing_path)
+
     start = time.time()
     result = subprocess.run(
         cmd,
@@ -155,6 +168,7 @@ def run_pytest(chain_ids: list[int]) -> dict:
         text=True,
         timeout=300,
         cwd=str(K3S_TEST_DIR),
+        env=env,
     )
     duration = time.time() - start
 
@@ -168,11 +182,20 @@ def run_pytest(chain_ids: list[int]) -> dict:
         print(result.stderr)
         print("----- pytest stderr 结束 -----")
 
+    timing_lines: list[str] = []
+    if timing_path.exists():
+        timing_lines = timing_path.read_text(encoding="utf-8").splitlines()
+    print("----- K3S 采集计时证据开始 -----")
+    for line in timing_lines:
+        print(line)
+    print(f"----- K3S 采集计时证据结束 (lines={len(timing_lines)}) -----")
+
     return {
         "returncode": result.returncode,
         "stdout": result.stdout,
         "stderr": result.stderr,
         "duration": duration,
+        "timing_lines": timing_lines,
     }
 
 
@@ -334,6 +357,29 @@ def generate_report(
 
         lines.append("---")
         lines.append("")
+
+    # 采集阶段计时证据（台账 #35 盲区 e）：逐服务探测耗时 + 分段计时
+    timing_blocks = [
+        (cid, r.get("timing_lines") or [])
+        for cid, r in sorted(chain_results.items())
+        if r.get("timing_lines")
+    ]
+    if timing_blocks:
+        lines.append("## K3s 采集阶段计时")
+        lines.append("")
+        lines.append(
+            "> collection 阶段的逐服务探测耗时（`K3S_SERVICE_PROBE`）"
+            "与分段计时（health/deploy/discovery/probe）。"
+        )
+        lines.append("")
+        for cid, tl in timing_blocks:
+            lines.append(f"### {CHAIN_NAMES[cid]}")
+            lines.append("")
+            lines.append("```")
+            for l in tl:
+                lines.append(l)
+            lines.append("```")
+            lines.append("")
 
     # 结论
     lines.append("## 结论")

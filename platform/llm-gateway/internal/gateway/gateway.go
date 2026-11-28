@@ -131,7 +131,16 @@ func (g *Gateway) ChatCompletion(ctx context.Context, req provider.ChatRequest) 
 	resp, err := p.ChatCompletion(ctx, req)
 	latency := time.Since(start)
 
-	// 5. 计量 + 审计后置。
+	// 5. 响应侧内容过滤：命中敏感词时不把内容返回给调用方。
+	if g.auditor != nil && resp != nil && err == nil {
+		if filterErr := g.auditor.CheckResponse(req.TenantID, req.UserID, req.Model, resp); filterErr != nil {
+			g.auditor.RecordBlockedChat(req.TenantID, req.UserID, req.Model, resp, filterErr, latency)
+			g.meter.Record(req.TenantID, req.Model, int64(resp.Usage.TotalTokens), latency)
+			return nil, filterErr
+		}
+	}
+
+	// 6. 计量 + 审计后置。
 	if resp != nil {
 		g.meter.Record(req.TenantID, req.Model, int64(resp.Usage.TotalTokens), latency)
 	} else {

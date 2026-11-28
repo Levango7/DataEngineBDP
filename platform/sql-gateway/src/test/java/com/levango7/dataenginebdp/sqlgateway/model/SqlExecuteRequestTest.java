@@ -20,11 +20,13 @@ class SqlExecuteRequestTest {
         request.setEngine("trino");
         request.setTenantId("t1");
         request.setLimit(100);
+        request.setParams(java.util.List.of("a", 1));
 
         assertThat(request.getSql()).isEqualTo("SELECT 1");
         assertThat(request.getEngine()).isEqualTo("trino");
         assertThat(request.getTenantId()).isEqualTo("t1");
         assertThat(request.getLimit()).isEqualTo(100);
+        assertThat(request.getParams()).containsExactly("a", 1);
     }
 
     @Test

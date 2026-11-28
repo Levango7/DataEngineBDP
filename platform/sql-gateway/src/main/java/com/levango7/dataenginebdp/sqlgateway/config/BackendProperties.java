@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * SQL 网关后端配置属性。
  *
  * <p>绑定配置前缀 {@code sql-gateway.backends}，集中管理 Trino 与 Doris 后端的
- * 连接 URL、超时与重试参数。</p>
+ * 连接 URL 与超时参数。</p>
  *
  * <p>典型 application.yml 用法：</p>
  * <pre>
@@ -16,11 +16,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     trino:
  *       url: http://trino-service:8080
  *       timeout: 30
- *       max-retries: 3
  *     doris:
  *       url: http://doris-fe-service:9030
  *       timeout: 30
- *       max-retries: 3
  * </pre>
  *
  * @author shuqing-bigdata
@@ -54,11 +52,6 @@ public class BackendProperties {
          * 响应超时时间（秒），默认 30。
          */
         private int timeout = 30;
-
-        /**
-         * 最大重试次数（当前版本预留，由调用方实现），默认 3。
-         */
-        private int maxRetries = 3;
 
         /**
          * 后端用户名（Doris 默认 root）。
