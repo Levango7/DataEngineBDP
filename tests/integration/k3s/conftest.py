@@ -82,6 +82,60 @@ HEALTH_PATHS: Dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# 第三轮补验：collection 阶段计时打点（台账 #35 续九段盲区 e）
+#
+# 背景（既有日志实测，未消耗 CI 预算）：
+#   --durations=0 明细显示臂A 链路2 的 setup+call+teardown 合计仅 5.87s，
+#   而 pytest 自报 "10 passed in 52.19s" ⇒ 约 46.32s 落在 durations 之外。
+#   源码定位：pytest_collection_modifyitems 对 K3S_SERVICES 逐个
+#   is_k3s_service_available → wait_for_k3s_service(timeout=5, interval=0.5)，
+#   每个不可用服务烧满 5s 窗口 ⇒ 15 个服务中约 9 个不可用即 ≈45–46s。
+#
+# 本模块只加计时与证据打印，**不改任何超时 / 跳过 / 失败语义**：
+#   - wait_for_k3s_service 新增向后兼容的可选 probe_stats 参数（默认 None），
+#     只回填 attempts / last_error / status，不改返回值与控制流；
+#   - is_k3s_service_available 计时并打印 K3S_SERVICE_PROBE；
+#   - collection 钩子分段计时（health / deploy / discovery / probe）；
+#   - session 钩子记录 session 总时长与 collection 阶段总时长。
+#
+# 证据落点（双通道，互为冗余）：
+#   1) print 到 stdout —— pytest 在 collection 阶段不捕获 stdout（已实测）；
+#   2) JSONL 写 $K3S_PROBE_TIMING_FILE —— 由 run_k3s_integration.py 在每条链路
+#      结束后回显到 job 日志，不依赖 pytest 版本的捕获行为差异。
+# ---------------------------------------------------------------------------
+_TIMING_FILE = os.environ.get("K3S_PROBE_TIMING_FILE", "").strip()
+_SESSION_START_TS: Optional[float] = None
+_COLLECTION_END_TS: Optional[float] = None
+_PROBE_STATS: Dict[str, dict] = {}
+
+
+def _emit_marker(marker: str, **fields) -> None:
+    """输出一条可 grep 的 key=value 标记行，并落一份 JSONL 证据。
+
+    Args:
+        marker: 标记名（如 ``K3S_SERVICE_PROBE``）.
+        **fields: 键值字段；值里的空白会被压平，避免破坏行解析.
+    """
+    parts = [marker]
+    for key, value in fields.items():
+        text = str(value)
+        text = " ".join(text.split())
+        if len(text) > 300:
+            text = text[:300] + "..."
+        parts.append(f"{key}={text}")
+    line = " ".join(parts)
+    print(line, flush=True)
+    if _TIMING_FILE:
+        try:
+            record = {"marker": marker, "ts_ms": int(time.time() * 1000)}
+            record.update(fields)
+            with open(_TIMING_FILE, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
+        except OSError:
+            pass
+
+
 def _kubectl_get_svc_ip(svc_name: str, namespace: str = K3S_NAMESPACE) -> Optional[str]:
     """通过 kubectl 获取 K3s Service 的 ClusterIP.
 
@@ -189,7 +243,11 @@ def generate_test_jwt(
 # 工具函数
 # ---------------------------------------------------------------------------
 def wait_for_k3s_service(
-    name: str, url: str, timeout: int = 15, interval: float = 1.0
+    name: str,
+    url: str,
+    timeout: int = 15,
+    interval: float = 1.0,
+    probe_stats: Optional[dict] = None,
 ) -> bool:
     """轮询等待 K3s 服务健康检查通过.
 
@@ -198,6 +256,9 @@ def wait_for_k3s_service(
         url: 服务基础 URL.
         timeout: 最长等待秒数.
         interval: 轮询间隔秒数.
+        probe_stats: 可选字典；传入时回填探测统计
+            （``attempts`` / ``last_error`` / ``status``）。
+            仅回填统计，**不改变返回值与控制流**（向后兼容）.
 
     Returns:
         True 表示服务就绪，False 表示超时.
@@ -205,19 +266,42 @@ def wait_for_k3s_service(
     health_path = HEALTH_PATHS.get(name, "/api/v1/health")
     health_url = url.rstrip("/") + health_path
     deadline = time.time() + timeout
+    attempts = 0
+    last_error = ""
+    status = "timeout"
     while time.time() < deadline:
+        attempts += 1
         try:
             resp = requests.get(health_url, timeout=5)
             if resp.status_code == 200:
+                status = "ok"
+                if probe_stats is not None:
+                    probe_stats.update({
+                        "attempts": attempts,
+                        "last_error": last_error,
+                        "status": status,
+                    })
                 return True
-        except requests.RequestException:
-            pass
+            last_error = f"http_{resp.status_code}"
+            status = "http_error"
+        except requests.RequestException as exc:
+            last_error = type(exc).__name__
+            status = "request_error"
         time.sleep(interval)
+    if probe_stats is not None:
+        probe_stats.update({
+            "attempts": attempts,
+            "last_error": last_error,
+            "status": status,
+        })
     return False
 
 
 def is_k3s_service_available(name: str) -> bool:
     """检查 K3s 服务是否可用（短时间内探测一次）.
+
+    附带输出逐服务探测耗时（``K3S_SERVICE_PROBE``），用于定位
+    collection 阶段的耗时缺口（台账 #35 盲区 e）；计时不改变判定语义.
 
     Args:
         name: 服务名.
@@ -228,8 +312,49 @@ def is_k3s_service_available(name: str) -> bool:
     urls = get_service_urls()
     url = urls.get(name)
     if not url:
+        # 服务未被发现（kubectl 未取到 ClusterIP）也算一次可观测的探测结果：
+        # 必须留痕，否则「15 个服务」的逐条耗时会出现缺口
+        _PROBE_STATS[name] = {
+            "elapsed_ms": 0,
+            "attempts": 0,
+            "last_error": "none",
+            "status": "url_not_discovered",
+        }
+        _emit_marker(
+            "K3S_SERVICE_PROBE",
+            service=name,
+            url="none",
+            available=False,
+            elapsed_ms=0,
+            attempts=0,
+            last_error="none",
+            status="url_not_discovered",
+        )
         return False
-    return wait_for_k3s_service(name, url, timeout=5, interval=0.5)
+    stats: dict = {}
+    started = time.time()
+    available = wait_for_k3s_service(
+        name, url, timeout=5, interval=0.5, probe_stats=stats
+    )
+    elapsed_ms = int((time.time() - started) * 1000)
+    record = {
+        "elapsed_ms": elapsed_ms,
+        "attempts": stats.get("attempts", 0),
+        "last_error": stats.get("last_error", "") or "none",
+        "status": stats.get("status", "unknown"),
+    }
+    _PROBE_STATS[name] = record
+    _emit_marker(
+        "K3S_SERVICE_PROBE",
+        service=name,
+        url=url,
+        available=available,
+        elapsed_ms=elapsed_ms,
+        attempts=record["attempts"],
+        last_error=record["last_error"],
+        status=record["status"],
+    )
+    return available
 
 
 # ---------------------------------------------------------------------------
@@ -565,6 +690,32 @@ _CHAIN_SERVICE_MAP = {
 }
 
 
+def pytest_sessionstart(session):
+    """记录 pytest session 起点（用于分解 collection 阶段耗时）."""
+    global _SESSION_START_TS
+    _SESSION_START_TS = time.time()
+    _emit_marker("K3S_SESSION_START", ts_ms=int(_SESSION_START_TS * 1000))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """输出 session 总时长与 collection 阶段总时长（E1/E3 的取数口径）."""
+    global _COLLECTION_END_TS
+    end = time.time()
+    total_ms = -1
+    collection_ms = -1
+    if _SESSION_START_TS is not None:
+        total_ms = int((end - _SESSION_START_TS) * 1000)
+        if _COLLECTION_END_TS is not None:
+            collection_ms = int((_COLLECTION_END_TS - _SESSION_START_TS) * 1000)
+    _emit_marker(
+        "K3S_SESSION_SUMMARY",
+        total_ms=total_ms,
+        collection_ms=collection_ms,
+        collection_reached=_COLLECTION_END_TS is not None,
+        exit_status=int(exitstatus),
+    )
+
+
 def pytest_collection_modifyitems(config, items):
     """收集阶段钩子：在依赖服务不可用时自动跳过/失败链路测试.
 
@@ -573,49 +724,99 @@ def pytest_collection_modifyitems(config, items):
     2. 若 namespace 中无 Pod，尝试自动部署 deploy/k3s/manifests/
     3. CI 严格模式（K3S_STRICT/GITHUB_ACTIONS）下服务不可用 → FAIL（不静默 SKIP）
     4. 本地开发环境保持 SKIP 行为
+
+    第三轮补验：加分段计时（health / deploy / discovery / probe），
+    用于定位 collection 阶段耗时缺口（台账 #35 盲区 e）；判定语义不变.
     """
-    # T-05: 先检查集群健康，尝试自动部署
-    health = check_k3s_cluster_health()
-    if health["kubectl_available"] and health["nodes_ready"]:
-        if health["namespace_exists"] and health["pod_count"] == 0:
-            # namespace 存在但无 Pod → 自动部署
-            print(f"[T-05] 检测到 namespace '{K3S_NAMESPACE}' 无 Pod，尝试自动部署...")
-            deployed = ensure_k3s_services_deployed()
-            if deployed:
-                # 部署后重新探测服务可用性（清除缓存）
-                global _DISCOVERED_URLS
-                _DISCOVERED_URLS = None
-                print("[T-05] 自动部署完成，重新探测服务可用性")
-            elif K3S_STRICT:
-                # CI 中部署失败 → 不添加 skip，让测试运行时通过 fixture fail 明确报告
-                fail_msg = (
-                    f"K3s 服务自动部署失败。集群健康: kubectl={health['kubectl_available']}, "
-                    f"nodes_ready={health['nodes_ready']}, issues={health['issues']}"
-                )
-                print(f"[T-05] FAIL: {fail_msg}")
-                for item in items:
-                    item.user_properties.append(("k3s_deploy_failed", fail_msg))
-                return
-
-    # 预先探测各服务可用性
-    availability = {name: is_k3s_service_available(name) for name in K3S_SERVICES}
-
-    for item in items:
-        fspath = str(item.fspath)
-        for prefix, services in _CHAIN_SERVICE_MAP.items():
-            if fspath.endswith(prefix + ".py"):
-                unavailable = [s for s in services if not availability.get(s, False)]
-                if unavailable:
-                    reason = (
-                        f"依赖服务不可用: {', '.join(unavailable)}。"
-                        f"请检查 K3s Pod 状态（kubectl get pods -n {K3S_NAMESPACE}）"
+    global _COLLECTION_END_TS
+    hook_started = time.time()
+    stage_ms: Dict[str, int] = {}
+    availability: Dict[str, bool] = {}
+    try:
+        # T-05: 先检查集群健康，尝试自动部署
+        t_stage = time.time()
+        health = check_k3s_cluster_health()
+        stage_ms["health"] = int((time.time() - t_stage) * 1000)
+        if health["kubectl_available"] and health["nodes_ready"]:
+            if health["namespace_exists"] and health["pod_count"] == 0:
+                # namespace 存在但无 Pod → 自动部署
+                print(f"[T-05] 检测到 namespace '{K3S_NAMESPACE}' 无 Pod，尝试自动部署...")
+                t_stage = time.time()
+                deployed = ensure_k3s_services_deployed()
+                stage_ms["deploy"] = int((time.time() - t_stage) * 1000)
+                if deployed:
+                    # 部署后重新探测服务可用性（清除缓存）
+                    global _DISCOVERED_URLS
+                    _DISCOVERED_URLS = None
+                    print("[T-05] 自动部署完成，重新探测服务可用性")
+                elif K3S_STRICT:
+                    # CI 中部署失败 → 不添加 skip，让测试运行时通过 fixture fail 明确报告
+                    fail_msg = (
+                        f"K3s 服务自动部署失败。集群健康: kubectl={health['kubectl_available']}, "
+                        f"nodes_ready={health['nodes_ready']}, issues={health['issues']}"
                     )
-                    if K3S_STRICT:
-                        # T-05: CI 严格模式 → 不添加 skip marker，让测试运行时通过
-                        # fixture 的 pytest.fail() 明确失败（不静默 SKIP）
-                        # 在测试节点上添加标记信息供报告识别
-                        item.user_properties.append(("k3s_strict_fail_reason", reason))
-                    else:
-                        # 本地开发环境 → 静默 SKIP
-                        item.add_marker(pytest.mark.skip(reason=reason))
-                break
+                    print(f"[T-05] FAIL: {fail_msg}")
+                    for item in items:
+                        item.user_properties.append(("k3s_deploy_failed", fail_msg))
+                    return
+
+        # 服务发现单独计时：get_service_urls() 是懒加载，首次调用含 N 次 kubectl，
+        # 不单列就会被算进第一个服务的探测耗时里（污染逐服务口径）
+        t_stage = time.time()
+        get_service_urls()
+        stage_ms["discovery"] = int((time.time() - t_stage) * 1000)
+
+        # 预先探测各服务可用性
+        t_stage = time.time()
+        availability = {name: is_k3s_service_available(name) for name in K3S_SERVICES}
+        stage_ms["probe"] = int((time.time() - t_stage) * 1000)
+
+        for item in items:
+            fspath = str(item.fspath)
+            for prefix, services in _CHAIN_SERVICE_MAP.items():
+                if fspath.endswith(prefix + ".py"):
+                    unavailable = [s for s in services if not availability.get(s, False)]
+                    if unavailable:
+                        reason = (
+                            f"依赖服务不可用: {', '.join(unavailable)}。"
+                            f"请检查 K3s Pod 状态（kubectl get pods -n {K3S_NAMESPACE}）"
+                        )
+                        if K3S_STRICT:
+                            # T-05: CI 严格模式 → 不添加 skip marker，让测试运行时通过
+                            # fixture 的 pytest.fail() 明确失败（不静默 SKIP）
+                            # 在测试节点上添加标记信息供报告识别
+                            item.user_properties.append(("k3s_strict_fail_reason", reason))
+                        else:
+                            # 本地开发环境 → 静默 SKIP
+                            item.add_marker(pytest.mark.skip(reason=reason))
+                    break
+    finally:
+        _COLLECTION_END_TS = time.time()
+        total_ms = int((_COLLECTION_END_TS - hook_started) * 1000)
+        for stage_name in ("health", "deploy", "discovery", "probe"):
+            if stage_name in stage_ms:
+                _emit_marker("K3S_STAGE_MS", stage=stage_name, ms=stage_ms[stage_name])
+        probed_names = list(availability.keys())
+        unavailable = [n for n in probed_names if not availability.get(n, False)]
+        unavailable_ms = sum(
+            int(_PROBE_STATS.get(n, {}).get("elapsed_ms", 0))
+            for n in unavailable
+        )
+        top = sorted(
+            unavailable,
+            key=lambda n: int(_PROBE_STATS.get(n, {}).get("elapsed_ms", 0)),
+            reverse=True,
+        )[:5]
+        _emit_marker(
+            "K3S_COLLECTION_SUMMARY",
+            total_ms=total_ms,
+            services=len(K3S_SERVICES),
+            probed=len(probed_names),
+            available=len(probed_names) - len(unavailable),
+            unavailable=len(unavailable),
+            unavailable_elapsed_ms=unavailable_ms,
+            top_unavailable=",".join(
+                f"{n}:{int(_PROBE_STATS.get(n, {}).get('elapsed_ms', 0))}" for n in top
+            ) or "none",
+        )
+        _emit_marker("K3S_COLLECTION_MS", ms=total_ms)
