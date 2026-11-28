@@ -537,6 +537,16 @@ jobs:
       - name: 自测 Quality Gate 聚合收敛判据（quality-gate-aggregate）
         run: python3 scripts/quality-gate-aggregate.py --self-test
 
+      # 台账 #35「续十」(d)：无端点 Service 的 kube-proxy 规则计数器取表解析自测。
+      # 该解析决定 E2 计数器通道能否取到数——旧实现以 `-t nat` 只取 nat 表，而无端点
+      # Service 的 REJECT 规则挂在 filter 表 KUBE-SERVICES 链 ⇒ 计数器恒为
+      # status=counter_unavailable（本刀三臂实测已取到数，见台账 #35 续十段）。
+      # 合成夹具自测 + 自包含变异对照：filter 表取数 / 增量 / 多源各独立成行且 primary
+      # 唯一 / nft 原生回退；B2 把取表参数回退为 nat-only 后必须取不到（否则缺陷回归）。
+      # 纯本地、无网络、不调 docker，成本可忽略。awk 方言：mawk 1.3.4 与 gawk 5.x 均实测 PASS。
+      - name: 自测 kube-proxy 计数器取表解析（selftest_probe_counter_parsing）
+        run: bash scripts/selftest_probe_counter_parsing.sh
+
       # 台账 #116 P3 收尾：compose 宿主端口 vs Windows Hyper-V 保留段静态比对。
       # Jaeger 14318 撞保留段 ⇒ Windows 本机全栈起不来、CI Linux 不暴露。CI runner
       # 是 Linux，保留段检查按平台跳过（脚本 rc=0+说明），真正拦截在 Windows 本机。
