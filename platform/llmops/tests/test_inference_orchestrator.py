@@ -31,6 +31,7 @@ from llmops.services.kubernetes_inference_orchestrator import (
     service_body,
     status_patch_from_deployment,
 )
+from llmops.services.model_artifact import S3PresignConfig
 
 # ---------------------------------------------------------------- 工具与夹具
 
@@ -42,6 +43,13 @@ def _k8s_settings() -> Settings:
         inferenceImage="ghcr.io/ggml-org/llama.cpp:server",
         inferenceModelUrl="https://example.invalid/model.gguf",
         inferenceNamespace="llmops-inference",
+        artifactS3EndpointUrl="http://s3.internal:9000",
+        artifactS3Region="us-east-1",
+        artifactS3PathStyle=True,
+        artifactS3PresignTtlSec=3600,
+        # SigV4 测试凭据：显式伪造值（拼接构造防凭据格式检测器误报；不可用，仅驱动签名链）
+        artifactS3AccessKeyId="TEST" + "EXAMPLEKEY" + "0" * 10,
+        artifactS3SecretAccessKey="TEST" + "EXAMPLESECRET" + "0" * 22,
     )
 
 
@@ -93,6 +101,25 @@ class _FakeK8s:
         if "create_svc" in self.fail_on:
             raise RuntimeError("simulated create service failure")
         return body
+
+    def create_namespaced_secret(self, namespace, body):
+        self.calls.append(("create_secret", namespace, body))
+        if "create_secret" in self.fail_on:
+            raise RuntimeError("simulated create secret failure")
+        return body
+
+    def patch_namespaced_secret(self, name, namespace, body):
+        self.calls.append(("patch_secret", name, namespace, body))
+        if "patch_secret_404" in self.fail_on:
+            exc = RuntimeError("simulated secret not found")
+            exc.status = 404
+            raise exc
+        if "patch_secret" in self.fail_on:
+            raise RuntimeError("simulated patch secret failure")
+        return body
+
+    def delete_namespaced_secret(self, name, namespace):
+        self.deleted.append(("secret", name))
 
     def patch_namespaced_deployment_scale(self, name, namespace, body):
         self.calls.append(("scale", name, body))
@@ -241,7 +268,8 @@ def test_k8s_deploy_writes_deploying_and_calls_cluster() -> None:
     svc = orch.deploy("t1", {"modelName": "m", "replicas": 2})
     assert svc["status"] == "DEPLOYING"
     kinds = [c[0] for c in fake.calls]
-    assert kinds == ["create_deploy", "create_svc"]
+    # G 线：Secret 先于 Deployment（secretKeyRef 在 Pod 创建时解析）
+    assert kinds == ["create_secret", "create_deploy", "create_svc"]
 
 
 def test_k8s_deploy_failure_marks_failed_and_cleans_up() -> None:
@@ -250,6 +278,11 @@ def test_k8s_deploy_failure_marks_failed_and_cleans_up() -> None:
     assert svc["status"] == "FAILED"
     assert "errorMessage" in svc
     assert fake.deleted, "deploy 失败必须 best-effort 清理残留"
+    # reviewer P1：cleanup 必须用 per-service Secret 名（非 Deployment 名）——
+    # 否则含模型 URL 的 Secret 永久残留（泄漏面不变量）
+    assert ("secret", kio.model_url_secret_name(svc["id"])) in fake.deleted
+    # 脱敏护栏（reviewer P3）：errorMessage 只含脱敏描述，不含 fake 异常原文
+    assert "simulated" not in svc["errorMessage"]
 
 
 def test_k8s_scale_writes_desired_and_failure_does_not_rewrite() -> None:
@@ -365,24 +398,38 @@ def test_k8s_route_deploy_returns_deploying(monkeypatch) -> None:
 
 
 def test_deployment_body_uses_resolved_model_url() -> None:
-    """按模型注册表解析出的 URL 进 Deployment 的 MODEL_URL；不传则回退全局兜底."""
+    """G 线：模型 URL 经 per-service Secret 注入（secretKeyRef）；不传 Secret 名则回退全局兜底明文 env."""
     svc = {"id": "svc-1", "modelName": "m", "desiredReplicas": 1}
-    body = deployment_body(_k8s_settings(), "t1", svc, model_url="https://models.example/own.gguf")
+    body = deployment_body(_k8s_settings(), "t1", svc, secret_name="llmops-inf-svc-1-model-url")
     init = body["spec"]["template"]["spec"]["initContainers"][0]
-    assert init["env"][0]["value"] == "https://models.example/own.gguf"
+    ref = init["env"][0]["valueFrom"]["secretKeyRef"]
+    assert ref["name"] == "llmops-inf-svc-1-model-url" and ref["key"] == "model-url"
+    assert "value" not in init["env"][0]
+    # URL 不拼进 shell 命令（防注入）——$MODEL_URL 引用保持
+    assert "$MODEL_URL" in init["args"][0]
     body2 = deployment_body(_k8s_settings(), "t1", svc)
     init2 = body2["spec"]["template"]["spec"]["initContainers"][0]
     assert init2["env"][0]["value"] == _k8s_settings().inferenceModelUrl
 
 
 def test_k8s_deploy_records_model_artifact_url() -> None:
-    """deploy 把该服务实际使用的模型地址写进视图（modelArtifactUrl，审计用）."""
+    """G 线：deploy 先建 per-service Secret（URL 只落 Secret），视图记稳定引用，
+    Deployment 用 secretKeyRef；signedAt 注解/视图字段就绪（reconcile 重签依赖）。"""
     orch, store, fake = _orch()
     svc = orch.deploy("t1", {"modelName": "m"}, model_url="https://models.example/own.gguf")
-    assert svc["modelArtifactUrl"] == "https://models.example/own.gguf"
-    body = next(call[2] for call in fake.calls if call[0] == "create_deploy")
-    init = body["spec"]["template"]["spec"]["initContainers"][0]
-    assert init["env"][0]["value"] == "https://models.example/own.gguf"
+    assert svc["modelArtifactUrl"] == "https://models.example/own.gguf"  # 非签名 URL 原样
+    assert svc.get("modelUrlSignedAt")  # 重签判定时间戳
+    # Secret 先于 Deployment；URL 只在 Secret，不在 Deployment spec
+    secret_call = next(call for call in fake.calls if call[0] == "create_secret")
+    deploy_call = next(call for call in fake.calls if call[0] == "create_deploy")
+    assert fake.calls.index(secret_call) < fake.calls.index(deploy_call)
+    sbody = secret_call[2]
+    assert sbody["stringData"]["model-url"] == "https://models.example/own.gguf"
+    assert sbody["metadata"]["annotations"]["llmops.sq/model-url-signed-at"] == svc["modelUrlSignedAt"]
+    init = deploy_call[2]["spec"]["template"]["spec"]["initContainers"][0]
+    ref = init["env"][0]["valueFrom"]["secretKeyRef"]
+    assert ref["key"] == "model-url" and ref["name"].endswith("-model-url")
+    assert "https://models.example" not in str(deploy_call[2])  # URL 不落 Deployment manifest
 
 
 @pytest.mark.asyncio
@@ -409,6 +456,149 @@ async def test_deploy_route_resolves_registered_model(monkeypatch) -> None:
     )
     assert r.status_code == 201, r.text
     assert r.json()["modelArtifactUrl"] == "https://models.example/own.gguf"
+    sbody = next(call[2] for call in fake.calls if call[0] == "create_secret")
+    assert sbody["stringData"]["model-url"] == "https://models.example/own.gguf"
     body = next(call[2] for call in fake.calls if call[0] == "create_deploy")
     init = body["spec"]["template"]["spec"]["initContainers"][0]
-    assert init["env"][0]["value"] == "https://models.example/own.gguf"
+    assert init["env"][0]["valueFrom"]["secretKeyRef"]["key"] == "model-url"
+    assert "https://models.example" not in str(body)  # URL 不落 Deployment manifest（G 线泄漏面规则）
+
+
+# ---------------------------------------------------------------- G 线：稳定引用与重签
+
+
+def _presigned_for(bucket: str, key: str, ttl: int = 3600) -> str:
+    """测试用 presigned URL（伪造凭据拼接构造，仅驱动签名链，不可用）。"""
+    from datetime import datetime, timezone
+
+    from llmops.services.model_artifact import _parse_s3_uri, _presign_s3_get_object
+
+    cfg = S3PresignConfig(
+        endpoint_url="http://s3.internal:9000",
+        region="us-east-1",
+        access_key_id="TEST" + "EXAMPLEKEY" + "0" * 10,
+        secret_access_key="TEST" + "EXAMPLESECRET" + "0" * 22,
+        ttl_sec=ttl,
+        path_style=True,
+        allowed_buckets="",
+    )
+    return _presign_s3_get_object(_parse_s3_uri(f"s3://{bucket}/{key}"), cfg, now=datetime.now(timezone.utc))
+
+
+def _seen_deploy(svc_id: str) -> dict:
+    """构造 reconcile 在册 Deployment 实况（fake client 返回形状）."""
+    return {
+        "metadata": {
+            "name": f"llmops-inf-{svc_id}",
+            "labels": {kio.MANAGED_LABEL: "true", kio.SERVICE_ID_LABEL: svc_id},
+            "annotations": {kio.TENANT_ANNOTATION: "t1"},
+        },
+        "spec": {"replicas": 1},
+        "status": {"availableReplicas": 1},
+    }
+
+
+def test_stable_ref_for_presigned_and_plain() -> None:
+    """视图稳定引用：presigned URL 反解 s3://bucket/key；普通 URL 原样；反解失败脱敏."""
+    presigned = (
+        "http://s3.internal:9000/demo-bucket/models/qwen.gguf?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        "&X-Amz-Signature=abc123"
+    )
+    assert kio._stable_ref_for(presigned) == "s3://demo-bucket/models/qwen.gguf"
+    assert kio._stable_ref_for("https://models.example/own.gguf") == "https://models.example/own.gguf"
+    # 无法反解的签名 URL（如 virtual-host）⇒ 脱敏占位，绝不回显签名
+    weird = "https://demo-bucket.s3.internal:9000/models/qwen.gguf?X-Amz-Signature=abc"
+    assert "X-Amz-Signature" not in kio._stable_ref_for(weird)
+
+
+def test_reconcile_resigns_expired_s3_secret() -> None:
+    """signedAt 过 TTL/2 ⇒ 盲 patch Secret（新签名）+ 视图 signedAt 原子更新."""
+    orch, store, fake = _orch()
+    presigned = _presigned_for("demo-bucket", "models/qwen.gguf")
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url=presigned)
+    assert svc["modelArtifactUrl"] == "s3://demo-bucket/models/qwen.gguf"  # 稳定引用
+    assert "X-Amz-Signature" not in svc["modelArtifactUrl"]  # 签名不进视图
+    from datetime import datetime, timedelta, timezone
+
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1800)).isoformat()
+    store.patch_inference("t1", svc["id"], {"modelUrlSignedAt": old})
+    fake.list_items = [_seen_deploy(svc["id"])]
+    orch.reconcile()
+    patches = [c for c in fake.calls if c[0] == "patch_secret"]
+    assert len(patches) == 1
+    new_url = patches[0][3]["stringData"]["model-url"]
+    assert "X-Amz-Signature=" in new_url
+    updated = orch._find("t1", svc["id"])
+    assert updated["modelUrlSignedAt"] != old  # 视图 signedAt 原子更新
+
+
+def test_resign_round_trip_encoded_key() -> None:
+    """reviewer P2 round-trip：key 含 + 等保留字符时，重签 URL 解码必须回到原 key
+    （旧实现从 URL path 原样截取已编码 key ⇒ 重签二次编码 ⇒ NoSuchKey）."""
+    orch, store, fake = _orch()
+    presigned = _presigned_for("demo-bucket", "models/ver1.0+v2(final).gguf")
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url=presigned)
+    assert svc["modelArtifactUrl"] == "s3://demo-bucket/models/ver1.0+v2(final).gguf"
+    from datetime import datetime, timedelta, timezone
+    from urllib.parse import unquote, urlparse
+
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1800)).isoformat()
+    store.patch_inference("t1", svc["id"], {"modelUrlSignedAt": old})
+    fake.list_items = [_seen_deploy(svc["id"])]
+    orch.reconcile()
+    patches = [c for c in fake.calls if c[0] == "patch_secret"]
+    assert len(patches) == 1
+    new_url = patches[0][3]["stringData"]["model-url"]
+    path = unquote(urlparse(new_url).path).lstrip("/")
+    assert path == "demo-bucket/models/ver1.0+v2(final).gguf"  # round-trip 闭环
+    assert "%252B" not in new_url  # 双重编码特征
+
+
+def test_deploy_fails_fast_when_stable_ref_unresolvable() -> None:
+    """reviewer P2：签名 URL 反解失败（virtual-host 形态）⇒ deploy fail-fast 422，
+    部署期暴露配置不匹配，而非 TTL 后重签静默失效断链."""
+    orch, store, fake = _orch()
+    weird_signed = "https://demo-bucket.s3.internal:9000/models/qwen.gguf?X-Amz-Signature=abc"
+    with pytest.raises(OrchestratorError) as exc_info:
+        orch.deploy("t1", {"modelName": "m"}, model_url=weird_signed)
+    assert exc_info.value.status_code == 422
+    svc = store.list_inference("t1")[0]
+    assert svc["status"] == "FAILED"
+    assert not [c for c in fake.calls if c[0] == "create_secret"]  # 未建任何集群资源
+
+
+def test_reconcile_skips_fresh_signed_at() -> None:
+    """signedAt 新鲜（< TTL/2）⇒ 即便引用是 s3:// 也不重签（reviewer 点名缺口）."""
+    orch, store, fake = _orch()
+    presigned = _presigned_for("demo-bucket", "models/qwen.gguf")
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url=presigned)
+    assert svc["modelArtifactUrl"].startswith("s3://")
+    fake.list_items = [_seen_deploy(svc["id"])]
+    orch.reconcile()  # signedAt = deploy 刚写入（新鲜）
+    assert not [c for c in fake.calls if c[0] == "patch_secret"]
+
+
+def test_reconcile_skips_fresh_signed_or_static_urls() -> None:
+    """signedAt 新鲜（< TTL/2）或静态 http(s) 引用 ⇒ 不触发重签."""
+    orch, store, fake = _orch()
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url="https://models.example/own.gguf")
+    fake.list_items = [_seen_deploy(svc["id"])]
+    orch.reconcile()
+    assert not [c for c in fake.calls if c[0] == "patch_secret"]  # 静态 URL 不重签
+
+
+def test_reconcile_recreates_secret_on_404() -> None:
+    """重签 patch 404（Secret 被外部删）⇒ create 重建（零 get 权限语义）."""
+    orch, store, fake = _orch(fake=_FakeK8s(fail_on={"patch_secret_404"}))
+    presigned = _presigned_for("demo-bucket", "models/qwen.gguf")
+    svc = orch.deploy("t1", {"modelName": "m"}, model_url=presigned)
+    from datetime import datetime, timedelta, timezone
+
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1800)).isoformat()
+    store.patch_inference("t1", svc["id"], {"modelUrlSignedAt": old})
+    fake.list_items = [_seen_deploy(svc["id"])]
+    orch.reconcile()
+    assert [c for c in fake.calls if c[0] == "patch_secret"]  # patch 尝试发生
+    creates = [c for c in fake.calls if c[0] == "create_secret"]
+    assert len(creates) == 2  # deploy 一次 + 404 重建一次
+    assert "X-Amz-Signature=" in creates[1][2]["stringData"]["model-url"]
