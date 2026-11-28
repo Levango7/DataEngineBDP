@@ -101,10 +101,17 @@ ingress:
 # ---- 环境变量 ----
 # LLMOPS_STORE_TYPE 必须显式注入（Settings 默认 mlflow；镜像已装 .[mlflow] extra）。
 # 各环境指向自己的 MLflow 服务：在 env values 里覆盖 LLMOPS_MLFLOW_URI。
+# S3 artifact presign（G 线）：非凭据项走 ConfigMap（本段）；凭据走下方 inference.artifactS3
+# 的键名 secretKeyRef（键名默认空=不注入，避免引用不存在的 Secret 键导致 Pod 起不来）。
 env:
   LLMOPS_STORE_TYPE: mlflow
   LOG_LEVEL: info
   JAVA_OPTS: ""
+  LLMOPS_ARTIFACT_S3_ENDPOINT_URL: ""
+  LLMOPS_ARTIFACT_S3_REGION: "us-east-1"
+  LLMOPS_ARTIFACT_S3_PATH_STYLE: "true"
+  LLMOPS_ARTIFACT_S3_PRESIGN_TTL_SEC: "3600"
+  LLMOPS_ARTIFACT_S3_ALLOWED_BUCKETS: ""
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 # ---- 鉴权（AUTH_MODE fail-fast 配套）----
@@ -139,6 +146,13 @@ inference:
   initImage: "curlimages/curl:8.11.1"
   syncIntervalSec: 15
   modelUrlKey: model-url
+  # S3 artifact presign 凭据（G 线）：键名默认空=不注入 secretKeyRef。
+  # 启用方式：在 existingSecretName（frontend 段同一 Secret）里加这两个键再填键名。
+  # llmops-inference 命名空间为本 chart 专属（namespaceCreate: true），
+  # 禁止放入非本编排管理的 Secret。
+  artifactS3:
+    accessKeyIdKey: ""
+    secretAccessKeyKey: ""
   rbac:
     create: true
 

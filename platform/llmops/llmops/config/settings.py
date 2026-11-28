@@ -19,6 +19,13 @@
                              initContainer 下载 GGUF；仅 http/https，操作者配置信任边界）
     LLMOPS_INFERENCE_KUBECONFIG  kubeconfig 路径（空则 in-cluster ServiceAccount）
     LLMOPS_INFERENCE_SYNC_INTERVAL_SEC  集群实况对账周期秒（默认 15）
+    LLMOPS_ARTIFACT_S3_ENDPOINT_URL  S3 兼容端点（G 线 s3:// presign；空=不支持 s3://）
+    LLMOPS_ARTIFACT_S3_REGION / _PATH_STYLE / _PRESIGN_TTL_SEC / _ALLOWED_BUCKETS
+                             SigV4 参数（region 默认 us-east-1；path-style 默认 true；
+                             TTL 默认 3600 限 1800–604800；bucket 白名单空=不限）
+    LLMOPS_ARTIFACT_S3_ACCESS_KEY_ID / _SECRET_ACCESS_KEY
+                             S3 凭据（只从 Secret env 注入，无默认字面量；成对出现；
+                             为空时 s3:// artifactUri 保持回退兜底契约）
     LLMOPS_API_PREFIX        API 路由前缀（默认 /api/v1）
 
     # ---- AI 模式统一开关（P-02）----
@@ -35,6 +42,7 @@ from __future__ import annotations
 from functools import lru_cache
 import os
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -134,6 +142,49 @@ class Settings(BaseSettings):
         description="集群实况对账周期秒",
     )
 
+    # ---- S3 artifact presign（G 线：自训练模型存对象存储时直接可部署）----
+    # 凭据字段（accessKey/secretKey）只从 env/Secret 注入，默认空且不写默认字面量；
+    # 为空时 s3:// artifactUri 保持既有回退兜底契约（不 fail-fast，不阻断部署）。
+    # 注意：这组配置不按 orchestrator 类型门控——resolver 在 contract/kubernetes
+    # 两种编排模式下都会执行（路由层无差别调用），条件错位会导致开发环境静默回退。
+    artifactS3EndpointUrl: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_ENDPOINT_URL", "artifactS3EndpointUrl"),
+        description="S3 兼容端点（如 http://rustfs.shuqing-storage:9000；空=不支持 s3:// 解析）",
+    )
+    artifactS3Region: str = Field(
+        default="us-east-1",
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_REGION", "artifactS3Region"),
+        description="SigV4 region（须与对象存储实际 region 一致，MinIO 默认 us-east-1）",
+    )
+    artifactS3PathStyle: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_PATH_STYLE", "artifactS3PathStyle"),
+        description="path-style 寻址（MinIO/RustFS 必须 True；AWS 原生为 virtual-host）",
+    )
+    artifactS3PresignTtlSec: int = Field(
+        default=3600,
+        ge=1800,
+        le=604800,
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_PRESIGN_TTL_SEC", "artifactS3PresignTtlSec"),
+        description="presigned URL 有效期秒（协议上限 604800；下限 1800 = initContainer 下载总预算 900s 的 2 倍，防下载中途过期）",
+    )
+    artifactS3AccessKeyId: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_ACCESS_KEY_ID", "artifactS3AccessKeyId"),
+        description="S3 access key（凭据：只从 Secret env 注入，无默认字面量）",
+    )
+    artifactS3SecretAccessKey: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_SECRET_ACCESS_KEY", "artifactS3SecretAccessKey"),
+        description="S3 secret key（凭据：只从 Secret env 注入，无默认字面量）",
+    )
+    artifactS3AllowedBuckets: str = Field(
+        default="",
+        validation_alias=AliasChoices("LLMOPS_ARTIFACT_S3_ALLOWED_BUCKETS", "artifactS3AllowedBuckets"),
+        description="bucket 白名单（逗号分隔；空=不限制。凭据有宽权限时是应用层最小化补充）",
+    )
+
     # ---- mlflow ----
     mlflowUri: str = Field(
         default="http://localhost:5000",
@@ -197,6 +248,26 @@ class Settings(BaseSettings):
             # （生产模型仓在集群内网，私有地址是合法部署形态，不做拒绝）。
             if not self.inferenceModelUrl.lower().startswith(("http://", "https://")):
                 raise ValueError("LLMOPS_INFERENCE_MODEL_URL 仅允许 http/https")
+        # S3 artifact presign（G 线）：endpoint host 逐字节进入签名，任何多余路径/尾斜杠
+        # 都会让签名 host 与 initContainer curl 实发 Host 分叉 ⇒ 配置层 fail-fast。
+        # 凭据不写默认字面量：endpoint 配了但凭据为空 ⇒ 运行期按回退兜底契约（不在此拦）。
+        s3_ep = self.artifactS3EndpointUrl.strip()
+        if s3_ep:
+            if not s3_ep.lower().startswith(("http://", "https://")):
+                raise ValueError("LLMOPS_ARTIFACT_S3_ENDPOINT_URL 仅允许 http/https")
+            parsed_ep = urlparse(s3_ep)
+            if parsed_ep.path not in ("", "/"):
+                raise ValueError("LLMOPS_ARTIFACT_S3_ENDPOINT_URL 不允许携带路径后缀（签名 host 一致性）")
+            if parsed_ep.query or parsed_ep.fragment:
+                raise ValueError("LLMOPS_ARTIFACT_S3_ENDPOINT_URL 不允许携带 query/fragment（签名 URL 会被破坏）")
+            if s3_ep.endswith("/"):
+                raise ValueError("LLMOPS_ARTIFACT_S3_ENDPOINT_URL 不允许尾部斜杠")
+            has_ak = bool(self.artifactS3AccessKeyId.strip())
+            has_sk = bool(self.artifactS3SecretAccessKey.strip())
+            if has_ak != has_sk:
+                raise ValueError("LLMOPS_ARTIFACT_S3_ACCESS_KEY_ID 与 SECRET_ACCESS_KEY 必须成对配置")
+            if not self.artifactS3Region.strip():
+                raise ValueError("LLMOPS_ARTIFACT_S3_REGION 不能为空（须与对象存储实际 region 一致）")
         return self
 
     @property

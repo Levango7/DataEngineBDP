@@ -99,6 +99,22 @@ spec:
                   name: {{ .Values.frontend.existingSecretName | quote }}
                   key: {{ .Values.inference.modelUrlKey | default "model-url" | quote }}
             {{- end }}
+            # S3 artifact presign 凭据（G 线）：键名非空才注入（默认空=不注入）。
+            # 不按 orchestrator 类型门控——resolver 在 contract/kubernetes 双模式下都执行。
+            {{- if .Values.inference.artifactS3.accessKeyIdKey }}
+            - name: LLMOPS_ARTIFACT_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.frontend.existingSecretName | quote }}
+                  key: {{ .Values.inference.artifactS3.accessKeyIdKey | quote }}
+            {{- end }}
+            {{- if .Values.inference.artifactS3.secretAccessKeyKey }}
+            - name: LLMOPS_ARTIFACT_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.frontend.existingSecretName | quote }}
+                  key: {{ .Values.inference.artifactS3.secretAccessKeyKey | quote }}
+            {{- end }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:

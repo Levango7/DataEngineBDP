@@ -35,7 +35,7 @@ from llmops.api.jwt_auth import AuthContext, getAuthContext
 from llmops.api.routers.deps import get_registry
 from llmops.models.model import ModelFilter, ModelInfo, ModelStatus, ModelType, ModelVersion
 from llmops.services.inference_orchestrator import OrchestratorError
-from llmops.services.model_artifact import resolve_model_artifact_url
+from llmops.services.model_artifact import S3PresignConfig, resolve_model_artifact_url
 from llmops.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/llmops", tags=["llmops-frontend"])
@@ -293,11 +293,24 @@ async def frontend_deploy_inference_service(
         raise HTTPException(status_code=422, detail="modelName required")
     # 多模型发布：按模型名+版本从模型仓解析该服务独立的模型 artifact 地址；
     # 解析不到返回 None ⇒ 编排层回退全局兜底 URL（不破坏单模型部署形态）。
+    # G 线：S3 presign 配置从 settings 构造传入（端点/凭据齐备才可签 s3://，
+    # 缺失保持回退兜底契约）；凭据只来自 Secret env，不落日志不进视图。
+    settings = request.app.state.settings
+    s3_cfg = S3PresignConfig(
+        endpoint_url=settings.artifactS3EndpointUrl.strip(),
+        region=settings.artifactS3Region.strip(),
+        access_key_id=settings.artifactS3AccessKeyId.strip(),
+        secret_access_key=settings.artifactS3SecretAccessKey.strip(),
+        ttl_sec=settings.artifactS3PresignTtlSec,
+        path_style=settings.artifactS3PathStyle,
+        allowed_buckets=settings.artifactS3AllowedBuckets,
+    )
     model_url = await resolve_model_artifact_url(
         request.app.state.registry,
         payload.get("modelName"),
         payload.get("modelVersion") or payload.get("version"),
-        tracking_uri=request.app.state.settings.mlflowUri,
+        tracking_uri=settings.mlflowUri,
+        s3=s3_cfg,
     )
     try:
         return _orchestrator(request).deploy(ctx.tenantId, payload, model_url=model_url)

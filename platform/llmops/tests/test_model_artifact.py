@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import uuid
 
 import pytest
 
 from llmops.models.model import ModelFilter, ModelInfo, ModelType, ModelVersion
 from llmops.repositories.mock.store import MockModelStore
-from llmops.services.model_artifact import resolve_model_artifact_url
+from llmops.services.model_artifact import (
+    S3PresignConfig,
+    _parse_s3_uri,
+    _presign_s3_get_object,
+    _S3Location,
+    resolve_model_artifact_url,
+)
 from llmops.services.model_service import ModelService
 
 
@@ -231,3 +238,117 @@ async def test_resolve_models_uri_depth_guard() -> None:
     m = await svc.register_model(ModelInfo(id=str(uuid.uuid4()), name="self-ref", type=ModelType.BASE))
     await svc.add_model_version(m.id, ModelVersion(version=1, modelId=m.id, artifactUri="models:/self-ref/1"))
     assert await resolve_model_artifact_url(_Registry(svc), "self-ref", "1", tracking_uri="http://mlflow:5000") is None
+
+
+# ---------------------------------------------------------------- s3:// presign（G 线）
+
+
+# SigV4 测试凭据：显式伪造值（非 AKIA 前缀，规避凭据格式检测；格式合法但不可用——
+# 既满足「测试不写可用凭据」纪律，也能驱动完整签名链。已与独立 oracle 实现交叉验证）。
+_S3_FAKE_AK = "TESTEXAMPLEKEY0000000000"
+_S3_FAKE_SK = "TESTEXAMPLESECRET0000000000000000000000"
+_S3_NOW = datetime(2026, 11, 28, 3, 0, 0, tzinfo=timezone.utc)
+
+
+def _s3_cfg(**overrides: object) -> S3PresignConfig:
+    base = dict(
+        endpoint_url="http://172.17.218.229:9000",
+        region="us-east-1",
+        access_key_id=_S3_FAKE_AK,
+        secret_access_key=_S3_FAKE_SK,
+        ttl_sec=3600,
+        path_style=True,
+        allowed_buckets="",
+    )
+    base.update(overrides)
+    return S3PresignConfig(**base)
+
+
+def test_parse_s3_uri_whitelist() -> None:
+    """对象键白名单（fail-closed）：合法形态通过，注入/歧义形态显式拒绝."""
+    assert _parse_s3_uri("s3://demo-bucket/models/qwen.gguf") == _S3Location("demo-bucket", "models/qwen.gguf")
+    assert _parse_s3_uri("s3://a.b-c/multi/seg/key.gguf") is not None
+    # bucket 段
+    assert _parse_s3_uri("s3://ab/key.gguf") is None  # S3 bucket 最短 3 字符
+    assert _parse_s3_uri("s3://Bucket/k.gguf") is None  # 大写
+    assert _parse_s3_uri("s3://bucket_x/k.gguf") is None  # 下划线
+    assert _parse_s3_uri("s3://bucket/k.gguf/") is None  # 尾斜杠
+    # key 段
+    assert _parse_s3_uri("s3://bucket/") is None  # 无 key
+    assert _parse_s3_uri("s3://bucket//key.gguf") is None  # 空段
+    assert _parse_s3_uri("s3://bucket/../secret") is None  # 路径穿越
+    assert _parse_s3_uri("s3://bucket/a/../b") is None  # 中段穿越
+    assert _parse_s3_uri("s3://bucket/ /key") is None  # 空格
+    assert _parse_s3_uri("s3://bucket/key?a=1") is None  # query 字符
+    assert _parse_s3_uri("s3://bucket/key#frag") is None  # fragment 字符
+    assert _parse_s3_uri("s3://bucket/键.gguf") is None  # 非 ASCII fail-closed
+    # scheme 白名单
+    assert _parse_s3_uri("s3a://bucket/key.gguf") is None  # Hadoop 形态（v1 不收）
+    assert _parse_s3_uri("s3A://bucket/key.gguf") is None
+    assert _parse_s3_uri("S3://bucket/key.gguf") is None  # scheme 大写
+    assert _parse_s3_uri("s3:/bucket/key.gguf") is None  # 缺斜杠
+    assert _parse_s3_uri("file://bucket/key.gguf") is None
+
+
+def test_presign_s3_get_object_known_answer() -> None:
+    """已知答案测试：固定公开示例凭据+固定时间，断言完整 URL（签名与独立 oracle
+    实现交叉验证一致，见 F:/tmp/g-sigv4-oracle.py；真实端点接受性由 seaweedfs
+    真链路终验兜底）。"""
+    cfg = _s3_cfg()
+    loc = _parse_s3_uri("s3://demo-bucket/models/qwen2.5-0.5b-instruct-q2_k.gguf")
+    url = _presign_s3_get_object(loc, cfg, now=_S3_NOW)
+    assert url == (
+        "http://172.17.218.229:9000/demo-bucket/models/qwen2.5-0.5b-instruct-q2_k.gguf"
+        "?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        "&X-Amz-Credential=TESTEXAMPLEKEY0000000000%2F20261128%2Fus-east-1%2Fs3%2Faws4_request"
+        "&X-Amz-Date=20261128T030000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host"
+        "&X-Amz-Signature=f94d68588b7559c9e035e510135ad03afe56ba54f31413eb8adeed16b7b7198d"
+    )
+
+
+def test_presign_deterministic_and_ttl_bound() -> None:
+    """同参数同时间签名确定性（重签可复现）；TTL 进入 X-Amz-Expires."""
+    loc = _parse_s3_uri("s3://demo-bucket/m.gguf")
+    cfg = _s3_cfg(ttl_sec=1800)
+    u1 = _presign_s3_get_object(loc, cfg, now=_S3_NOW)
+    u2 = _presign_s3_get_object(loc, cfg, now=_S3_NOW)
+    assert u1 == u2
+    assert "X-Amz-Expires=1800" in u1
+
+
+@pytest.mark.asyncio
+async def test_resolve_s3_uri_with_config_presigns() -> None:
+    """s3:// + 配置齐备 ⇒ 签出 presigned URL（host=endpoint 逐字节、含签名 query）."""
+    svc = await _service_with_versions("s3-model", [(1, "s3://demo-bucket/models/qwen.gguf", False)])
+    url = await resolve_model_artifact_url(_Registry(svc), "s3-model", "1", s3=_s3_cfg())
+    assert url is not None
+    assert url.startswith("http://172.17.218.229:9000/demo-bucket/models/qwen.gguf?")
+    assert "X-Amz-Signature=" in url and "X-Amz-Expires=3600" in url
+
+
+@pytest.mark.asyncio
+async def test_resolve_s3_uri_without_config_keeps_fallback() -> None:
+    """不传 s3 配置 ⇒ 保持既有回退兜底契约（None），不破坏单模型部署形态."""
+    svc = await _service_with_versions("s3-model", [(1, "s3://demo-bucket/qwen.gguf", False)])
+    assert await resolve_model_artifact_url(_Registry(svc), "s3-model", "1") is None
+    # 配置不完整（缺凭据）同样回退
+    partial = _s3_cfg(access_key_id="", secret_access_key="")
+    assert await resolve_model_artifact_url(_Registry(svc), "s3-model", "1", s3=partial) is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_s3_uri_bucket_not_allowed_returns_none() -> None:
+    """bucket 白名单不匹配 ⇒ 回退兜底并留日志（不签越权 URL）."""
+    svc = await _service_with_versions("s3-model", [(1, "s3://other-bucket/qwen.gguf", False)])
+    cfg = _s3_cfg(allowed_buckets="demo-bucket,good-bucket")
+    assert await resolve_model_artifact_url(_Registry(svc), "s3-model", "1", s3=cfg) is None
+    svc2 = await _service_with_versions("s3-model2", [(1, "s3://demo-bucket/qwen.gguf", False)])
+    url = await resolve_model_artifact_url(_Registry(svc2), "s3-model2", "1", s3=cfg)
+    assert url is not None and url.startswith("http://172.17.218.229:9000/demo-bucket/")
+
+
+@pytest.mark.asyncio
+async def test_resolve_s3_uri_invalid_key_keeps_fallback() -> None:
+    """s3:// key 未过白名单（如非 ASCII）⇒ 回退兜底，不生成错误签名."""
+    svc = await _service_with_versions("s3-model", [(1, "s3://demo-bucket/键.gguf", False)])
+    assert await resolve_model_artifact_url(_Registry(svc), "s3-model", "1", s3=_s3_cfg()) is None

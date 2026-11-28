@@ -34,6 +34,12 @@ rules:
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # G 线 per-service 模型 URL Secret（presigned URL=短期凭据，只写不读）：
+  # 无 get/list/watch（SA 对 ns 内全部 Secret 的读权限是最值钱的收敛刀）；
+  # create 先行、reconcile 重签走 merge patch 盲写、404 重建，均不需要 get。
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
