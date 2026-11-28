@@ -117,6 +117,18 @@ history_notes: |
   #   （92392，12-01）/ libexpat@2.8.5-r0（77214，12-01）/ libexpat@2.9.0-r0（117610/118370/
   #   113351，12-15）/ libx11@1.8.13-r0（88806，12-01）/ zlib1g@1:1.3.dfsg+really1.3.1-1+b1
   #   （76844/85091，12-15）；余 17 水位（27 CVE）承重或上游无修复版，保留。
+  # ==== 2026-11-28 补登记（PR #895 CI 的 fail-closed 自证：删 brotli-libs 水位后 Trivy Image
+  #   Scan 判红 maven:3.9-eclipse-temurin-17 / libbrotli1 1.1.0-2build2 / CVE-2026-111497，HIGH）====
+  # 遗漏根因：原 brotli-libs 豁免条目是 id-only（无 pkg/version 限定），trivy 全局豁免语义同时罩住
+  #   alpine brotli-libs 与 Ubuntu libbrotli1 两家；删除判据只核了注记点名的 alpine 两基座，maven
+  #   半边的同 CVE 跨生态形态从未被单独看见。判据漏洞已记入台账批（删除 CVE 条目须先按 FROM 清点
+  #   ×包族扫该 CVE 的所有包形态，不能只核注记点名的基座）。
+  # 证据：run 46103409026 sarif（Installed 1.1.0-2build2 / Fixed 1.1.0-2ubuntu0.1）；本机真容器
+  #   dpkg -l libbrotli1 仍 1.1.0-2build2（非缓存滞后）；同基座 curl/libexpat1/zlib1g 均已是修复版、
+  #   libx11-6 未安装 ⇒ 同批删除的其余各条在 maven 半边无暴露。
+  # 处置：新登记 libbrotli1 水位（debian / maven:3.9-eclipse-temurin-17，expired_at 2026-12-01 同批，
+  #   非挪日期——原条目已删，这是新暴露面的首次登记）；解锁判据=dpkg 直读 ≥1.1.0-2ubuntu0.1。
+  #   余量更正：12-01 批＝8 水位 / 12 CVE（原 7 水位 / 11 CVE + 本条 1/1）。
 
 # ── 水位记录 ──────────────────────────────────────────────────────────────────
 watermarks:
@@ -207,6 +219,27 @@ watermarks:
     cves:
       - id: CVE-2026-69192
         statement: 'node 22-alpine 自带 npm 的 ip-address 10.1.0 → 10.3.1'
+  - package: 'libbrotli1'
+    ecosystem: 'debian'
+    vulnerable_version: '1.1.0-2build2'
+    fixed_versions:
+      - '1.1.0-2ubuntu0.1'
+    expired_at: '2026-12-01'
+    statement: 'libbrotli1 1.1.0-2build2 → 1.1.0-2ubuntu0.1（HIGH），maven:3.9-eclipse-temurin-17 基座引用（Ubuntu noble 线）；与已清的 brotli-libs@1.2.0-r1（alpine 半边）同 CVE 跨生态形态，系删除复核 fail-closed 自证后补登记'
+    notes:
+      - '# ---- 2026-11-28：删除复核发现的跨生态遗漏（PR #895 CI fail-closed 自证）----'
+      - '# 原 brotli-libs 豁免条目是 id-only（无 pkg/version 限定），trivy 全局豁免语义同时罩住'
+      - '#   alpine brotli-libs 与 Ubuntu libbrotli1 两家；删除判据只核了 alpine 两基座，maven 半边'
+      - '#   的同 CVE 跨生态形态从未被单独看见 ⇒ 删后 CI Trivy Image Scan 判红本基座（run'
+      - '#   46103409026，sarif Installed 1.1.0-2build2 / Fixed 1.1.0-2ubuntu0.1）。'
+      - '# 本机真容器直读（2026-11-28）：dpkg -l libbrotli1 = 1.1.0-2build2，仍 < 修复线；同基座'
+      - '#   curl 8.5.0-2ubuntu10.15 / libexpat1 2.6.1-2ubuntu0.6 / zlib1g 1:1.3.dfsg-3.1ubuntu2.2'
+      - '#   均已是修复版、libx11-6 未安装 ⇒ 同批删除的其余各条在 maven 半边无暴露。'
+      - '# 解锁：docker run <base> dpkg -l libbrotli1 显示 ≥1.1.0-2ubuntu0.1 后删掉本条；或候选 tag'
+      - '#   扫描/跨线跃迁（与 #74 的 12-01 批同路径，不许挪日期）。'
+    cves:
+      - id: CVE-2026-111497
+        statement: 'libbrotli1 1.1.0-2build2 → 1.1.0-2ubuntu0.1（HIGH），maven:3.9-eclipse-temurin-17 基座引用（Ubuntu noble 线）；与已清的 brotli-libs@1.2.0-r1（alpine 半边）同 CVE 跨生态形态，系删除复核 fail-closed 自证后补登记'
   - package: 'musl'
     ecosystem: 'alpine'
     vulnerable_version: '1.2.5-r3'
