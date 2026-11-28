@@ -19,6 +19,7 @@ import argparse
 import importlib.util
 import io
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -147,9 +148,17 @@ def run_self_test(ledger_path, ignore_path):
                 print('      %s' % line)
 
         # ① 改水位（只动 fixed_versions，不动 statement）⇒ 必须判红（语义层 rc=2）
+        #    变异目标动态定位、不硬编码账本内容：768b246b 删除 libexpat 记录后，
+        #    硬编码的 '2.10.0-r0' 行随之消失，变异空转、self-test 红过一轮。
         with io.open(led, encoding='utf-8') as fh:
             ledger_text = fh.read()
-        mutated = ledger_text.replace("      - '2.10.0-r0'\n", "      - '2.9.9-r9'\n", 1)
+        m_fixed = re.search(r"^      - '[^']+'\n", ledger_text, re.M)
+        check('变异①定位到水位账的 fixed_versions 行', True, m_fixed is not None)
+        if m_fixed:
+            # 原值加后缀 ⇒ 必不在 statement 修复线里 ⇒ 触发 declared≠stated 语义矛盾（rc=2）
+            mutated = ledger_text.replace(m_fixed.group(0), m_fixed.group(0)[:-2] + "-driftprobe'\n", 1)
+        else:
+            mutated = ledger_text
         check('变异①真的改到了水位账的 fixed_versions', True, mutated != ledger_text)
         with io.open(led, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write(mutated)
@@ -160,7 +169,7 @@ def run_self_test(ledger_path, ignore_path):
             print('      %s' % line)
 
         # ①b 删掉某条水位的 fixed_versions ⇒ 同样判红
-        mutated_del = ledger_text.replace("      - '2.10.0-r0'\n", '', 1)
+        mutated_del = ledger_text.replace(m_fixed.group(0), '', 1) if m_fixed else ledger_text
         with io.open(led, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write(mutated_del)
         rc, report = check_drift(led, ign)
@@ -172,8 +181,13 @@ def run_self_test(ledger_path, ignore_path):
             fh.write(ledger_text)
         with io.open(ign, encoding='utf-8') as fh:
             ignore_text = fh.read()
-        mutated_ignore = ignore_text.replace('- id: CVE-2026-117610',
-                                             '- id: CVE-2026-117611', 1)
+        m_id = re.search(r"^(  - id: CVE-\d{4}-\d+)$", ignore_text, re.M)
+        check('变异②定位到生成物的 id 行', True, m_id is not None)
+        if m_id:
+            # id 尾号添 0 ⇒ 必为账本未登记的 id ⇒ 生成物多 id 判红
+            mutated_ignore = ignore_text.replace(m_id.group(0), m_id.group(0) + '0', 1)
+        else:
+            mutated_ignore = ignore_text
         check('变异②真的改到了生成物', True, mutated_ignore != ignore_text)
         with io.open(ign, 'w', encoding='utf-8', newline='\n') as fh:
             fh.write(mutated_ignore)
