@@ -101,6 +101,22 @@ history_notes: |
   #     删除安全性要一次「去掉该条目的扫描」才能证；而未命中的豁免项不造成假绿，留着零风险、删错当场红。
   # 结论：本文件条目数不变（19 条），只更正读法；到期（12-01 / 12-15）逐条按 `docker run <base> apk info -v`
   #   这类可复核判据清，不靠挪日期。
+  # ==== 2026-11-28 复核：按判据清出 6 水位 / 9 CVE（删除审计可重建：每条到期日如下）----
+  # 证据（本机真容器直读；temurin/alpine/maven 的 trivy raw scan 因 java-db 下载挂起未跑完，
+  # 判据走本文件自带的 apk/dpkg 直读口径，gate 形态旁证由删除 PR 自身的 CI Trivy Image Scan 提供）：
+  #   · eclipse-temurin:17-jre-alpine apk list -I：libexpat-2.10.0-r0、brotli-libs-1.2.1-r0
+  #     ⇒ libexpat 2.8.5-r0 与 2.9.0-r0 两条水位、brotli-libs 条全部解锁（基座已带上修复版）
+  #   · python:3.12-slim dpkg 直读 zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1，且本机 trivy 0.76.2
+  #     raw scan（--ignore-unfixed 同口径、未带 ignorefile）该基座 Total=1 仅 libzstd1 ⇒ zlib1g 两条解锁
+  #   · nginx:alpine 已无 FROM 引用（frontend 运行层 #768 起为 nginx:alpine-slim）⇒ curl/libx11
+  #     与 libexpat@2.9.0 的 nginx 半边死引用；temurin 半边由上条 apk 证据解锁 ⇒ 整水位删除
+  #   · node:22-alpine 仍有 1 处 frontend build 引用（活引用，同 maven builder 口径登记）⇒
+  #     npm 9 条承重保留；12-01 批余量 7 水位 / 11 CVE（npm 9 + maven guava/openssl 2）到期压力未解
+  #     （候选 tag 扫描/跨线跃迁待立项），不许挪日期过关
+  # 删除 6 水位 / 9 CVE 与各自到期日：brotli-libs@1.2.0-r1（111497，12-01）/ curl@8.22.0-r0
+  #   （92392，12-01）/ libexpat@2.8.5-r0（77214，12-01）/ libexpat@2.9.0-r0（117610/118370/
+  #   113351，12-15）/ libx11@1.8.13-r0（88806，12-01）/ zlib1g@1:1.3.dfsg+really1.3.1-1+b1
+  #   （76844/85091，12-15）；余 17 水位（27 CVE）承重或上游无修复版，保留。
 
 # ── 水位记录 ──────────────────────────────────────────────────────────────────
 watermarks:
@@ -164,48 +180,6 @@ watermarks:
         statement: '同上，brace-expansion 2.0.2 → 2.1.3/3.0.3/5.0.8'
       - id: CVE-2026-69152
         statement: '同上，brace-expansion 2.0.2 → 2.1.4/3.0.6/5.0.9'
-  - package: 'brotli-libs'
-    ecosystem: 'alpine'
-    vulnerable_version: '1.2.0-r1'
-    fixed_versions:
-      - '1.2.1-r0'
-    expired_at: '2026-12-01'
-    statement: 'brotli-libs 1.2.0-r1 → 1.2.1-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 9 个 Dockerfile 运行时阶段 apk upgrade --no-cache brotli-libs，本机实测两种基座均升到 1.2.1-r0、整镜像复扫 findings 1→0'
-    notes:
-      - '# ---- nginx:alpine / eclipse-temurin:17-jre-alpine：2026-10-24 扫描新出现的 brotli-libs ----'
-      - '# 与上面 libexpat / libx11 两条完全同型：修复版已在 Alpine 仓库（1.2.0-r1 → 1.2.1-r0，'
-      - '# CVE-2026-111497 HIGH），本仓把同一个包加进那 9 个 Dockerfile 的构建期升级里'
-      - '# （`apk upgrade --no-cache libexpat brotli-libs`，frontend 另含 libx11）。本机实测：'
-      - '#   apk list -I brotli-libs：eclipse-temurin:17-jre-alpine 基座 1.2.0-r1 ⇒ 加升级层后 1.2.1-r0'
-      - '#                            nginx:alpine            基座 1.2.0-r1 ⇒ 加升级层后 1.2.1-r0'
-      - '#   整镜像复扫（trivy 0.76.1，与 CI 同口径 --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed）：'
-      - '#     基座 eclipse-temurin:17-jre-alpine findings=1 ⇒ 加 apk upgrade 后 findings=0，体积 256.2MB → 257.8MB（+1.6MB）'
-      - '# 这条豁免只为「门禁的 image job 扫的是 FROM 里的基座引用本身、看不到构建期升级」而记；出货镜像已干净。'
-      - '# 记一条反面结论省得下轮重走：把 9 个 Java 运行层换成 eclipse-temurin:17-jre（Debian）并不更干净——'
-      - '# 本机实测该基座 HIGH/CRITICAL（有修复版）4 条，全是镜像内 /usr/bin/pebble 的 Go stdlib v1.27.1'
-      - '# （就是本表第 80/89 行那两条豁免），CI 之所以报它 ✓ 正是因为那两条在豁免表里；换过去等于'
-      - '# 「把一条没豁免的红换成四条靠豁免的绿」，且每个镜像 +163MB（244.3 → 407.2 MiB，本机 docker Size 实测）。'
-      - '# 解锁：上游基座重建后（`docker run <base> apk list -I brotli-libs` 显示 ≥1.2.1-r0）删掉本条。'
-    cves:
-      - id: CVE-2026-111497
-        statement: 'brotli-libs 1.2.0-r1 → 1.2.1-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 9 个 Dockerfile 运行时阶段 apk upgrade --no-cache brotli-libs，本机实测两种基座均升到 1.2.1-r0、整镜像复扫 findings 1→0'
-  - package: 'curl'
-    ecosystem: 'alpine'
-    vulnerable_version: '8.22.0-r0'
-    fixed_versions:
-      - '8.23.0-r0'
-    expired_at: '2026-12-01'
-    statement: 'curl/libcurl 8.22.0-r0 → 8.23.0-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache curl 取仓内 8.23.0-r0（APKINDEX 实测）'
-    notes:
-      - '# ---- nginx:alpine：2026-10-28 扫描新出现的 curl/libcurl（浮动 tag 已漂到 Alpine 3.24.3）----'
-      - '# 基座自带 curl/libcurl 8.22.0-r0（CVE-2026-92392 HIGH），Alpine 仓库已有 8.23.0-r0。'
-      - '# 处置同 libexpat/libx11/brotli：frontend/Dockerfile 运行时阶段 apk upgrade --no-cache curl。'
-      - '# 取证：CI 的 SARIF 报基座 Installed 8.22.0-r0；Alpine v3.24 main 仓 APKINDEX 实测 V:8.23.0-r0'
-      - '# （mirrors.aliyun.com/alpine/v3.24/main/x86_64/APKINDEX.tar.gz）。'
-      - '# 解锁：上游基座重建后（docker run <base> apk list -I curl 显示 ≥8.23.0-r0）删掉本条。'
-    cves:
-      - id: CVE-2026-92392
-        statement: 'curl/libcurl 8.22.0-r0 → 8.23.0-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache curl 取仓内 8.23.0-r0（APKINDEX 实测）'
   - package: 'guava'
     ecosystem: 'maven'
     vulnerable_version: '33.6.0-jre'
@@ -233,77 +207,6 @@ watermarks:
     cves:
       - id: CVE-2026-69192
         statement: 'node 22-alpine 自带 npm 的 ip-address 10.1.0 → 10.3.1'
-  - package: 'libexpat'
-    ecosystem: 'alpine'
-    vulnerable_version: '2.8.5-r0'
-    fixed_versions:
-      - '2.9.0-r0'
-    expired_at: '2026-12-01'
-    statement: 'libexpat 2.8.5-r0 → 2.9.0-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 Dockerfile 运行时阶段 apk upgrade --no-cache libexpat，出货镜像实测取到 2.9.0-r0'
-    notes:
-      - '# ---- nginx:alpine / eclipse-temurin:17-jre-alpine：2026-10-19 扫描新出现的 libexpat / libx11 ----'
-      - '# 与上面几条的区别：这两条的修复版**已经在 Alpine 仓库里**（不是跨线跃迁），'
-      - '# 且本仓已在运行时阶段构建期升级：8 个 temurin-alpine 镜像与 frontend nginx 镜像（共 9 个 Dockerfile）都加了'
-      - '# `apk upgrade --no-cache libexpat`（nginx 另加 libx11）。本机实测两种基座均升到修复版：'
-      - '#   nginx:alpine (Alpine 3.24.2): libexpat 2.8.5-r0→2.9.0-r0, libx11 1.8.13-r0→1.8.14-r0'
-      - '#   eclipse-temurin:17-jre-alpine: libexpat 2.8.5-r0→2.9.0-r0'
-      - '# 这条豁免只为"门禁扫的是基座引用本身、看不到构建期升级"而记；出货镜像已干净。'
-      - '# 解锁：上游基座重建后（`docker run <base> apk list -I libexpat` 显示 ≥2.9.0-r0）删掉本条。'
-    cves:
-      - id: CVE-2026-77214
-        statement: 'libexpat 2.8.5-r0 → 2.9.0-r0。基座 nginx:alpine 与 eclipse-temurin:17-jre-alpine 尚未重建；本仓 Dockerfile 运行时阶段 apk upgrade --no-cache libexpat，出货镜像实测取到 2.9.0-r0'
-  - package: 'libexpat'
-    ecosystem: 'alpine'
-    vulnerable_version: '2.9.0-r0'
-    fixed_versions:
-      - '2.10.0-r0'
-    expired_at: '2026-12-15'
-    statement: 'libexpat 2.9.0-r0 → 2.10.0-r0，仅 eclipse-temurin:17-jre-alpine 与 nginx:alpine 基座引用；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）'
-    notes:
-      - '# ---- 2026-11-03：libexpat 的补丁水位又漂了一档（2.9.0-r0 → 2.10.0-r0）----'
-      - '# 现场：main `8ff6662a` 的 Trivy Image Scan（job 125833023453，09:33:04Z→09:34:15Z）报'
-      - '#   「共有 2 个镜像存在 HIGH/CRITICAL 漏洞，阻断 CI」，两条都是 libexpat 2.9.0-r0：'
-      - '#   CVE-2026-117610 与 CVE-2026-118370，Fixed Version 均为 2.10.0-r0。'
-      - '#   命中面＝eclipse-temurin:17-jre-alpine（encaps-data 等）与 nginx:alpine（frontend）。'
-      - '# 为什么不是「放过风险」：这道门禁扫的是**基座引用本身**（security.yml:669 传 --ignorefile、'
-      - '#   :702-704 按镜像计数），而出货镜像在运行时阶段自己升这个包——'
-      - '#   frontend/Dockerfile:28 是 `apk upgrade --no-cache libexpat brotli-libs libx11 curl`，'
-      - '#   仓内 29 个 Alpine 运行时 Dockerfile 各有一条 `apk upgrade --no-cache libexpat brotli-libs`'
-      - '#   （台账 #98 C-1 补齐，2026-11-02 起 29/29）。'
-      - '# 本机实测（2026-11-03，真容器）：两个基座 `apk info -v` 都是 libexpat-2.9.0-r0，'
-      - '#   执行 `apk upgrade --no-cache libexpat` 后都取到 **libexpat-2.10.0-r0**（alpine 3.24.3，'
-      - '#   仓库 policy 显示可给 2.10.0-r0）⇒ 出货镜像不落在受影响区间，红的只是基座引用。'
-      - '# 解锁：上游基座重建带上 2.10.0-r0 后删掉这两条（判据 `docker run <base> apk info -v | grep ^libexpat-`'
-      - '#   显示 2.10.0-r0）。到期未解就重新复核，不许只挪日期。'
-      - '# ---- 2026-11-05：libexpat 补丁水位 24 小时内二次漂移（同一修复版 2.10.0-r0 上又添一条 CVE）----'
-      - '# 现场：PR #767 head b483d7b4 的 Trivy Image Scan（Security run 41893870538 / job 126798064106，'
-      - '#   2026-11-04T19:28:35Z）报「1 个镜像存在 HIGH/CRITICAL」：docker.m.daocloud.io/library/nginx:alpine'
-      - '#   （frontend）——CVE-2026-113351，Package libexpat，Installed 2.9.0-r0，Fixed 2.10.0-r0。'
-      - '#   同一轮 eclipse-temurin:17-jre-alpine 是 0 命中（11-03 的 117610/118370 两条豁免生效）。'
-      - '# 本机实测（2026-11-05，真容器）：两个基座 /etc/alpine-release 都是 3.24.3、apk info -v 都是'
-      - '#   libexpat-2.9.0-r0；nginx 基座 apk upgrade --no-cache libexpat 后为 2.10.0-r0；'
-      - '#   frontend/Dockerfile:28 与 30 个 Alpine 运行时 Dockerfile 都带这条升级 ⇒ 出货镜像不在受影响区间。'
-      - '# 如实记下的未知：两条基座同 Alpine 版本、同包版本，但只有 nginx:alpine 被匹配到这条 CVE，'
-      - '#   trivy 侧的匹配差异未查清——本豁免只覆盖 SARIF 实测到的这个面。'
-      - '# 解锁：上游基座重建带上 2.10.0-r0 后删掉本条（判据 docker run <base> apk info -v | grep ^libexpat-）。'
-    cves:
-      - id: CVE-2026-117610
-        statement: 'libexpat 2.9.0-r0 → 2.10.0-r0，仅 eclipse-temurin:17-jre-alpine 与 nginx:alpine 基座引用；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）'
-      - id: CVE-2026-118370
-        statement: '同上（同一包同一水位、同日同一次扫描报出）：基座引用 2.9.0-r0，出货镜像 apk upgrade 后为 2.10.0-r0'
-      - id: CVE-2026-113351
-        statement: 'libexpat 2.9.0-r0 → 2.10.0-r0，本轮仅 nginx:alpine 基座引用命中；出货镜像运行时层 apk upgrade libexpat（本机实测升到 2.10.0-r0）'
-  - package: 'libx11'
-    ecosystem: 'alpine'
-    vulnerable_version: '1.8.13-r0'
-    fixed_versions:
-      - '1.8.14-r0'
-    expired_at: '2026-12-01'
-    statement: 'libx11 1.8.13-r0 → 1.8.14-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache libx11，本机实测升到 1.8.14-r0'
-    notes: []
-    cves:
-      - id: CVE-2026-88806
-        statement: 'libx11 1.8.13-r0 → 1.8.14-r0，仅 nginx:alpine。frontend/Dockerfile 运行时阶段 apk upgrade --no-cache libx11，本机实测升到 1.8.14-r0'
   - package: 'musl'
     ecosystem: 'alpine'
     vulnerable_version: '1.2.5-r3'
@@ -371,45 +274,6 @@ watermarks:
     cves:
       - id: CVE-2026-48815
         statement: 'node 22-alpine 自带 npm 的 sigstore 3.1.0；随 npm 内容更新清'
-  - package: 'zlib1g'
-    ecosystem: 'debian'
-    vulnerable_version: '1:1.3.dfsg+really1.3.1-1+b1'
-    fixed_versions:
-      - '1+deb13u1'
-    expired_at: '2026-12-15'
-    statement: 'zlib1g 1:1.3.dfsg+really1.3.1-1+b1 → 1+deb13u1（HIGH），python:3.12-slim 基座引用（11 个出货 Dockerfile 共享该引用，门禁去重后单扫）；运行时层 --only-upgrade zlib1g 已补，出货镜像不在受影响区间'
-    notes:
-      - '# ---- 2026-11-07：python:3.12-slim 基座 zlib1g 补丁水位漂移（Security run 42413193574 实证）----'
-      - '# 现场：main `02302658` 的 Trivy Image Scan（2026-11-07T21:01:57Z→21:02:01Z）报'
-      - '#   「1 个镜像存在 HIGH/CRITICAL」：docker.m.daocloud.io/library/python:3.12-slim'
-      - '#   （门禁按镜像引用去重，该引用首个 Dockerfile=asset-exchange）——两条均为 zlib1g：'
-      - '#   Installed 1:1.3.dfsg+really1.3.1-1+b1，Fixed 1:1.3.dfsg+really1.3.1-1+deb13u1，均 HIGH。'
-      - '# 根因取证（不起 docker，registry layer 直读 + 国内镜像站索引，全部本机实测）：'
-      - '#   · 基座 manifest list digest sha256:05a994d2344e…；匿名 token 拉 amd64 首层 layer 直解'
-      - '#     /etc/apt/sources.list.d/debian.sources：deb.debian.org + debian-security，'
-      - '#     suites 含 trixie / trixie-updates / **trixie-security** main（快照 20261104T212339Z）。'
-      - '#   · 同层 var/lib/dpkg/status 直读：zlib1g 现装 -1+b1（与 SARIF Installed 一致，不依赖'
-      - '#     trivy 单方口径）；apt/libapt-pkg7.0 已是 3.0.4（11-06 #115 python 半边被基座自重建消解过的验证）。'
-      - '#   · mirrors.aliyun.com/debian-security dists/trixie-security main Packages.xz 直读：'
-      - '#     zlib1g 1:1.3.dfsg+really1.3.1-1+deb13u1 已发布；trixie main 仓仍是 -1+b1。'
-      - '#     ⇒ 修复版只在 security 仓且基座含该源 ⇒ 定向补包真能取到修复版（不是无操作假修）。'
-      - '# 处置=#98 C-1 同款定向补包：11 个 python:3.12-slim 出货 Dockerfile 运行时层加'
-      - '#   `--only-upgrade zlib1g`：asset-exchange / operations-api 并入既有 apt/libapt 升级行；'
-      - '#   batch-pipeline 并入 runtime 段；business-portal / industry-templates / nl2sql / llmops /'
-      - '#   llm-gateway(evaluation) 追加在既有 install 行之后；knowledge-engine / ml-platform /'
-      - '#   open-api-catalog 此前无 apt 段、新增整段。builder 段不随出货镜像发布、不重复。'
-      - '#   基座引用那一面由本表两条覆盖（#87 结构：门禁扫 FROM 引用、看不见构建期升级）。'
-      - '# 本轮实测否证的假设（省得下轮重走）：① 「基座自重建自消」——gh run rerun --failed 复跑'
-      - '#   同一 job（21:17:49Z 起）仍 failure，基座未随安全更新重建（对比 11-06 python 半边确实自消过）；'
-      - '#   ② 「同线换 tag 能清」——trixie main 就是旧版，security 增量不在 main，换 patch tag 无益。'
-      - '# 解锁：上游 python:3.12-slim 基座重建带上 1+deb13u1 后删掉这两条。'
-      - '# 判据：registry layer 直读 dpkg status 显示 zlib1g ≥1:1.3.dfsg+really1.3.1-1+deb13u1，'
-      - '#   或 CI 该格复扫 0 命中。到期未清按判据复核、不续期。'
-    cves:
-      - id: CVE-2026-76844
-        statement: 'zlib1g 1:1.3.dfsg+really1.3.1-1+b1 → 1+deb13u1（HIGH），python:3.12-slim 基座引用（11 个出货 Dockerfile 共享该引用，门禁去重后单扫）；运行时层 --only-upgrade zlib1g 已补，出货镜像不在受影响区间'
-      - id: CVE-2026-85091
-        statement: '同上（同一包同一水位、同一次扫描报出的第二条 CVE）：基座引用 -1+b1，出货镜像 --only-upgrade zlib1g 后为 1+deb13u1'
 
   # ── 2026-11-25 台账 #137：python:3.12-slim 基座漂至 trixie，CI 报 54 条（去重 14 id）HIGH ──
   # 实测（WSL trivy 0.76.2 同口径）：仅 CVE-2026-124851（libzstd1）有修复版，其余 13 条上游无修复版。
