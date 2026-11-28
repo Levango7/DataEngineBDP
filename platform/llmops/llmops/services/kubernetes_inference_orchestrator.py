@@ -45,7 +45,7 @@ from llmops.services.inference_orchestrator import (
     deployment_name,
     tenant_tag,
 )
-from llmops.services.model_artifact import S3PresignConfig, _parse_s3_uri, _presign_s3_get_object
+from llmops.services.model_artifact import S3PresignConfig, _log_safe, _parse_s3_uri, _presign_s3_get_object
 
 logger = logging.getLogger(__name__)
 
@@ -336,7 +336,7 @@ class KubernetesInferenceOrchestrator:
             try:
                 fn(name=target, namespace=self._ns)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("残留清理 %s(%s) 失败: %s", fn_name, target, type(exc).__name__)
+                logger.warning("残留清理 %s(%s) 失败: %s", _log_safe(fn_name), _log_safe(target), type(exc).__name__)
 
     # ---------------------------------------------------------------- 编排操作
     def deploy(self, tenant: str, payload: dict[str, Any], model_url: Optional[str] = None) -> dict[str, Any]:
@@ -390,7 +390,7 @@ class KubernetesInferenceOrchestrator:
             self._k8s.create_namespaced_service(namespace=self._ns, body=service_body(self._settings, tenant, svc))
         except Exception as exc:  # noqa: BLE001  K8s API 异常 → 真实上报 FAILED
             # 日志与 errorMessage 只记脱敏描述（不含异常消息体——可能内嵌签名 URL）。
-            logger.warning("推理服务 %s 集群创建失败: %s", svc_id, self._describe_exc(exc))
+            logger.warning("推理服务 %s 集群创建失败: %s", _log_safe(svc_id), self._describe_exc(exc))
             self._cleanup(name, secret_name)
             return self._store.patch_inference(
                 tenant,

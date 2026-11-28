@@ -39,6 +39,15 @@ from llmops.services.registry import ServiceRegistry
 logger = logging.getLogger(__name__)
 
 _S3_BUCKET_RE = re.compile(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$")
+_LOG_UNSAFE_RE = re.compile(r"[\r\n\x00-\x1f\x7f]")
+
+
+def _log_safe(value: object, limit: int = 120) -> str:
+    """日志净化（CodeQL py/log-injection 修复）：模型名/服务 id 等用户可控值进
+    日志前剥控制字符与换行（防日志行伪造/注入），并截断。"""
+    return _LOG_UNSAFE_RE.sub("_", str(value))[:limit]
+
+
 # 对象键白名单（fail-closed）：ASCII 可打印且非空白（0x21-0x7E 即排除空格与
 # 全部控制字符），并禁 ? 与 #（query/fragment 语义字符）。
 _S3_KEY_RE = re.compile(r"^[!-~]+$")
@@ -266,8 +275,8 @@ async def resolve_model_artifact_url(
             if loc is None:
                 logger.info(
                     "模型 %s v%s 的 s3:// artifactUri 未通过对象键白名单校验，回退全局兜底模型 URL",
-                    name,
-                    getattr(picked, "version", "?"),
+                    _log_safe(name),
+                    _log_safe(getattr(picked, "version", "?")),
                 )
                 return None
             allowed = s3.allowed_bucket_set
@@ -275,8 +284,8 @@ async def resolve_model_artifact_url(
                 # 白名单「空=不限制」；非空才过滤（空集一律拒绝是错误语义）
                 logger.info(
                     "模型 %s v%s 的 s3 bucket 不在白名单内，回退全局兜底模型 URL",
-                    name,
-                    getattr(picked, "version", "?"),
+                    _log_safe(name),
+                    _log_safe(getattr(picked, "version", "?")),
                 )
                 return None
             return _presign_s3_get_object(loc, s3)
@@ -291,13 +300,13 @@ async def resolve_model_artifact_url(
         # 不阻断部署。日志只记 uri 前 80 字符（s3:// 形态不含签名，见 docstring）。
         logger.info(
             "模型 %s v%s 的 artifactUri 无法转为下载 URL（%s），回退全局兜底模型 URL",
-            name,
-            getattr(picked, "version", "?"),
-            uri[:80],
+            _log_safe(name),
+            _log_safe(getattr(picked, "version", "?")),
+            _log_safe(uri, 80),
         )
         return None
     except Exception as exc:  # noqa: BLE001  模型仓查询失败不阻断部署，回退兜底
         # 日志纪律：只记异常类别名——K8s/HTTP 异常消息可能内嵌请求体（含签名 URL），
         # 不进日志（security 复审 P1：泄漏面硬规则）。
-        logger.warning("解析模型 %s 的 artifact URL 失败（回退全局兜底）: %s", name, type(exc).__name__)
+        logger.warning("解析模型 %s 的 artifact URL 失败（回退全局兜底）: %s", _log_safe(name), type(exc).__name__)
         return None
