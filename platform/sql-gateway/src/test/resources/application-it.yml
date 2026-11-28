@@ -38,19 +38,13 @@ sql-gateway:
       url: ${TRINO_URL:http://localhost:8080}
       # 连接超时 10s，读取超时 30s（BackendConfig.timeout 同时用于两者）
       timeout: 30
-      max-retries: 1
     # Doris FE 端点：HTTP 8030 用于 UI/REST；JDBC 9030 用于 SQL 执行
     # BackendProxyService.resolveDorisJdbcUrl 会将 http://host:port 自动转为
     # jdbc:mysql://host:port，因此这里配置 9030（查询端口）
     doris:
       url: ${DORIS_URL:http://localhost:9030}
       timeout: 30
-      max-retries: 1
   default-engine: trino
-  circuit-breaker:
-    enabled: true
-    failure-threshold: 5
-    reset-timeout: 60
 
 # 关闭 OpenTelemetry 导出（集成测试无需收集链路）
 otel:

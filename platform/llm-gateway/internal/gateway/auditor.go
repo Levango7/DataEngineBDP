@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"strings"
@@ -24,6 +25,7 @@ type AuditRecord struct {
 	Model     string        `json:"model"`
 	Operation string        `json:"operation"` // "chat" / "embedding"
 	Success   bool          `json:"success"`
+	Blocked   bool          `json:"blocked"`
 	Tokens    int           `json:"tokens"`
 	Latency   time.Duration `json:"latency"`
 	Error     string        `json:"error,omitempty"`
@@ -36,19 +38,20 @@ type Auditor struct {
 	logger         *slog.Logger
 	records        []AuditRecord // 内存审计日志（生产环境可改为落盘/投递）
 	maxRecords     int
+	logPath        string
 }
 
 // NewAuditor 构造审计器。
 //
 // sensitiveWords 敏感词列表，命中任一即拦截。
-// logPath 审计日志路径（当前实现：仅输出到 slog，logPath 保留扩展位）。
+// logPath 审计日志 JSONL 落盘路径；为空时仅内存+slog。
 func NewAuditor(sensitiveWords []string, logPath string) *Auditor {
-	_ = logPath // 预留：生产环境可在此打开审计日志文件
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	return &Auditor{
 		sensitiveWords: append([]string{}, sensitiveWords...),
 		logger:         logger,
 		maxRecords:     1024,
+		logPath:        logPath,
 	}
 }
 
@@ -114,8 +117,36 @@ func (a *Auditor) CheckEmbedding(tenantID, userID, model string, input []string)
 	return nil
 }
 
+// CheckResponse 检查对话响应是否命中敏感词。
+func (a *Auditor) CheckResponse(tenantID, userID, model string, resp *provider.ChatResponse) error {
+	if resp == nil {
+		return nil
+	}
+	for _, choice := range resp.Choices {
+		if word, hit := a.containsSensitive(choice.Message.Content); hit {
+			a.logger.Warn("sensitive response blocked",
+				slog.String("tenantId", tenantID),
+				slog.String("userId", userID),
+				slog.String("model", model),
+				slog.String("word", word),
+			)
+			return provider.ErrSensitiveContent
+		}
+	}
+	return nil
+}
+
 // RecordChat 记录一次对话调用审计。
 func (a *Auditor) RecordChat(tenantID, userID, model string, resp *provider.ChatResponse, err error, latency time.Duration) {
+	a.recordChat(tenantID, userID, model, resp, err, latency, false)
+}
+
+// RecordBlockedChat 记录一次响应侧拦截的对话调用审计。
+func (a *Auditor) RecordBlockedChat(tenantID, userID, model string, resp *provider.ChatResponse, err error, latency time.Duration) {
+	a.recordChat(tenantID, userID, model, resp, err, latency, true)
+}
+
+func (a *Auditor) recordChat(tenantID, userID, model string, resp *provider.ChatResponse, err error, latency time.Duration, blocked bool) {
 	rec := AuditRecord{
 		Timestamp: time.Now(),
 		TenantID:  tenantID,
@@ -123,6 +154,7 @@ func (a *Auditor) RecordChat(tenantID, userID, model string, resp *provider.Chat
 		Model:     model,
 		Operation: "chat",
 		Success:   err == nil,
+		Blocked:   blocked,
 		Latency:   latency,
 	}
 	if resp != nil {
@@ -171,9 +203,31 @@ func (a *Auditor) append(rec AuditRecord) {
 		slog.String("model", rec.Model),
 		slog.String("op", rec.Operation),
 		slog.Bool("success", rec.Success),
+		slog.Bool("blocked", rec.Blocked),
 		slog.Int("tokens", rec.Tokens),
 		slog.Duration("latency", rec.Latency),
 	)
+	if a.logPath != "" {
+		if err := a.appendFile(rec); err != nil {
+			a.logger.Error("audit log write failed", slog.String("path", a.logPath), slog.String("error", err.Error()))
+		}
+	}
+}
+
+func (a *Auditor) appendFile(rec AuditRecord) error {
+	line, err := json.Marshal(rec)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(a.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Records 返回审计记录快照。

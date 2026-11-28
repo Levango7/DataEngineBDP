@@ -329,6 +329,27 @@ public class BackendProxyService {
      * @return 后端执行响应（异步）
      */
     public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId, Integer limit) {
+        return proxyToDoris(sql, tenantId, limit, null);
+    }
+
+    /**
+     * 代理 SQL 到 Doris 后端（JDBC / MySQL 兼容协议，带行数上限、租户凭证映射与绑定参数）。
+     *
+     * <p>Doris 2.x 已不提供旧版 {@code POST /api/query} HTTP SQL 接口，
+     * 改用 MySQL 兼容协议（FE query_port 9030）执行 SQL，接入方式与
+     * tag-engine / metadata-collector 保持一致。</p>
+     *
+     * <p>租户隔离：优先使用 {@code sql-gateway.backends.doris.tenant-users} 中
+     * 该租户的专属凭证连接（引擎侧真实权限隔离）；未配置映射时回退默认凭证并告警。</p>
+     *
+     * @param sql      待执行的 SQL
+     * @param tenantId 租户 ID（用于租户专属凭证选择）
+     * @param limit    返回行数上限（null 表示仅受 maxRows 硬上限约束）
+     * @param params   绑定参数（按 {@code ?} 顺序）；null/空表示整段 SQL 文本执行
+     * @return 后端执行响应（异步）
+     */
+    public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId, Integer limit,
+                                                  java.util.List<Object> params) {
         String queryId = UUID.randomUUID().toString();
 
         // 熔断检查
@@ -362,11 +383,22 @@ public class BackendProxyService {
 
         // JDBC 为阻塞调用，包装到 Mono.fromCallable 并调度到 boundedElastic 弹性线程池，
         // 避免阻塞 Reactor 事件循环线程；成功时重置熔断计数，失败时记录并降级返回。
+        final boolean bindParams = params != null && !params.isEmpty();
         return Mono.fromCallable(() -> {
                     try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), dorisUser, dorisPass);
-                         Statement stmt = conn.createStatement()) {
+                         java.sql.Statement stmt = bindParams
+                                 ? conn.prepareStatement(sql)
+                                 : conn.createStatement()) {
                         applyQueryTimeout(stmt);
-                        boolean hasResultSet = stmt.execute(sql);
+                        if (bindParams) {
+                            java.sql.PreparedStatement pstmt = (java.sql.PreparedStatement) stmt;
+                            for (int i = 0; i < params.size(); i++) {
+                                pstmt.setObject(i + 1, params.get(i));
+                            }
+                        }
+                        boolean hasResultSet = bindParams
+                                ? ((java.sql.PreparedStatement) stmt).execute()
+                                : stmt.execute(sql);
                         if (hasResultSet) {
                             try (ResultSet rs = stmt.getResultSet()) {
                                 return buildDorisResponse(rs, queryId,
