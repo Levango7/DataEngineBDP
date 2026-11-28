@@ -15,8 +15,12 @@
 #   A2 legacy / nft-save 两个源同时命中同一规则时，各源独立成行，
 #      primary 只计一次（跨源不重复计数）
 #   A3 iptables 系全空时回退 nft 原生 ruleset，且能解析出 pkts/bytes
-#   B1 变异对照：旧实现（-t nat）对同一 filter 夹具取不到（status=not_found，
-#      增量 status=counter_unavailable）
+#   B1 变异对照（需外部旧版脚本路径）：旧实现（-t nat）对同一 filter 夹具取不到
+#      （status=not_found，增量 status=counter_unavailable）
+#   B2 变异对照（自包含，CI 可跑）：把被测实现的取表参数回退为 nat-only
+#      （COUNTER_TABLES="nat"，即旧实现的取表参数缺陷）后，对同一 filter 夹具
+#      必须取不到（status=not_found，增量 status=counter_unavailable）。
+#      B2 不依赖任何仓外文件 ⇒ CI 门禁可直接跑本脚本守住「取表参数回退即红」。
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -216,6 +220,35 @@ assert_contains "A3 nft 原生 filter 表计数被解析" "$A3_BEFORE" \
   "source=nft table=filter chain=KUBE-SERVICES pkts=5 bytes=300 lines=1 primary=1"
 assert_contains "A3 nft 原生 nat 表计数被解析" "$A3_BEFORE" \
   "source=nft table=nat chain=KUBE-SERVICES pkts=2 bytes=120 lines=1 primary=0"
+
+echo "=== B2 变异对照（自包含）：取表参数回退为 nat-only ⇒ 必须取不到 ==="
+# 从被测脚本抽取的函数段派生「nat-only」变体：把 COUNTER_TABLES 改回 nat
+# —— 这正是旧实现的取表参数缺陷（`-t nat` 只取 nat 表，而无端点 Service 的
+# REJECT 规则挂在 filter 表 KUBE-SERVICES 链）。
+sed 's/^COUNTER_TABLES="filter nat"$/COUNTER_TABLES="nat"/' "$TMPROOT/functions_new.sh" \
+  > "$TMPROOT/functions_natonly.sh"
+if ! grep -q '^COUNTER_TABLES="nat"$' "$TMPROOT/functions_natonly.sh"; then
+  echo "FATAL 变异未生效：COUNTER_TABLES 形态已变，无法做 nat-only 变异对照"
+  exit 2
+fi
+if ! grep -q '^COUNTER_TABLES="filter nat"$' "$TMPROOT/functions_new.sh"; then
+  echo "FATAL 被测实现的取表参数形态已变（不再是 filter+nat），请同步更新本变异对照"
+  exit 2
+fi
+# 独立 bash 进程，避免覆盖已 source 的新实现；关掉 nft 源以对齐旧实现环境
+FAKE_ENABLE_SAVE=yes FAKE_ENABLE_LEGACY=no FAKE_ENABLE_NFTSAVE=no FAKE_ENABLE_NFT=no \
+bash -c '
+  . "$1/functions_natonly.sh"
+  snapshot_rule_counters "$2" "$1/natonly_snapshot" || true
+  emit_rule_counters "$2" "$1/natonly_snapshot" BEFORE host
+  emit_rule_counter_delta "$2" "$1/natonly_snapshot" "$1/natonly_snapshot" host
+' _ "$TMPROOT" "$FIXTURE_IP" > "$TMPROOT/b2_out.txt" 2>&1
+B2_OUT="$(cat "$TMPROOT/b2_out.txt")"
+echo "$B2_OUT" | sed 's/^/      /'
+assert_contains "B2 nat-only 变体取不到规则（status=not_found）" "$B2_OUT" \
+  "RULE_COUNTER_BEFORE ip=${FIXTURE_IP} view=host pkts=- bytes=- lines=0 status=not_found"
+assert_contains "B2 nat-only 变体增量不可用（status=counter_unavailable）" "$B2_OUT" \
+  "RULE_COUNTER_DELTA ip=${FIXTURE_IP} view=host pkts=- bytes=- status=counter_unavailable"
 
 echo "=== B1 变异对照：旧实现（-t nat）对同一 filter 夹具取不到 ==="
 if [ -z "$LEGACY_SCRIPT" ]; then
